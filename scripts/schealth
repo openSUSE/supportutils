@@ -1,0 +1,506 @@
+#!/bin/bash
+SVER=1.00-5
+
+##############################################################################
+#  schealth - Supportconfig Health Check Report Tool
+#
+#  Copyright (C) 2008-2012 SUSE Linux Products GmbH, Nuernberg, Germany
+#
+#  Please submit bug fixes or comments via:
+#    http://en.opensuse.org/Supportutils#Reporting_Bugs
+#
+##############################################################################
+#
+#  This program is free software; you can redistribute it and/or modify
+#  it under the terms of the GNU General Public License as published by
+#  the Free Software Foundation; version 2 of the License.
+#
+#  This program is distributed in the hope that it will be useful,
+#  but WITHOUT ANY WARRANTY; without even the implied warranty of
+#  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+#  GNU General Public License for more details.
+#
+#  You should have received a copy of the GNU General Public License
+#  along with this program; if not, write to the Free Software
+#  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
+# 
+#  Authors/Contributors:
+#     Jason Record (jrecord@suse.com)
+#
+##############################################################################
+ 
+SCHCONF=/etc/schealth.conf
+if [ -s $SCHCONF ]; then
+	. $SCHCONF
+else
+	echo "ERROR: Missing $SCHCONF"
+	echo
+	exit 1
+fi
+
+# General variables
+GSTATUS=0 # 0=Green, 1=Yellow, 2=Red, 3=Warning, 4=Error
+LOG="$(pwd)/basic-health-report.txt"
+BHFILE=basic-health-check.txt
+CHK_DATE=$(date '+%D %T')
+REPORT_STR="Report:   ${LOG}"
+REPORT_STRLEN=$(( ${#REPORT_STR} + 2 ))
+MIN_LEN=47
+MAX_LEN=70
+test $REPORT_STRLEN -lt $MIN_LEN && REPORT_STRLEN=$MIN_LEN
+test $REPORT_STRLEN -gt $MAX_LEN && REPORT_STRLEN=$MAX_LEN
+POUT_LEN=$(( REPORT_STRLEN - 12 ))
+
+header() {
+	hline
+	eout "Supportconfig Health Check Report Tool v${SVER}"
+	eout "Date Checked: ${CHK_DATE}"
+	hline
+	eout
+}
+
+footer() {
+	eout
+	hline
+	eout "Status:   $(print_gstatus)"
+	eout "Checked:  ${BHFILE}"
+	eout "$REPORT_STR"
+	hline
+	eout
+}
+
+hline() {
+	if (( ADD_OPT_SILENT )); then
+		for (( i=0; i < REPORT_STRLEN; i++ ))
+		do
+			printf "#" >> "$LOG"
+		done
+	else
+		for (( i=0; i < REPORT_STRLEN; i++ ))
+		do
+			printf "#" | tee -a "$LOG"
+		done
+	fi
+	eout
+}
+
+pout() {
+	if (( ADD_OPT_SILENT )); then
+		printf "%-${POUT_LEN}s " "$*" >> "$LOG"
+	else
+		printf "%-${POUT_LEN}s " "$*" | tee -a "$LOG"
+	fi
+}
+
+eout() {
+	if (( ADD_OPT_SILENT )); then
+		echo "$@" >> "$LOG"
+	else
+		echo "$@" | tee -a "$LOG"
+	fi
+}
+
+print_lstatus() {
+	case $LSTATUS in
+	0)	eout "[  Green  ]"; test -n "$2" && { eout " $2"; eout; } ;;
+	1) eout "[ Yellow  ]"; eout " $1"; eout ;;
+	2) eout "[   Red   ]"; eout " $1"; eout ;;
+	3) eout "[ Warning ]"; eout " Warning: $1"; eout ;;
+	4) eout "[  ERROR  ]"; eout " ERROR: $1"; eout  ;;
+	5) eout "[ Ignored ]" ;;
+	esac
+}
+
+print_gstatus() {
+	case $GSTATUS in
+	0)	echo "Healthy" ;;
+	1) echo "Yellow Flag" ;;
+	2) echo "Red Flag" ;;
+	3) echo "Warning" ;;
+	4) echo "ERROR" ;;
+	esac
+}
+
+reset_lstatus() {
+	LSTATUS=0
+}
+
+set_status() {
+	case $1 in
+	green)	LSTATUS=0; test $GSTATUS -lt $LSTATUS && GSTATUS=$LSTATUS ;;
+	yellow)	LSTATUS=1; test $GSTATUS -lt $LSTATUS && GSTATUS=$LSTATUS ;;
+	red)		LSTATUS=2; test $GSTATUS -lt $LSTATUS && GSTATUS=$LSTATUS ;;
+	warning)	LSTATUS=3; test $GSTATUS -lt $LSTATUS && GSTATUS=$LSTATUS ;;
+	error)	LSTATUS=4; test $GSTATUS -lt $LSTATUS && GSTATUS=$LSTATUS ;;
+	ignore)	LSTATUS=5 ;;
+	esac
+}
+
+abort_log() {
+	rm -f "$LOG"
+	exit $GSTATUS
+}
+
+get_section() {
+	# Searches the first line of the section for $1. This is the command line part of the section.
+	SECTIONS=$(grep -n "^#==\[" "${BHFILE}" | cut -d':' -f1)
+	TOTAL_SECTIONS=$(echo $SECTIONS | wc -w)
+	SECT_SEARCH="$1"
+	SECT_REQ=1
+	FOUND=""
+	# Find the section requested
+	while [ -z "$FOUND" -a $SECT_REQ -le $TOTAL_SECTIONS ]
+	do
+		SECT_REQ_NEXT=$(( SECT_REQ + 1 ))
+		SECT_BEGIN=$(echo $SECTIONS | cut -d' ' -f${SECT_REQ})
+		SECT_END=$(echo $SECTIONS | cut -d' ' -f${SECT_REQ_NEXT})
+		test $SECT_REQ_NEXT -gt $TOTAL_SECTIONS && { SECT_LINES=0; SECT_END=0; } || SECT_LINES=$(( SECT_END - SECT_BEGIN ))
+		FOUND=$(sed -e "1,${SECT_BEGIN}d" "${BHFILE}" | head -1 | grep "$SECT_SEARCH")
+		((SECT_REQ++))
+	done
+
+	# Print the section found
+	if (( SECT_LINES )); then
+		sed -e "1,${SECT_BEGIN}d" "${BHFILE}" | head -${SECT_LINES} | sed -e '/^#/d;/^$/d'
+	else
+		sed -e "1,${SECT_BEGIN}d;/^#/d;/^$/d" "${BHFILE}"
+	fi
+}
+
+get_check_files() {
+	pout Health Check Files
+	reset_lstatus
+	BHFILE="$(pwd)/${BHFILE}"
+	if [ -s "$BHFILE" -a -r "$BHFILE" ]; then
+		set_status green
+		if (( ADD_OPT_VERBOSE )); then
+			print_lstatus Err "Using: $BHFILE"
+		else
+			print_lstatus
+		fi
+	elif [ ! -s "$BHFILE" ]; then
+		set_status error
+		print_lstatus "File not found, $BHFILE"
+	elif [ ! -r "$BHFILE" ]; then
+		set_status error
+		print_lstatus "Read permission denied, $BHFILE"
+	else
+		set_status warning
+		print_lstatus "Unknown error, $BHFILE"
+	fi
+	test $LSTATUS -gt 0 && { footer; abort_log; }
+}
+
+kernel_load() {
+	pout Processes Waiting for Run Queue
+	reset_lstatus
+	test $OPT_RQ -eq 0 && { set_status ignore; print_lstatus; return; }
+	LOADAVG=$(grep "load average: " "$BHFILE" | cut -d: -f4 | sed -e 's/ //g;s/,/ /g' | awk '{printf "%u %u %u", $1, $2, $3}')
+	L1=$(echo $LOADAVG | awk '{print $1}')
+	L15=$(echo $LOADAVG | awk '{print $3}')
+	if [ $L1 -ge $LIMIT_OPT_RQRED -o $L15 -ge $LIMIT_OPT_RQRED ]; then
+		set_status red
+		print_lstatus "Last 1 or 15 minutes: $L1 >= $LIMIT_OPT_RQRED || $L15 >= $LIMIT_OPT_RQRED"
+	elif [ $L1 -ge $LIMIT_OPT_RQYEL -a $L15 -ge $LIMIT_OPT_RQYEL ]; then
+		set_status yellow
+		print_lstatus "Last 1 and 15 minutes: $L1 >= $LIMIT_OPT_RQYEL && $L15 >= $LIMIT_OPT_RQYEL"
+	else
+		set_status green
+		if (( ADD_OPT_VERBOSE )); then
+			print_lstatus Err "Observed: $L1 in 1 min, $L15 in 15 mins"
+		else
+			print_lstatus
+		fi
+	fi
+}
+
+kernel_taint() {
+	pout Kernel Taint Status
+	reset_lstatus
+	test $OPT_TAINT -eq 0 && { set_status ignore; print_lstatus; return; }
+	TAINT=$(grep -A2 '/proc/sys/kernel/tainted' "$BHFILE" | sed -e '/^#/d;s/$//g')
+	case $TAINT in
+	0) set_status green ;;
+	*) set_status red ;;
+	esac
+	if (( ADD_OPT_VERBOSE )); then
+		print_lstatus "Kernel Tainted: $TAINT > 0" "Not Tainted"
+	else
+		print_lstatus "Kernel Tainted: $TAINT > 0"
+	fi
+}
+
+cpu_util() {
+	pout CPU Utilization
+	reset_lstatus
+	test $OPT_CPUU -eq 0 && { set_status ignore; print_lstatus; return; }
+	ALL_IDLE=$(grep -A5 ^procs "$BHFILE" | tail -3 | awk '{print $15}')
+	IAVG=0
+	for ONE_IDLE in $ALL_IDLE
+	do
+		IAVG=$(( IAVG + ONE_IDLE ))
+	done
+	IAVG=$(( IAVG / 3 ))
+	UAVG=$(( 100 - IAVG ))
+	if [ $UAVG -ge $LIMIT_OPT_CPUURED ]; then
+		set_status red
+		print_lstatus "${UAVG}% meets or exceeds ${LIMIT_OPT_CPUURED}%"
+	elif [ $UAVG -ge $LIMIT_OPT_CPUUYEL ]; then
+		set_status yellow
+		print_lstatus "${UAVG}% meets or exceeds ${LIMIT_OPT_CPUUYEL}%"
+	else
+		set_status green
+		if (( ADD_OPT_VERBOSE )); then
+			print_lstatus Err "Observed: ${UAVG}%, Idle: ${IAVG}%"
+		else
+			print_lstatus
+		fi
+	fi
+}
+
+cpu_int() {
+	pout Interrupts Per Second
+	reset_lstatus
+	test $OPT_CPUI -eq 0 && { set_status ignore; print_lstatus; return; }
+	ALL_ITR=$(grep -A5 ^procs "$BHFILE" | tail -3 | awk '{print $11}')
+	IAVG=0
+	for ONE_ITR in $ALL_ITR
+	do
+		IAVG=$(( IAVG + ONE_ITR ))
+	done
+	IAVG=$(( IAVG / 3 ))
+	if [ $IAVG -ge $LIMIT_OPT_CPUIRED ]; then
+		set_status red
+		print_lstatus "${IAVG} meets or exceeds ${LIMIT_OPT_CPUIRED}"
+	elif [ $IAVG -ge $LIMIT_OPT_CPUIYEL ]; then
+		set_status yellow
+		print_lstatus "${IAVG} meets or exceeds ${LIMIT_OPT_CPUIYEL}"
+	else
+		set_status green
+		if (( ADD_OPT_VERBOSE )); then
+			print_lstatus Err "Observed: ${IAVG}/sec"
+		else
+			print_lstatus
+		fi
+	fi
+}
+
+cpu_cs() {
+	pout Context Switches Per Second
+	reset_lstatus
+	test $OPT_CPUC -eq 0 && { set_status ignore; print_lstatus; return; }
+	ALL_ITR=$(grep -A5 ^procs "$BHFILE" | tail -3 | awk '{print $12}')
+	IAVG=0
+	for ONE_ITR in $ALL_ITR
+	do
+		IAVG=$(( IAVG + ONE_ITR ))
+	done
+	IAVG=$(( IAVG / 3 ))
+	if [ $IAVG -ge $LIMIT_OPT_CPUCRED ]; then
+		set_status red
+		print_lstatus "${IAVG} meets or exceeds ${LIMIT_OPT_CPUCRED}"
+	elif [ $IAVG -ge $LIMIT_OPT_CPUCYEL ]; then
+		set_status yellow
+		print_lstatus "${IAVG} meets or exceeds ${LIMIT_OPT_CPUCYEL}"
+	else
+		set_status green
+		if (( ADD_OPT_VERBOSE )); then
+			print_lstatus Err "Observed: ${IAVG}/sec"
+		else
+			print_lstatus
+		fi
+	fi
+}
+
+mem_free() {
+	pout Free Memory and Disk Swapping
+	reset_lstatus
+	test $OPT_MEM -eq 0 && { set_status ignore; print_lstatus; return; }
+	MEMFREE_K=$(grep "Mem: " "$BHFILE" | awk '{print $4}')
+	MEMFREE=$(echo $MEMFREE_K | awk '{printf "%u", $1/1024}')
+	SWAPPING=0
+	ALL_SWAPIN=$(grep -A5 ^procs "$BHFILE" | tail -3 | awk '{print $7}')
+	ALL_SWAPOUT=$(grep -A5 ^procs "$BHFILE" | tail -3 | awk '{print $8}')
+	for SCHECK in $ALL_SWAPIN $ALL_SWAPOUT
+	do
+		SWAPPING=$(( SWAPPING + SCHECK ))
+	done
+	if (( SWAPPING )); then
+		DISK_SWAP=Yes
+	else
+		DISK_SWAP=No
+	fi
+	if [ $MEMFREE -le $LIMIT_OPT_MEMRED ]; then
+		set_status red
+		print_lstatus "Observed: $MEMFREE MB <= $LIMIT_OPT_MEMRED MB, Swapping: $DISK_SWAP"
+	elif [ $MEMFREE -le $LIMIT_OPT_MEMYEL ]; then
+		set_status yellow
+		print_lstatus "Observed: $MEMFREE MB <= $LIMIT_OPT_MEMYEL MB, Swapping: $DISK_SWAP"
+	elif (( SWAPPING )); then
+		set_status yellow
+		print_lstatus "Observed: $MEMFREE MB, Swapping: $DISK_SWAP"
+	else
+		set_status green
+		if (( ADD_OPT_VERBOSE )); then
+			print_lstatus Err "Observed: $MEMFREE MB, Swapping: $DISK_SWAP"
+		else
+			print_lstatus
+		fi
+	fi
+}
+
+disk_used_space() {
+	pout Used Disk Space
+	test $OPT_DISK -eq 0 && { set_status ignore; print_lstatus; return; }
+	reset_lstatus
+	DISK_TMP=$(mktemp /tmp/disk_used_space.XXXXXXXXXX)
+	DISKS_RED=""
+	DISKS_YEL=""
+	
+	get_section "df -h" | sed -e '1d' >> $DISK_TMP
+	# If the line starts with a space, join it to the previous line
+	sed -i -e :a -e '$!N;s/\n / /;ta' -e 'P;D' $DISK_TMP
+	while read DISK_DATA
+	do
+		DISK=$(echo "$DISK_DATA" | awk '{print $5}' | sed -e 's/%//g')
+		if [ $DISK -ge $LIMIT_OPT_DISKRED ]; then
+			DISKS_RED="$DISKS_RED $(echo $DISK_DATA | awk '{print $6}'):$DISK"
+		elif [ $DISK -ge $LIMIT_OPT_DISKYEL ]; then
+			DISKS_YEL="$DISKS_YEL $(echo $DISK_DATA | awk '{print $6}'):$DISK"
+		fi
+	done < $DISK_TMP
+	if [ -n "$DISKS_RED" ]; then
+		set_status red
+	elif [ -n "$DISKS_YEL" ]; then
+		set_status yellow
+	fi
+	if (( ADD_OPT_VERBOSE )); then
+		print_lstatus "Some meet or exceed limits" "Observed: $(cat $DISK_TMP | wc -l) mounted file systems"
+	else
+		print_lstatus "Some meet or exceed limits"
+	fi
+	if [ -n "$DISKS_RED" ]; then
+		eout "Red Flags"
+		for DISK in $DISKS_RED
+		do
+			eout "$(echo $DISK | awk -F: '{printf "%-20s %u%%\n", $1, $2}') >= ${LIMIT_OPT_DISKRED}%"
+		done
+		eout
+	fi
+	if [ -n "$DISKS_YEL" ]; then
+		eout "Yellow Flags"
+		for DISK in $DISKS_YEL
+		do
+			eout "$(echo $DISK | awk -F: '{printf "%-20s %u%%\n", $1, $2}') >= ${LIMIT_OPT_DISKYEL}%"
+		done
+		eout
+	fi
+
+	rm -f $DISK_TMP
+}
+
+proc_dstate() {
+	pout Uninterruptible Processes
+	reset_lstatus
+	test $OPT_PROCD -eq 0 && { set_status ignore; print_lstatus; return; }
+	PROCD_CNT=$(get_section egrep | awk '{print $8}' | grep ^D | wc -l)
+	if [ $PROCD_CNT -ge $LIMIT_OPT_PROCDRED ]; then
+		set_status red
+		print_lstatus "${PROCD_CNT} meets or exceeds ${LIMIT_OPT_PROCDRED}"
+	elif [ $PROCD_CNT -ge $LIMIT_OPT_PROCDYEL ]; then
+		set_status yellow
+		print_lstatus "${PROCD_CNT} meets or exceeds ${LIMIT_OPT_PROCDYEL}"
+	else
+		set_status green
+		if (( ADD_OPT_VERBOSE )); then
+			print_lstatus Err "Observed: ${PROCD_CNT} processes"
+		else
+			print_lstatus
+		fi
+	fi
+}
+
+proc_zstate() {
+	pout Zombie Processes
+	reset_lstatus
+	test $OPT_PROCZ -eq 0 && { set_status ignore; print_lstatus; return; }
+	PROCZ_CNT=$(get_section egrep | awk '{print $8}' | grep ^Z | wc -l)
+	if [ $PROCZ_CNT -ge $LIMIT_OPT_PROCZRED ]; then
+		set_status red
+		print_lstatus "${PROCZ_CNT} meets or exceeds ${LIMIT_OPT_PROCZRED}"
+	elif [ $PROCZ_CNT -ge $LIMIT_OPT_PROCZYEL ]; then
+		set_status yellow
+		print_lstatus "${PROCZ_CNT} meets or exceeds ${LIMIT_OPT_PROCZYEL}"
+	else
+		set_status green
+		if (( ADD_OPT_VERBOSE )); then
+			print_lstatus Err "Observed: ${PROCZ_CNT} processes"
+		else
+			print_lstatus
+		fi
+	fi
+}
+
+
+main() {
+	test $ADD_OPT_SILENT -eq 0 && clear
+	test $ADD_OPT_OVERWRITE -gt 0 && >"$LOG"
+	header
+	get_check_files
+	kernel_load
+	kernel_taint
+	cpu_util
+	cpu_int
+	cpu_cs
+	mem_free
+	disk_used_space
+	proc_dstate
+	proc_zstate
+	footer
+}
+
+show_help() {
+	echo "Usage: $0 [-hoqv]"
+	echo " -h      Help screen"
+	echo " -o      Overwrite existing $BHFILE"
+	echo " -q      Quiet mode, Exit status only:"
+	echo "         0=Green, 1=Yellow, 2=Red, 3=Warning, 4=Error"
+	echo " -v      Verbose, show all observed values"
+	echo
+	hline
+	echo
+}
+
+ALL_ARGS="$@"
+
+while getopts :hoqv TMPOPT
+do
+	case $TMPOPT in
+	\:)	case $OPTARG in
+			*) clear; header
+				echo "$0 $ALL_ARGS"
+				echo "ERROR: Missing Argument -$OPTARG"
+				set_status error
+				echo; show_help
+				;;
+			esac
+			abort_log ;;
+	\?)	case $OPTARG in
+			*) clear; header
+				echo "$0 $ALL_ARGS"
+				echo "ERROR: Invalid Option -$OPTARG"
+				set_status error
+				echo; show_help
+				;;
+			esac
+			abort_log ;;
+	h) clear; header; show_help; abort_log ;;
+	o) ADD_OPT_OVERWRITE=1 ;;
+	q) ADD_OPT_SILENT=1 ;;
+	v) ADD_OPT_VERBOSE=1 ;;
+	esac
+done
+
+main
+exit $GSTATUS
+

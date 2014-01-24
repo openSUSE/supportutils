@@ -1,0 +1,520 @@
+#!/bin/bash
+
+SVER=1.01-25
+
+##############################################################################
+#  chkbin - Checks the specified binary and it shared library dependencies
+#  against the rpm database.
+#
+#  Please submit bug fixes or comments via:
+#    http://en.opensuse.org/Supportutils#Reporting_Bugs
+#
+#  Copyright (C) 2007-2012 SUSE Linux Products GmbH, Nuernberg, Germany
+#
+##############################################################################
+#
+#  This program is free software; you can redistribute it and/or modify
+#  it under the terms of the GNU General Public License as published by
+#  the Free Software Foundation; version 2 of the License.
+#
+#  This program is distributed in the hope that it will be useful,
+#  but WITHOUT ANY WARRANTY; without even the implied warranty of
+#  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+#  GNU General Public License for more details.
+#
+#  You should have received a copy of the GNU General Public License
+#  along with this program; if not, write to the Free Software
+#  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
+#
+#  Authors/Contributors:
+#     Jason Record (jrecord@suse.com)
+#
+##############################################################################
+
+ALL_DATA=0
+
+LOGPATH=/var/log
+RPM_LOG=$(mktemp /tmp/chkbin_rpm_XXXXXXXX)
+RPMV_LOG=$(mktemp /tmp/chkbin_rpmv_XXXXXXXX)
+LDD_LOG=$(mktemp /tmp/chkbin_ldd_XXXXXXXX)
+CACHE_LOG=$(mktemp /tmp/chkbin_ldcache_XXXXXXXX)
+DL_LOG=$(mktemp /tmp/chkbin_dlopen_XXXXXXXX)
+ALL_LOG=$(mktemp /tmp/chkbin_all_XXXXXXXX)
+SCR_LOG=$(mktemp /tmp/chkbin_screen_XXXXXXXX)
+TMP_LOGS="$RPM_LOG $RPMV_LOG $LDD_LOG $CACHE_LOG $DL_LOG $ALL_LOG $SCR_LOG"
+SHOW_LEGEND=0
+GDIFF=0
+GWARN=0
+GERR=0
+
+title() {
+	echo "####################################################################"
+	echo "Binary Check Tool, v$SVER"
+	echo "Date:   $(date +'%D, %T')"
+	echo "Kernel: $(uname -r), Hardware: $(uname -i)"
+	echo "####################################################################"
+	echo
+}
+
+footer() {
+	if (( GERR )); then
+		STATUS=ERROR
+	elif (( GWARN )); then
+		STATUS=Warning
+	elif (( GDIFF )); then
+		STATUS=Differences
+	else
+		STATUS=Passed
+	fi
+	echo
+	echo "####################################################################"
+	echo "Binary Checked: $CHECKBIN"
+	echo "Log File:       $LOG"
+	echo "STATUS:         $STATUS"
+	echo "####################################################################"
+	echo
+}
+
+get_files() {
+	for CONF in $@
+	do
+		if [ -f $CONF ]; then
+			echo "# $CONF" >> $LOG
+			cat $CONF | sed -e '/^[[:space:]]*#/d' -e '/^[[:space:]]*;/d' -e 's///g' -e '/^$/d' >> $LOG
+		else
+			echo "# $CONF - File not found" >> $LOG
+		fi
+		echo >> $LOG
+	done
+}
+
+show_help() {
+	echo "Usage: $0 [options] </path/to/binary>"
+	echo
+	echo "Options:"
+	echo "  -h  This screen"
+	echo "  -a  Include all: linker cache and all open files"
+	echo
+}
+
+legend() {
+	echo "#--[ Differences Legend ]------------------------------------------#"
+	echo ". Unchanged"
+	echo "? Test not performed"
+	echo "S file Size differs"
+	echo "M Mode differs (includes permissions and file type)"
+	echo "5 MD5 sum differs"
+	echo "D Device major/minor number mismatch"
+	echo "L readLink(2) path mismatch"
+	echo "U User ownership differs"
+	echo "G Group ownership differ"
+	echo "T mTime differs"
+	echo
+	echo "c configuration file"
+	echo "d documentation file"
+	echo "g ghost file (file content is not included in the package payload)"
+	echo "l license file"
+	echo "r readme file"
+	echo
+}
+
+wlog() {
+	echo "$@" >> $LOG
+}
+
+pscreen() {
+	printf "%-59s ... " "$@" | tee -a $SCR_LOG
+}
+
+escreen() {
+	echo "$@" | tee -a $SCR_LOG
+}
+
+###################################################################################
+# main
+###################################################################################
+
+[ $# -eq 0 ] && { clear; title; show_help; exit 1; }
+while getopts :ah TMPOPT
+do
+	case $TMPOPT in
+	\:)	clear; title
+			case $OPTARG in
+			*) echo "ERROR: Missing Argument -$OPTARG"
+				;;
+			esac
+			echo; show_help; exit 0 ;;
+	\?)	clear; title
+			case $OPTARG in
+			*) echo "ERROR: Invalid Option -$OPTARG"
+				;;
+			esac
+			echo; show_help; exit 0 ;;
+	a) ALL_DATA=1 ;;
+	h) clear; title; show_help; exit 2 ;;
+	esac
+done
+shift $(( $# - 1 ))
+BINARG=$@
+LOG=$LOGPATH/nts_chkbin_$(basename $BINARG)_$$.txt
+clear
+>$LOG
+title | tee -a $LOG
+
+# Check for a binary from the command line
+if [ -n "$BINARG" ]; then
+	CHECKBIN=$(which $BINARG 2>/dev/null)
+	if [ -z "$CHECKBIN" ]; then
+		if [ ! -e $BINARG ]; then
+			show_help
+			escreen "ERROR: File not found - $BINARG"
+			echo
+			rm -f $LOG
+			exit 1
+		else
+			CHECKBIN=$BINARG
+		fi
+	fi
+
+	# Create temp logs
+	for i in $TMP_LOGS
+	do
+		>$i
+	done
+
+	pscreen "Checking Binary Ownership"
+	echo "#--[ Checking File Ownership ]-------------------------------------#" >> $LOG
+	SERR=0
+	# Start with the binary's owner
+	printf "%-35s - from RPM: " $CHECKBIN >> $LOG
+	# Find out which rpm owns the binary to check
+	BINRPM=$(rpm -qf $CHECKBIN 2>/dev/null)
+	test $? -gt 0 && BINRPM=""
+
+	if [ -n "$BINRPM" ]; then
+		echo "$BINRPM" >> $RPM_LOG
+		echo "$BINRPM" >> $LOG
+		BINRPM_COUNT=$(echo "$BINRPM" | wc -l)
+		if [ $BINRPM_COUNT -gt 1 ]; then
+			printf " :%-49s  [   ERROR     ]\n" "Conflict" >> $LOG
+			((GERR++))
+			((SERR++))
+		fi
+	else
+		wlog "     [  Not Owned  ]"
+		if [ -f $CHECKBIN ]; then
+			printf " :MD5SUM " >> $LOG
+			echo $(md5sum $CHECKBIN | cut -d\  -f1) >> $LOG
+		else
+			wlog " :MD5SUM Not available"
+			echo " $(file $CHECKBIN)" >> $LOG
+		fi
+	fi
+	if (( SERR )); then
+		escreen ERROR
+	else
+		escreen Done
+	fi
+	
+	pscreen "Checking for Shared Libraries"
+	SERR=0
+	# Check the shared library owners
+	if [ -e $CHECKBIN ]; then
+		# Find out all the shared library dependencies
+		ldd $CHECKBIN &> $LDD_LOG
+		if [ $? -gt 0 ]; then
+			LDD_ERROR=1
+			DYNBIN=$(grep -i 'not a dynamic executable' $LDD_LOG)
+			if [ -n "$DYNBIN" ]; then
+				ELF=$(file $CHECKBIN 2>/dev/null | grep 'ELF ')
+				if [ -n "$ELF" ]; then
+					wlog " :Statically linked executable"
+				else
+					TEXT=$(file $CHECKBIN 2>/dev/null | grep 'shell script')
+					if [ -n "$TEXT" ]; then
+						wlog " :Shell script"
+						grep LD_LIBRARY_PATH $CHECKBIN >> $LOG
+						grep LD_PRELOAD $CHECKBIN >> $LOG
+					else
+						wlog " :Not a dynamic executable"
+					fi
+				fi
+				LDD_ERROR=0
+			fi
+			REGFILE=$(grep -i 'not regular file' $LDD_LOG)
+			if [ -n "$REGFILE" ]; then
+				wlog " :Not a regular file"
+				LDD_ERROR=0
+			fi
+			if (( LDD_ERROR )); then
+				printf " :ldd %-45s  [   ERROR     ]\n" $CHECKBIN >> $LOG
+				cat $LDD_LOG >> $LOG
+				((GERR++))
+				((SERR++))
+			fi
+			SHARED_LIBRARIES_EXIST=0
+			SKIP_DLOPEN=1
+			if (( SERR )); then
+				escreen ERROR
+			else
+				escreen Done
+			fi
+		else
+			SHARED_LIBRARIES_EXIST=1
+			escreen Done
+
+			# Add dlopen shared libraries
+			pscreen "Checking for dlopen Libraries"
+			grep 'libdl.so' $LDD_LOG &>/dev/null
+			SKIP_DLOPEN=$?
+			
+			if ! (( SKIP_DLOPEN )); then
+				escreen Done
+				pscreen "Searching for dlopen Libraries"
+				CHECKBIN_LIBS=$(strings $CHECKBIN | grep "^lib" | grep '.so')
+				for CKLIB in $CHECKBIN_LIBS
+				do
+					# if it's not already in LDD_LOG, then add it to DL_LOG
+					DUPLICATE_LIB=$(grep $CKLIB $LDD_LOG 2>/dev/null)
+					if [ -z "$DUPLICATE_LIB" ]; then
+						echo $CKLIB >> $DL_LOG
+					fi
+				done
+				escreen Done
+
+				pscreen "Adding Unique dlopen Libraries"
+				LWARN=0
+				ldconfig -p > $CACHE_LOG
+				while read DLTEST
+				do
+					DLFOUND=1
+					# check dlopen library in LD_LIBRARY_PATH
+					for DLPATH in $(echo $LD_LIBRARY_PATH | sed -e 's/:/ /g')
+					do
+						DLPATHED="${DLPATH}/${DLTEST}"
+						if [ -e $DLPATHED ]; then
+							echo $DLPATHED >> $ALL_LOG
+							DLFOUND=0
+						fi
+					done
+					# check dlopen library in ld.so.cache
+					DLCACHED=$(grep "${DLTEST} " $CACHE_LOG 2>/dev/null)
+					if [ -n "$DLCACHED" ]; then
+						echo $DLCACHED >> $ALL_LOG
+						DLFOUND=0
+					fi
+					if (( DLFOUND )); then
+						printf "%-35s - from RPM: " $DLTEST >> $LOG
+						wlog "     [   Warning   ]"
+						wlog " :Not Found in LD_LIBRARY_PATH or ld.so.cache"
+						((GWARN++))
+						((SWARN++))
+					fi
+				done < $DL_LOG
+				if (( SWARN )); then
+					escreen Warning
+				else
+					escreen Done
+				fi
+			else
+				escreen N/A
+			fi
+			cat $LDD_LOG >> $ALL_LOG
+			pscreen "Checking Shared Library Ownership"
+			SERR=0
+			# Check for missing libraries
+			sed -i -e 's/^[[:space:]]*//;s/=>/%/g' $ALL_LOG #Remove leading spaces and use % instead of =>
+			NOT_FOUND=$(grep -i 'not found' $ALL_LOG)
+			if [ -n "$NOT_FOUND" ]; then
+				wlog "$NOT_FOUND"
+				printf " :%-49s  [   ERROR     ]\n" "Broken Link" >> $LOG
+				((GERR++))
+				((SERR++))
+			fi
+			for BLIB in $(awk '{print $1}' $ALL_LOG) $(awk -F% '{print $2}' $ALL_LOG | awk '{print $1}') $(awk '{print $4}' $ALL_LOG)
+			do
+				BTEST=$(echo $BLIB | egrep "^/|^\./|^\.\./")
+				if [ -n "$BTEST" ]; then
+					printf "%-35s - from RPM: " $BTEST >> $LOG
+					BRPM=$(rpm -qf $BTEST 2>/dev/null)
+					BERR=$?
+					BRPM_COUNT=$(echo "$BRPM" | wc -l)
+					if [ $BERR -gt 0 ]; then
+						if [ -L $BTEST ]; then
+							BTEST=$(readlink -f $BTEST 2>/dev/null)
+							if [ $? -gt 0 ]; then
+								wlog "     [    ERROR    ]"
+								wlog " :Broken Link"
+								((GERR++))
+								((SERR++))
+							else
+								wlog "     [   SymLink   ]"
+								printf " ->%-32s - from RPM: " $BTEST >> $LOG
+								BRPM=$(rpm -qf $BTEST 2>/dev/null)
+								if [ $? -gt 0 ]; then
+									wlog "     [  Not Owned  ]"
+									printf " :MD5SUM " >> $LOG
+									echo $(md5sum $BTEST | cut -d\  -f1) >> $LOG
+								else
+									echo "$BRPM" >> $RPM_LOG
+									echo "$BRPM" >> $LOG
+									if [ $BRPM_COUNT -gt 1 ]; then
+										printf " :%-49s  [   ERROR     ]\n" "Conflict" >> $LOG
+										((GERR++))
+										((SERR++))
+									fi
+								fi
+							fi
+						else
+							wlog "     [  Not Owned  ]"
+							printf " :MD5SUM " >> $LOG
+							echo $(md5sum $BTEST | cut -d\  -f1) >> $LOG
+						fi
+					else
+						echo "$BRPM" >> $RPM_LOG
+						echo "$BRPM" >> $LOG
+						if [ $BRPM_COUNT -gt 1 ]; then
+							printf " :%-49s  [   ERROR     ]\n" "Conflict" >> $LOG
+							((GERR++))
+							((SERR++))
+						fi
+					fi
+				fi
+			done
+			if (( SERR )); then
+				escreen ERROR
+			else
+				escreen Done
+			fi
+		fi
+	fi
+
+	pscreen "Validating Unique RPMs"
+	wlog
+	wlog "#--[ Validating Unique RPMs ]--------------------------------------#"
+	SERR=0; SWARN=0; SDIFF=0
+	for RPM in $(cat $RPM_LOG | sort | uniq)
+	do
+		printf "Validating RPM: %-36s " $RPM >> $LOG
+		LERR=0; LWARN=0; LDIFF=0
+		rpm -V $RPM &> $RPMV_LOG
+		# Evaluate RPM errors or messages
+		if [ $? -gt 0 ]; then
+			((GDIFF++))
+			((LDIFF++))
+			((SDIFF++))
+			((SHOW_LEGEND++))
+
+			LBINCHANGE=$(cat $RPMV_LOG | awk '{print $2}' | grep ^/)
+			if [ -n "$LBINCHANGE" ]; then
+				((LWARN++))
+				((SWARN++))
+				((GWARN++))
+			fi
+			LMISSING=$(cat $RPMV_LOG | awk '{print $1}' | grep '^missing')
+			if [ -n "$LMISSING" ]; then
+				((SWARN++))
+				((LWARN++))
+				((GWARN++))
+			fi
+			LDEPCHECK=$(grep -i 'Unsatisfied dependencies' $RPMV_LOG)
+			if [ -n "$LDEPCHECK" ]; then
+				((SERR++))
+				((LERR++))
+				((GERR++))
+			fi
+		fi
+
+		if (( LERR )); then
+			wlog "[   ERROR     ]"
+			cat $RPMV_LOG >> $LOG
+			wlog
+		elif (( LWARN )); then
+			wlog "[   Warning   ]"
+			cat $RPMV_LOG >> $LOG
+			wlog
+		elif (( LDIFF )); then
+			wlog "[ Differences ]"
+			cat $RPMV_LOG >> $LOG
+			wlog
+		else
+			wlog "[   Passed    ]"
+		fi
+	done
+	wlog
+	test $SHOW_LEGEND -gt 0 && legend >> $LOG
+	if (( SERR )); then
+		escreen ERROR
+	elif (( SWARN )); then
+		escreen Warning
+	elif (( SDIFF )); then
+		escreen Differ
+	else
+		escreen Done
+	fi
+
+	if (( SHARED_LIBRARIES_EXIST )); then
+		pscreen "Fetching Environment Variables"
+		wlog "#--[ Variables Set Prior to chkbin Execution ]---------------------#"
+		wlog "LD_LIBRARY_PATH=\"$LD_LIBRARY_PATH\""
+		wlog "LD_PRELOAD=\"$LD_PRELOAD\""
+		wlog
+		escreen Done
+
+		pscreen "Fetching Configuration Files"
+		wlog "#--[ Configuration Files ]-----------------------------------------#"
+		get_files /etc/ld.so.preload /etc/ld.so.conf
+		for i in $(grep '^include' /etc/ld.so.conf | awk '{print $2}')
+		do
+			get_files $(\ls -A1 $i 2>/dev/null)
+		done
+		escreen Done
+
+		pscreen "Including Shared Library Dependencies"
+		wlog "#--[ Shared Library Dependencies ]---------------------------------#"
+		wlog "# ldd $CHECKBIN"
+		cat $LDD_LOG >> $LOG
+		wlog
+
+		if ! (( SKIP_DLOPEN )); then
+			wlog "#--[ Unique dlopen Shared Libraries ]------------------------------#"
+			if [ $(cat $DL_LOG | wc -l) -gt 0 ]; then
+				cat $DL_LOG >> $LOG
+			else
+				echo None >> $LOG
+			fi
+			wlog
+		fi
+		escreen Done
+
+		if (( $ALL_DATA )); then
+			pscreen "Including System Library Cache"
+			wlog "#--[ System Library Cache ]----------------------------------------#"
+			wlog "# ldconfig -p"
+			ldconfig -p >> $LOG 2>&1
+			wlog
+			escreen Done
+
+			pscreen "Including All Open Files"
+			wlog "#--[ Open Files ]--------------------------------------------------#"
+			wlog "# lsof"
+			lsof >> $LOG 2>&1
+			wlog
+			escreen Done
+		fi
+	fi
+
+	footer | tee -a $LOG
+	echo >> $SCR_LOG
+	sed -i -e "6 r $SCR_LOG" $LOG
+
+	# Clean up the temp files
+	for i in $TMP_LOGS
+	do
+		rm -f $i
+	done
+else
+	help
+	rm -f $LOG
+fi
+

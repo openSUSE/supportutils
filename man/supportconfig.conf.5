@@ -1,0 +1,381 @@
+.TH supportconfig.conf 5 "18 Oct 2013" "supportconfig.conf" "Support Utilities Manual"
+.SH NAME
+supportconfig.conf \- 
+.BR supportconfig (1)
+configuration file.
+.SH ENVIRONMENT
+.I SC_CONF
+.RS
+You can use the SC_CONF environment variable to specify an alternate configuration file path.
+.RE
+.RS
+.B Example: export SC_CONF=/opt/supportconfig.conf
+.RE
+.SH DESCRIPTION
+Regular and additional options are used to turn a feature either on (1) or off (0), whereas variable options usually have differing values depending on the desired outcome. Running supportconfig -C will create a default /etc/supportconfig.conf. The format for setting an option is:
+.TP
+TOKEN=value
+.SS Regular Options
+.TP
+Each regular option is described with the TOKEN used, a description, the \fBfilename\fR containing the information and the default value in (parenthesis). Each option can be included (-i) or excluded (-x) from the command line. Use -F to see a list of the feature keywords.
+.PD 0
+.TP
+.TP 18
+OPTION_AFP
+Novell Apple File Protocol (AFP) information. \fBnovell-afp.txt\fR (1)
+.TP
+OPTION_APPARMOR
+AppArmor information. \fBsecurity-apparmor.txt\fR (1)
+.TP
+OPTION_AUDIT
+Auditing information. \fBsecurity-audit.txt\fR (1)
+.TP
+OPTION_AUTOFS
+autofs information. \fBfs-autofs.txt\fR (1)
+.TP
+OPTION_BOOT
+Information related to booting and the kernel. \fBboot.txt\fR (1)
+.TP
+OPTION_BTRFS
+Information related to the B-tree file system. \fBfs-btrfs.txt\fR (1)
+.TP
+OPTION_CHKCONFIG
+Current system service states. \fBchkconfig.txt\fR (1)
+.TP
+OPTION_CIFS
+Novell Common Internet File System (CIFS) information. \fBnovell-cifs.txt\fR (1)
+.TP
+OPTION_CIMOM
+CIMOM and OpenWBEM related information. \fBcimom.txt\fR (1)
+.TP
+OPTION_CRASH
+Information related to capturing a system core dump. \fBcrash.txt\fR (1)
+.TP
+OPTION_CRON
+Information related to cron and at. \fBcron.txt\fR (1)
+.TP
+OPTION_DFS
+Novell's Distributed File Services information on OES. \fBnovell-dfs.txt\fR (1)
+.TP
+OPTION_DHCP
+Dynamic Host Configuration Protocol (DHCP) information. Includes both Novell and system DHCP. \fBdhcp.txt\fR (1)
+.TP
+OPTION_DISK
+Disk, file system mounts and partition information. \fBfs-diskio.txt\fR (1)
+.TP
+OPTION_DNS
+Domain Name Service information. Includes both Novell and system DNS. \fBdns.txt\fR (1)
+.TP
+OPTION_DRBD
+Distributed Replicated Block Device information. \fBdrbd.txt\fR (1)
+.TP
+OPTION_EDIR
+Novell eDirectory health check information. \fBnovell-edir.txt\fR (1)
+.TP
+OPTION_ENV
+System environment information, including sysctl and root's environment. \fBenv.txt\fR (1)
+.TP
+OPTION_ETC
+Recursively gets *.conf files, along with various other configuration files in /etc. \fBetc.txt\fR (1)
+.TP
+OPTION_EVMS
+Enterprise Volume Management System related information. \fBevms.txt\fR (1)
+.TP
+OPTION_HA
+Heartbeat/high availabilty cluster information. \fBha.txt\fR (1)
+.TP
+OPTION_HCREPORT
+Generates a health check report using the schealth script to analyze the basic-health-check.txt file. \fBbasic-health-report.txt\fR (1)
+.TP
+OPTION_IB
+InfiniBand information. Only available with SLE11 or greater. \fBib.txt\fR (1)
+.TP
+OPTION_IMAN
+iManager information for OES servers. \fBnovell-iman.txt\fR (1)
+.TP
+OPTION_ISCSI
+iSCSI target and initiator information. \fBfs-iscsi.txt\fR (1)
+.TP
+OPTION_KVM
+KVM virtualization related information. Available in SLES11 SP1 or newer, otherwise ignored. \fBkvm.txt\fR (1)
+.TP
+OPTION_LDAP
+LDAP related information, including a root DSE search. \fBldap.txt\fR (1)
+.TP
+OPTION_LUM
+Novell Linux User Management related information, including a root DSE, UNIX Config and workstation object searches. \fBnovell-lum.txt\fR (1)
+.TP
+OPTION_LVM
+Linux Volume Management related information. \fBlvm.txt\fR (1)
+.TP
+OPTION_MEM
+Memory related information. \fBmemory.txt\fR (1)
+.TP
+OPTION_MOD
+System kernel module information. \fBmodules.txt\fR (1)
+.TP
+OPTION_MPIO
+Native device mapper multipathing information. \fBmpio.txt\fR (1)
+.TP
+OPTION_NCP
+Novell Core Protocol related information. \fBnovell-ncp.txt\fR (1)
+.TP
+OPTION_NCS
+Novell Cluster Services related information. \fBnovell-ncs.txt\fR (1)
+.TP
+OPTION_NET
+Network related information, including firewall rules. \fBnetwork.txt\fR (1)
+.TP
+OPTION_NFS
+Network File System related information. \fBnfs.txt\fR (1)
+.TP
+OPTION_NSS
+Novell Storage Services related information. \fBnovell-nss.txt\fR (1)
+.TP
+OPTION_NTP
+Network Time Protocol related information. \fBntp.txt\fR (1)
+.TP
+OPTION_OCFS2
+OCFS2 file system related information. \fBocfs2.txt\fR (1)
+.TP
+OPTION_OFILES
+List of all open files using lsof. \fBopen-files.txt\fR (1)
+.TP
+OPTION_PAM
+Pluggable Authentication Module related information, including user account information. \fBpam.txt\fR (1)
+.TP
+OPTION_PRINT
+Printing and CUPS related information. \fBprint.txt\fR (1)
+.TP
+OPTION_PROC
+Includes key /proc file content. \fBproc.txt\fR (1)
+.TP
+OPTION_PROXY
+Novell Proxy Management related information. \fBnovell-proxymgnt.txt\fR (1)
+.TP
+OPTION_SAM
+Supportability Analysis Module report. NOTE: This takes up to 10 minutes to complete. \fBsam.txt\fR (1)
+.TP
+OPTION_SAR
+System Activity Reporting related information, including copies of the SAR data files. \fBsar.txt\fR (1)
+.TP
+OPTION_SLERT
+SLES Real Time kernel related information. \fBslert.txt\fR (1)
+.TP
+OPTION_SLP
+Service Location Protocol related information. \fBslp.txt\fR (1)
+.TP
+OPTION_SMART
+Self-Monitoring, Analysis, and Reporting Technology related information for hard disks. 
+\fBWARNING:\fR Some hard disk controllers and drives do not behave kindly. Probing SMART data has been known to change file systems to read only mode or even hang the server. Make sure probing SMART data works in your environment before enabling this option. \fBfs-smartmon.txt\fR (0)
+.TP
+OPTION_SMB
+Samba and CIFS related information. \fBsamba.txt\fR (1)
+.TP
+OPTION_SMS
+Novell Storage Management Services (SMS) related information. \fBnovell-sms.txt\fR (1)
+.TP
+OPTION_SMT
+Subscription Management Tool (SMT) related information. \fBsmt.txt\fR (1)
+.TP
+OPTION_SRAID
+Software RAID related information. \fBfs-softraid.txt\fR (1)
+.TP
+OPTION_SSH
+Secure Shell server information. \fBssh.txt\fR (1)
+.TP
+OPTION_SSSD
+System Security Services Daemon information.\fBsssd.txt\fR (1)
+.TP
+OPTION_SYSCONFIG
+Configuration files found in /etc/sysconfig. \fBsysconfig.txt\fR (1)
+.TP
+OPTION_SYSFS
+Gathers the contents of all files in /sys. \fBsysfs.txt\fR (1)
+.TP
+OPTION_UDEV
+UDEV device manager related information. \fBudev.txt\fR (1)
+.TP
+OPTION_UFILES
+Additional user included files. Any file listed in /usr/lib/supportconfig/additional-files.list will be included in the fs-files-additional.txt file when supportconfig is run. The additional-files.list file must be owned by root and have 0600 or 0400 permisisons. Include the full file path of the files you want included. Any binary files will be base64 encoded.  \fBfs-files-additional.txt\fR (1)
+.TP
+OPTION_UP
+Update client related information. \fBupdates.txt\fR (1)
+.TP
+OPTION_UPD
+Update daemon related information. \fBupdates-daemon.txt\fR (1)
+.TP
+OPTION_WEB
+Web server and web related information. \fBweb.txt\fR (1)
+.TP
+OPTION_X
+X graphical system related information. \fBx.txt\fR (1)
+.TP
+OPTION_XEN
+XEN virtualization related information. \fBxen.txt\fR (1)
+.PD
+.SS Additional Regular Options
+.TP
+Each additional regular option is described with the TOKEN used, a description, the \fBstartup option\fR used to set it, the \fBfilename\fR if any and the default value in (parenthesis). If no startup option is listed, then you must set this option in the supportconfig.conf file.
+.TP
+ADD_OPTION_EDIR
+Tells the supportconfig to search the file system for all eDirectory instances files. If set, ADD_OPTION_FSLIST is automatically set as well. \fB\-e\fR (0)
+.TP
+ADD_OPTION_FSLIST
+A full file list using find from the root of the filesytem. \fB\-L\fR, \fBfs-files.txt\fR (0)
+.TP
+ADD_OPTION_LOGS
+Includes the entire log file, including comments, instead of just VAR_OPTION_LINE_COUNT lines of it. Additional rotated logs are included if available. \fB\-l\fR (0)
+.TP
+ADD_OPTION_MINDISK
+Minimizes the amount of disk information and detailed scanning. \fB\-d\fR (0)
+.TP
+ADD_OPTION_MAXYAST
+Normally VAR_OPTION_LINE_COUNT lines are gathered from all /var/log/YaST2/* files. This option gathers each entire file.
+ \fB\-y\fR (0)
+.TP
+ADD_OPTION_RPMV
+Runs an rpm -V on every installed RPM package. This takes some time to complete. \fB\-v\fR, \fBrpm-verify.txt\fR (0)
+.TP
+ADD_OPTION_SLP
+Normally only the base SLP service types are listed. This option allows you to query each of the discovered service types individually. \fB\-s\fR, \fBslp.txt\fR (0)
+.PD
+.SS Variable Options
+.TP
+Each variable option is described with the TOKEN used, a description, the \fBstartup option\fR used to set the TOKEN, and the default value in (parenthesis).
+.TP
+VAR_OPTION_BIN_TIMEOUT_SEC
+The number of seconds to wait before ignoring a timed command. Commands that have been timed will show a progress dot '.' on the screen every 30 seconds while waiting for the command to complete. If the command does not complete within the VAR_OPTION_BIN_TIMEOUT_SEC period, it is ignored and the supportconfig moves on to gather additional information. If the command completes before supportconfig finishes, it's output will be included in the tar ball. The timed command has been backgrounded and left running. You may need to kill this process, and the log file will identify what the process is. \fB\-T\fR (300)
+.TP
+VAR_OPTION_CONTACT_COMPANY
+Company name to include in the basic-environment.txt \fB\-O\fR (Not Set)
+.TP
+VAR_OPTION_CONTACT_EMAIL
+Contact's email address to include in the basic-environment.txt \fB\-E\fR (Not Set)
+.TP
+VAR_OPTION_CONTACT_NAME
+Contact's name to include in the basic-environment.txt \fB\-N\fR (Not Set)
+.TP
+VAR_OPTION_CONTACT_PHONE
+Contact's phone number to include in the basic-environment.txt \fB\-P\fR (Not Set)
+.TP
+VAR_OPTION_CONTACT_STOREID
+Contact's company store identifier to include in the basic-environment.txt \fB\-W\fR (Not Set)
+.TP
+VAR_OPTION_CONTACT_TERMINALID
+Contact's company terminal identifier to include in the basic-environment.txt \fB\-M\fR (Not Set)
+.TP
+VAR_OPTION_CUSTOM_ARCH
+Includes the string to create a custom tar ball filename in the format nts_<string> \fB\-B\fR (Not Set)
+.RS
+
+.RE
+.RS
+You can easily include supportconfig information in the tar ball filename with the supported string qualifiers listed below. 
+All spaces are replaced with underscores. The -q and -u startup options automatically append "_%u" onto the filename, 
+unless a %u is specified in the string already. A pre-existing archive directory or tar ball filename will also trigger 
+appending a "_%u" onto the filename.
+.RE
+.RS
+.B %r
+- Service Request number
+.RE
+.RS
+.B %s
+- Server's hostname
+.RE
+.RS
+.B %d
+- Supportconfig run date
+.RE
+.RS
+.B %t
+- Supportconfig run time
+.RE
+.RS
+.B %u
+- A supportconfig unique identifier, UUID or mktemp with 30 places if uuidgen isn't found
+.RE
+.RS
+.B %B
+- The base filename options = %s_%d_%t
+.RE
+.RS
+
+.RE
+.RS
+.B Examples:
+.RE
+.RS
+The default supportconfig file format \fBnts_%B\fR or \fBnts_%s_%d_%t\fR yields "nts_hostname_100326_1105.tbz"
+.RE
+.RS
+\fBsupportconfig \-B "before problem %s"\fR yields "nts_before_problem_hostname.tbz"
+.RE
+.RS
+\fBsupportconfig \-B "testcase 1 %d-%t"\fR yields "nts_testcase_1_100326-1105.tbz"
+.RE
+.RS
+\fBsupportconfig \-qB "testcase %d %t"\fR yields "nts_testcase_100326_1105_21a17f8c-13c2-44ff-b0ef-29b7fa7d91c0.tbz"
+.RE
+.RS
+\fBsupportconfig \-B "testcase %d %t %u"\fR yields "nts_testcase_100326_1105_21a17f8c-13c2-44ff-b0ef-29b7fa7d91c0.tbz"
+.RE
+.RS
+\fBsupportconfig \-B "%r bad" -r 12345678901\fR yields "nts_SR12345678901_bad.tbz"
+.RE
+.TP
+VAR_OPTION_HBREPORT_DIRS
+The directories in which to look for hb_report tar balls with filenames that begin with hb_report, hb-report or hbreport and end in .tar.bz2. \fBNone\fR ("/tmp /root /var/log")
+.TP
+VAR_OPTION_HEADER_FILE
+If VAR_OPTION_HEADER_FILE exists, it will be prepended to each supportconfig text file. Useful for including legal or instructional statements at the beginning of each file. \fBNone\fR (/usr/lib/supportconfig/header.txt)
+.TP
+VAR_OPTION_GPG_UID
+The GPG recipient's user ID used to encrypt the supportconfig tar ball for more secure uploads. \fB\-G\fR (Not Set)
+.TP
+VAR_OPTION_LINE_COUNT
+The number of lines to include when getting a log file. Zero means get the entire file. \fB\-I\fR (500)
+.TP
+VAR_OPTION_LOG_DIRS
+The supportconfig tar ball location. The first valid location in the list is always used. \fB\-R\fR ("/var/log /tmp")
+.TP
+VAR_OPTION_MSG_MAXSIZE
+The maximum number of /var/log/messages lines to get. Zero means get the entire file. \fB\-X\fR (500000)
+.TP
+VAR_OPTION_PENGINE_FILES_LIMIT
+The maximum number of heartbeat policy engine log files to include in the supportconfig tar ball. \fB\-H\fR (250)
+.TP
+VAR_OPTION_RM_LOCAL_FILE
+Removes the local supportconfig tar ball file when supportconfig completes. Useful when uploading the tar ball to another server and no local copy is wanted. \fBNone\fR (0)
+.TP
+VAR_OPTION_SBM
+Screen buffer mode. Useful for third party applications running supportconfig. No status or progress is displayed on screen, just the current supportconfig gathering action. All status information is logged in supportconfig.txt. \fB\-b\fR (0)
+.TP
+VAR_OPTION_SAR_FILES_LIMIT
+The maximum number of SAR data files to include in the supportconfig tar ball. \fB\-S\fR (30)
+.TP
+VAR_OPTION_SILENT
+When set to 1, supportconfig runs in quiet mode. This option is useful if you plan on running regular supportconfigs in a cron job for example. \fB\-Q\fR (0)
+.TP
+VAR_OPTION_UNIQUE_FILE
+When set to 1, supportconfig adds a unique identifier string to the tar ball filename. This option is usually not needed, but is useful for public upload sites, like Novell or service providers. \fB\-q\fR (0)
+.TP
+VAR_OPTION_UPLOAD_ALT
+Used to specify an alternate upload target where the supportconfig tar ball will be uploaded, when using the \fB\-a\fR startup option. You should use the \fB\-r\fR \fIsrnum\fR to specify the Novell service request number for all tar balls uploaded to Novell. \fB\-U\fR (https://secure-www.novell.com/upload?appname=supportconfig&file={tarball})
+.TP
+VAR_OPTION_UPLOAD_TARGET
+Specifies where the supportconfig tar ball will be uploaded, when using the \fB\-u\fR startup option. The default is Novell's public secure upload server. The default is Novell's anonymous ftp upload server. You should use the \fB\-r\fR \fIsrnum\fR to specify the Novell service request number for all tar balls uploaded to Novell. \fB\-U\fR (ftp://ftp.novell.com/incoming/)
+.TP
+VAR_OPTION_WAIT_TRACE
+Enables the wait trace verbose logging option. When enabled, a time stamp before and after each command or file logged in supportconfig is displayed.\fB\-w\fR (0)
+.PD
+.SH REPORTING BUGS
+Please submit bug fixes or comments via:
+.B
+http://en.opensuse.org/Supportutils#Reporting_Bugs
+.SH AUTHOR
+Jason Record <jrecord@suse.com>
+.SH SEE ALSO
+.BR supportconfig (8)
+.BR scplugin.rc (3)

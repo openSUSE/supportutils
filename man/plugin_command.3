@@ -1,0 +1,68 @@
+.\" Copyright 2010 Jason Record <jrecord@suse.com>
+.\" 
+.\" This program is free software; you can redistribute it and/or modify
+.\" it under the terms of the GNU General Public License as published by
+.\" the Free Software Foundation; version 2 of the License.
+.\" 
+.\" This program is distributed in the hope that it will be useful,
+.\" but WITHOUT ANY WARRANTY; without even the implied warranty of
+.\" MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+.\" GNU General Public License for more details.
+.\" 
+.\" You should have received a copy of the GNU General Public License
+.\" along with this program; if not, write to the Free Software
+.\" Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
+.\" 
+.TH plugin_command 3 "06 Oct 2010" "plugin_command" "Supportconfig Plugin Library Manual"
+.SH NAME
+plugin_command - Runs the specified <command>.
+.SH SYNOPSIS
+.B plugin_command <command>
+.SH DESCRIPTION
+Executes the <command> specified. Command pipes are supported. Returns the value of the command's exit code.
+.SH EXAMPLES
+The following plugin commands:
+.sp
+plugin_command "cat /etc/hosts | grep local"
+.br
+plugin_message "Return: $?"
+.br
+plugin_command "cat /etc/hosts | grep GONE"
+.br
+plugin_message "Return: $?"
+.sp
+Return the following results:
+.sp
+#==[ Command ]======================================#
+.br
+# /bin/cat /etc/hosts | grep local
+.br
+127.0.0.1       localhost
+.br
+::1             localhost ipv6-localhost ipv6-loopback
+.br
+fe00::0         ipv6-localnet
+.sp
+Return: 0
+.br
+#==[ Command ]======================================#
+.br
+# /bin/cat /etc/hosts | grep GONE
+.sp
+Return: 1
+.SH REPORTING BUGS
+Please submit bug fixes or comments via: 
+.B http://en.opensuse.org/Supportutils#Reporting_Bugs
+.SH AUTHOR
+Jason Record <jrecord@suse.com>
+.SH SEE ALSO
+.BR supportconfig (8)
+.BR supportconfig.conf (5)
+.BR scplugin.rc (3)
+.BR section_header (3)
+.BR pconf_files (3)
+.BR plog_files (3)
+.BR plugin_message (3)
+.BR plugin_tag (3)
+.BR validate_rpm (3)
+

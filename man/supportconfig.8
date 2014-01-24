@@ -1,0 +1,265 @@
+.TH supportconfig 8 "18 Oct 2013" "supportconfig" "Support Utilities Manual"
+.SH NAME
+supportconfig - Gathers system troubleshooting information
+.SH SYNOPSIS
+supportconfig [\fB\-ACDFLQabdeghklmpqsuvy\fR][\fB-B\fR string][\fB-E\fR string][\fB-G\fR gpg_uid][\fB-H\fR number][\fB-I\fR number][\fB-M\fR string][\fB-N\fR string][\fB-O\fR string][\fB-P\fR string][\fB-R\fR directory path][\fB-S\fR number][\fB-T\fR seconds][\fB-U\fR URI string][\fB-W\fR string][\fB-X\fR number][\fB-f\fR directory][\fB-i\fR keyword list][\fB-o\fR keyword list][\fB-r\fR srnum][\fB-t\fR directory][\fB-x\fR keyword list]
+.SH DESCRIPTION
+Creates a tar ball that can be attached to a Novell service request and/or sent to a Novell Technical Services engineer. Basic info is collected for SLES8. More comprehensive information is collected for SLES9, SLE10 and OES Linux.
+.PP
+This tool will create a tar ball in the default /var/log directory. Please attach the tar ball to your open service request, using the following URL: https://secure\-support.novell.com/eService_enu
+.PP
+If you cannot attach the tar ball to the service request, then email it to the support engineer assigned to your service request.
+.SH DISCLAIMER
+Detailed system information and logs are collected and organized in a
+manner that helps reduce service request resolution times. Private system
+information can be disclosed when using this tool. If this is a concern,
+please prune private data from the log files. Several startup options
+are available to exclude more sensitive information. Refer to the 
+.B
+OPTIONS
+below.
+.SH OPTIONS
+.TP
+\fB\-h\fR
+This screen
+.TP
+\fB\-A\fR 
+Activates all supportconfig functions with additional logging and full rpm verification.
+.TP
+\fB\-B\fR \fIstring\fR
+Includes the string in the tar ball filename in the format nts_<string>. See \fBsupportconfig.conf\fR(5) under VAR_OPTION_CUSTOM_ARCH for string qualifiers.
+.TP
+\fB\-C\fR 
+Creates a new default /etc/supportconfig.conf
+.TP
+\fB\-D\fR 
+Use defaults; ignore  /etc/supportconfig.conf
+.TP
+\fB\-E\fR \fIstring\fR
+Contact email address. This is an optional email address that is included in the basic-environment.txt file.
+.TP
+\fB\-F\fR
+Display available supportconfig feature keywords (case-sensitive) used with -i and -x
+.TP
+\fB\-G\fR \fIgpg_uid\fR
+The GPG recipient user ID used to encrypt the supportconfig tar ball for more secure uploads.
+.TP
+\fB\-H\fR \fInumber\fR
+Limit number of included HA Policy engine files
+.TP
+\fB\-I\fR \fInumber\fR
+Default log file line count
+.TP
+\fB\-L\fR 
+Create a full file listing from '/'
+.TP
+\fB\-M\fR \fIstring\fR
+Contact company terminal ID. This is an optional terminal identifier that is included in the basic-environment.txt file.
+.TP
+\fB\-N\fR \fIstring\fR
+Contact name. This is an optional contact name that is included in the basic-environment.txt file.
+.TP
+\fB\-O\fR \fIstring\fR
+Contact company name. This is an optional company name that is included in the basic-environment.txt file.
+.TP
+\fB\-P\fR \fIstring\fR
+Contact phone number. This is an optional phone number that is included in the basic-environment.txt file.
+.TP
+\fB\-Q\fR 
+Run in quiet mode, no output
+.TP
+\fB\-R\fR \fIdirectory_path\fR
+Directory path for supportconfig output files
+.TP
+\fB\-S\fR \fInumber\fR
+Limit number of included SAR files
+.TP
+\fB\-T\fR \fIseconds\fR
+Binary execution timeout. Some binaries are executed with a timeout value. If the timeout value is exceeded, supportconfig assumes the binary is unresponsive and continues gathering information.
+.TP
+\fB\-U\fR \fIURI_string\fR
+Sets the upload target URI and initiates an upload. Supported services: ftp, http, https, scp
+.RS
+.B Examples:
+.RE
+.RS
+.B supportconfig -r 12345678901 -U 'https://secure-www.novell.com/upload?appname=supportconfig&file={tarball}'
+.RE
+.RS
+.B supportconfig -r 12345678901 -U "ftp://ftp.novell.com/incoming"
+.RE
+
+.RS
+Uploads the supportconfig tar ball to Novell's secure server or ftp server respectively, and includes the open service request number.
+.RE
+
+.RS
+.B supportconfig -U "scp://central.server.foo.com/supportconfig/archives"
+.RE
+
+.RS
+You might want to create an ssh trusted host configuration for the scp service. This would allow supportconfig to copy the files to the upload target without being prompted for a password.
+.RE
+
+.RS
+.B supportconfig -U "https://secure.server.foo.com/supportconfig/upload.php?file={TARBALL}"
+.RE
+
+.RS
+The "{TARBALL}" is a reserved case insensitive word that supportconfig replaces with the supportconfig tar ball filename. The upload.php script is code you would have to supply that would receive the connection and copy the file locally. The supportconfig sends a User-Agent string to the HTTP server called "SupportConfig".
+.RE
+.TP
+\fB\-W\fR \fIstring\fR
+Contact company store ID. This is an optional store identifier that is included in the basic-environment.txt file.
+.TP
+\fB\-X\fR \fInumber\fR
+Max system logs line count
+.TP
+\fB\-a\fR 
+Upload the tar ball to the specified alternate target VAR_OPTION_UPLOAD_ALT
+.TP
+\fB\-b\fR 
+Switch to screen buffer mode. This mode echos the current action, but not a status. Useful for third party applications running supportconfig.
+.TP
+\fB\-d\fR 
+Exclude detailed disk information and scans. Disks are still scanned, but this switch attempts to minimize the disk scans.
+.TP
+\fB\-e\fR 
+Search root filesystem for eDirectory instances; \fB\-L\fR\ implied. Be patient.
+.TP
+\fB\-f\fR \fIdirectory\fR
+From directory. Don't collect report files, just use files in that directory.
+.TP
+\fB\-g\fR 
+Use gzip instead of the default bzip2 compression.
+.TP
+\fB\-i\fR \fIkeyword[,keyword]\fR
+Include keywords. A comma separated list of feature keywords that specify which features to include. 
+Use -F to see a list of valid keywords. Do not use spaces and keywords are case-sensitive.
+.RS
+.B Example:
+.RE
+.RS
+.B supportconfig -i BOOT,aFSLIST,pgroupwise
+.RE
+.TP
+\fB\-k\fR 
+Disable automatic kernel module loading. Some of the system commands (ie hwinfo), automatically load kernel modules for probing purposes. On rare occassions these additional kernel modules have caused unexpected behavior. This option will not run any system command that is known to load kernel modules. Do not use this option, unless directed by NTS.
+.TP
+\fB\-l\fR 
+Includes all log file lines. Gathers additional rotated logs. Includes commented lines in all configuration files. 
+.TP
+\fB\-m\fR 
+Only gather a minimum amount of info: basic env, basic health, hardware, rpm, messages, y2logs
+.TP
+\fB\-o\fR \fIkeyword[,keyword]\fR
+Toggle keywords on or off. A comma separated list of feature keywords that changes the feature state opposite it's current state. For example, if OPTION_PAM is set, -o PAM will turn it off. If OPTION_PAM is not set, -o PAM will turn it on.
+.TP
+\fB\-p\fR
+Disable all plugin execution
+.TP
+\fB\-q\fR
+Add a unique identifier to the supportconfig tar ball filename. You usually do not need this, as hostnames, date and times are unique enough within an organization. However, when uploading to Novell or some other central public repository, it is needed.
+.TP
+\fB\-r\fR \fIsrnum\fR 
+Includes the Novell 11 digit service request number in the basic-environment.txt file and the tar ball filename. Use this option when uploading (-u) tar balls to Novell.
+.TP
+\fB\-s\fR 
+Include full SLP service lists
+.TP
+\fB\-t\fR \fIdirectory\fR
+Target directory. Just save log files here, do not create tarball. Uses the newest nts_* directory found.
+.TP
+\fB\-u\fR
+Uploads the supportconfig tar ball to the specified VAR_OPTION_UPLOAD_TARGET. See 
+.BR supportconfig.conf (5)
+for more details. The following upload services are supported: ftp, http, https, scp.
+.TP
+\fB\-v\fR 
+Performs an rpm -V for each installed rpm on systems prior to SLES11. For SLES11 this is included in the Supportability Analysis. NOTE: This takes a long time to complete
+.TP
+\fB\-w\fR 
+Enable verbose wait trace logging. Shows the start and stop times of each command supportconfig is running.
+.TP
+\fB\-x\fR \fIkeyword[,keyword]\fR
+Exclude keywords. A comma separated list of feature keywords that specify which features to exclude. 
+Use -F to see a list of valid keywords. Do not use spaces and keywords are case-sensitive.
+.RS
+.B Example:
+.RE
+.RS
+.B supportconfig -x aFSLIST,aEDIR,X,SMART
+.RE
+.TP
+\fB\-y\fR 
+Gathers full YaST log files.
+.TP
+Use Ctrl-\\ to try and skip a function that is hanging.
+.SH ENVIRONMENT
+.I SC_CONF
+.RS
+You can use the SC_CONF environment variable to specify an alternate configuration file path.
+.RE
+.RS
+.B Example: export SC_CONF=/opt/supportconfig.conf
+.RE
+.SH FILES
+.I /etc/supportconfig.conf
+.RS
+The supportconfig configuration file. See
+.BR supportconfig.conf (5)
+for further details.
+.RE
+.I /usr/lib/supportconfig/plugins
+.RS
+The supportconfig plugin directory. See 
+.B PLUGINS
+below for further details.
+.RE
+.SH PLUGINS
+You can include your own scripts or applications with the supportconfig tar ball. 
+Simply create the /usr/lib/supportconfig/plugins directory, and copy
+your script file there. The plugin will be executed, but not sourced
+into the supportconfig environment. This means you won't have access
+to the functions and variables in supportconfig. Any file with execute
+permissions that sends it's output to the stdout and stderr is supported.
+.PP
+For example, say you want to include the pstree output with the 
+supportconfig. Do the following,
+.PD 0
+.PP 
+1. mkdir -p /usr/lib/supportconfig/plugins
+.PP 
+2. cp -a /usr/bin/pstree /usr/lib/supportconfig/plugins/
+.PP
+3. The output will be in the plugin-pstree.txt file.
+.PD
+.PP
+Supportconfig will include a text file called plugin-myscript.txt in it's 
+tar ball after executing myscript, where myscript is your plugin filename. 
+If you don't want to include plugins, just run supportconfig with the -p 
+parameter.
+.PP
+.PD
+.SH REPORTING BUGS
+Please submit bug fixes or comments via: 
+.B
+http://en.opensuse.org/Supportutils#Reporting_Bugs
+.SH AUTHOR
+Jason Record <jrecord@suse.com>
+.SH COPYRIGHT
+This program is free software; you can redistribute it and/or modify
+it under the terms of the GNU General Public License as published by
+the Free Software Foundation; version 2 of the License.
+.PP
+This program is distributed in the hope that it will be useful,
+but WITHOUT ANY WARRANTY; without even the implied warranty of
+MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+GNU General Public License for more details.
+.PP
+You should have received a copy of the GNU General Public License
+along with this program; if not, write to the Free Software
+Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
+.SH SEE ALSO
+.BR supportconfig.conf (5)
+.BR scplugin.rc (3)

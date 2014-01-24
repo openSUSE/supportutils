@@ -1,0 +1,624 @@
+#!/bin/bash
+
+SVER=1.32
+SDATE="2013 07 02"
+SNAME="analyzevmcore"
+
+# --------------------------------------------------------------------- #
+#  analyzevmcore - Creates analysis.txt from SLES10+ cores.             #
+#  usage: see showhelp(), or call with -h                               #
+#                                                                       #
+#  Please submit bug fixes or comments via:                             #
+#    http://en.opensuse.org/Supportutils#Reporting_Bugs                 #
+#                                                                       #
+#  Copyright (C) 1999-2012 SUSE Linux Products GmbH, Nuernberg, Germany #
+#                                                                       #
+# --------------------------------------------------------------------- #
+#                                                                       #
+#  This program is free software; you can redistribute it and/or modify #
+#  it under the terms of the GNU General Public License as published by #
+#  the Free Software Foundation; either version 2 of the License, or    #
+#  (at your option) any later version.                                  #
+#                                                                       #
+#  This program is distributed in the hope that it will be useful,      #
+#  but WITHOUT ANY WARRANTY; without even the implied warranty of       #
+#  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the        #
+#  GNU General Public License for more details.                         #
+#                                                                       #
+#  You should have received a copy of the GNU General Public License    #
+#  along with this program; if not, write to the Free Software          #
+#  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.            #
+#                                                                       #
+#  Authors/Contributors:                                                #
+#     Mike Latimer (mlatimer@suse.com)                                  #
+# --------------------------------------------------------------------- #
+#                                                                       #
+# Overview:                                                             #
+#                                                                       #
+# This script is intended to speed the process of kernel core analysis  #
+# by creating an analysis file for all kernel cores found. The analysis #
+# file contains the oops or panic message, along with a kernel log      #
+# buffer dump, and backtraces of active processes. This analysis file   #
+# will be stored in the crash directory (typically /var/crash/<date>),  #
+# and copied to the /var/log directory. Supportconfig automatically     #
+# includes these analysis files, and basic core analysis can be         #
+# performed without the need to upload large core files to NTS.         #
+#                                                                       #
+# In order to analyze cores, the -debuginfo kernel must either be       #
+# installed on the crashing machine, or the vmlinux-*.debug file must   #
+# be extracted from the correct -debuginfo RPM and copied into the same #
+# directory as the core.                                                #
+#                                                                       #
+# --------------------------------------------------------------------- #
+# Changes:                                                              #
+#                                                                       #
+# 1.32 Release                                                          #
+#    - Improved support for user-specified crash directory              #
+# 1.31 Release                                                          #
+#    - Modified code to detect correct kernel version for corefile      #
+#    - Better support for SLES10 environments                           #
+# 1.30 Release                                                          #
+#    - Misc comment cleanup, minor bug fixes in kernel detection        #
+#    - Added -r option to remove and recreate existing analysis files   #
+#    - Added return code check for crash                                #
+# 1.29 Release                                                          #
+#    - Changed spinner code                                             #
+#    - Default to currently running kernel if no kernel found           #
+# 1.28 Release                                                          #
+#    - Change to always copy analysis to /var/log.                      #
+# 1.27 Release                                                          #
+#    - Added Update channel documentation                               #
+#    - Updated output formatting                                        #
+# 1.26 Release                                                          #
+#    - Better binary checking                                           #
+#    - README.txt is now checked for kernel version                     #
+#    - Link to /boot/vmlinux will be created if not found in crashdir   #
+# 1.25 Release                                                          #
+#    - Initial public release in supportutils                           #
+# --------------------------------------------------------------------- #
+
+CRASHV4=0
+REWRITE_ANALYSIS=0
+FORMAT="%-35s"
+SPINSTR='|/-\'
+
+#Required Binaries
+AWK_BIN=/usr/bin/awk
+BASENAME_BIN=/usr/bin/basename
+CAT_BIN=/bin/cat
+CP_BIN=/bin/cp
+CPIO_BIN=/usr/bin/cpio
+CRASH_BIN=/usr/bin/crash
+DATE_BIN=/bin/date
+DIRNAME_BIN=/usr/bin/dirname
+GREP_BIN=/usr/bin/grep
+GZIP_BIN=/usr/bin/gzip
+LN_BIN=/bin/ln
+LS_BIN=/bin/ls
+MKTEMP_BIN=/bin/mktemp
+MV_BIN=/bin/mv
+PRINTF_BIN=/usr/bin/printf
+PS_BIN=/bin/ps
+READLINK_BIN=/usr/bin/readlink
+RM_BIN=/bin/rm
+RMDIR_BIN=/bin/rmdir
+RPM_BIN=/bin/rpm
+RPM2CPIO_BIN=/usr/bin/rpm2cpio
+SED_BIN=/usr/bin/sed
+SLEEP_BIN=/bin/sleep
+STAT_BIN=/bin/stat
+UNAME_BIN=/bin/uname
+WC_BIN=/usr/bin/wc
+ZLESS_BIN=/usr/bin/zless
+CORE_BINS="$AWK_BIN $BASENAME_BIN $CP_BIN $CRASH_BIN $DATE_BIN $DIRNAME_BIN $GREP_BIN \
+	$GZIP_BIN $LN_BIN $LS_BIN $MV_BIN $PRINTF_BIN $PS_BIN $READLINK_BIN $RM_BIN \
+	$RMDIR_BIN $RPM_BIN $SED_BIN $SLEEP_BIN $UNAME_BIN $ZLESS_BIN"
+EXTRA_BINS="$CPIO_BIN $RPM2CPIO_BIN"
+
+# --------------------------------------------------------- #
+# showhelp ()                                               #
+# Display program help screen                               #
+# --------------------------------------------------------- #
+showhelp () 
+{
+	echo "Usage: $SNAME [OPTIONS]"
+	echo
+	echo "$SNAME creates an analysis file (nts_analyzevmcore_<CORE_DATE>.txt) for all"
+	echo "kernel cores found on the system. This analysis file is automatically copied"
+	echo "to /var/log, and included in supportconfig archives for further analysis by"
+	echo "Novell and SUSE Technical Services."
+	echo
+	echo "In order to create the analysis, this script requires the debuginfo kernel"
+	echo "(vmlinux-*.debug) that matches the kernel version which generated the core."
+	echo "This debuginfo kernel will only be found in the following ways:"
+	echo 
+	echo "    1. If the kernel-*-debuginfo RPM is installed on the system, the"
+	echo "       vmlinux-*.debug file will be found in /usr/lib/debug/boot."
+	echo "    2. The vmlinux-*.debug file can be extracted from the debuginfo RPM and"
+	echo "       copied to the same directory as the normal kernel, or the same"
+	echo "       directory as the core. This extraction can be done manually, or"
+	echo "       automatic through the following parameter:"
+	echo "           -d [kernel-*-debuginfo.rpm]"
+	echo
+	echo "For more information on the debuginfo or normal kernel requirements, see"
+	echo "the man page (man 8 analyzevmcore)"
+	echo
+	echo "Optional parameters:"
+	echo
+	echo "  -h              This screen"
+	echo "  -c [COREDIR]    Analyze the specified vmcore directory, rather than all"
+	echo "                  all cores found on the system."
+	echo "  -d [RPM]        This option extracts the vmlinux-*.debug file from the"
+	echo "                  specified kernel-*-debuginfo RPM into the core directory"
+	echo "  -k [vmlinux]    The vmlinux-[version] file which created the core. This"
+	echo "                  can always be found in /boot, and must match the kernel"
+	echo "                  version which created the core. If this is in the current"
+	echo "                  directory (e.g. /var/crash<date>), this parameter can be"
+	echo "                  omitted."
+	echo "  -r              Remove and recreate existing analysis files."
+	echo
+	echo "$SNAME version $SVER ($SDATE)"
+	echo
+}
+
+# --------------------------------------------------------- #
+# title ()                                                  #
+# Display program title                                     #
+# --------------------------------------------------------- #
+title () 
+{
+	echo "==============================================="
+	echo "       Support Utilities - Analyzevmcore"
+	echo "            Script Version: $SVER"
+	echo "            Script Date: $SDATE"
+	echo "==============================================="
+	echo
+}
+
+# --------------------------------------------------------- #
+# checkbinaries ()                                          #
+# Check to make sure required binaries exist                #
+# --------------------------------------------------------- #
+checkbinaries()
+{
+	if [ -z "$DBGRPM" ]; then
+		CHECK_BINS=$CORE_BINS
+	else
+		CHECK_BINS="$CORE_BINS $EXTRA_BINS"
+	fi
+	for BINARY in $CHECK_BINS; do
+		if ! [ -e $BINARY ]; then
+			if [ -z "$MISSING_BINS" ]; then
+				MISSING_BINS=$BINARY
+			else
+				MISSING_BINS="$BINARY $MISSING_BINS"
+			fi
+		fi
+	done
+	if ! [ -z "$MISSING_BINS" ]; then
+		echo "The following required binaries were not found!"
+		echo
+		for BIN in $MISSING_BINS; do
+			echo "   $BIN"
+		done
+		echo
+		echo "Please install the required package(s) and try again."
+		echo
+		exit -1
+	fi
+}
+
+# --------------------------------------------------------- #
+# extractdebug ()                                           #
+# Extracts required vmlinux*.debug from debuginfo RPM       #
+# --------------------------------------------------------- #
+extractdebug()
+{
+	echo " not found, switching to extraction..."
+	DBGRPM=$($READLINK_BIN -f $DBGRPM)
+	# Strip off kernel-[FLAVOR], to test for debuginfo-*.rpm
+	DBGRPM_NAME=$($BASENAME_BIN $DBGRPM)
+	DBGRPM_NAME=${DBGRPM_NAME#*-*-}
+	if ! [ "${DBGRPM_NAME:0:9}" = "debuginfo" -a "${DBGRPM_NAME:(-4)}" = ".rpm" ]; then
+		echo "    Invalid RPM specied!"
+		echo "    Please specify a valid kernel-*-debuginfo.rpm file with the -d parameter,"
+		echo "    or install the kernel-*-debuginfo rpm, and do not use the -d parameter."
+		exit -1
+	fi
+	echo -n "   Extracting vmlinux*.debug from $($BASENAME_BIN $DBGRPM)... "
+	# Move to temporary directory, extract and move vmlinux.debug to coredir
+	CORE_DIR=$($READLINK_BIN -f $PWD)
+	cd $TMP_DIR
+	$RPM2CPIO_BIN $DBGRPM | $CPIO_BIN -id ./usr/lib/debug/boot/vmlinux*.debug 1>/dev/null 2>&1
+
+	$MV_BIN ./usr/lib/debug/boot/vmlinux*.debug $CORE_DIR
+
+	for DIR in ./usr/lib/debug/boot ./usr/lib/debug ./usr/lib ./usr
+	do
+		if [ -e $DIR ]; then
+			$RMDIR_BIN $DIR
+		fi
+	done
+	cd $CORE_DIR
+	echo "done"
+}
+
+# --------------------------------------------------------- #
+# checkkernel ()                                            #
+# Check to make sure the kernel parameter appears sane      #
+# --------------------------------------------------------- #
+checkkernel()
+{
+	KERNEL=""
+	if [ -z "$USERKERNEL" ]; then
+		if [ -e README.txt ]; then
+			KERNEL=$($GREP_BIN "^Kernel version :" README.txt | $AWK_BIN '{print $NF}')
+			if ! [ -z "$KERNEL" ]; then
+				KERNEL="vmlinux-$KERNEL.gz"
+			fi
+		fi
+		if [ -z "$KERNEL" ]; then
+			# If README.txt is missing 'Kernel version :", set KERNEL to vmlinux found in crash dir.
+			KERNEL="$($LS_BIN vmlinux-*.gz 2>/dev/null)"
+		fi
+		if [ -z "$KERNEL" ]; then
+			# If kernel version is still unknown, use currently running kernel instead of failing.
+			KERNEL="vmlinux-$($UNAME_BIN -r).gz"
+			echo -n "defaulting to running kernel... "
+		fi
+	else
+		KERNEL=$USERKERNEL
+	fi
+	KERNEL_VER=${KERNEL#vmlinux-}
+	KERNEL_VER=${KERNEL_VER%-*}
+	KERNEL_FLAVOR=${KERNEL##*-}
+	KERNEL_FLAVOR=${KERNEL_FLAVOR%.*}
+	if ! [ -e $KERNEL ]; then
+		# If $KERNEL does not exist, check /boot and symlink to it if found
+		if [ -e "/boot/$($BASENAME_BIN $KERNEL)" ]; then
+			$LN_BIN -s /boot/$($BASENAME_BIN $KERNEL) $($BASENAME_BIN $KERNEL)
+		else
+			echo "Failed!"
+			echo
+			echo "Could not find specified '$KERNEL'!"
+			echo "Please find the correct vmlinux file, and try again."
+			echo
+			exit -1
+		fi
+	fi
+	KERNEL=$($READLINK_BIN -f $KERNEL)
+	KERNEL_DIR=$($DIRNAME_BIN $KERNEL)
+	KERNEL_NAME=$($BASENAME_BIN $KERNEL)
+	if [ ! "${KERNEL_NAME:0:8}" = "vmlinux-" -o "${KERNEL_NAME:(-5)}" = "debug" ]; then
+		echo "Failed!"
+		echo
+		echo "The -k parameter must specify a valid NORMAL kernel image. For example:"
+		echo
+		echo "    Correct:   /boot/vmlinux-2.6.32.45-0.3-default.gz     (Normal kernel)"
+		echo "    Incorrect: /usr/lib/debug/boot/vmlinux-2.6.32.45-0.3-default.debug  (Debug kernel)"
+		echo
+		echo "Please specify the correct vmlinux file, and try again."
+		echo
+		exit -1
+	fi
+	echo "validated ($($BASENAME_BIN $KERNEL))"
+}
+
+# --------------------------------------------------------- #
+# checkdebug ()                                             #
+# Check to make sure the debug kernel exists                #
+# --------------------------------------------------------- #
+checkdebug()
+{
+	FOUND_DEBUG=0
+	DEBUGKERNEL="${KERNEL_NAME%.gz}.debug"
+	if ! [ -e "/usr/lib/debug/boot/$DEBUGKERNEL" -o -e "$KERNEL_DIR/$DEBUGKERNEL" ]; then
+		# If the vmlinux.debug kernel is not in /usr/lib/debug/boot, it will only be found
+		# if it is in the same directory as the kernel. Check to see if there is another copy
+		# of the kernel in the same directory as the .debug version, If not, create a symlink
+		for DIR in $CRASHDIR $ORG_DIR; do
+			if [ -e "$DIR/$DEBUGKERNEL" ]; then
+				echo " found (in $DIR)"
+				if [ -e "$DIR/$KERNEL_NAME" ]; then
+					echo "    Using $KERNEL_NAME in $DIR instead of $KERNEL!"
+				else
+					echo "    Creating symlink to allow for remote $KERNEL_NAME"
+					$LN_BIN -s $($READLINK_BIN -f $KERNEL) $DIR/$KERNEL_NAME
+				fi
+				FOUND_DEBUG=1
+			fi
+			if [ "$FOUND_DEBUG" = "1" ]; then
+				KERNEL=$DIR/$KERNEL_NAME
+				KERNEL_DIR=$($DIRNAME_BIN $KERNEL)
+				break
+			fi
+		done
+		if [ "$FOUND_DEBUG" = "0" ]; then
+			if ! [ -z "$DBGRPM" ]; then
+				extractdebug
+			else
+				echo "Failed!"
+				echo
+				echo "  --- Missing $DEBUGKERNEL! ---"
+				echo
+				echo "Please install the debuginfo package for this kernel and try again."
+				echo "The debuginfo kernel can be automatically installed (if debuginfo"
+				echo "channels are activated) using:"
+				echo
+				if [ "$CRASHV4" = "1" ]; then
+					echo "       rug in kernel-$KERNEL_FLAVOR-debuginfo-$KERNEL_VER"
+				else
+					echo "       zypper in kernel-$KERNEL_FLAVOR-debuginfo-${KERNEL_VER%-*}"
+				fi
+				echo
+				echo "For additional information, see analyzevmcore(8)."
+				echo
+				exit -1
+			fi
+		fi
+	else
+		echo "validated"
+	fi
+	# Add symlink for use with uncompressed kernels
+	if [ "$CRASHV4" = "1" -a -e "/usr/lib/debug/boot/$DEBUGKERNEL" ]; then
+		if ! [ -e "$CRASHDIR/$DEBUGKERNEL" ]; then
+			$LN_BIN -s /usr/lib/debug/boot/$DEBUGKERNEL $CRASHDIR/$DEBUGKERNEL
+		fi
+	fi
+}
+
+# --------------------------------------------------------- #
+# decompresskernel ()                                       #
+# Decompresses the kernel to work around a limitation of    #
+# crash version 4                                           #
+# --------------------------------------------------------- #
+decompresskernel()
+{
+	echo "    Decompressing kernel to work with older versions of crash..."
+	$GZIP_BIN -dc $KERNEL > $CRASHDIR/${KERNEL_NAME%.gz}
+	# After decompressing the debug kernel, remove .gz extension from variables
+	KERNEL=$CRASHDIR/${KERNEL_NAME%.gz}
+	KERNEL_NAME=${KERNEL_NAME%.gz}
+	KERNEL_DIR=$CRASHDIR
+}
+
+# --------------------------------------------------------- #
+# createcrashcmds ()                                        #
+# Builds a script for crash to create the analysis.txt file #
+# --------------------------------------------------------- #
+createcrashcmds()
+{
+	echo "echo \"=========================\""> $CRASHCMDS
+	echo "echo \"CRASH CORE FILE REPORT\"">> $CRASHCMDS
+	echo "echo \"=========================\"">> $CRASHCMDS
+	echo "echo">> $CRASHCMDS
+	echo "sys">> $CRASHCMDS
+	echo "echo">> $CRASHCMDS
+	echo "mach">> $CRASHCMDS
+	echo "">> $CRASHCMDS
+	echo "echo">> $CRASHCMDS
+	echo "echo">> $CRASHCMDS
+	echo "echo \"=========================\"">> $CRASHCMDS
+	echo "echo \"LOG BUFFER DUMP\"">> $CRASHCMDS
+	echo "echo \"=========================\"">> $CRASHCMDS
+	echo "echo">> $CRASHCMDS
+	echo "log">> $CRASHCMDS
+	echo "">> $CRASHCMDS
+	echo "echo">> $CRASHCMDS
+	echo "echo">> $CRASHCMDS
+	echo "echo \"=========================\"">> $CRASHCMDS
+	echo "echo \"PROCESS LIST\"">> $CRASHCMDS
+	echo "echo \"=========================\"">> $CRASHCMDS
+	echo "echo">> $CRASHCMDS
+	echo "ps">> $CRASHCMDS
+	echo "">> $CRASHCMDS
+	echo "echo">> $CRASHCMDS
+	echo "echo">> $CRASHCMDS
+	echo "echo \"=========================\"">> $CRASHCMDS
+	echo "echo \"CURRENT RUN QUEUE\"">> $CRASHCMDS
+	echo "echo \"=========================\"">> $CRASHCMDS
+	echo "echo">> $CRASHCMDS
+	echo "runq">> $CRASHCMDS
+	echo "">> $CRASHCMDS
+	echo "echo">> $CRASHCMDS
+	echo "echo">> $CRASHCMDS
+	echo "echo \"=========================\"">> $CRASHCMDS
+	echo "echo \"BACKTRACE OF FAILING TASK\"">> $CRASHCMDS
+	echo "echo \"=========================\"">> $CRASHCMDS
+	echo "echo">> $CRASHCMDS
+	echo "bt">> $CRASHCMDS
+	echo "">> $CRASHCMDS
+	echo "echo">> $CRASHCMDS
+	echo "echo">> $CRASHCMDS
+	echo "echo \"=============================\"">> $CRASHCMDS
+	echo "echo \"BACKTRACE OF ALL ACTIVE TASKS\"">> $CRASHCMDS
+	echo "echo \"=============================\"">> $CRASHCMDS
+	echo "echo">> $CRASHCMDS
+	echo "bt -a">> $CRASHCMDS
+	echo "quit">> $CRASHCMDS
+}
+
+# --------------------------------------------------------------------- #
+# createreport ()                                                       #
+# Builds environment for analysis, and creates analysis.txt using crash #
+# --------------------------------------------------------------------- #
+createreport()
+{
+	CRASHCMDS=$TMP_DIR/.crashcmds
+	createcrashcmds
+
+	$CRASH_BIN -s -i $CRASHCMDS $KERNEL $COREFILE > $ANALYSIS &
+	CRASH_PID=$!
+
+	# Show progress while creating analysis.txt
+	PROCESSING=0
+	$PRINTF_BIN "${FORMAT}" "  Creating analysis..."
+	while [ "$PROCESSING" = "0" ]
+	do
+		local TEMP=${SPINSTR#?}
+		$PRINTF_BIN " [%c]  " "$SPINSTR"
+		local SPINSTR=$TEMP${SPINSTR%"$TEMP"}
+		$PS_BIN -p $CRASH_PID >/dev/null
+		PROCESSING=$?
+		$SLEEP_BIN .1
+		$PRINTF_BIN "\b\b\b\b\b\b"
+	done
+
+	wait $CRASH_PID
+	CRASH_STATUS=$?
+
+	$SED_BIN -i -e 's/\[?1034h//g' $ANALYSIS
+
+	$RM_BIN $CRASHCMDS
+
+	if [ "$CRASH_STATUS" -ne "0" ]; then
+		echo "FAILED!"
+		echo "    Crash was unable to create the analysis file."
+		echo "    Either the vmcore file is invalid, or an incorrect version of vmlinux was used."
+		$RM_BIN $ANALYSIS
+	else
+		echo "done"
+		# Copy to /var/log for inclusion in supportconfig
+		$CP_BIN $ANALYSIS /var/log/
+		$PRINTF_BIN "$FORMAT" "  Final analysis:"
+		echo "/var/log/$($BASENAME_BIN $ANALYSIS)"
+	fi
+}
+
+# --------------------------------------------------------- #
+# main ()                                                   #
+# Main program start                                        #
+# --------------------------------------------------------- #
+while getopts c:d:hk:r opt
+do
+	case $opt in
+	\?)
+		showhelp
+		exit 0
+		;;
+	c)
+		COREDIR=$($READLINK_BIN -f $OPTARG)
+		;;
+	d)
+		DBGRPM=$($READLINK_BIN -f $OPTARG)
+		;;
+	k)
+		USERKERNEL=$($READLINK_BIN -f $OPTARG)
+		;;
+	r)
+		REWRITE_ANALYSIS=1
+		;;
+	h)
+		showhelp
+		exit 0
+		;;
+	esac
+done
+
+clear
+title
+checkbinaries
+
+#Check crash version for workaround on SLES10
+CRASH_VER=$($RPM_BIN -q --queryformat "%{VERSION}\n" crash)
+if [[ "${CRASH_VER:0:1}" < "5" ]]; then
+	CRASHV4="1"
+fi
+
+if [ -z "$COREDIR" ]; then
+	#Source /etc/sysconfig/kdump
+	if [ -e "/etc/sysconfig/kdump" ]; then
+		. /etc/sysconfig/kdump
+		if [ "${KDUMP_SAVEDIR:0:8}" = "file:///" ]; then
+			KDUMP_SAVEDIR=${KDUMP_SAVEDIR:7}
+		else
+			echo "Unsupported KDUMP_SAVEDIR specified in /etc/sysconfig/kdump!"
+			echo "  Supported syntax:  file:///var/crash"
+			echo "  Current setting:   $KDUMP_SAVEDIR"
+			echo
+			exit -1
+		fi
+	else
+		COREDIR="/var/crash"
+	fi
+fi
+
+if [ -z "$COREDIR" ]; then
+	if ! [ -d "$KDUMP_SAVEDIR" ]; then
+		echo "Invalid KDUMP_SAVEDIR specified in /etc/sysconfig/kdump! ($KDUMP_SAVEDIR)"
+		echo
+		exit -1
+	else
+		COREDIR=$($LS_BIN -d $KDUMP_SAVEDIR/* 2>/dev/null)
+	fi
+else
+	if ! [ -d "$COREDIR" ]; then
+		echo "Invalid core directory specified! ($COREDIR)"
+		echo
+		exit -1
+	fi
+fi
+
+if ! [ -z "$COREDIR" ]; then
+	TMP_DIR=$($MKTEMP_BIN -d /tmp/analyzevmcore_tmp_XXXXXX)
+	ORG_DIR=$PWD
+	for CRASHDIR in $COREDIR; do
+		echo "Analyzing $CRASHDIR..."
+		CORE_DATE=${CRASHDIR##*/}
+		ANALYSIS="$CRASHDIR/nts_analyzevmcore_$CORE_DATE.txt"
+		$PRINTF_BIN "$FORMAT" "  Existing analysis..."
+		if [ -e "$ANALYSIS" ]; then
+			if [ "$REWRITE_ANALYSIS" = "1" ]; then
+				echo "found, removing for rewrite"
+				$RM_BIN $ANALYSIS
+			else
+				echo "found"
+				# Always copy to /var/log/ to be sure the latest one is there
+				$CP_BIN $ANALYSIS /var/log/
+				$PRINTF_BIN "$FORMAT" "  Final analysis:"
+				echo "/var/log/$($BASENAME_BIN $ANALYSIS)"
+				echo
+				continue
+			fi
+		else
+			echo "not found"
+		fi
+		if ! [ -e "$CRASHDIR/vmcore" ]; then
+			echo "  Missing vmcore file, skipping..."
+			echo
+			continue
+		else
+			COREFILE=$CRASHDIR/vmcore
+
+			OLD_DIR=$PWD
+			cd $CRASHDIR
+
+			$PRINTF_BIN "$FORMAT" "  Checking vmlinux..."
+			checkkernel
+
+			# If crash is version 4, decompress the kernel
+			if [ "$CRASHV4" = "1" ]; then
+				decompresskernel
+			fi
+
+			$PRINTF_BIN "$FORMAT" "  Checking vmlinux.debug..."
+			checkdebug
+
+			createreport
+
+			cd $OLD_DIR
+		fi
+		echo
+	done
+	$RMDIR_BIN $TMP_DIR
+	cd $ORG_DIR
+	echo "Finished!"
+else
+	echo
+	echo "No kernel cores were found on this system."
+	echo "  Configured core directory is $KDUMP_SAVEDIR"
+fi
+
+echo
+
+exit 0

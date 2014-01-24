@@ -1,0 +1,73 @@
+.\" Copyright 2010 Jason Record <jrecord@suse.com>
+.\" 
+.TH scplugin.rc 3 "06 Oct 2010" "scplugin.rc" "Supportconfig Plugin Library Manual"
+.SH NAME
+scplugin.rc - Supportconfig Plugin Resource File
+.SH SYNOPSIS
+.nf
+.B section_header <string>
+.br
+.B pconf_files <list>
+.br
+.B plog_files <int> <list>
+.br
+.B plugin_message <string>
+.br
+.B plugin_tag <label> <string>
+.br
+.B plugin_command <command>
+.br
+.B validate_rpm <rpm_name>
+.SH DESCRIPTION
+Supportconfig plugin development library for bash script plugins.
+
+.BR section_header ()
+- Prints a string with a Section identifier to help organize plugin content.
+
+.BR pconf_files ()
+- Gets the entire file for each configuration file in <list>, but excludes comments and blank lines.
+
+.BR plog_files ()
+- Gets the last <int> number of lines specified for each log file in <list>.
+
+.BR plugin_message ()
+- Displays the message string.
+
+.BR plugin_tag ()
+- Displays the message string with the <label> inside the section line and the <string> in the comment area.
+
+.BR plugin_command ()
+- Runs the specified command. Command pipes are supported. Returns the value of the command's exit code.
+
+.BR validate_rpm ()
+- Runs an rpm -V on the specified RPM package. If no exceptions are found, it's marked Passed, otherwise it's marked WARNING.
+
+.SH REPORTING BUGS
+Please submit bug fixes or comments via: 
+.B http://en.opensuse.org/Supportutils#Reporting_Bugs
+.SH AUTHOR
+Jason Record <jrecord@suse.com>
+.SH COPYRIGHT
+This program is free software; you can redistribute it and/or modify
+it under the terms of the GNU General Public License as published by
+the Free Software Foundation; version 2 of the License.
+
+This program is distributed in the hope that it will be useful,
+but WITHOUT ANY WARRANTY; without even the implied warranty of
+MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+GNU General Public License for more details.
+
+You should have received a copy of the GNU General Public License
+along with this program; if not, write to the Free Software
+Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
+.SH SEE ALSO
+.BR supportconfig (8)
+.BR supportconfig.conf (5)
+.BR section_header (3)
+.BR pconf_files (3)
+.BR plog_files (3)
+.BR plugin_message (3)
+.BR plugin_tag (3)
+.BR plugin_command (3)
+.BR validate_rpm (3)
+

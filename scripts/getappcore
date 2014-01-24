@@ -1,0 +1,550 @@
+#!/bin/bash
+
+SVER=1.28
+SDATE="2013 07 02"
+SNAME=$(basename $0)
+
+# --------------------------------------------------------------------- #
+#  getappcore - Creates an archive of all things required to analyze an #
+#  application crash.                                                   #
+#  usage: see show_help(), or call with -h                              #
+#                                                                       #
+#  Please submit bug fixes or comments via:                             #
+#    http://en.opensuse.org/Supportutils#Reporting_Bugs                 #
+#                                                                       #
+#  Copyright (C) 2007,2008 Novell, Inc.                                 #
+#                                                                       #
+# --------------------------------------------------------------------- #
+#                                                                       #
+#  This program is free software; you can redistribute it and/or modify #
+#  it under the terms of the GNU General Public License as published by #
+#  the Free Software Foundation; version 2 of the License.              #
+#                                                                       #
+#  This program is distributed in the hope that it will be useful,      #
+#  but WITHOUT ANY WARRANTY; without even the implied warranty of       #
+#  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the        #
+#  GNU General Public License for more details.                         #
+#                                                                       #
+#  You should have received a copy of the GNU General Public License    #
+#  along with this program; if not, write to the Free Software          #
+#  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.            #
+#                                                                       #
+#  Authors/Contributors:                                                #
+#     Mike Latimer (mlatimer@suse.com)                                  #
+#     Jason Record (jrecord@suse.com)                                   #
+#                                                                       #
+#  Additional credit to Paul Hardwick (phardwick@novell.com) for his    #
+#  novell-getcore, which was inspiration for this (more generic) script #
+# --------------------------------------------------------------------- #
+#                                                                       #
+# Overview:                                                             #
+#                                                                       #
+# This script is intended to ease the process of getting application    #
+# cores to an analyzable state by Novell Support.                       #
+#                                                                       #
+# This script creates a tarball containing the specified application    #
+# core, and all libraries required to run the core'ing binary. This     #
+# script also executes chkbin against the problem binary, and captures  #
+# the output of that check, along with a log detailing the RPM versions #
+# required to fully analyze the application core.                       #
+#                                                                       #
+# --------------------------------------------------------------------- #
+# Changes:                                                              #
+#                                                                       #
+# 1.28 Release                                                          #
+#    - Changed upload process to use curl instead of ftp                #
+# 1.27 Release                                                          #
+#    - Additional check to ensure binary is executable                  #
+# 1.26 Release                                                          #
+#    - Better binary checking                                           #
+# 1.25 Release                                                          #
+#    - Initial public release in supportutils                           #
+# --------------------------------------------------------------------- #
+
+
+ARCHIVE_PATH=/var/log
+TMP_DIR=$(/bin/mktemp -d /tmp/getappcore_tmp_XXXXXXXX)
+GETAPPCORE_LOG=$TMP_DIR/getappcore.log
+GDBLIBS_CMD=$TMP_DIR/.gdblibs.cmd
+SERVER_NAME=$(/bin/uname -n)
+SERVER_RELEASE=/etc/SuSE-release
+UPLOAD=0
+UPLOAD_URL="ftp://ftp.novell.com/incoming"
+VERBOSE=0
+
+#Required Binaries
+AWK_BIN=/usr/bin/awk
+BASENAME_BIN=/usr/bin/basename
+CAT_BIN=/bin/cat
+CHKBIN_BIN=/sbin/chkbin
+CHMOD_BIN=/bin/chmod
+CURL_BIN=/usr/bin/curl
+CUT_BIN=/usr/bin/cut
+DATE_BIN=/bin/date
+DIRNAME_BIN=/usr/bin/dirname
+FIND_BIN=/usr/bin/find
+GDB_BIN=/usr/bin/gdb
+GREP_BIN=/usr/bin/grep
+HEAD_BIN=/usr/bin/head
+LN_BIN=/bin/ln
+MKDIR_BIN=/bin/mkdir
+MV_BIN=/bin/mv
+READLINK_BIN=/usr/bin/readlink
+RM_BIN=/bin/rm
+RMDIR_BIN=/bin/rmdir
+RPM_BIN=/bin/rpm
+SORT_BIN=/usr/bin/sort
+TAR_BIN=/bin/tar
+TEE_BIN=/usr/bin/tee
+TR_BIN=/usr/bin/tr
+UNAME_BIN=/bin/uname
+UNIQ_BIN=/usr/bin/uniq
+WC_BIN=/usr/bin/wc
+WGET_BIN=/usr/bin/wget
+WHICH_BIN=/usr/bin/which
+XARGS_BIN=/usr/bin/xargs
+ALL_BINS="$AWK_BIN $BASENAME_BIN $CAT_BIN $CHKBIN_BIN $CHMOD_BIN $CUT_BIN $DATE_BIN $DIRNAME_BIN $FIND_BIN \
+	$CURL_BIN $GDB_BIN $GREP_BIN $HEAD_BIN $LN_BIN $MKDIR_BIN $MV_BIN $READLINK_BIN $RM_BIN $RMDIR_BIN $RPM_BIN \
+	$SORT_BIN $TAR_BIN $TEE_BIN $TR_BIN $UNAME_BIN $UNIQ_BIN $WC_BIN $WGET_BIN $WHICH_BIN $XARGS_BIN"
+
+
+# --------------------------------------------------------- #
+# show_title ()                                             #
+# Display title banner, showing environment and core info   #
+# --------------------------------------------------------- #
+show_title() {
+	echo "####################################################################" | $TEE_BIN $GETAPPCORE_LOG 
+	echo "Get Application Core Tool, v$SVER"                                    | $TEE_BIN -a $GETAPPCORE_LOG
+	echo "Date:   $($DATE_BIN +'%D, %T')"                                       | $TEE_BIN -a $GETAPPCORE_LOG
+	echo "Server: $SERVER_NAME"                                                 | $TEE_BIN -a $GETAPPCORE_LOG
+	echo "OS: $OS_VERSION - $OS_PATCHLEVEL"	                                    | $TEE_BIN -a $GETAPPCORE_LOG
+	echo "Kernel: $($UNAME_BIN -r)  ($($UNAME_BIN -i))"                         | $TEE_BIN -a $GETAPPCORE_LOG
+	echo "Corefile: $COREFILE"                                                  | $TEE_BIN -a $GETAPPCORE_LOG
+	echo "####################################################################" | $TEE_BIN -a $GETAPPCORE_LOG
+	echo
+}
+
+# --------------------------------------------------------- #
+# show_help ()                                              #
+# Display program help screen                               #
+# --------------------------------------------------------- #
+show_help() {
+	echo "Usage: $0 [OPTION] COREFILE"
+	echo 
+	echo "$SNAME creates an archive containing an application core, and all files"
+	echo "required to analyze the application core - including the binary which"
+        echo "created the core, and all required shared libraries. Included in the"
+	echo "archive is a logfile containing RPM version information for further"
+	echo "investigation by SUSE."
+	echo 
+	echo "Required parameter:"
+	echo
+	echo "  COREFILE        The application core file, typically found in the working"
+	echo "                  directory of the application, or /"
+	echo
+	echo "Optional parameters:"
+	echo
+	echo "  -h              This screen"
+	echo "  -b [BINARY]     Binary which generated [COREFILE]"
+	echo "  -r [SR Number]  Novell Service Request number associated with this issue"
+	echo "  -u              Automatically upload archive to ftp.novell.com:/incoming"
+	echo "  -v              Enable verbose messages"
+	echo
+	echo "For example:"
+	echo 
+	echo "   $SNAME -ur 12345678 -b /bin/rpm /core.15832"
+	echo
+	echo "$SNAME version $SVER ($SDATE)"
+	echo
+}
+
+# --------------------------------------------------------- #
+# verbose ()                                                #
+# Enable vebose messages                                    #
+# --------------------------------------------------------- #
+verbose() {
+        if [ $VERBOSE -eq '1' ]; then
+                echo "-- $1"
+        fi
+}
+
+# --------------------------------------------------------- #
+# get_server_release ()                                     #
+# Determine the server versio and patch level               #
+# --------------------------------------------------------- #
+get_server_release() {
+	OS_VERSION=$($HEAD_BIN -1 $SERVER_RELEASE)
+	OS_VERSION=${OS_VERSION%(*)}
+	OS_PATCHLEVEL=SP$($CAT_BIN $SERVER_RELEASE | $GREP_BIN PATCHLEVEL | $AWK_BIN '{print $3}')
+}
+
+# --------------------------------------------------------- #
+# check_binaries ()                                         #
+# Check for all required binaries prior to execution        #
+# --------------------------------------------------------- #
+check_binaries()
+{
+        for BINARY in $ALL_BINS
+        do
+		verbose "Checking $BINARY"
+                if ! [ -e $BINARY ]; then
+       			if [ -z "$MISSING_BINS" ]; then
+				MISSING_BINS=$BINARY
+			else
+				MISSING_BINS="$BINARY $MISSING_BINS"
+			fi
+		fi
+	done
+	if ! [ -z "$MISSING_BINS" ]; then
+		echo "The following required binaries were not found!"
+		echo
+		for BIN in $MISSING_BINS; do
+			echo "   $BIN"
+		done
+		echo
+		echo "Please install the required package(s) and try again."
+		echo
+		exit -1
+	fi
+}
+
+
+
+
+
+
+# -- ------------------------------------------------------ #
+# create_filename ()                                        #
+# Create the archive filename                               #
+# --------------------------------------------------------- #
+create_filename() {
+	CORE_ARCHIVE_NAME="$SERVER_NAME"_"$($BASENAME_BIN $COREFILE_BIN)_$($DATE_BIN +%y%m%d_%H%M)_appcore"
+	if [ -z "$SR_NUM" ]; then
+		CORE_ARCHIVE_NAME="nts_${CORE_ARCHIVE_NAME}"
+	else
+		CORE_ARCHIVE_NAME="nts_SR${SR_NUM}_${CORE_ARCHIVE_NAME}"
+	fi
+	OPENCORE_INI=$TMP_DIR/$CORE_ARCHIVE_NAME/opencore.ini
+	OPENCORE_SH=$TMP_DIR/$CORE_ARCHIVE_NAME/opencore.sh
+	LOG_DIR=$TMP_DIR/$CORE_ARCHIVE_NAME/logs
+	$MKDIR_BIN -p $LOG_DIR
+}
+
+# ----------------------------------------------------------------- #
+# create_opencoreini ()                                             #
+# Create the opencore.ini file required for opening the core in gdb #
+# ----------------------------------------------------------------- #
+create_opencoreini() {
+	# Strip double slashes and ././ from COREFILE and COREFILE_BIN
+	COREFILE_BIN_TMP=`echo "./${COREFILE_BIN#./}" | sed s#//*#/#g`
+	COREFILE_TMP=`echo "./${COREFILE#./}" | sed s#//*#/#g`
+	echo "# Generated by $SNAME v$SVER"				>  $OPENCORE_INI
+	echo "# Command line used: $CMDLINE"				>> $OPENCORE_INI
+	echo "# GDB environment:"					>> $OPENCORE_INI
+	echo "set solib-absolute-prefix ./"				>> $OPENCORE_INI
+	echo "set solib-search-path ./:$GDB_SOLIB_SEARCH_PATH"		>> $OPENCORE_INI
+	# Add substitute-path to access src code from debuginfo packages
+	echo "set substitute-path /usr/src/debug ./usr/src/debug"	>> $OPENCORE_INI
+	echo "set debug-file-directory ./usr/lib/debug"			>> $OPENCORE_INI
+	echo "set print max-symbolic-offset 1"				>> $OPENCORE_INI
+	echo "set prompt #"						>> $OPENCORE_INI
+	echo "set height 0"						>> $OPENCORE_INI
+	echo ""								>> $OPENCORE_INI
+	echo "# Core file:"						>> $OPENCORE_INI
+	echo "file $COREFILE_BIN_TMP"					>> $OPENCORE_INI
+	echo "core $COREFILE_TMP"					>> $OPENCORE_INI
+	echo ""								>> $OPENCORE_INI
+}
+
+# --------------------------------------------------------- #
+# create_opencoresh ()                                      #
+# Create the opencore.sh script at the root of the archive  #
+# --------------------------------------------------------- #
+create_opencoresh() {
+	echo "#!/bin/sh"								>  $OPENCORE_SH
+	echo "gdb --command=./$($BASENAME_BIN $OPENCORE_INI)"				>> $OPENCORE_SH
+	echo ""										>> $OPENCORE_SH
+	$CHMOD_BIN u+x $OPENCORE_SH
+}
+
+
+# --------------------------------------------------------- #
+# cleanup ()                                                #
+# Remove temporary directory, and all files                 #
+# --------------------------------------------------------- #
+cleanup() {
+	echo -n "Removing required files and directories ... "
+	verbose ""
+	for FILE in $OPENCORE_INI $OPENCORE_SH $GETAPPCORE_LOG $CHKBIN_LOG; do
+		verbose "Removing file: $FILE"
+		$RM_BIN $FILE
+	done
+	for FILE in $REQUIRED_LIBRARIES $COREFILE $COREFILE_BIN; do
+		SYMLINK=$TMP_DIR/$CORE_ARCHIVE_NAME/$FILE
+		SYMLINK=${SYMLINK/\/\//\/}
+		if [ -L "$SYMLINK" ]; then
+			verbose "Removing symlink: $SYMLINK"
+			$RM_BIN $SYMLINK
+		fi
+	done	
+	for DIR in $($FIND_BIN $TMP_DIR -type d | sort -r); do
+		verbose "Removing directory: $DIR"
+		$RMDIR_BIN $DIR
+	done
+	echo "Done"
+}
+
+
+# --------------------------------------------------------------- #
+# create_symlinks ()                                              #
+# Create symlinks to all required files, which will be            #
+# followed during archive creation to include all required files  #
+# --------------------------------------------------------------- #
+create_symlinks() {
+	for REQUIRED_FILE in $COREFILE $COREFILE_BIN $REQUIRED_LIBRARIES; do
+		REQUIRED_FILE_LINK=$TMP_DIR/$CORE_ARCHIVE_NAME/$REQUIRED_FILE
+		REQUIRED_FILE_LINK=${REQUIRED_FILE_LINK/\/\//\/}
+		$MKDIR_BIN -p $(dirname $REQUIRED_FILE_LINK)
+		verbose "Creating symlink: $REQUIRED_FILE_LINK --> $REQUIRED_FILE"
+		$LN_BIN -s $REQUIRED_FILE $REQUIRED_FILE_LINK
+	done	
+}
+
+# ------------------------------------------------------------ #
+# create_archive ()                                            #
+# Create the archive containg the core, and all required files #
+# ------------------------------------------------------------ #
+create_archive() {
+	echo -n "Creating core archive... "
+	ORIGINAL_DIR=$PWD
+	cd $TMP_DIR
+	FINAL_ARCHIVE_NAME=$ARCHIVE_PATH/${CORE_ARCHIVE_NAME}.tbz
+	verbose "Executing: $TAR_BIN -jhvcvf $FINAL_ARCHIVE_NAME $CORE_ARCHIVE_NAME 1>/dev/null 2>&1"
+	$TAR_BIN -jhvcvf $FINAL_ARCHIVE_NAME $CORE_ARCHIVE_NAME 1>/dev/null 2>&1
+	if [ -e $FINAL_ARCHIVE_NAME ]; then
+		echo "Done"
+		echo "        Created archive as:  $FINAL_ARCHIVE_NAME"
+	else
+		echo "        Unable to create $FINAL_ARCHIVE_NAME!"
+	fi
+	cd $ORIGINAL_DIR
+}
+
+# --------------------------------------------------------- #
+# upload_archive ()                                         #
+# Upload the appcore archive to the designated ftp server   #
+# --------------------------------------------------------- #
+upload_archive() {
+        echo "Uploading Archive..."
+	echo
+	verbose "Executing: $CURL_BIN -sT $FINAL_ARCHIVE_NAME $UPLOAD_URL/$($BASENAME_BIN $FINAL_ARCHIVE_NAME)"
+	$CURL_BIN -sT $FINAL_ARCHIVE_NAME $UPLOAD_URL/$($BASENAME_BIN $FINAL_ARCHIVE_NAME)
+	if [ "$?" = "1" ]; then
+		echo "   Upload failed! Please upload the archive manually."
+	else
+		echo "   Upload successful!"
+		echo
+		echo "   Please contact Novell Technical Services for assistance analyzing this core." 
+		echo "   If you already have an open Service Request, please update the SR with the"
+		echo "   name of the file which has just been uploaded:"
+		echo
+		echo "      $($BASENAME_BIN $FINAL_ARCHIVE_NAME)"
+		echo
+	fi
+}
+
+
+# --------------------------------------------------------- #
+# main ()                                                   #
+# Main script function                                      #
+# --------------------------------------------------------- #
+while getopts b:hr:uv opt
+do
+	case $opt in
+	\?)
+		show_help
+		exit 0
+		;;
+	b)
+		COREFILE_BIN=$OPTARG
+		;;
+	r)
+		SR_NUM=$OPTARG
+		;;
+	u)
+		UPLOAD=1
+		;;
+	v)
+		VERBOSE=1
+		;;
+	h)
+		show_help
+		exit 0
+		;;
+	esac
+done
+
+eval COREFILE=\$$OPTIND
+CMDLINE="$0 $*"
+
+check_binaries
+
+if [ ! -z $COREFILE -a -e $COREFILE ]; then
+	get_server_release
+	show_title
+
+	COREFILE=$($READLINK_BIN -f $COREFILE)
+	if [ -z $COREFILE_BIN ]; then
+		echo -n "Binary file not provided, trying to determine source binary using gdb... "
+		COREFILE_BIN=`$GDB_BIN --core=$COREFILE --batch 2>/dev/null | $GREP_BIN "generated" | $CUT_BIN -d '\`'  -f 2| $CUT_BIN -d " " -f 1 | $CUT_BIN -d "'" -f 1`
+		if [ ! -z "$COREFILE_BIN" ]; then
+			COREFILE_BIN=`$WHICH_BIN $COREFILE_BIN 2>/dev/null`
+		fi
+	else
+		echo -n "Binary file manually provided, confirming file type... "
+	fi
+	if ! [ -x $COREFILE_BIN ]; then
+		echo
+		echo "Unable to determine the binary which generated $COREFILE!"
+		echo "  ($COREFILE_BIN does not seem to be an executable!)"
+		echo "Please manually determine the binary, and execute the script again"
+		echo "using the '-b [CORE_BINARY] parameter."
+		exit -1
+	else
+		COREFILE_BIN=$($READLINK_BIN -f $COREFILE_BIN)
+		echo "Done ($COREFILE_BIN)"
+
+		# Build full name of directory and tarball
+		create_filename
+
+		echo -n "Checking Source Binary with chkbin... "
+		CHKBIN_LOG=$($CHKBIN_BIN $COREFILE_BIN | $GREP_BIN "Log File" 2>/dev/null | $AWK_BIN '{print $3}')
+		CHKBIN_RESULT=$($CAT_BIN $CHKBIN_LOG | $GREP_BIN STATUS | $AWK_BIN '{print $2}')
+                echo "Done"
+
+		echo "Crashing binary: $COREFILE_BIN       chkbin result: $CHKBIN_RESULT"	>> $GETAPPCORE_LOG	
+		echo >> $GETAPPCORE_LOG
+
+		# Use GDB to build list of required libraries
+		echo -n "Building list of required libraries with gdb... " 
+		echo "Libraries:" >> $GETAPPCORE_LOG
+		echo "----------" >> $GETAPPCORE_LOG
+		# Create temporary GDB command file
+		echo "info shared" > $GDBLIBS_CMD
+		$GDB_BIN -q --batch -x $GDBLIBS_CMD $COREFILE_BIN $COREFILE 2>/dev/null | $GREP_BIN "^0x" | $AWK_BIN '{print $NF}' | $SORT_BIN | $UNIQ_BIN >> $GETAPPCORE_LOG
+		echo >> $GETAPPCORE_LOG
+		# Remove temporary GDB command file
+		$RM_BIN $GDBLIBS_CMD
+		echo "Done"
+
+		echo -n "Building list of required RPMs... " 
+		echo "RPMs:" >> $GETAPPCORE_LOG
+		echo "-----" >> $GETAPPCORE_LOG
+		RPM_LIST=$($RPM_BIN -qf --queryformat "%{NAME}-%{VERSION}-%{RELEASE}.%{ARCH}.rpm\n" $COREFILE_BIN | $GREP_BIN -v "not owned")
+		RPM_LIST="$RPM_LIST $($CAT_BIN $GETAPPCORE_LOG | $GREP_BIN -i "^/.*\.so.*" | \
+			$XARGS_BIN $RPM_BIN -qf --queryformat "%{NAME}-%{VERSION}-%{RELEASE}.%{ARCH}.rpm\n" | $GREP_BIN -v "not owned")"
+		echo $RPM_LIST | $TR_BIN " " \\n | $SORT_BIN | $UNIQ_BIN >> $GETAPPCORE_LOG
+                echo "Done"
+		echo >> $GETAPPCORE_LOG
+
+		echo "Building list of debuginfo RPMs... "
+		echo "DEBUG RPMs:" >> $GETAPPCORE_LOG
+		echo "-----------" >> $GETAPPCORE_LOG
+		echo
+		while read LIBRARY_RPM
+		do
+			if [ "${LIBRARY_RPM:(-4)}" = ".rpm" ]; then
+				verbose "Checking ${LIBRARY_RPM%.*.*}"
+				RPM_INFO=($($RPM_BIN -q --queryformat "%{NAME} %{SOURCERPM} %{VERSION}-%{RELEASE} %{ARCH}" ${LIBRARY_RPM%.*.*}))
+				if ! [ "${LIBRARY_RPM%.*.*}" = "${RPM_INFO[1]%.*.rpm}" ]; then
+					# Since RPM and (NO)SRC RPMs do not match, check to see if versions match.
+					# If so, building the debuginfo name is easy
+					RPM_VER="-${RPM_INFO[2]}.*.rpm"
+					SRC_NAME=${RPM_INFO[1]/$RPM_VER/}
+					if [ "${#SRC_NAME}" -lt "${#RPM_INFO[1]}" ]; then
+						DEBUG_RPM=$SRC_NAME-debuginfo-${RPM_INFO[2]}.${RPM_INFO[3]}.rpm
+					else
+						# Since version numbers didn't match, we have to guess at the split between
+						# the SRC rpm name and version number
+						SRC_RPM_NAME=${RPM_INFO[1]%%-[0-9]*}
+						SRC_RPM_VER=${RPM_INFO[1]/$SRC_RPM_NAME/}
+						SRC_RPM_VER=${SRC_RPM_VER%.*.rpm}
+						DEBUG_RPM=$SRC_RPM_NAME-debuginfo$SRC_RPM_VER.${RPM_INFO[3]}.rpm
+						GUESSED=1
+					fi
+				else
+					DEBUG_RPM="${RPM_INFO[0]}-debuginfo-${RPM_INFO[2]}.${RPM_INFO[3]}.rpm"
+				fi
+				echo "     $LIBRARY_RPM   -->   $DEBUG_RPM"
+				if [ "$GUESSED" = "1" ]; then
+					echo "           -- ${RPM_INFO[0]}: RPM and SRC version did not match. Debuginfo name may not be reliable! --"
+					GUESSED=0
+				fi
+				# Build list of debug RPMs
+				DBG_LIST="$DBG_LIST $DEBUG_RPM"
+			fi
+		done < $GETAPPCORE_LOG
+		# Parse list of debug RPMs and add to log
+		echo $DBG_LIST | $TR_BIN " " \\n | $SORT_BIN | $UNIQ_BIN >> $GETAPPCORE_LOG
+		echo
+                echo "                               ... Done"
+		echo >> $GETAPPCORE_LOG
+
+		# Build list of libraries and library directories for gdb
+		echo -n "Setting gdb environment variables... "
+		while read LIBRARY
+		do
+		        IS_LIB=$(echo $LIBRARY | $GREP_BIN -i  "^/.*\.so.*" | $WC_BIN -l)
+			if [ "$IS_LIB" = "1" ]; then
+				if [ -z "$REQUIRED_LIBRARIES" ]; then
+					REQUIRED_LIBRARIES="$LIBRARY"
+					LIBRARY_DIRS=$($DIRNAME_BIN $LIBRARY)
+				else
+					REQUIRED_LIBRARIES="$REQUIRED_LIBRARIES $LIBRARY"
+					LIBRARY_DIRS="${LIBRARY_DIRS} $($DIRNAME_BIN $LIBRARY)"
+				fi
+			fi
+		done < $GETAPPCORE_LOG
+
+		LIBRARY_DIRS=$(echo $LIBRARY_DIRS | $TR_BIN " " "\n" | $SORT_BIN | $UNIQ_BIN)
+
+		for LIBRARY_DIR in $LIBRARY_DIRS
+		do
+			if [ -z "$GDB_SOLIB_SEARCH_PATH" ]; then
+				GDB_SOLIB_SEARCH_PATH=".$LIBRARY_DIR"
+			else
+				GDB_SOLIB_SEARCH_PATH="$GDB_SOLIB_SEARCH_PATH:.$LIBRARY_DIR"
+			fi
+		done
+                echo "Done"
+
+		# Move chkbin and getappcore log to $TMP_DIR to be included in tar archive
+		$MV_BIN $CHKBIN_LOG $GETAPPCORE_LOG $LOG_DIR
+		CHKBIN_LOG=$LOG_DIR/$(basename $CHKBIN_LOG)
+		GETAPPCORE_LOG=$LOG_DIR/$(basename $GETAPPCORE_LOG)
+
+		echo -n "Creating gdb startup files... "
+		create_opencoreini
+		create_opencoresh
+                echo "Done"
+
+		create_symlinks
+		create_archive
+
+		cleanup
+		if [ $UPLOAD -eq '1' ]; then
+			upload_archive
+		fi
+	fi
+else
+	if [ -z $COREFILE ]; then
+		echo "Required parameter COREFILE missing!"
+	else
+		echo "Missing valid corefile!"
+	fi
+	show_help
+	exit -1
+fi
+
+echo
+echo "Finished!"

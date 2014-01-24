@@ -1,0 +1,5761 @@
+#!/bin/bash
+
+SVER=2.25-390.3
+SDATE="2013 12 16"
+
+##############################################################################
+#  supportconfig - Gathers system troubleshooting information for NTS.
+#  Copyright (C) 2001-2013 SUSE LLC
+#
+#  Creates a tar ball to attach to the SR or send to support. Basic info is 
+#  collected for SLES8. More comprehensive information is collected for 
+#  SLES9/SLE10/SLE11, OES1/OES2/OES11 for SLES.
+#
+#  Please submit bug fixes or comments via:
+#    http://en.opensuse.org/Supportutils#Reporting_Bugs
+#
+#  Disclaimer:
+#  Detailed system information and logs are collected and organized in a
+#  manner that helps reduce service request resolution times. Private system
+#  information can be disclosed when using this tool. If this is a concern,
+#  please prune private data from the log files. Several startup options 
+#  are available to exclude more sensitive information. Use supportconfig -h 
+#  to see these options.
+##############################################################################
+#
+#  This program is free software; you can redistribute it and/or modify
+#  it under the terms of the GNU General Public License as published by
+#  the Free Software Foundation; version 2 of the License.
+#
+#  This program is distributed in the hope that it will be useful,
+#  but WITHOUT ANY WARRANTY; without even the implied warranty of
+#  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+#  GNU General Public License for more details.
+#
+#  You should have received a copy of the GNU General Public License
+#  along with this program; if not, write to the Free Software
+#  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
+#
+#  Authors/Contributors:
+#     Jason Record (jrecord@suse.com)
+#
+##############################################################################
+# Default Options
+##############################################################################
+OPTION_AFP=1
+OPTION_APPARMOR=1
+OPTION_AUDIT=1
+OPTION_AUTOFS=1
+OPTION_BOOT=1
+OPTION_BTRFS=1
+OPTION_CHKCONFIG=1
+OPTION_CIFS=1
+OPTION_CIMOM=1
+OPTION_CRASH=1
+OPTION_CRON=1
+OPTION_DFS=1
+OPTION_DHCP=1
+OPTION_DISK=1
+OPTION_DNS=1
+OPTION_DRBD=1
+OPTION_DSFW=1
+OPTION_EDIR=1
+OPTION_ENV=1
+OPTION_ETC=1
+OPTION_EVMS=1
+OPTION_HA=1
+OPTION_HCREPORT=1
+OPTION_IB=1
+OPTION_IMAN=1
+OPTION_ISCSI=1
+OPTION_KVM=1
+OPTION_LDAP=1
+OPTION_LUM=1
+OPTION_LVM=1
+OPTION_MEM=1
+OPTION_MOD=1
+OPTION_MPIO=1
+OPTION_NCP=1
+OPTION_NCS=1
+OPTION_NET=1
+OPTION_NFS=1
+OPTION_NSS=1
+OPTION_NTP=1
+OPTION_OCFS2=1
+OPTION_OFILES=1
+OPTION_PAM=1
+OPTION_PRINT=1
+OPTION_PROC=1
+OPTION_PROXY=1
+OPTION_SAM=1
+OPTION_SAR=1
+OPTION_SLERT=1
+OPTION_SLP=1
+OPTION_SMT=1
+OPTION_SMART=0
+OPTION_SMB=1
+OPTION_SMS=1
+OPTION_SRAID=1
+OPTION_SSH=1
+OPTION_SSSD=1
+OPTION_SYSCONFIG=1
+OPTION_SYSFS=1
+OPTION_UDEV=1
+OPTION_UFILES=1
+OPTION_UP=1
+OPTION_UPD=1
+OPTION_WEB=1
+OPTION_X=1
+OPTION_XEN=1
+
+ADD_OPTION_EDIR=0
+ADD_OPTION_FSLIST=0
+ADD_OPTION_LOGS=0
+ADD_OPTION_MINDISK=0
+ADD_OPTION_MAXYAST=0
+ADD_OPTION_RPMV=0
+ADD_OPTION_SLP=0
+
+VAR_OPTION_BIN_TIMEOUT_SEC=300
+VAR_OPTION_CONTACT_COMPANY=""
+VAR_OPTION_CONTACT_EMAIL=""
+VAR_OPTION_CONTACT_NAME=""
+VAR_OPTION_CONTACT_PHONE=""
+VAR_OPTION_CONTACT_STOREID=""
+VAR_OPTION_CONTACT_TERMINALID=""
+VAR_OPTION_CUSTOM_ARCH=""
+VAR_OPTION_DMESG=0
+VAR_OPTION_GPG_UID=""
+VAR_OPTION_HBREPORT_DIRS='/tmp /root /var/log'
+# reports must have the format hb_report.*\.tar\.bz2 in each directory
+VAR_OPTION_LOG_DIRS='/var/log /tmp'
+VAR_OPTION_LINE_COUNT=500
+VAR_OPTION_MSG_MAXSIZE=26214400
+VAR_OPTION_MSG_LINE_COUNT=200000
+VAR_OPTION_PENGINE_FILES_LIMIT=250
+: ${VAR_OPTION_RM_LOCAL_FILE:=0}
+VAR_OPTION_SAR_FILES_LIMIT=30
+VAR_OPTION_SILENT=0
+VAR_OPTION_SBM=0
+VAR_OPTION_UNIQUE_FILE=0
+VAR_OPTION_HEADER_FILE='/usr/lib/supportconfig/header.txt'
+VAR_OPTION_UPLOAD_ALT='https://secure-www.novell.com/upload?appname=supportconfig&file={tarball}'
+VAR_OPTION_UPLOAD_TARGET='ftp://anonymous@ftp.novell.com/incoming'
+VAR_OPTION_WAIT_TRACE=0
+
+LANG=C
+PATH="/sbin:/usr/sbin:/bin:/usr/bin:$PATH"
+PATH_ORIG=$PATH
+export PATH LANG
+LIB_DIR='/usr/lib/supportconfig'
+XPLUGIN_DIR="${LIB_DIR}/plugins"
+CURRENT_SCRIPT=$(basename $0)
+unset CONTACT_SRNUM
+UPLOAD_TARBALL=0
+SRLEN=11
+CSFILE=${CURRENT_SCRIPT}.txt
+RPMFILE=rpm.txt
+FSLIST_FILE=fs-files.txt
+FSLIST_ADD_FILE="${LIB_DIR}/additional-files.list"
+RPM_QA_FILE=rpm_qa.txt
+RPM_DIST_FILE=rpm_dist.txt
+BASIC_ENVF=basic-environment.txt
+XML_FILE=summary.xml
+COMPRESS="tbz"
+COMPRESS_OPT="jcf"
+SC_SRV=$(hostname) # %s
+test "$SC_SRV" = "" && SC_SRV=novell
+SC_DATE=$(date +"%y%m%d") # %d
+SC_TIME=$(date +"%H%M") # %t
+test -x /usr/bin/uuidgen && SC_UID="$(uuidgen 2>/dev/null)" || SC_UID="$(mktemp -u XXXXXXXXXXXXXXXXXXXXXXXXXXXXXX)" # %u
+BASE="nts_%B"
+ARCH=$(uname -i)
+SAVE_LOGS_ONLY=0
+USE_SAVED_LOGS_ONLY=0
+ENCRYPTED_TARBALL=0
+
+# These are minimum options and should never be unset.
+MIN_OPTION_RPM=1
+MIN_OPTION_ENV=1
+MIN_OPTION_HC=1
+MIN_OPTION_HARDWARE=1
+MIN_OPTION_YAST=1
+MIN_OPTION_SYSLOGS=1
+MIN_OPTION_AUTOMOD=1
+
+trap "{ echolog TERMINATED BY USER; echo; exit 5; }" SIGINT
+trap "{ echolog SKIPPED BY USER; return 4; }" SIGQUIT
+
+unalias -a &>/dev/null
+
+##############################################################################
+# General Function Definitions
+##############################################################################
+
+title() {
+	echo "============================================================================="
+	echo "                     Support Utilities - Supportconfig"
+	echo "                          Script Version: $SVER"
+	echo "                          Script Date: $SDATE"
+	echo 
+	echo " Detailed system information and logs are collected and organized in a"
+	echo " manner that helps reduce service request resolution times. Private system"
+	echo " information can be disclosed when using this tool. If this is a concern,"
+	echo " please prune private data from the log files. Several startup options"
+	echo " are available to exclude more sensitive information. Supportconfig data is"
+	echo " used only for diagnostic purposes and is considered confidential information."
+	echo " See http://www.novell.com/company/legal/privacy/"
+	echo "============================================================================="
+	echo
+}
+
+show_help() {
+	log2sys "Show Help Screen"
+	echo " Usage: $CURRENT_SCRIPT [OPTION [OPTION ...]]"
+	echo
+	echo "  -h This screen"
+	echo "  -A Activates all supportconfig functions with additional logging and full"
+	echo "     rpm verification."
+	echo "  -B <string> Custom tar ball file name element"
+	echo "  -C Creates a new default $SC_CONF"
+	echo "  -D Use defaults; ignore  $SC_CONF"
+	echo "  -E <string> Contact email address"
+	echo "  -F Display available supportconfig feature keywords (case-sensitive) used"
+	echo "     with -i and -x"
+	echo "  -G <gpg_uid> The GPG recipient's user ID used to encrypt the supportconfig tarball"
+	echo "  -H <number> Limit number of included HA Policy engine files"
+	echo "  -I <number> Default log file line count"
+	echo "  -L Create a full file listing from '/'"
+	echo "  -M <string> Contact terminal ID"
+	echo "  -N <string> Contact name"
+	echo "  -O <string> Contact company name"
+	echo "  -P <string> Contact phone number"
+	echo "  -Q Run in silent mode"
+	echo "  -R <path> Log output directory"
+	echo "  -S <number> Limit number of included SAR files"
+	echo "  -T <seconds> Binary execution timeout"
+	echo "  -U <URI string> Sets upload target URL and initiates an upload, supported"
+	echo "                  services include: ftp, scp, http, https"
+	echo "  -M <string> Contact store ID"
+	echo "  -X <number> Max system logs line count"
+	echo "  -a Upload the tar ball to the specified alternate target VAR_OPTION_UPLOAD_ALT"
+	echo "  -b Screen buffer mode"
+	echo "  -d Exclude detailed disk info and scans"
+	echo "  -e Search root file system for eDirectory instances; -L implied. Be patient."
+	echo "  -f From directory. Don't collect report files, just use files in that"
+	echo "     directory."
+	echo "  -g Use gzip instead of the default bzip2 compression."
+	echo "  -i <keyword list>"
+	echo "     Include keywords. A comma separated list of feature keywords that specify"
+	echo "     which features to include. Use -F to see a list of valid keywords."
+	echo "  -l Gathers additional rotated logs"
+	echo "  -m Only gather a minimum amount of info: basic env, basic health, hardware,"
+	echo "     rpm, messages, y2logs"
+	echo "  -o Toggle listed features on or off"
+	echo "  -p Disable all plugins"
+	echo "  -q Add a uuid to the tar ball filename to ensure uniqueness"
+	echo "  -r <srnum>"
+	echo "     Includes the Novell $SRLEN digit service request number when uploading"
+	echo "     the tar ball to Novell"
+	echo "  -s Include full SLP service lists"
+	echo "  -t Target directory. Just save log files here, do not create tarball."
+	echo "  -u Upload the tar ball to the specified VAR_OPTION_UPLOAD_TARGET."
+	echo "  -v Performs an rpm -V for each installed rpm  NOTE: This takes a long time"
+	echo "     to complete"
+	echo "  -w Enable verbose wait trace logging. Shows the start and stop times of each"
+	echo "     command supportconfig is running."
+	echo "  -x <keyword list>"
+	echo "     Exclude keywords. A comma separated list of feature keywords that specify"
+	echo "     which features to exclude. Use -F to see a list of valid keywords."
+	echo "  -y Gathers full YaST log files."
+	echo 
+	echo "  Use Ctrl-\ to try and skip a function that is hanging."
+	echo
+	echo "-----------------------------------------------------------------------------"
+	echo "  NOTE:"
+	echo "  This tool will create a tar ball in the /var/log directory. Please attach"
+	echo "  the log file tar ball to your open Service.  Request at the following URL:"
+	echo "  https://secure-support.novell.com/eService_enu"
+	echo 
+	echo "  If you cannot attach the tar ball to the SR, then email it to the engineer."
+	echo
+	echo "  Please submit bug fixes or comments via:"
+	echo "  http://en.opensuse.org/Supportutils#Reporting_Bugs"
+	echo
+	title
+}
+
+log2sys() {
+	MSG="$@"
+	if (( $VAR_OPTION_DMESG )); then
+		echo "supportconfig: [$(date +%y%m%d:%H:%M:%S)] $MSG" > /dev/kmsg
+	else
+		logger -t supportconfig "$MSG"
+	fi
+}
+
+wait_trace_on() {
+	if (( $VAR_OPTION_WAIT_TRACE )); then
+		OPT=$1
+		case $OPT in
+		-t) TEE=0; shift ;;
+		*) TEE=1 ;;
+		esac
+		LOGGING="$@"
+		WT_START=$(date +%T:%N)
+		if (( $TEE )); then
+			printf "%s" "    <$WT_START> $LOGGING  " | tee -a ${LOG}/${CSFILE}
+		else
+			printf "%s" "    <$WT_START> $LOGGING  "
+		fi
+	fi
+}
+
+wait_trace_off() {
+	if (( $VAR_OPTION_WAIT_TRACE )); then
+		OPT=$1
+		case $OPT in
+		-t) TEE=0 ;;
+		*) TEE=1 ;;
+		esac
+		WT_END=$(date +%T:%N)
+		if (( $TEE )); then
+			echo "<$WT_END>" | tee -a ${LOG}/${CSFILE}
+		else
+			echo "<$WT_END>"
+		fi
+	fi
+}
+
+# Input: logfilename logfiles...
+conf_text_files() {
+	LOGFILE=$LOG/$1
+	shift
+	for CONF in $@
+	do
+		echo "#==[ Configuration File ]===========================#" >> $LOGFILE
+		if [ -f $CONF ]; then
+			echo "# $CONF" >> $LOGFILE
+			TEXTFILE=$(file -L $CONF | egrep -i "text|empty|XML")
+			if [ -z "$TEXTFILE" ]; then
+				echo "file $(file -L $CONF)" >> $LOGFILE
+				echo "ERROR: Not a normal text file, excluding it." >> $LOGFILE
+			else
+				wait_trace_on "$CONF"
+				if (( ADD_OPTION_LOGS )); then
+					cat $CONF 2>> $LOG/$CSFILE | sed -e 's/\r//g' >> $LOGFILE 2>> $LOG/$CSFILE
+				else
+					cat $CONF 2>> $LOG/$CSFILE | sed -e '/^[[:space:]]*#/d' -e '/^[[:space:]]*;/d' -e '/^[[:space:]]*\/\//d' -e 's/\r//g' -e '/^$/d' >> $LOGFILE 2>> $LOG/$CSFILE
+				fi
+				wait_trace_off
+			fi
+			echo >> $LOGFILE
+		else
+			echo "# $CONF - File not found" >> $LOGFILE
+		fi
+		echo >> $LOGFILE
+	done
+}
+
+# Input: logfilename logfiles...
+conf_files() {
+	LOGFILE=$LOG/$1
+	shift
+	for CONF in $@
+	do
+		echo "#==[ Configuration File ]===========================#" >> $LOGFILE
+		if [ -f $CONF ]; then
+			echo "# $CONF" >> $LOGFILE
+			wait_trace_on "$CONF"
+			if (( ADD_OPTION_LOGS )); then
+				cat $CONF 2>> $LOG/$CSFILE | sed -e 's/\r//g' >> $LOGFILE 2>> $LOG/$CSFILE
+			else
+				cat $CONF 2>> $LOG/$CSFILE | sed -e '/^[[:space:]]*#/d;/^[[:space:]]*;/d;s/\r//g;/^[[:space:]]*$/d' >> $LOGFILE 2>> $LOG/$CSFILE
+			fi
+			echo >> $LOGFILE
+			wait_trace_off
+		else
+			echo "# $CONF - File not found" >> $LOGFILE
+		fi
+		echo >> $LOGFILE
+	done
+}
+
+# Input: logfilename lines logfiles...
+# If lines = 0, includes the entire log file
+log_files() {
+	LOGFILE=$LOG/$1
+	shift
+	LOGLINES=$1
+	shift
+	for CONF in $@
+	do
+		BAD_FILE=$(echo "$CONF" | egrep "tbz$|bz2$|gz$|zip$")
+		if [ -n "$BAD_FILE" ]; then
+			continue
+		fi
+		echo "#==[ Log File ]=====================================#" >> $LOGFILE
+		CONF=$(echo $CONF | sed -e "s/%7B%20%7D%7B%20%7D/ /g")
+		if [ -f "$CONF" ]; then
+			wait_trace_on "$CONF"
+			if [ $LOGLINES -eq 0 ]; then
+				echo "# $CONF" >> $LOGFILE
+				sed -e 's/\r//g' "$CONF" >> $LOGFILE
+			else
+				echo "# $CONF - Last $LOGLINES Lines" >> $LOGFILE
+				tail -$LOGLINES "$CONF" | sed -e 's/\r//g' >> $LOGFILE
+			fi
+			echo >> $LOGFILE
+			wait_trace_off
+		else
+			echo "# $CONF - File not found" >> $LOGFILE
+		fi
+		echo >> $LOGFILE
+	done
+}
+
+grep_log_files() {
+	SKEY=$1
+	shift
+	LOGFILE=$LOG/$1
+	shift
+	LOGLINES=$1
+	shift
+	for CONF in $@
+	do
+		echo "#==[ Log File ]=====================================#" >> $LOGFILE
+		if [ -f $CONF ]; then
+			wait_trace_on "$CONF"
+			if [ $LOGLINES -eq 0 ]; then
+				echo "# grep -i $SKEY $CONF" >> $LOGFILE
+				grep -i $SKEY $CONF | grep -v 'supportconfig:' | sed -e 's/\r//g' >> $LOGFILE
+			else
+				echo "# grep -i $SKEY $CONF - Last $LOGLINES Lines" >> $LOGFILE
+				grep -i $SKEY $CONF | grep -v 'supportconfig:' | tail -$LOGLINES | sed -e 's/\r//g' >> $LOGFILE
+			fi
+			echo >> $LOGFILE
+			wait_trace_off
+		else
+			echo "# $CONF - File not found" >> $LOGFILE
+		fi
+		echo >> $LOGFILE
+	done
+}
+
+# log_entry file type label
+log_entry() {
+	LOGFILE=$LOG/$1
+	shift
+	ENTRY_TYPE=$1
+	shift
+	ENTRY_LABEL="$@"
+	case $ENTRY_TYPE in
+	command) ENTRY_HEADER="#==[ Command ]======================================#" ;;
+	conf) ENTRY_HEADER="#==[ Configuration File ]===========================#";;
+	log) ENTRY_HEADER="#==[ Log File ]=====================================#" ;;
+	note) ENTRY_HEADER="#==[ Note ]=========================================#" ;;
+	summary) ENTRY_HEADER="#==[ Summary ]======================================#" ;;
+	*) ENTRY_HEADER="#==[ Entry ]========================================#";;
+	esac
+	echo "$ENTRY_HEADER" >> $LOGFILE
+	echo "# $ENTRY_LABEL" >> $LOGFILE
+	echo >> $LOGFILE
+}
+
+# Input: logfilename "text"
+log_write() {
+	LOGFILE=$LOG/$1
+	shift
+	echo "$@" >> $LOGFILE
+}
+
+xml_write() {
+	if [ -n "$2" ]; then
+		echo "  <$1>$2</$1>" >> $LOG/$XML_FILE
+	else
+		echo "  <$1 />" >> $LOG/$XML_FILE
+	fi
+}
+
+echolog() {
+	CSLOGFILE=$LOG/${CSFILE}
+	if (( $VAR_OPTION_DMESG )); then
+		echo "supportconfig: [$(date +%y%m%d:%H:%M:%S)]  $@" > /dev/kmsg
+	fi
+	if (( $VAR_OPTION_SILENT )); then
+		echo "$@" >> $CSLOGFILE
+	else
+		if (( ! $VAR_OPTION_SBM )); then
+			echo "$@" | tee -a $CSLOGFILE
+		fi
+	fi
+}
+
+echonlog() {
+	CSLOGFILE=$LOG/${CSFILE}
+	if (( $VAR_OPTION_SILENT )); then
+		printf "%s " "$@" >> $CSLOGFILE
+	else
+		if (( ! $VAR_OPTION_SBM )); then
+			printf "%s " "$@" | tee -a $CSLOGFILE
+		fi
+	fi
+}
+
+timed_progress() {
+	CSLOGFILE=$LOG/${CSFILE}
+	if (( $VAR_OPTION_SILENT )); then
+		printf "." >> $CSLOGFILE
+	else
+		if (( $VAR_OPTION_SBM )); then
+			printf "." >> $CSLOGFILE
+		else
+			printf "." | tee -a $CSLOGFILE
+		fi
+	fi
+}
+
+printlog() {
+	CSLOGFILE=$LOG/${CSFILE}
+	SMB_OVERIDE=0
+	if [ "$1" = "-b" ]; then
+		SMB_OVERIDE=1
+		shift
+	fi
+	log2sys "$@"
+	if (( $VAR_OPTION_SILENT )); then
+		printf "  %-45s" "$@" >> $CSLOGFILE
+	else
+		if (( $VAR_OPTION_SBM )) || (( $SMB_OVERIDE )); then
+			echo "$@" | tee -a $CSLOGFILE
+		else
+			printf "  %-45s" "$@" | tee -a $CSLOGFILE
+		fi
+	fi
+}
+
+printvrpmlog() {
+	CSLOGFILE=$LOG/${CSFILE}
+	test $VAR_OPTION_SILENT -gt 0 && printf "  %-40s %12s ... " "$1" "$2" >> $CSLOGFILE || printf "  %-40s %12s ... " "$1" "$2" | tee -a $CSLOGFILE
+}
+
+# Input: logfilename command
+log_cmd() {
+	EXIT_STATUS=0
+	LOGFILE=$LOG/$1
+	shift
+	CMDLINE_ORIG="$@"
+	CMDBIN=$(echo $CMDLINE_ORIG | awk '{print $1}')
+	CMD=$(\which $CMDBIN 2>/dev/null | awk '{print $1}')
+	echo "#==[ Command ]======================================#" >> $LOGFILE
+	if [ -x "$CMD" ]; then
+		CMDLINE=$(echo $CMDLINE_ORIG | sed -e "s!${CMDBIN}!${CMD}!")
+		echo "# $CMDLINE" >> $LOGFILE
+		wait_trace_on "$CMDLINE"
+		echo "$CMDLINE" | bash  >> $LOGFILE 2>&1
+		EXIT_STATUS=$?
+		wait_trace_off
+	else
+		echo "# $CMDLINE_ORIG" >> $LOGFILE
+		echo "ERROR: Command not found or not executible" >> $LOGFILE
+		EXIT_STATUS=1
+	fi
+	echo >> $LOGFILE
+	return $EXIT_STATUS
+}
+
+# Input: logfilename command
+# Returns: 1 - command not found or not executable
+#          2 - command returned an error
+#         10 - command timed out
+timed_log_cmd() {
+	EXIT_STATUS=0
+	TIMEOUT_PROGRESS=30
+	LOGFILE=$LOG/$1
+	shift
+	CMDLINE_ORIG="$@"
+	CMDBIN=$(echo $CMDLINE_ORIG | awk '{print $1}')
+	SEMAPHORE_FILE="${LOGFILE}.$(basename ${CMDBIN}).$(date --utc +%s).SEMAPHORE"
+	SEMAPHORE_BIN=${SEMAPHORE_FILE}.sh
+	SEMAPHORE_LOG=${SEMAPHORE_FILE}.out
+	SEMAPHORE_ERR=${SEMAPHORE_FILE}.returncode
+	SEMAPHORE_PID=${SEMAPHORE_FILE}.pid
+	export SEMAPHORE_LOG
+	CMD=$(\which $CMDBIN 2>/dev/null | awk '{print $1}')
+	echo "#==[ Command ]======================================#" >> $LOGFILE
+	if [ -x "$CMD" ]; then
+		export CMDLINE=$(echo $CMDLINE_ORIG | sed -e "s!${CMDBIN}!${CMD}!")
+		echo "# $CMDLINE" >> $LOGFILE
+		wait_trace_on "$CMDLINE"
+		echo "$SEMAPHORE_LOG" >> $LOGFILE
+		LNUM=$(wc -l $LOGFILE | cut -d' ' -f1)
+		# Create the temporary script that runs the app
+cat << TEOF > $SEMAPHORE_BIN
+echo \$\$ > $SEMAPHORE_PID
+$CMDLINE >> $SEMAPHORE_LOG 2>&1
+echo \$? > $SEMAPHORE_ERR
+if [ -e $LOGFILE ]; then
+ sed -i -e "\$(grep -n $SEMAPHORE_LOG $LOGFILE | cut -d: -f1)r $SEMAPHORE_LOG" $LOGFILE 2>/dev/null
+ sed -i -e "/\$(basename $SEMAPHORE_LOG)/d" $LOGFILE 2>/dev/null
+ rm -f $SEMAPHORE_LOG
+fi
+rm -f $SEMAPHORE_FILE 
+TEOF
+		TIME_CURRENT=0
+		TIME_RCODE=0
+		TIME_OUT=10
+		touch $SEMAPHORE_FILE
+		# Background the temporary script, it will delete the semaphore file when complete
+		bash $SEMAPHORE_BIN &>/dev/null &
+		while [ $TIME_CURRENT -lt $VAR_OPTION_BIN_TIMEOUT_SEC ]
+		do
+			if [ -e $SEMAPHORE_FILE ]; then
+				# Still waiting on backgrounded binary
+				sleep 1
+				((TIME_CURRENT++))
+				if [ $(( TIME_CURRENT % TIMEOUT_PROGRESS )) -eq 0 ]; then
+					timed_progress
+				fi
+			else
+				# Backgrounded binary completed
+				TIME_CURRENT=$(( VAR_OPTION_BIN_TIMEOUT_SEC + 1 ))
+				TIME_OUT=0
+				rm -f $SEMAPHORE_BIN
+				rm -f $SEMAPHORE_PID
+				if [ -e $SEMAPHORE_ERR ]; then
+					TIME_RCODE=$(< $SEMAPHORE_ERR)
+					rm -f $SEMAPHORE_ERR
+				fi
+			fi
+		done
+		if (( TIME_RCODE )); then
+			TIME_RCODE=2
+		fi
+		if (( TIME_OUT )); then
+			echonlog "$CMDLINE_ORIG - Timed Out,"
+			echo >> $LOGFILE
+			echo "# ERROR: Command did not complete within the timeout period." >> $LOGFILE
+			ps -eaf | grep $(cat $SEMAPHORE_PID) | grep -v grep >> $LOGFILE
+			echo >> $LOGFILE
+		fi
+		wait_trace_off
+	else
+		echo "# $CMDLINE_ORIG" >> $LOGFILE
+		echo "ERROR: Command not found or not executible" >> $LOGFILE
+		EXIT_STATUS=1
+	fi
+	echo >> $LOGFILE
+	EXIT_STATUS=$(( EXIT_STATUS + TIME_OUT + TIME_RCODE ))
+	return $EXIT_STATUS
+}
+
+# Input: logfilename command
+log_icmd() {
+	LOGFILE=$LOG/$1
+	shift
+	CMDLINE="$@"
+	echo "#==[ Command ]======================================#" >> $LOGFILE
+	echo "# $CMDLINE" >> $LOGFILE
+	wait_trace_on "$CMDLINE"
+	$CMDLINE >> $LOGFILE 2>&1
+	wait_trace_off
+	echo >> $LOGFILE
+}
+
+ping_addr() {
+	OF=$1
+	ADDR_STRING="$2"
+	ADDR_PING=$3
+	if [ -n "$ADDR_PING" ]; then
+		if log_cmd $OF "ping -n -c1 -W1 $ADDR_PING"; then
+			log_write $OF "# Connectivity Test, $ADDR_STRING $ADDR_PING: Success"
+		else
+			log_write $OF "# Connectivity Test, $ADDR_STRING $ADDR_PING: Failure"
+		fi
+	else
+		log_write $OF "# Connectivity Test, $ADDR_STRING: Missing"
+	fi
+	log_write $OF
+}
+
+# Input: logfilename rpm
+# Assumes the rpm is installed and $LOG/$RPMFILE has been created
+rpm_verify() {
+	RPMPATH=$LOG/$RPMFILE
+	LOGFILE=$LOG/$1
+	INPUT_RPM=$2
+	echo "#==[ Verification ]=================================#" >> $LOGFILE
+	if rpm -q $INPUT_RPM &>/dev/null
+	then
+		for RPM in $(rpm -q $INPUT_RPM)
+		do
+			echo "# rpm -V $RPM" >> $LOGFILE
+			wait_trace_on "rpm -V $RPM"
+			rpm -V $RPM >> $LOGFILE 2>&1
+			ERR=$?
+			wait_trace_off
+			if [ $ERR -gt 0 ]; then
+				echo "# Verification Status: Differences Found" >> $LOGFILE
+			else
+				echo "# Verification Status: Passed" >> $LOGFILE
+			fi
+			echo >> $LOGFILE
+		done
+		#cat $RPMPATH | grep "^$INPUT_RPM " >> $LOGFILE
+		#echo >> $LOGFILE
+		return 0
+	else
+		echo "# RPM Not Installed: $INPUT_RPM" >> $LOGFILE
+		echo >> $LOGFILE
+		return 1
+	fi
+}
+
+gen_sysconfig() {
+	log2sys "Overwriting $SC_CONF with default options."
+	echo "####################################" > $SC_CONF
+	echo "# Default Options" >> $SC_CONF
+	echo "####################################" >> $SC_CONF
+	for i in OPTION ADD_OPTION VAR_OPTION
+	do
+		grep "^${i}_" $0 | sort >> $SC_CONF
+		echo >> $SC_CONF
+	done
+	echo
+	return 0
+}
+
+log_options() {
+	LOGFILE=$LOG/${CSFILE}
+	conf_files ${CSFILE} $SC_CONF
+	echo >> $LOGFILE
+	echo "####################################" >> $LOGFILE
+	echo "# Options Used" >> $LOGFILE
+	echo "####################################" >> $LOGFILE
+	for SRCH in OPTION_ ADD_OPTION_
+	do
+		for i in $(grep ^$SRCH $0 | cut -d= -f1 | sort)
+		do
+			printf "%-25s = %s\n" "$i" "$((i))" >> $LOGFILE
+			continue
+
+			if [ $((i)) -eq 0 ]; then
+				printf "%-25s = \n" "$i" >> $LOGFILE
+			else
+				printf "%-25s = %s\n" "$i" "$((i))" >> $LOGFILE
+			fi
+		done
+		echo >> $LOGFILE
+	done
+	# TODO
+	# add VAR_OPTION_ parameters
+}
+
+check_service() {
+	LOGFILE=$LOG/$1
+	BASEFILE=$1
+	SERVICE_NAME=$2
+	log_cmd $BASEFILE "chkconfig $SERVICE_NAME --list"
+	log_cmd $BASEFILE "/etc/init.d/$SERVICE_NAME status"
+	return $?
+}
+
+get_customer_info() {
+	INFOLOG=$1
+	LINE_ADDED=0
+	test -n "$VAR_OPTION_CONTACT_COMPANY" && 		{ log_write $INFOLOG "Company:     $VAR_OPTION_CONTACT_COMPANY"; ((LINE_ADDED++)); }
+	test -n "$VAR_OPTION_CONTACT_STOREID" && 		{ log_write $INFOLOG "Store ID:    $VAR_OPTION_CONTACT_STOREID"; ((LINE_ADDED++)); }
+	test -n "$VAR_OPTION_CONTACT_TERMINALID" && 	{ log_write $INFOLOG "Terminal ID: $VAR_OPTION_CONTACT_TERMINALID"; ((LINE_ADDED++)); }
+	test -n "$VAR_OPTION_CONTACT_NAME" && 			{ log_write $INFOLOG "Name:        $VAR_OPTION_CONTACT_NAME"; ((LINE_ADDED++)); }
+	test -n "$VAR_OPTION_CONTACT_PHONE" && 		{ log_write $INFOLOG "Phone:       $VAR_OPTION_CONTACT_PHONE"; ((LINE_ADDED++)); }
+	test -n "$VAR_OPTION_CONTACT_EMAIL" && 		{ log_write $INFOLOG "Email:       $VAR_OPTION_CONTACT_EMAIL"; ((LINE_ADDED++)); }
+	test -n "$CONTACT_SRNUM" && 						{ log_write $INFOLOG "SR#:         $CONTACT_SRNUM"; ((LINE_ADDED++)); }
+	if ((LINE_ADDED)); then log_write $INFOLOG; fi
+}
+
+addHeaderFile() {
+	OPEN=$1
+	if [ -s $VAR_OPTION_HEADER_FILE ]; then
+		wait_trace_on "cat $VAR_OPTION_HEADER_FILE"
+		log_entry $OPEN note $VAR_OPTION_HEADER_FILE
+		cat $VAR_OPTION_HEADER_FILE >> $LOG/$OPEN
+		log_write $OPEN
+		wait_trace_off
+	fi
+}
+
+basic_environment() {
+	# This is a minimum required function, do not exclude
+	printlog "Basic Environment..."
+	test $MIN_OPTION_ENV -eq 0 && { echolog EXCLUDED; return 1; }
+	addHeaderFile $BASIC_ENVF
+	get_customer_info $BASIC_ENVF
+	log_cmd $BASIC_ENVF 'date'
+	log_cmd $BASIC_ENVF 'uname -a'
+	RELEASE=$(ls -1 /etc/*release*)
+	detectProducts $BASIC_ENVF
+	detectVirtualization $BASIC_ENVF
+	conf_files $BASIC_ENVF $RELEASE
+	if ! ((NSA_CHECK)); then
+		if [ $SLES_VER -lt 110 ]; then
+			if rpm_verify $BASIC_ENVF SPident; then
+				log_cmd $BASIC_ENVF 'SPident -vv'
+			fi
+		fi
+		if rpm -q oes-SPident &>/dev/null; then
+			log_cmd $BASIC_ENVF 'oes-SPident -vv'
+		fi
+		cat $LOG/$RPM_DIST_FILE >> $LOG/$BASIC_ENVF
+		if rpm_verify $BASIC_ENVF SuSEfirewall2
+		then
+			log_write $BASIC_ENVF "#==[ Firewall Services ]============================#"
+			wait_trace_on "rpm -ql SuSEfirewall2 | grep init.d"
+			for i in $(rpm -ql SuSEfirewall2 | grep init.d)
+			do
+				FSRV=$(basename $i)
+				log_write $BASIC_ENVF "$(chkconfig $FSRV --list)"
+			done
+			wait_trace_off
+			IPBIN="/usr/sbin/iptables"
+			if [ -x $IPBIN ]; then
+				TOTAL_FIREWALL_RULES=0
+				for TABLE in filter nat mangle raw
+				do
+					if grep iptable_$TABLE /proc/modules &>/dev/null
+					then
+						wait_trace_on "$IPBIN -t $TABLE -nL | sed -e '/^$/d' -e '/^Chain/d' -e '/^target/d' | wc -l"
+						FIREWALL_RULES=$($IPBIN -t $TABLE -nL | sed -e '/^$/d' -e '/^Chain/d' -e '/^target/d' | wc -l)
+						TOTAL_FIREWALL_RULES=$(( TOTAL_FIREWALL_RULES + FIREWALL_RULES ))
+						wait_trace_off
+					fi
+				done
+				log_write $BASIC_ENVF
+				log_write $BASIC_ENVF "$TOTAL_FIREWALL_RULES Active Firewall Rules"
+				log_write $BASIC_ENVF
+			fi
+		fi
+	fi
+	echolog Done
+}
+
+basic_healthcheck() {
+	# This is a minimum required function, do not exclude
+	printlog "Basic Server Health Check..."
+	test $MIN_OPTION_HC -eq 0 && { echolog EXCLUDED; return 1; }
+	OF=basic-health-check.txt
+	addHeaderFile $OF
+	log_cmd $OF 'uptime'
+	log_cmd $OF 'vmstat 1 4'
+	test -x /usr/bin/mpstat && log_cmd $OF 'mpstat -P ALL 1 3'
+	log_cmd $OF 'free -k'
+	log_cmd $OF 'df -h'
+	log_cmd $OF 'df -i'
+	conf_files $OF '/proc/sys/kernel/tainted'
+	TAINT=$(cat /proc/sys/kernel/tainted)
+	TAINTED=0
+	if [ ${#TAINT} -gt 1 ]; then
+		TAINTED=1
+	elif [ ${TAINT} -gt 0 ]; then
+		TAINTED=1
+	fi
+	if (( TAINTED )); then
+		# TAINT=$(( 1 + 2 + 4 + 8 + 16 + 32 + 64 + 128 + 256 ))
+		# Refer to /usr/src/linux/include/linux/kernel.h and /usr/src/linux/kernel/panic.c (print_tainted function)
+		TAINT_STRING=""
+		case $SLES_VER in
+		80|90)
+		test $((TAINT & 1))   -ne 0 && TAINT_STRING="${TAINT_STRING}P" || TAINT_STRING="${TAINT_STRING} "
+		test $((TAINT & 2))   -ne 0 && TAINT_STRING="${TAINT_STRING}F" || TAINT_STRING="${TAINT_STRING} "
+		test $((TAINT & 4))   -ne 0 && TAINT_STRING="${TAINT_STRING}S" || TAINT_STRING="${TAINT_STRING} "
+		test $((TAINT & 8))   -ne 0 && TAINT_STRING="${TAINT_STRING}R" || TAINT_STRING="${TAINT_STRING} "
+		test $((TAINT & 16))  -ne 0 && TAINT_STRING="${TAINT_STRING}U" || TAINT_STRING="${TAINT_STRING} "
+		test $((TAINT & 32))  -ne 0 && TAINT_STRING="${TAINT_STRING}X" || TAINT_STRING="${TAINT_STRING} "
+		test $((TAINT & 64))  -ne 0 && TAINT_STRING="${TAINT_STRING}M" || TAINT_STRING="${TAINT_STRING} "
+		test $((TAINT & 128)) -ne 0 && TAINT_STRING="${TAINT_STRING}B" || TAINT_STRING="${TAINT_STRING} "
+		;;
+		100)
+		test $((TAINT & 1))   -ne 0 && TAINT_STRING="${TAINT_STRING}P" || TAINT_STRING="${TAINT_STRING} "
+		test $((TAINT & 2))   -ne 0 && TAINT_STRING="${TAINT_STRING}F" || TAINT_STRING="${TAINT_STRING} "
+		test $((TAINT & 4))   -ne 0 && TAINT_STRING="${TAINT_STRING}S" || TAINT_STRING="${TAINT_STRING} "
+		test $((TAINT & 8))   -ne 0 && TAINT_STRING="${TAINT_STRING}R" || TAINT_STRING="${TAINT_STRING} "
+		test $((TAINT & 16))  -ne 0 && TAINT_STRING="${TAINT_STRING}M" || TAINT_STRING="${TAINT_STRING} "
+		test $((TAINT & 32))  -ne 0 && TAINT_STRING="${TAINT_STRING}B" || TAINT_STRING="${TAINT_STRING} "
+		test $((TAINT & 64))  -ne 0 && TAINT_STRING="${TAINT_STRING}U" || TAINT_STRING="${TAINT_STRING} "
+		test $((TAINT & 128)) -ne 0 && TAINT_STRING="${TAINT_STRING}X" || TAINT_STRING="${TAINT_STRING} "
+		;;
+		10*)
+		test $((TAINT & 1))   -ne 0 && TAINT_STRING="${TAINT_STRING}P" || TAINT_STRING="${TAINT_STRING} "
+		test $((TAINT & 2))   -ne 0 && TAINT_STRING="${TAINT_STRING}F" || TAINT_STRING="${TAINT_STRING} "
+		test $((TAINT & 4))   -ne 0 && TAINT_STRING="${TAINT_STRING}S" || TAINT_STRING="${TAINT_STRING} "
+		test $((TAINT & 8))   -ne 0 && TAINT_STRING="${TAINT_STRING}R" || TAINT_STRING="${TAINT_STRING} "
+		test $((TAINT & 16))  -ne 0 && TAINT_STRING="${TAINT_STRING}M" || TAINT_STRING="${TAINT_STRING} "
+		test $((TAINT & 32))  -ne 0 && TAINT_STRING="${TAINT_STRING}B" || TAINT_STRING="${TAINT_STRING} "
+		test $((TAINT & 64))  -ne 0 && TAINT_STRING="${TAINT_STRING}U" || TAINT_STRING="${TAINT_STRING} "
+		test $((TAINT & 128)) -ne 0 && TAINT_STRING="${TAINT_STRING}N" || TAINT_STRING="${TAINT_STRING} "
+		test $((TAINT & 256)) -ne 0 && TAINT_STRING="${TAINT_STRING}X" || TAINT_STRING="${TAINT_STRING} "
+		;;
+		110|111)
+		test $((TAINT & 1))          -ne 0 && TAINT_STRING="${TAINT_STRING}P" || TAINT_STRING="${TAINT_STRING} "
+		test $((TAINT & 2))          -ne 0 && TAINT_STRING="${TAINT_STRING}F" || TAINT_STRING="${TAINT_STRING} "
+		test $((TAINT & 4))          -ne 0 && TAINT_STRING="${TAINT_STRING}S" || TAINT_STRING="${TAINT_STRING} "
+		test $((TAINT & 8))          -ne 0 && TAINT_STRING="${TAINT_STRING}R" || TAINT_STRING="${TAINT_STRING} "
+		test $((TAINT & 16))         -ne 0 && TAINT_STRING="${TAINT_STRING}M" || TAINT_STRING="${TAINT_STRING} "
+		test $((TAINT & 32))         -ne 0 && TAINT_STRING="${TAINT_STRING}B" || TAINT_STRING="${TAINT_STRING} "
+		test $((TAINT & 64))         -ne 0 && TAINT_STRING="${TAINT_STRING}U" || TAINT_STRING="${TAINT_STRING} "
+		test $((TAINT & 128))        -ne 0 && TAINT_STRING="${TAINT_STRING}D" || TAINT_STRING="${TAINT_STRING} "
+		test $((TAINT & 256))        -ne 0 && TAINT_STRING="${TAINT_STRING}A" || TAINT_STRING="${TAINT_STRING} "
+		test $((TAINT & 512))        -ne 0 && TAINT_STRING="${TAINT_STRING}W" || TAINT_STRING="${TAINT_STRING} "
+		test $((TAINT & 1024))       -ne 0 && TAINT_STRING="${TAINT_STRING}C" || TAINT_STRING="${TAINT_STRING} "
+		test $((TAINT & 1073741824)) -ne 0 && TAINT_STRING="${TAINT_STRING}N" || TAINT_STRING="${TAINT_STRING} "
+		test $((TAINT & 2147483648)) -ne 0 && TAINT_STRING="${TAINT_STRING}X" || TAINT_STRING="${TAINT_STRING} "
+		;;
+		esac
+	
+		log_write $OF "Kernel Status -- Tainted: $TAINT_STRING"
+		case $SLES_VER in
+		80|90)
+		test $((TAINT & 1))   -ne 0 && log_write $OF "  TAINT: (P) Proprietary module has been loaded"
+		test $((TAINT & 2))   -ne 0 && log_write $OF "  TAINT: (F) Module was forcibly loaded"
+		test $((TAINT & 4))   -ne 0 && log_write $OF "  TAINT: (S) SMP with CPUs not designed for SMP"
+		test $((TAINT & 8))   -ne 0 && log_write $OF "  TAINT: (R) Module was forcibly unloaded"
+		test $((TAINT & 16))  -ne 0 && log_write $OF "  TAINT: (U) Unsupported modules loaded"
+		test $((TAINT & 32))  -ne 0 && log_write $OF "  TAINT: (X) Modules with external support loaded"
+		test $((TAINT & 64))  -ne 0 && log_write $OF "  TAINT: (M) Machine check exception"
+		test $((TAINT & 128)) -ne 0 && log_write $OF "  TAINT: (B) System has hit bad_page"
+		;;
+		100)
+		test $((TAINT & 1))   -ne 0 && log_write $OF "  TAINT: (P) Proprietary module has been loaded"
+		test $((TAINT & 2))   -ne 0 && log_write $OF "  TAINT: (F) Module was forcibly loaded"
+		test $((TAINT & 4))   -ne 0 && log_write $OF "  TAINT: (S) SMP with CPUs not designed for SMP"
+		test $((TAINT & 8))   -ne 0 && log_write $OF "  TAINT: (R) Module was forcibly unloaded"
+		test $((TAINT & 16))  -ne 0 && log_write $OF "  TAINT: (M) Machine check exception"
+		test $((TAINT & 32))  -ne 0 && log_write $OF "  TAINT: (B) System has hit bad_page"
+		test $((TAINT & 64))  -ne 0 && log_write $OF "  TAINT: (U) Unsupported modules loaded"
+		test $((TAINT & 128)) -ne 0 && log_write $OF "  TAINT: (X) Modules with external support loaded"
+		;;
+		10*)
+		test $((TAINT & 1))   -ne 0 && log_write $OF "  TAINT: (P) Proprietary module has been loaded"
+		test $((TAINT & 2))   -ne 0 && log_write $OF "  TAINT: (F) Module was forcibly loaded"
+		test $((TAINT & 4))   -ne 0 && log_write $OF "  TAINT: (S) SMP with CPUs not designed for SMP"
+		test $((TAINT & 8))   -ne 0 && log_write $OF "  TAINT: (R) Module was forcibly unloaded"
+		test $((TAINT & 16))  -ne 0 && log_write $OF "  TAINT: (M) Machine check exception"
+		test $((TAINT & 32))  -ne 0 && log_write $OF "  TAINT: (B) System has hit bad_page"
+		test $((TAINT & 64))  -ne 0 && log_write $OF "  TAINT: (U) Userspace-defined problems"
+		test $((TAINT & 128)) -ne 0 && log_write $OF "  TAINT: (N) Unsupported modules loaded"
+		test $((TAINT & 256)) -ne 0 && log_write $OF "  TAINT: (X) Modules with external support loaded"
+		;;
+		110|111)
+		test $((TAINT & 1))          -ne 0 && log_write $OF "  TAINT: (P) Proprietary module has been loaded"
+		test $((TAINT & 2))          -ne 0 && log_write $OF "  TAINT: (F) Module was forcibly loaded"
+		test $((TAINT & 4))          -ne 0 && log_write $OF "  TAINT: (S) SMP with CPUs not designed for SMP"
+		test $((TAINT & 8))          -ne 0 && log_write $OF "  TAINT: (R) Module was forcibly unloaded"
+		test $((TAINT & 16))         -ne 0 && log_write $OF "  TAINT: (M) Machine check exception"
+		test $((TAINT & 32))         -ne 0 && log_write $OF "  TAINT: (B) System has hit bad_page"
+		test $((TAINT & 64))         -ne 0 && log_write $OF "  TAINT: (U) Userspace-defined problems"
+		test $((TAINT & 128))        -ne 0 && log_write $OF "  TAINT: (D) Imminent kernel function termination"
+		test $((TAINT & 256))        -ne 0 && log_write $OF "  TAINT: (A) ACPI table overridden"
+		test $((TAINT & 512))        -ne 0 && log_write $OF "  TAINT: (W) Taint on warning"
+		test $((TAINT & 1024))       -ne 0 && log_write $OF "  TAINT: (C) Modules from drivers/staging are loaded"
+		test $((TAINT & 1073741824)) -ne 0 && log_write $OF "  TAINT: (N) Unsupported modules loaded"
+		test $((TAINT & 2147483648)) -ne 0 && log_write $OF "  TAINT: (X) Modules with external support loaded"
+		;;
+		esac
+
+		log_write $OF
+		LIST_MODULES_ANY=0
+		for MODULE in $(cat /proc/modules | awk '{print $1}')
+		do
+			LIST_MODULE=0
+			modinfo -l $MODULE &>/dev/null
+			if [ $? -gt 0 ]; then
+				log_write $OF "$(printf "%-25s %-25s %-25s" module=$MODULE ERROR "Module info unavailable")"
+			else
+				LIC=$(modinfo -l $MODULE | head -1)
+				SUP=$(modinfo -F supported $MODULE | head -1)
+				test -z "$LIC" && LIC=None
+				test -z "$SUP" && SUP=no
+				GPLTEST=$(echo $LIC | grep GPL)
+				test -z "$GPLTEST" && ((LIST_MODULE++))
+				test "$SUP" != "yes" && ((LIST_MODULE++))
+				test $LIST_MODULE -gt 0 && log_write $OF "$(printf "%-25s %-25s %-25s" "module=$MODULE" "license=$LIC" "supported=$SUP")"
+				LIST_MODULES_ANY=$((LIST_MODULES_ANY + LIST_MODULE))
+			fi
+		done
+		if [ $LIST_MODULES_ANY -eq 0 ]; then
+			log_write $OF "Module List Unknown"
+		fi
+	else
+		log_write $OF "Kernel Status -- Not Tainted"
+	fi
+	log_write $OF
+
+	PSPTMP=$(mktemp $LOG/psout.XXXXXXXX)
+	AARPTMP=$(mktemp $LOG/security-aareject.XXXXXXXX)
+	PSTMP=$(basename $PSPTMP)
+	AARTMP=$(basename $AARPTMP)
+
+	log_cmd $PSTMP 'ps axwwo user,pid,ppid,%cpu,%mem,vsz,rss,stat,time,cmd'
+
+	log_write $OF "#==[ Checking Health of Processes ]=================#"
+	log_write $OF "# egrep \" D| Z\" $PSPTMP"
+	log_write $OF "$(grep -v ^# "$PSPTMP" | egrep " D| Z")"
+
+	TOPTMP=$(mktemp $LOG/top.XXXXXXXX)
+	log_write $OF
+	log_write $OF "#==[ Summary ]======================================#"
+	log_write $OF "# Top 10 CPU Processes"
+	ps axwwo %cpu,pid,user,cmd | sort -k 1 -r -n | head -11 | sed -e '/^%/d' > $TOPTMP
+	log_write $OF "%CPU   PID USER     CMD"
+	log_write $OF "$(< $TOPTMP)"
+	log_write $OF
+
+	log_write $OF "#==[ Summary ]======================================#"
+	log_write $OF "# Top 10 Memory Processes"
+	ps axwwo %mem,pid,user,cmd | sort -k 1 -r -n | head -11 | sed -e '/^%/d' > $TOPTMP
+	log_write $OF "%MEM   PID USER     CMD"
+	log_write $OF "$(< $TOPTMP)"
+	log_write $OF
+	rm -f $TOPTMP
+
+	if rpm -q subdomain-parser &>/dev/null; then
+		# apparmor for SLES9
+		log_write $AARTMP "#==[ Summary ]======================================#"
+		log_write $AARTMP "# AppArmor REJECT Messages"
+		log_write $AARTMP "$(chkconfig boot.subdomain)"
+		AAREJECT=$(grep 'SubDomain: REJECTING' /var/log/messages | wc -l)
+		test -z "$AAREJECT" && AAREJECT=0
+		if lsmod | grep subdomain &>/dev/null; then
+			AALOADED="Loaded"
+		else
+			AALOADED="Not Loaded"
+		fi
+		log_write $AARTMP
+		log_write $AARTMP "${AAREJECT} Reject Messages, AppArmor Module: $AALOADED"
+		log_write $AARTMP
+	elif rpm -q apparmor-parser &>/dev/null; then
+		# apparmor for SLE10/11
+		log_write $AARTMP "#==[ Summary ]======================================#"
+		log_write $AARTMP "# AppArmor REJECT Messages"
+		log_write $AARTMP "$(chkconfig -l boot.apparmor)"
+		APP_AUDIT_LOG="/var/log/audit/audit.log"
+		test -f $APP_AUDIT_LOG && AAREJECT=$(egrep 'REJECTING|DENIED' $APP_AUDIT_LOG | wc -l) || AAREJECT=0
+		test -z "$AAREJECT" && AAREJECT=0
+		if [[ -x /usr/sbin/apparmor_status ]]; then
+			/usr/sbin/apparmor_status --enabled &>/dev/null
+			AASTAT=$?
+			case $AASTAT in
+			0) AALOADED="Loaded" ;;
+			1) AALOADED="Disabled" ;;
+			*) AALOADED="Loaded/Errors" ;;
+			esac
+		else
+			AALOADED="Unknown"
+		fi
+		log_write $AARTMP
+		log_write $AARTMP "${AAREJECT} Reject Messages, AppArmor Module: $AALOADED"
+		log_write $AARTMP
+	fi
+	test -f $AARPTMP && cat $AARPTMP >> $LOG/$OF
+
+	test -s /var/log/mcelog && { log_cmd $OF "ls -l --time-style=long-iso /var/log/mcelog"; conf_files $OF /var/log/mcelog; }
+
+	cat $PSPTMP >> $LOG/$OF
+	rm $PSPTMP
+
+	echolog Done
+}
+
+rpm_info() {
+	# This is a minimum required function, do not exclude
+	printlog "RPM Database..."
+	test $MIN_OPTION_RPM -eq 0 && { echolog EXCLUDED; return 1; }
+	addHeaderFile $RPMFILE
+	if ((NSA_CHECK)); then
+		log_write $RPMFILE "#==[ NSA Check ]====================================#"
+		log_write $RPMFILE '# rpm -qa --queryformat "%-35{NAME} %-35{DISTRIBUTION} %{VERSION}-%{RELEASE}\n"'
+		rpm -qa --queryformat "%-35{NAME} %-35{DISTRIBUTION} %{VERSION}-%{RELEASE}\n" >> $LOGFILE 2>&1
+	else
+		# rpm list of all files
+		LOGFILE=$LOG/$RPM_DIST_FILE
+		log_cmd $RPM_DIST_FILE 'rpm -qa --queryformat "%{DISTRIBUTION}\n" | sort | uniq'
+		rpm -qa 2>/dev/null | sort > $LOG/$RPM_QA_FILE
+		cat $LOG/$RPM_DIST_FILE >> $LOG/$RPMFILE
+		log_cmd $RPMFILE "ls -l --time-style=long-iso /usr/local/bin /usr/local/sbin"
+		log_write $RPMFILE "#==[ Command ]======================================#"
+		log_write $RPMFILE '# rpm -qa --queryformat "%-35{NAME} %-35{DISTRIBUTION} %{VERSION}-%{RELEASE}\n" | sort -k 1,2 -t " " -i'
+		printf "%-35s %-35s %s\n" NAME DISTRIBUTION VERSION >> $LOGFILE
+		rpm -qa --queryformat "%-35{NAME} %-35{DISTRIBUTION} %{VERSION}-%{RELEASE}\n" | sort -k 1,2 -t " " -i >> $LOGFILE 2>&1
+		log_write $RPMFILE
+		log_cmd $RPMFILE "rpm -qa --last"
+	fi
+	echolog Done
+}
+
+basic_report() {
+	printlog "Basic Health Report..."
+	test $OPTION_HCREPORT -eq 0 && { echolog Excluded; return 1; }
+	OF=basic-health-report.txt
+	cd $LOG
+	addHeaderFile $OF
+	log_cmd $OF 'schealth -q'
+	echolog Done
+}
+
+	
+# Run basic_healthcheck first TAINT & TAINT_STRING must be defined first
+module_info() {
+	printlog "System Modules..."
+	test $OPTION_MOD -eq 0 && { echolog Excluded; return 1; }
+	OF=modules.txt
+	LOGFILE=$LOG/$OF
+	addHeaderFile $OF
+	log_cmd $OF 'lsmod | sort'
+	for MODULE in $(cat /proc/modules | awk '{print $1}')
+	do
+		log_cmd $OF "modinfo $MODULE"
+		MODPARM="/sys/module/$MODULE/parameters/"
+		if [ -d $MODPARM ]; then
+			log_write $OF "# Known Module Parameter Values"
+			for i in $(ls -1 $MODPARM)
+			do
+				MODVALUE=$(cat ${MODPARM}$i 2>/dev/null)
+				[ $? -ne 0 ] && MODVALUE="?"
+				log_write $OF "${MODPARM}$i=$MODVALUE"
+			done
+			log_write $OF
+		fi
+		MODOPT=$(grep -R "options ${MODULE} " /etc/modprobe\.?* | grep -v ":# option")
+		[ -n "$MODOPT" ] && { log_write $OF "# Module Configuration"; log_write $OF "$MODOPT"; log_write $OF; }
+	done
+	conf_files $OF /lib/modules/$(uname -r)/modules.dep
+	LIST=$(grep ^include /etc/modprobe.conf | awk '{print $2}')
+	FILES=""
+	for FILE in $LIST
+	do
+		if [ -d $FILE ]; then
+			FILES="$FILES $(find -L $FILE -type f)"
+		else
+			FILES="$FILES $FILE"
+		fi
+	done
+	conf_files $OF /etc/modprobe.conf $FILES
+	echolog Done
+}
+
+messages_file() {
+	# This is a minimum required function, do not exclude
+	printlog "System Logs..."
+	test $MIN_OPTION_SYSLOGS -eq 0 && { echolog EXCLUDED; return 1; }
+	OF=messages.txt
+	addHeaderFile $OF
+	if [ $ADD_OPTION_LOGS -gt 0 ]; then
+		FILES="$(ls -1 /var/log/warn-*.bz2 2>/dev/null) $(ls -1 /var/log/localmessages-*.bz2 2>/dev/null) $(ls -1 /var/log/messages-*.bz2 2>/dev/null)"
+		[ -n "$FILES" ] && log_entry $OF note "Additional Rotated Logs Included in the Tar Ball"
+		log_files $OF 0 /var/log/warn /var/log/localmessages /var/log/messages
+		for CMPLOG in $FILES
+		do
+			FILE=$(basename $CMPLOG)
+			FILEROOT="${LOG}/${FILE%%\.bz2}"
+			cp $CMPLOG ${LOG}
+			wait_trace_on "bzip2 -d ${LOG}/$FILE"
+			bzip2 -d ${LOG}/$FILE
+			mv ${FILEROOT} ${FILEROOT}.txt
+			wait_trace_off
+		done
+	else
+		log_files $OF $VAR_OPTION_LINE_COUNT /var/log/warn
+		for LOGFILE in /var/log/localmessages /var/log/messages
+		do
+			if [ -e $LOGFILE ]; then
+				if [ $VAR_OPTION_MSG_MAXSIZE -eq 0 ]; then
+					log_files $OF 0 $LOGFILE  # override and get the entire file
+				else
+					MSGSIZE=$(stat -c%s $LOGFILE)
+					if [ $MSGSIZE -gt $VAR_OPTION_MSG_MAXSIZE ]; then
+						log_files $OF $VAR_OPTION_MSG_LINE_COUNT $LOGFILE # the file exceeded the max size allowed, get specified lines of the file
+					else
+						log_files $OF 0 $LOGFILE # get the whole file
+					fi
+				fi
+			fi
+		done
+	fi
+	echolog Done
+}
+
+audit_info() {
+	printlog "Auditing..."
+	test $OPTION_AUDIT -eq 0 && { echolog Excluded; return 1; }
+	OF=security-audit.txt
+	if [ $SLES_VER -gt 90 ]; then
+		if rpm_verify $OF audit; then
+			addHeaderFile $OF
+			check_service $OF auditd
+			log_cmd $OF 'auditctl -s'
+			log_cmd $OF 'auditctl -l'
+			log_cmd $OF 'aureport'
+			if [ -d /etc/audit ]; then
+				FILES=$(find -L /etc/audit/ -type f)
+				if [ -d /etc/audispd ]; then
+					FILES="$FILES $(find -L /etc/audispd/ -type f)"
+				fi
+			else
+				FILES="/etc/auditd.conf /etc/audit.rules"
+			fi
+			conf_files $OF $FILES
+			FILES=$(find -L /var/log/audit/ -type f | grep log$)
+			test $ADD_OPTION_LOGS -gt 0 && log_files $OF 0 $FILES || log_files $OF $VAR_OPTION_LINE_COUNT $FILES
+			echolog Done
+		else
+			echolog Skipped
+		fi
+	else
+		if rpm_verify $OF laus; then
+			addHeaderFile $OF
+			check_service $OF audit
+			FILES=$(find -L /etc/audit/ -type f)
+			conf_files $OF $FILES
+			log_cmd $OF 'aucat -v'
+			echolog Done
+		else
+			echolog Skipped
+		fi
+	fi
+}
+
+yast_files() {
+	# This is a minimum required function, do not exclude
+	printlog "YaST Files..."
+	test $MIN_OPTION_YAST -eq 0 && { echolog EXCLUDED; return 1; }
+	hppsp_info
+	# YaST files
+	OF=y2log.txt
+	addHeaderFile $OF
+	rpm_verify $OF yast2-packager
+	rpm_verify $OF yast2-packagemanager
+	test -d /var/log/YaST2 && FILES=$(find -L /var/log/YaST2/ -type f | egrep -v "_dev_|\.tbz$|\.tgz$|\.gz$|\.bz2$|\.zip$") || unset FILES
+	conf_files $OF /etc/youservers /etc/sysconfig/onlineupdate /etc/wgetrc
+	test $ADD_OPTION_MAXYAST -eq 1 && log_files $OF 0 $FILES || log_files $OF $VAR_OPTION_LINE_COUNT $FILES
+	FILES=$(find -L /root -type f | grep autoupg | grep '\.xml$')
+	conf_files $OF /root/autoinst.xml $FILES /var/adm/autoinstall/cache/installedSystem.xml
+	sed -i -e 's!<user_password>.*</user_password>!<user_password>*REMOVED BY SUPPORTCONFIG*</user_password>!g' $LOG/$OF
+	echolog Done
+}
+
+boot_info() {
+	printlog "Boot Files..."
+	test $OPTION_BOOT -eq 0 && { echolog Excluded; return 1; }
+	OF=boot.txt
+	addHeaderFile $OF
+	log_cmd $OF "uname -a"
+	KERNELS=$(cat $LOG/$RPMFILE | grep '^kernel-' | grep -v 'kernel-source' | awk '{print $1}')
+	for KERNEL in $KERNELS
+	do
+		rpm_verify $OF $KERNEL
+	done
+	if rpm -q grub &> /dev/null; then
+		rpm_verify $OF grub
+		conf_files $OF /etc/grub.conf /boot/grub/menu.lst /boot/grub/device.map
+		log_cmd $OF 'hwinfo --framebuffer'
+	fi
+	if rpm -q lilo &> /dev/null; then
+		rpm_verify $OF lilo
+		conf_files $OF /etc/lilo.conf /etc/yaboot.conf
+	fi
+	if rpm -q elilo &> /dev/null; then
+		rpm_verify $OF elilo
+		ELILOFILE=$(rpm -ql elilo | grep elilo.efi)
+		ELILODIR=$(dirname $ELILOFILE)
+		log_cmd $OF "ls -l --time-style=long-iso $ELILODIR"
+		FILES="$(find -L /boot/ -type f 2>/dev/null | grep elilo.[conf,cfg]) $(find -L /etc/ -type f 2>/dev/null | grep elilo.[conf,cfg])"
+		conf_files $OF $FILES
+		log_cmd $OF "cksum $(ls -1 $ELILOFILE) $(find -L /boot/ -type f 2>/dev/null | grep elilo.efi)"
+	fi
+	if rpm -q efibootmgr &> /dev/null; then
+		log_cmd $OF "efibootmgr -v"
+	fi
+	if rpm -q z390-tools &> /dev/null; then
+		conf_files $OF /etc/zipl.conf
+	fi
+
+	test -e /usr/sbin/mcelog && log_cmd $OF "/usr/sbin/mcelog --ignorenodev --filter --dmi"
+	test -s /var/log/mcelog && { log_cmd $OF "ls -l --time-style=long-iso /var/log/mcelog"; conf_files $OF /var/log/mcelog; }
+	log_cmd $OF 'last -xF | egrep "reboot|shutdown|runlevel|system"'
+
+	conf_files $OF /proc/cmdline /etc/sysconfig/kernel /etc/inittab /etc/init.d/boot.local /etc/init.d/before.local /etc/init.d/after.local /etc/init.d/halt.local
+
+	log_cmd $OF 'ls -lR --time-style=long-iso /boot/'
+	if [ $SLES_VER -gt 90 ]; then
+		for i in $(find -L /boot -maxdepth 1 -type f 2>/dev/null | grep initrd)
+		do
+			if file $i | grep -i "gzip compressed" &>/dev/null; then
+				log_cmd $OF "zcat $i | cpio -itv 2>/dev/null"
+			elif file $i | grep -i "xz compressed" &>/dev/null; then
+				log_cmd $OF "xzcat $i | cpio -itv 2>/dev/null"
+			fi
+		done
+	fi
+	conf_files $OF /var/log/boot.msg /var/log/boot.omsg
+	log_cmd $OF 'dmesg'
+	echolog Done
+}
+
+smt_info() {
+	printlog "SMT..."
+	test $OPTION_SMT -eq 0 && { echolog Excluded; return 1; }
+	OF=smt.txt
+	addHeaderFile $OF
+	if rpm_verify $OF smt; then
+		check_service $OF smt
+		CONF=/etc/smt.conf
+		conf_files $OF /etc/smt.conf
+		sed -i -e 's/^NUPass[[:space:]]*=.*/NUPass=*REMOVED BY SUPPORTCONFIG*/;s/^pass[[:space:]]*=.*/pass=*REMOVED BY SUPPORTCONFIG*/;s/^ProxyUser[[:space:]]*=.*/ProxyUser=*REMOVED BY SUPPORTCONFIG*/;s/^mailServerPassword[[:space:]]*=.*/mailServerPassword=*REMOVED BY SUPPORTCONFIG*/;s/^credentials[[:space:]]*=.*/credentials=*REMOVED BY SUPPORTCONFIG*/' $LOG/$OF
+		FILES=$(find -L /etc/smt.d/ -type f 2>/dev/null)
+		conf_files $OF $FILES
+		log_cmd $OF 'smt-catalogs'
+		log_cmd $OF 'smt-catalogs -o'
+		log_cmd $OF 'smt-list-registrations'
+		log_cmd $OF 'smt-list-products'
+		if [ -d /srv/www/htdocs/repo ]; then
+			log_cmd $OF 'find -L /srv/www/htdocs/repo -print0 | sort -z | xargs -0 ls -ld --time-style=long-iso'
+		fi
+		FILES=$(find -L /var/log/ -type f | grep smt- | grep log$)
+		test $ADD_OPTION_LOGS -gt 0 && log_files $OF 0 $FILES || log_files $OF $VAR_OPTION_LINE_COUNT $FILES
+		echolog Done
+	else
+		echolog Skipped
+	fi
+}
+
+update_info() {
+	printlog "Updates..."
+	test $OPTION_UP -eq 0 && { echolog Excluded; return 1; }
+	OF=updates.txt
+	SKIP=0
+	TIMEOUT=0
+	addHeaderFile $OF
+	if [ $SLES_VER -lt 110 ] && rpm_verify $OF rug
+	then
+		rpm_verify $OF lsb
+		RUG_VER=$(rpm -q rug | tail -1 | cut -d- -f2 | cut -d\. -f1)
+		log_cmd $OF 'date'
+		if [ $RUG_VER -gt 6 ]; then
+			# Time out as a group, if one rug command fails, all remaining rug commands fail
+			for CMDOPT in prefs '--no-abbrev sl' ca lu pch
+			do
+				if [ $TIMEOUT -ge 10 ]; then
+					log_write $OF "#==[ Command ]======================================#"
+					log_write $OF "# Skipped \"rug $CMDOPT\" due to previous timeout"
+					log_write $OF
+				else
+					timed_log_cmd $OF "rug $CMDOPT"
+					TIMEOUT=$?
+				fi
+			done
+		elif [ $RUG_VER -gt 1 ]; then
+			for CMDOPT in prefs '--no-abbrev sl' ch pl
+			do
+				if [ $TIMEOUT -ge 10 ]; then
+					log_write $OF "#==[ Command ]======================================#"
+					log_write $OF "# Skipped \"rug $CMDOPT\" due to previous timeout"
+					log_write $OF
+				else
+					timed_log_cmd $OF "rug $CMDOPT"
+					TIMEOUT=$?
+				fi
+			done
+		fi
+	fi
+
+	TIMEOUT=0
+	if [ $SLES_VER -ge 110 ] && rpm_verify $OF zypper; then
+		log_cmd $OF 'date'
+		for CMDOPT in services repos patch-check patches list-patches products '--xml products'
+		do
+			if [ $TIMEOUT -ge 10 ]; then
+				log_write $OF "#==[ Command ]======================================#"
+				log_write $OF "# Skipped \"zypper $CMDOPT\" due to previous timeout"
+				log_write $OF
+			else
+				timed_log_cmd $OF "zypper --non-interactive --no-gpg-checks $CMDOPT"
+				TIMEOUT=$?
+			fi
+		done
+		rpm_verify $OF lsb
+		conf_files $OF /etc/zypp/zypp.conf /etc/zypp/credentials.d/NCCcredentials
+	fi
+
+	if rpm -q libzypp &> /dev/null; then
+		QPBIN=$(rpm -ql libzypp | grep query-pool)
+		test -n "$QPBIN" && timed_log_cmd $OF "$QPBIN products" || ((SKIP++))
+	elif rpm -q libzypp-zmd-backend &> /dev/null; then
+		QPBIN=$(rpm -ql libzypp-zmd-backend | grep query-pool)
+		test -n "$QPBIN" && timed_log_cmd $OF "$QPBIN products" || ((SKIP++))
+	fi
+
+	if rpm -q zypper &> /dev/null; then
+		log_cmd $OF 'installation_sources -s'
+	fi
+
+	if rpm_verify $OF suseRegister; then
+		[ $SLES_VER -lt 110 ] && log_cmd $OF 'chkconfig suseRegister --list'
+		FILES='/etc/suseRegister.conf /etc/sysconfig/suse_register'
+		conf_files $OF $FILES
+		if [ -d /var/lib/suseRegister/ ]; then
+			FILES=$(find -L /var/lib/suseRegister/ -type f)
+			conf_files $OF $FILES
+		fi
+	fi
+
+	log_cmd $OF "env | grep -i proxy | grep -v CMDLINE"
+	conf_files $OF /etc/sysconfig/proxy
+	if [ -s /root/.curlrc ]; then
+		conf_files $OF /root/.curlrc
+		SC_PROXY_PASS=$(grep -i "^proxy-user" /root/.curlrc | sed -e 's/"//g' | awk '{print $3}' | cut -d\: -f2)
+		sed -i -e "s/:${SC_PROXY_PASS}$/:*REMOVED BY SUPPORTCONFIG*/g;s/:${SC_PROXY_PASS}\"$/:*REMOVED BY SUPPORTCONFIG*\"/g" $LOG/$OF
+	fi
+
+	if rpm -q curl &>/dev/null; then
+		if [ -s /etc/zmd/deviceid -a -s /etc/zmd/secret ]; then
+			NCCUSER=$(cat /etc/zmd/deviceid)
+			NCCPASS=$(cat /etc/zmd/secret)
+		elif [ -s /etc/zypp/credentials.d/NCCcredentials ]; then
+			NCCUSER=$(grep -i username /etc/zypp/credentials.d/NCCcredentials | sed -e 's/^username[[:space:]]*=[[:space:]]*//g')
+			NCCPASS=$(grep -i password /etc/zypp/credentials.d/NCCcredentials | sed -e 's/^password[[:space:]]*=[[:space:]]*//g')
+		else
+			NCCUSER=''
+		fi
+		if [ -n "$NCCUSER" ]; then
+			DOWNURL="https://nu.novell.com/repo/repoindex.xml"
+			if [ -s /etc/suseRegister.conf ]; then
+				TMPURL=$(grep -i ^url /etc/suseRegister.conf | tail -1 | awk -F= '{print $2}' | grep -v "secure-www\.novell\.com" | sed -e 's/^[[:space:]]*//' )
+				if [ -n "$TMPURL" ]; then
+					TMPROTO=$(echo $TMPURL | cut -d\/ -f1)
+					TMPHOST=$(echo $TMPURL | cut -d\/ -f3)
+					DOWNURL="${TMPROTO}//${TMPHOST}/repo/repoindex.xml"
+				fi
+			fi
+			timed_log_cmd $OF "curl --verbose --capath /etc/ssl/certs/ --digest --remote-time --fail -u $NCCUSER:$NCCPASS -O \"$DOWNURL\" 2>curlnu.log"
+			timed_log_cmd $OF "curl --verbose https://secure-www.novell.com/home/ 2>curlsecure.log"
+			FILES="repoindex.xml curlnu.log curlsecure.log"
+			log_files $OF 0 $FILES
+			rm -f $FILES
+		fi
+	fi
+
+#rug
+	FILES="/var/log/zmd-backend.log"
+	test $ADD_OPTION_LOGS -gt 0 && log_files $OF 0 $FILES || log_files $OF $VAR_OPTION_LINE_COUNT $FILES
+
+#zypper
+	FILES=$(find -L /var/log/ -type f | grep zypp)
+	test $ADD_OPTION_LOGS -gt 0 && log_files $OF 0 $FILES || log_files $OF $VAR_OPTION_LINE_COUNT $FILES
+
+#suseregister
+	log_files $OF 0 '/root/.suse_register.log'
+	FILES="/var/log/messages"
+	[ $ADD_OPTION_LOGS -gt 0 ] && grep_log_files suse_register $OF 0 $FILES || grep_log_files suse_register $OF $VAR_OPTION_LINE_COUNT $FILES
+
+	echolog Done
+}
+
+update_d_info() {
+	printlog "Updates Daemon..."
+	test $OPTION_UPD -eq 0 && { echolog Excluded; return 1; }
+	OF=updates-daemon.txt
+	SKIP=0
+	addHeaderFile $OF
+	if rpm_verify $OF rcd
+	then
+		RCD_HISTORY="/var/log/rcd/rcd-package-history"
+		check_service $OF rcd
+		log_cmd $OF "grep |upgrade| $RCD_HISTORY"
+
+		FILES="/var/log/rcd/rcd-messages $RCD_HISTORY"
+		test $ADD_OPTION_LOGS -gt 0 && log_files $OF 0 $FILES || log_files $OF $VAR_OPTION_LINE_COUNT $FILES
+	else
+		((SKIP++))
+	fi
+
+	if rpm_verify $OF zmd
+	then
+		check_service $OF novell-zmd
+		conf_files $OF /etc/zmd/zmd.conf /etc/zmd/deviceid /etc/zmd/secret /etc/sysconfig/zmd
+		sed -i -e 's/.*proxy-password[[:space:]]*=/*REMOVED BY SUPPORTCONFIG*/g' $LOG/$OF
+		[ $ADD_OPTION_LOGS -gt 0 ] && FILES="/var/log/zmd-messages.log*" || FILES="/var/log/zmd-messages.log"
+		[ $ADD_OPTION_LOGS -gt 0 ] && log_files $OF 0 $FILES || log_files $OF $VAR_OPTION_LINE_COUNT $FILES
+		FILES="/var/log/messages"
+		[ $ADD_OPTION_LOGS -gt 0 ] && grep_log_files 'zmd:' $OF 0 $FILES || grep_log_files 'zmd:' $OF $VAR_OPTION_LINE_COUNT $FILES
+	else
+		((SKIP++))
+	fi
+
+	test $SKIP -lt 2 && echolog Done || echolog Skipped
+}
+
+novell_edir_info() {
+	# Call fslist_info first in case -e was selected
+	printlog "Novell eDirectory..."
+	test $OPTION_EDIR -eq 0 && { echolog Excluded; return 1; }
+	echonlog "Please Wait..."
+	OF=novell-edir.txt
+	SKIP=0
+	addHeaderFile $OF
+	if [ -x /usr/ldaptools/bin/ldapsearch ]; then
+		LDAP_BIN=/usr/ldaptools/bin/ldapsearch
+	elif [ -x /opt/novell/eDirectory/bin/ldapsearch ]; then
+		LDAP_BIN=/opt/novell/eDirectory/bin/ldapsearch
+	elif [ -x /usr/bin/ldapsearch ]; then
+		LDAP_BIN=/usr/bin/ldapsearch
+	else
+		LDAP_BIN=""
+	fi
+
+	RPM_NAME=NDSserv
+	if rpm_verify $OF $RPM_NAME
+	then
+		NDSDIR=/var/nds
+		DIBDIR=$NDSDIR/dib
+		if [ -f /opt/novell/eDirectory/sbin/ndsd ]; then
+			log_cmd $OF 'file /opt/novell/eDirectory/sbin/ndsd'
+		else
+			log_cmd $OF 'file /usr/sbin/ndsd'
+		fi
+		log_cmd $OF '/usr/sbin/ndsd --version'
+		log_cmd $OF 'ndsstat'
+		log_cmd $OF 'ndsstat -s'
+		log_cmd $OF 'ndsstat -r'
+		log_cmd $OF 'ndsrepair -T'
+		sleep 1
+		log_cmd $OF 'ndsrepair -E'
+		log_cmd $OF 'ndstrace -c modules'
+		log_cmd $OF 'ndstrace -c threads'
+		log_cmd $OF 'ndsconfig get'
+
+		# Display eDirectory certificates
+		if [ -x "$LDAP_BIN" ]; then
+			DSANAME=$($LDAP_BIN -x -b "" -s base "objectclass=*" | grep 'dsaName:' | sed -e 's/.*:[[:space:]]*//')
+			if [ -n "$DSANAME" ]; then
+				log_cmd $OF "$LDAP_BIN -x -l 15 -b \"\" -s sub '(&(objectclass=nDSPKIKeyMaterial)(hostserver=$DSANAME))' nDSPKINotAfter"
+			fi
+		fi
+
+		log_cmd $OF "ls -l --time-style=long-iso ${DIBDIR}/"
+		conf_files $OF $DIBDIR/_ndsdb.ini /etc/hosts.nds
+		test -d $NDSDIR && FILES=$(find -L ${NDSDIR}/ -type f -maxdepth 1 -name \*log) || FILES=""
+		test $ADD_OPTION_LOGS -gt 0 && log_files $OF 0 $FILES || log_files $OF $VAR_OPTION_LINE_COUNT $FILES
+	else
+		((SKIP++))
+	fi
+
+	# Search for eDirectory instances
+	NDS_INSTANCES=0
+	NDS_CONFILES=""
+	NDSPATH_BIN=/opt/novell/eDirectory/bin/ndspath
+	SRCH_FILE=$LOG/$FSLIST_FILE
+	rpm_verify $OF novell-NDSserv
+
+	INST_DIR='/etc/opt/novell/eDirectory/conf/.edir'
+	test -d $INST_DIR && NDS_DEF_INST="$(find -L ${INST_DIR}/ -type f)" || NDS_DEF_INST=""
+	if [ -f $SRCH_FILE ]; then
+		echonlog Searching
+		NDS_INST_FILES="$(grep \/instances\.[[:digit:]]*$ $SRCH_FILE | grep eDirectory)"
+		test -e $NDSPATH_BIN || NDSPATH_BIN="$(grep /ndspath$ $SRCH_FILE | tail -1)"
+	else
+		if [ -x /usr/bin/locate ]; then
+			echonlog Locating
+			NDS_INST_FILES="$(locate instances 2>/dev/null | grep \/instances\.[[:digit:]]*$ | grep eDirectory)"
+			test -e $NDSPATH_BIN || NDSPATH_BIN="$(locate /ndspath$ 2>/dev/null | tail -1)"
+		else
+			if [ -n "$NDS_DEF_INST" ]; then
+				NDS_INST_FILES=$NDS_DEF_INST
+			fi
+		fi
+	fi
+	for INST_FILE in $NDS_INST_FILES
+	do
+		NDS_CONFILES="$NDS_CONFILES $(cat $INST_FILE)"
+	done
+
+	NDS_INSTANCES=$(echo $NDS_CONFILES | wc -w)
+	test -n "$NDSPATH_BIN" -a -e "$NDSPATH_BIN" && . $NDSPATH_BIN &>/dev/null
+
+
+	if [ $NDS_INSTANCES -gt 0 ]; then
+		conf_files $OF $NDS_INST_FILES /opt/novell/eDirectory/sbin/pre_ndsd* /opt/novell/eDirectory/sbin/post_ndsd*
+		PATH_WITH_EDIR=$PATH
+		export PATH_WITH_EDIR
+		CUR_INST=0
+		INST_FOUND=$NDS_INSTANCES
+		if [ -f /opt/novell/eDirectory/sbin/ndsd ]; then
+			log_cmd $OF 'file /opt/novell/eDirectory/sbin/ndsd'
+		else
+			log_cmd $OF 'file /usr/sbin/ndsd'
+		fi
+
+		# Display eDirectory certificates from LDAP server bound to local default LDAP ports, other multi-instance LDAP ports are not supported
+		if [ -x "$LDAP_BIN" ]; then
+			DSANAME=$($LDAP_BIN -x -b "" -s base "objectclass=*" 2>/dev/null | grep 'dsaName:' | sed -e 's/.*:[[:space:]]*//')
+			if [ -n "$DSANAME" ]; then
+				log_cmd $OF "$LDAP_BIN -x -l 15 -b \"\" -s sub '(&(objectclass=nDSPKIKeyMaterial)(hostserver=$DSANAME))' nDSPKINotAfter"
+			fi
+		fi
+
+		for NDS_CONFILE in $NDS_CONFILES
+		do
+			log_write $OF "#####################################################################"
+			log_write $OF "# eDirectory Instance $((++CUR_INST)) of $NDS_INSTANCES: $NDS_CONFILE"
+			log_write $OF "#####################################################################"
+			log_write $OF
+			echonlog $((INST_FOUND--))
+			conf_files $OF $NDS_CONFILE
+			NDSDIR=$(grep n4u.server.log-file $NDS_CONFILE | cut -d= -f2)
+			NDSDIR=$(dirname $NDSDIR)
+			DIBDIR=$(grep n4u.nds.dibdir $NDS_CONFILE | cut -d= -f2)
+			log_cmd $OF "ndsd --version --config-file $NDS_CONFILE"
+			log_cmd $OF "ndsstat --config-file $NDS_CONFILE"
+			log_cmd $OF "ndsstat -s --config-file $NDS_CONFILE"
+			log_cmd $OF "ndsstat -r --config-file $NDS_CONFILE"
+			log_cmd $OF "ndsrepair -T --config-file $NDS_CONFILE"
+			sleep 1
+			log_cmd $OF "ndsrepair -E --config-file $NDS_CONFILE"
+			log_cmd $OF "ndstrace -c modules --config-file $NDS_CONFILE"
+			log_cmd $OF "ndstrace -c threads --config-file $NDS_CONFILE"
+			log_cmd $OF "ndsconfig get --config-file $NDS_CONFILE"
+			log_cmd $OF "ls -l --time-style=long-iso ${DIBDIR}/"
+			conf_files $OF $DIBDIR/_ndsdb.ini /etc/hosts.nds
+			test -d $NDSDIR && FILES=$(find -L ${NDSDIR}/ -maxdepth 1 -type f -name \*log) || FILES=""
+			test $ADD_OPTION_LOGS -gt 0 && log_files $OF 0 $FILES || log_files $OF $VAR_OPTION_LINE_COUNT $FILES
+		done
+	else
+		((SKIP++))
+	fi
+
+	test $SKIP -lt 2 && echolog Done || echolog Skipped
+}
+
+novell_dsfw_info() {
+	printlog "Novell DSfW..."
+	test $OPTION_DSFW -eq 0 && { echolog Excluded; return 1; }
+	OF=novell-dsfw.txt
+	RPMPATH=$LOG/$RPMFILE
+	addHeaderFile $OF
+
+	log_cmd $OF "egrep \"novell-oes-samba|novell-xad-\" $RPMPATH"
+	log_write $OF
+
+	echolog Done
+}
+
+novell_ncp_info() {
+	printlog "Novell NCP..."
+	test $OPTION_NCP -eq 0 && { echolog Excluded; return 1; }
+	OF=novell-ncp.txt
+	addHeaderFile $OF
+	if rpm_verify $OF novell-ncpserv
+	then
+		log_cmd $OF '/etc/init.d/ncp2nss status'
+		conf_files $OF /etc/opt/novell/ncpserv.conf
+		if timed_log_cmd $OF 'ncpcon version'; then
+			log_cmd $OF 'ncpcon stats'
+			log_cmd $OF 'ncpcon config'
+			log_cmd $OF 'ncpcon set'
+			log_cmd $OF 'ncpcon threads'
+			log_cmd $OF 'ncpcon connection'
+			log_cmd $OF 'ncpcon volume'
+			VOLUMES=$(ncpcon volume 2>/dev/null | sed -e '/^$/d' -e '/Mounted Volumes/d' -e '/volumes mounted/d' -e 's/^[[:space:]]*//')
+			for VOLUME in $VOLUMES
+			do
+				log_cmd $OF "ncpcon volume $VOLUME"
+			done
+		fi
+		test -d /var/opt/novell/log && FILES="/var/opt/novell/log/*ncp*log" || FILES=""
+		test $ADD_OPTION_LOGS -gt 0 && log_files $OF 0 $FILES || log_files $OF $VAR_OPTION_LINE_COUNT $FILES
+		echolog Done
+	else
+		echolog Skipped
+	fi
+}
+
+novell_nss_info() {
+	printlog "Novell NSS..."
+	test $OPTION_NSS -eq 0 && { echolog Excluded; return 1; }
+	OF=novell-nss.txt
+	PATH=$PATH_ORIG
+	export PATH
+	addHeaderFile $OF
+	if rpm_verify $OF novell-nss
+	then
+		LOGFILE=$LOG/$OF
+		check_service $OF 'novell-nss'
+		NLVMBIN="/sbin/nlvm"
+		if [ -x $NLVMBIN ]; then
+			for i in devices partitions pools volumes moves snaps
+			do
+				log_cmd $OF "$NLVMBIN list $i"
+			done
+			log_cmd $OF "$NLVMBIN list linux volumes"
+			log_cmd $OF "$NLVMBIN raid status"
+		fi
+		fuser /dev/nsscmd &>/dev/null
+		NSSCON=$?
+		[ $NSSCON -gt 0 ] && log_cmd $OF "echo modules > /dev/nsscmd; cat /proc/nss/console | sed -e 's/\x1b\[[^m]*m//g;s/\[[^c]//g;s/\x1b\J//g'" || { log_write $OF "#==[ Command ]======================================#"; log_write $OF "# ERROR: Exit nsscon and rerun supportconfig"; log_write $OF; }
+		log_cmd $OF 'nss /pools'
+		echo "# mount | grep -i nss" >> $LOGFILE
+		mount | grep -i nss >> $LOGFILE
+		echo >> $LOGFILE
+		[ $NSSCON -gt 0 ] && log_cmd $OF "echo volumes > /dev/nsscmd; cat /proc/nss/console | sed -e 's/\x1b\[[^m]*m//g;s/\[[^c]//g;s/\x1b\J//g'" || { log_write $OF "#==[ Command ]======================================#"; log_write $OF "# ERROR: Exit nsscon and rerun supportconfig"; log_write $OF; }
+		[ $NSSCON -gt 0 ] && log_cmd $OF "echo help > /dev/nsscmd; cat /proc/nss/console | sed -e 's/\x1b\[[^m]*m//g;s/\x1b\J//g'" || { log_write $OF "#==[ Command ]======================================#"; log_write $OF "# ERROR: Exit nsscon and rerun supportconfig"; log_write $OF; }
+		for i in /etc/opt/novell/nss/nssstart.cfg /opt/novell/nss/conf/nssstart.cfg /etc/opt/novell/nss/nlvm.conf
+		do
+			test -e $i && conf_files $OF $i
+		done
+		if [ -d /_admin/Manage_NSS ]; then
+			NSS_DIR="/_admin/Manage_NSS"
+		else
+			NSS_DIR="/admin/Manage_NSS"
+		fi
+		FILES="$(ls -1 ${NSS_DIR}/*xml 2>/dev/null) $(ls -1 ${NSS_DIR}/Pool/*/*xml 2>/dev/null) $(ls -1 ${NSS_DIR}/Pool/*/ZLSS/*xml 2>/dev/null) $(ls -1 ${NSS_DIR}/LSS/ZLSS/*xml 2>/dev/null) $(ls -1 ${NSS_DIR}/Module/*xml 2>/dev/null)"
+		conf_files $OF $FILES
+		FILES="/var/opt/novell/log/nss/debug/*"
+		if [ -n $FILES ]; then
+			test $ADD_OPTION_LOGS -gt 0 && log_files $OF 0 $FILES || log_files $OF $VAR_OPTION_LINE_COUNT $FILES
+		fi
+		NSSPOOLS=$(nss /pools | grep ^[0-9,a-z,A-Z] | awk '{print $1}')
+		for ACTION in rtfn vbfn
+		do
+			for NSSPOOL in $NSSPOOLS
+			do
+				log_cmd $OF "ravview $ACTION $NSSPOOL"
+			done
+		done
+		echolog Done
+	else
+		echolog Skipped
+	fi
+}
+
+novell_iman_info() {
+	printlog "Novell iManager..."
+	test $OPTION_IMAN -eq 0 && { echolog Excluded; return 1; }
+	OF=novell-iman.txt
+	addHeaderFile $OF
+	if rpm_verify $OF novell-imanager
+	then
+		
+		TRPMS=$(grep ^tomcat $LOG/$RPM_QA_FILE | cut -d- -f1)
+		for TRPM in $TRPMS
+		do
+			rpm_verify $OF $TRPM
+		done
+		check_service $OF 'apache2'
+		TCATS=$(find -L /etc/init.d -maxdepth 1 -type f | grep ^tomcat)
+		for TCAT in $TCATS
+		do
+			check_service $OF $TCAT
+		done
+		TCAT_ETC=$(find -L /etc/opt/novell -maxdepth 1 -type d | grep tomcat | tail -1)
+		conf_files $OF "/etc/opt/novell/iManager/nps-Apache.conf $TCAT_ETC/conf/*"
+		FILES=$(find -L /var/opt/novell/iManager/nps/WEB-INF/modules -type f | grep MF$)
+		conf_files $OF $FILES
+		DEBUGLOG="/var/opt/novell/iManager/nps/WEB-INF/logs/debug.html"
+		[ -s $DEBUGLOG ] && log_files $OF 0 $DEBUGLOG
+		TCAT_BASE=$(find -L /var/opt/novell -maxdepth 1 -type d | grep tomcat | tail -1)
+		FILES="$TCAT_BASE/logs/*"
+		test $ADD_OPTION_LOGS -gt 0 && log_files $OF 0 $FILES || log_files $OF $VAR_OPTION_LINE_COUNT $FILES
+		echolog Done
+	else
+		echolog Skipped
+	fi
+}
+
+novell_proxy_info() {
+	printlog "Novell Proxy Management..."
+	test $OPTION_PROXY -eq 0 && { echolog Excluded; return 1; }
+	OF=novell-proxymgmt.txt
+	addHeaderFile $OF
+	if rpm_verify $OF novell-oes-proxymgmt
+	then
+		rpm_verify $OF novell-nmas-libnmasext
+		PROXY_LIST="/var/opt/novell/log/proxymgmt/pxylist.txt"
+		PROXY_BIN="/opt/novell/proxymgmt/bin/retrieve_proxy_list.sh"
+		if [ -x $PROXY_BIN ]; then
+			if [ -s $PROXY_LIST ]; then
+				DELETE_PROXY_LIST=0
+			else
+				$PROXY_BIN &>/dev/null
+				DELETE_PROXY_LIST=1
+			fi
+		else
+			DELETE_PROXY_LIST=0
+		fi
+		conf_files $OF /etc/opt/novell/proxymgmt/proxy_users.conf /etc/sysconfig/proxy /etc/ld.so.conf.d/novell-proxyuser.conf
+		FILES=$(find -L /etc/sysconfig/novell/ -type f)
+		conf_files $OF $FILES
+		FILES="/var/opt/novell/log/proxymgmt/*"
+		test $ADD_OPTION_LOGS -gt 0 && log_files $OF 0 $FILES || log_files $OF $VAR_OPTION_LINE_COUNT $FILES
+		[ $DELETE_PROXY_LIST -gt 0 ] && rm -f $PROXY_LIST
+		echolog Done
+	else
+		echolog Skipped
+	fi
+}
+
+novell_sms_info() {
+	printlog "Novell SMS..."
+	test $OPTION_SMS -eq 0 && { echolog Excluded; return 1; }
+	OF=novell-sms.txt
+	addHeaderFile $OF
+	if rpm_verify $OF novell-sms
+	then
+		check_service $OF 'novell-smdrd'
+		log_cmd $OF '/opt/novell/sms/bin/smsconfig -t'
+		conf_files $OF '/etc/opt/novell/sms/smdrd.conf /etc/opt/novell/sms/tsafs.conf'
+		FILES="/etc/sysconfig/novell/sms*"
+		for FILE in $FILES
+		do
+			conf_files $OF $FILE
+			IPADDR=$(grep '^CONFIG_SMS_LDAP_SERVER' $FILE | cut -d= -f2 | sed -e 's/"//g')
+			[ -n "$IPADDR" ] && ping_addr $OF 'LDAP Server' $IPADDR
+		done
+		FILES="/var/log/messages"
+		test $ADD_OPTION_LOGS -gt 0 && grep_log_files smdrd $OF 0 $FILES || grep_log_files smdrd $OF $VAR_OPTION_LINE_COUNT $FILES
+		echolog Done
+	else
+		echolog Skipped
+	fi
+}
+
+novell_dfs_info() {
+	printlog "Novell DFS..."
+	test $OPTION_DFS -eq 0 && { echolog Excluded; return 1; }
+	OF=novell-dfs.txt
+	addHeaderFile $OF
+	if rpm_verify $OF novell-nss
+	then
+		log_cmd $OF 'chkconfig -l novell-dfs'
+		log_cmd $OF 'ps -eaf | egrep -i "volmnd|vldb|vlrpr|dfs|jstcpd|adminusd" | egrep -v "grep|supportconfig"'
+		log_cmd $OF 'vldb status'
+		log_cmd $OF 'vldb list'
+		log_cmd $OF 'vldb context'
+		log_cmd $OF 'volmn status'
+		log_cmd $OF 'ls -lR --time-style=long-iso /var/opt/novell/dfs/'
+		log_cmd $OF 'netstat -nlp | egrep "jstcpd|6901"'
+		FILES="$(find -L /var/opt/novell/log/dfs/ -type f 2> /dev/null)"
+		test $ADD_OPTION_LOGS -gt 0 && log_files $OF 0 $FILES || log_files $OF $VAR_OPTION_LINE_COUNT $FILES
+		log_cmd $OF 'egrep -i "volmnd[\[|:]|vldb[\[|:]|vlrpr[\[|:]|dfs[\[|:]|jstcpd[\[|:]" /var/log/messages'
+		echolog Done
+	else
+		echolog Skipped
+	fi
+}
+
+novell_afp_info() {
+	printlog "Novell AFP..."
+	test $OPTION_AFP -eq 0 && { echolog Excluded; return 1; }
+	OF=novell-afp.txt
+	addHeaderFile $OF
+	if rpm_verify $OF novell-afptcpd
+	then
+		check_service $OF novell-afptcpd
+		RPMPATH=$LOG/$RPMFILE
+		log_cmd $OF "egrep \"afp\" $RPMPATH"
+		log_cmd $OF "rpm -q --qf "%{DISTURL}\n" novell-afptcpd"
+		FILES="/etc/sysconfig/novell/afp /etc/ld.so.conf.d/novell-afptcpd.conf"
+		conf_files $OF $FILES /etc/opt/novell/afptcpd/*conf
+		test -d /var/opt/novell/log && FILES=$(find -L /var/log/afptcpd -type f | grep 'log$') || FILES=""
+		test $ADD_OPTION_LOGS -gt 0 && log_files $OF 0 $FILES || log_files $OF $VAR_OPTION_LINE_COUNT $FILES
+		timed_log_cmd $OF 'ldapsearch -x -b cn=security objectclass=nspmPasswordPolicy'
+		echolog Done
+	else
+		echolog Skipped
+	fi
+}
+
+novell_cifs_info() {
+	printlog "Novell CIFS..."
+	test $OPTION_CIFS -eq 0 && { echolog Excluded; return 1; }
+	OF=novell-cifs.txt
+	addHeaderFile $OF
+	if rpm_verify $OF novell-cifs
+	then
+		check_service $OF novell-cifs
+		RPMPATH=$LOG/$RPMFILE
+		log_cmd $OF "egrep \"cifs\" $RPMPATH"
+		log_cmd $OF "rpm -q --qf "%{DISTURL}\n" novell-cifs"
+		log_cmd $OF "novcifs -o"
+		log_cmd $OF "novcifs -sl"
+		FILES="/etc/sysconfig/novell/NvlCifs*"
+		for FILE in $FILES
+		do
+			conf_files $OF $FILE
+			IPADDR=$(grep '^CONFIG_CIFS_LDAP_SERVER' $FILE | cut -d= -f2 | sed -e 's/"//g')
+			[ -n "$IPADDR" ] && ping_addr $OF 'LDAP Server' $IPADDR
+		done
+		conf_files $OF /etc/ld.so.conf.d/novell-cifs.conf /etc/opt/novell/cifs/*conf
+		test -d /var/opt/novell/log && FILES=$(find -L /var/log/cifs -type f | grep 'log$') || FILES=""
+		test $ADD_OPTION_LOGS -gt 0 && log_files $OF 0 $FILES || log_files $OF $VAR_OPTION_LINE_COUNT $FILES
+		timed_log_cmd $OF 'ldapsearch -x -b cn=security objectclass=nspmPasswordPolicy'
+		echolog Done
+	else
+		echolog Skipped
+	fi
+}
+
+cluster_file() {
+	LOGFILE=$LOG/$1
+	shift
+	for CONF in $@
+	do
+		echo "#==[ Configuration File ]===========================#" >> $LOGFILE
+		if [ -f $CONF ]; then
+			echo "# $CONF" >> $LOGFILE
+			CLINE=$(grep -nA2 adminPw $CONF | tail -1 | cut -d- -f1)
+			sed -e "${CLINE}d" $CONF | sed -e "${CLINE}i*REMOVED BY SUPPORTCONFIG*" >> $LOGFILE
+		else
+			echo "# $CONF - File not found" >> $LOGFILE
+		fi
+		echo >> $LOGFILE
+	done
+	echo >> $LOGFILE
+}
+
+novell_ncs_info() {
+	printlog "Novell NCS..."
+	test $OPTION_NCS -eq 0 && { echolog Excluded; return 1; }
+	OF=novell-ncs.txt
+	addHeaderFile $OF
+	if rpm_verify $OF novell-cluster-services
+	then
+		NCSE_DIR="/etc/opt/novell/ncs"
+		NCSV_DIR="/var/opt/novell/ncs"
+		unset LOADSCRIPT_DIR
+		for NCS_CHK_DIR in /var/run/ncs /var/opt/novell/log/ncs $NCSE_DIR $NCSV_DIR
+		do
+			if [ -d $NCS_CHK_DIR ]; then
+				SCRIPTS="$SCRIPTS $(find -L ${NCS_CHK_DIR}/ -type f | egrep '\.load$|\.unload$|\.monitor$' | sort)"
+				NCSCONFS="$NCSCONFS $(find -L ${NCS_CHK_DIR}/ -type f | egrep '\.conf$' | sort)"
+				NCSXML="$NCSXML $(find -L ${NCS_CHK_DIR}/ -type f | egrep '\.xml$' | sort)"
+				RESOURCELOGS="$RESOURCELOGS $(find -L ${NCS_CHK_DIR}/ -type f | egrep '\.out$' | sort)"
+			fi
+		done
+	
+		check_service $OF novell-ncs
+		NCSTESTBIN=${LOG}/ncsldapCheck.py
+cat << NCSTEST > $NCSTESTBIN
+#!/usr/bin/python
+
+import commands
+import os
+import sys
+import ldap
+import struct
+import re
+import string
+sys.path.append( "/opt/novell/ncs/bin" )
+import clstrlibss
+
+def objectNameFromLdapDn(ldapDn):
+
+    cn = string.split(ldapDn, ",")[0]
+    return string.split(cn, "=")[1]
+
+
+ss = clstrlibss.load()
+print "ClusterDN: " + ss.clusterDn
+cluster_dn = ss.clusterDn
+
+ld = ldap.initialize( ss.ldapUrl )
+print "LDAP initialized"
+
+try: 
+    ld.simple_bind_s( ss.adminDn, ss.adminPw )
+except ldap.LDAPError, e:
+    print e
+    sys.exit( 1 )
+
+print "bound to LDAP."
+
+try: 
+    res = ld.search_s( cluster_dn, ldap.SCOPE_BASE )
+    print "Returned Cluster DN: " + res[0][0]
+except ldap.LDAPError, e:
+    print e
+    ld.unbind_s()
+    sys.exit( 2 )
+
+try:
+    guid = ld.search_s( cluster_dn, ldap.SCOPE_BASE, "cn=" + objectNameFromLdapDn( cluster_dn ), ["GUID"] )
+except ldap.LDAPError, e:
+    print e
+    ld.ubind_s()
+    sys.exit( 2 )
+
+print "Cluster GUID found."
+print guid
+
+if res[0][1].has_key("nCSGIPCConfig"):
+    nwGipcConfig = res[0][1]["nCSGIPCConfig"][0]
+    left = nwGipcConfig.find("panning")
+    right = nwGipcConfig[left:].find("\n")
+    print(nwGipcConfig[left:][:right].strip())
+else:
+    cid = struct.unpack("I", guid[0][1]["GUID"][0][0:4])
+    print("panning clusterid " + str(cid[0]))
+
+print("heartbeat rate_usecs " + str(int(res[0][1]["nCSGIPCHeartbeat"][0]) * 1000000))
+print("censustaker tolerance " + str(int(res[0][1]["nCSGIPCTolerance"][0]) * 1000000))
+print("sequencer master_watchdog " + str(int(res[0][1]["nCSGIPCMasterWatchdog"][0]) * 1000000))
+print("sequencer slave_watchdog " + str(int(res[0][1]["nCSGIPCSlaveWatchdog"][0]) * 1000000))
+print("sequencer retrans_max " + res[0][1]["nCSGIPCMaxRetransmits"][0])
+
+res = ld.search_s(cluster_dn, ldap.SCOPE_ONELEVEL, "objectClass=nCSNCPServer", ["nCSGIPCNodeNumber", "nCSNetworkAddress" ] )
+for node in res:
+    nodeNumber = node[1]["nCSGIPCNodeNumber"][0]
+    ipBytes = struct.unpack("BBBB", node[1]["nCSNetworkAddress"][0][2:])
+    ipAddress = str(ipBytes[0]) + "." + str(ipBytes[1]) + "." + str(ipBytes[2]) + "." + str(ipBytes[3])
+    print("nodeid " + ipAddress + " " + nodeNumber )
+
+ldapRes = ld.search_s(cluster_dn, ldap.SCOPE_ONELEVEL, "(|(objectClass=nCSClusterResource)(objectClass=nCSVolumeResource)(objectClass=nCSResourceTemplate))", ["cn", "objectClass", "nCSRevision" ] )
+for object in ldapRes:
+    print "Resource/template name: " + object[1]["cn"][0]
+    print "\ttype: " + object[1]["objectClass"][0]
+    print "\trevision: " + str( object[1]["nCSRevision"][0])
+
+ld.unbind_s()
+print "Connection closed."
+NCSTEST
+		chmod 500 $NCSTESTBIN
+		timed_log_cmd $OF $NCSTESTBIN
+		rm -f $NCSTESTBIN
+
+		log_cmd $OF 'CASAcli -l'
+		log_cmd $OF 'sfdisk -l'
+		log_cmd $OF 'ndsstat -s'
+		log_cmd $OF 'cluster stats display'
+		log_cmd $OF 'cluster view'
+		log_cmd $OF 'cluster resources'
+		log_cmd $OF 'cluster pools'
+		log_cmd $OF 'cluster info all'
+		if timed_log_cmd $OF 'sbdutil -f'; then
+			timed_log_cmd $OF 'sbdutil -v'
+		fi
+		FILES="/var/log/nts_ncsvr_*_analysis.txt"
+		log_files $OF 0 $FILES
+		test -f /etc/sysconfig/NCS && NCS_FILES="/etc/sysconfig/NCS" || NCS_FILES="/etc/sysconfig/novell/ncs*"
+		for NCS_FILE in $NCS_FILES
+		do
+			conf_files $OF $NCS_FILES
+			IPADDR=$(grep ^CONFIG_NCS_CLUSTER_IP $NCS_FILE | cut -d= -f2 | sed -e 's/"//g')
+			[ -n "$IPADDR" ] && ping_addr $OF 'Cluster IP' $IPADDR
+			IPADDR=$(grep ^CONFIG_NCS_SERVER_IP $NCS_FILE | cut -d= -f2 | sed -e 's/"//g')
+			[ -n "$IPADDR" ] && ping_addr $OF 'Server IP' $IPADDR
+			IPADDRS=$(grep ^CONFIG_NCS_LDAP_SERVERS $NCS_FILE | cut -d= -f2 | sed -e 's/"//g;s/,/ /g')
+			for IPADDR in $IPADDRS
+			do
+				[ -n "$IPADDR" ] && ping_addr $OF 'LDAP Server' $IPADDR
+			done
+		done
+		conf_files $OF /var/opt/novell/install/ncslog $NCSE_DIR/nodename
+		for i in $NCSCONFS
+		do
+			FILE_NAME=$(basename $i)
+			case $FILE_NAME in
+			clstrlib.conf*) cluster_file $OF $i ;;
+			*) conf_files $OF $i ;;
+			esac
+		done
+		test -s /_admin/Novell/Cluster/EventLog.xml && EVENTLOG="/_admin/Novell/Cluster/EventLog.xml" || EVENTLOG=""
+		test -s /admin/Novell/Cluster/EventLog.xml && EVENTLOG="$EVENTLOG /admin/Novell/Cluster/EventLog.xml"
+		FILES="$RESOURCELOGS $EVENTLOG $NCSXML $SCRIPTS"
+		conf_files $OF $FILES
+		sed -i -e 's/\r//g' $LOG/$OF
+		echolog Done
+	else
+		echolog Skipped
+	fi
+}
+
+pam_info() {
+	printlog "PAM..."
+	test $OPTION_PAM -eq 0 && { echolog Excluded; return 1; }
+	OF=pam.txt
+	addHeaderFile $OF
+	rpm_verify $OF pam
+	rpm_verify $OF pam-modules
+	conf_files $OF /etc/nsswitch.conf /etc/nologin
+	conf_files $OF /etc/passwd
+	log_cmd $OF 'getent passwd'
+	conf_files $OF /etc/group
+	log_cmd $OF 'getent group'
+	conf_files $OF /etc/sudoers
+	log_write $OF "#==[ Files in /etc/security ]=======================#"
+	test -d /etc/security && FILES="$(find -L /etc/security/ -type f -name \*conf)" || FILES=""
+	conf_files $OF $FILES
+	log_write $OF "#==[ Files in /etc/pam.d ]==========================#"
+	test -d /etc/pam.d && FILES="$(find -L /etc/pam.d/ -type f)" || FILES=""
+	conf_files $OF $FILES
+	echolog Done
+}
+
+sssd_info() {
+	printlog "System Security Services..."
+	test $OPTION_SSSD -eq 0 && { echolog Excluded; return 1; }
+	OF=sssd.txt
+	addHeaderFile $OF
+	if rpm_verify $OF sssd; then
+		rpm_verify $OF sssd-tool
+		rpm_verify $OF python-sssd-config
+		check_service $OF sssd
+		conf_files $OF "/etc/nsswitch.conf /etc/sssd/sssd.conf"
+		SRVS_LDAP=$(grep "^[[:space:]]*ldap_uri" /etc/sssd/sssd.conf | cut -d= -f2 | sed -e 's/ *//g;s/,/ /g')
+		if [ -n "$SRVS_LDAP" ]; then
+			for URI in $SRVS_LDAP
+			do
+				ADDR=$(echo $URI | awk -F\/ '{print $NF}' | cut -d\: -f1)
+				ping_addr $OF 'SSSD LDAP Server' $ADDR
+			done
+		fi
+		SRVS_KRB5=$(egrep "^[[:space:]]*krb5_server|^[[:space:]]*krb5_kdcip" /etc/sssd/sssd.conf | cut -d= -f2 | sed -e 's/ *//g;s/,/ /g')
+		if [ -n "$SRVS_KRB5" ]; then
+			for URI in $SRVS_KRB5
+			do
+				ADDR=$(echo $URI | awk -F\/ '{print $NF}' | cut -d\: -f1)
+				ping_addr $OF 'SSSD Kerberos Server' $ADDR
+			done
+		fi
+		log_cmd $OF 'date +"%Y-%m-%d %H:%M"'
+		log_cmd $OF 'ls -lR --time-style=long-iso /var/lib/sss/'
+		[ -s /etc/init.d/sssd ] && SSSD_PIDF=$(grep '^PID_FILE' /etc/init.d/sssd | sed -e 's/ *//g' | cut -d= -f2)
+		test -z "$SSSD_PIDF" && SLAPD_PIDF="/var/run/sssd.pid"
+		if [ -f $SSSD_PIDF ]; then
+			SSSD_PID=$(cat $SSSD_PIDF)
+		else
+			SSSD_PID=""
+		fi
+		if [ -n "$SSSD_PID" ]; then
+			SSSD_PIDS=$(ps axwwo pid,ppid,cmd | grep ${SSSD_PID} | grep -v grep | awk '{print $1}' | sort -n)
+			log_cmd $OF "ps axwwo user,pid,ppid,%cpu,%mem,vsz,rss,stat,time,cmd | egrep \"${SSSD_PID}|PPID\" | grep -v grep"
+			for THISPID in $SSSD_PIDS
+			do
+				log_cmd $OF "lsof -p $THISPID"
+			done
+		else
+			log_cmd $OF "ps axwwo user,pid,ppid,%cpu,%mem,vsz,rss,stat,time,cmd | egrep \"sssd|PPID\" | grep -v grep"
+			log_cmd $OF "lsof | grep sssd"
+		fi
+		log_cmd $OF 'grep pam_sss /etc/pam.d/*'
+		FILES="/var/log/sssd/*"
+		[ $ADD_OPTION_LOGS -gt 0 ] && log_files $OF 0 $FILES || log_files $OF $VAR_OPTION_LINE_COUNT $FILES
+		FILES="/var/log/messages"
+		[ $ADD_OPTION_LOGS -gt 0 ] && grep_log_files ' sssd' $OF 0 $FILES || grep_log_files ' sssd' $OF $VAR_OPTION_LINE_COUNT $FILES
+		echolog Done
+	else
+		echolog Skipped
+	fi
+}
+
+novell_lum_info() {
+	printlog "Novell LUM..."
+	test $OPTION_LUM -eq 0 && { echolog Excluded; return 1; }
+	OF=novell-lum.txt
+	addHeaderFile $OF
+	if rpm_verify $OF novell-lum
+	then
+		if [ -x /usr/ldaptools/bin/ldapsearch ]; then
+			LDAP_BIN=/usr/ldaptools/bin/ldapsearch
+		elif [ -x /opt/novell/eDirectory/bin/ldapsearch ]; then
+			LDAP_BIN=/opt/novell/eDirectory/bin/ldapsearch
+		elif [ -x /usr/bin/ldapsearch ]; then
+			LDAP_BIN=/usr/bin/ldapsearch
+		else
+			LDAP_BIN=""
+		fi
+		check_service $OF namcd
+		conf_files $OF '/etc/nsswitch.conf /etc/nam.conf'
+		if [ -s /etc/nam.conf ]; then
+			IPADDR=$(grep '^preferred-server' /etc/nam.conf | sed -e "s/[[:space:]]+//g;s/\'//g;s/\"//g" | cut -d= -f2)
+			ping_addr $OF 'Preferred LDAP Server' $IPADDR
+			IPADDRS=$(grep '^alternative-ldap-server-list' /etc/nam.conf | sed -e "s/[[:space:]]+//g;s/\'//g;s/\"//g" | cut -d= -f2 | sed -e "s/,/ /g")
+			for IPADDR in $IPADDRS
+			do
+				ping_addr $OF 'Alt LDAP Server' $IPADDR
+			done
+		fi
+		log_cmd $OF 'namconfig get'
+		log_cmd $OF 'ndsconfig get n4u.nds.server-name'
+		log_cmd $OF 'namconfig get preferred-server'
+		log_cmd $OF 'ndsconfig get'
+
+		# Find .der files for LDAPS authentication
+		DER_LIST=''
+		NAM_DIRECTORIES="/var/lib/novell-lum /var/nam"
+		for NAM_DIR in $NAM_DIRECTORIES
+		do
+			if [ -d $NAM_DIR ]; then
+				DER_LIST="$DER_LIST $(find -L ${NAM_DIR}/ -type f | grep der$)"
+				log_cmd $OF "ls -alF ${NAM_DIR}/.*der"
+			fi
+		done
+
+		LDAP_OK=0
+		if [ -n "$LDAP_BIN" ]; then
+			if [ -x /usr/bin/ndsconfig ]; then
+				EDIR_HOST=$(ndsconfig get n4u.nds.server-name | cut -d= -f2)
+			else
+				EDIR_HOST=$(hostname)
+			fi
+			if [ -n "$PREFERRED_SERVER" ]; then
+				PREFERRED_OPTIONS="-h $PREFERRED_SERVER "
+				PREFERRED_OPTIONS_SAVED="$PREFERRED_OPTIONS"
+				LDAP_PORT=$(namconfig get ldap-port | awk '{print $1}' | tr -d '[:space:]*' | cut -d= -f2)
+				if [ -n "$LDAP_PORT" ]; then
+					LDAP_OPTIONS="$PREFERRED_OPTIONS_SAVED -p $LDAP_PORT "
+					PREFERRED_OPTIONS="$LDAP_OPTIONS"
+				fi
+				log_write $OF "#===[ Checking for the LDAP's root DSE on Preferred Server: $PREFERRED_SERVER ]===#"
+				if log_cmd $OF "$LDAP_BIN -x ${PREFERRED_OPTIONS}-b \"\" -s base \"objectclass=*\""; then
+					log_write $OF "LDAP  Connection: Success"
+					LDAP_OK=1
+				else
+					log_write $OF "LDAP  Connection: FAILED"
+				fi
+				log_write $OF
+
+				# Attempt LDAPS authentication for each .der file found
+				LDAP_PORT=$(namconfig get ldap-ssl-port | awk '{print $1}' | tr -d '[:space:]*' | cut -d= -f2)
+				if [ -n "$LDAP_PORT" ]; then
+					LDAPS_OPTIONS="$PREFERRED_OPTIONS_SAVED -p $LDAP_PORT "
+					PREFERRED_OPTIONS="$LDAPS_OPTIONS"
+				fi
+				for DER_FILE in $DER_LIST
+				do
+					if log_cmd $OF "$LDAP_BIN -e $DER_FILE ${PREFERRED_OPTIONS}-b \"\" -s base \"objectclass=*\""
+					then
+						log_write $OF "LDAPS Connection Using ${DER_FILE}: Success"
+					else
+						log_write $OF "LDAPS Connection Using ${DER_FILE}: FAILED"
+					fi
+					log_write $OF
+				done
+			else
+				PREFERRED_OPTIONS=" "
+				if log_cmd $OF "$LDAP_BIN -x ${PREFERRED_OPTIONS}-b \"\" -s base \"objectclass=*\""; then
+					log_write $OF "LDAP  Connection: Success"
+					LDAP_OK=1
+				else
+					log_write $OF "LDAP  Connection: FAILED"
+				fi
+				log_write $OF
+				log_write $OF "LDAPS Connection: Unknown"
+				log_write $OF
+			fi
+		fi
+		if [ $LDAP_OK -eq 1 ]; then
+			PREFERRED_OPTIONS="$LDAP_OPTIONS"
+			log_cmd $OF "$LDAP_BIN -x ${PREFERRED_OPTIONS}\"(cn=UNIX Config)\""
+			log_cmd $OF "$LDAP_BIN -x ${PREFERRED_OPTIONS}\"(cn=UNIX Workstation - $EDIR_HOST)\""
+		else
+			log_write $OF "ERROR: Cannot use LDAP connection"
+		fi
+		log_write $OF
+
+		if [ $OPTION_PAM -eq 0 ]; then
+			log_write $OF "WARNING: PAM info excluded by user"
+		else
+			log_cmd $OF 'cat /etc/passwd'
+			log_cmd $OF 'getent passwd'
+		fi
+		FILES="/var/log/messages"
+		test $ADD_OPTION_LOGS -gt 0 && grep_log_files namcd $OF 0 $FILES || grep_log_files namcd $OF $VAR_OPTION_LINE_COUNT $FILES
+		echolog Done
+	else
+		echolog Skipped
+	fi
+}
+
+environment_info() {
+	printlog "Environment..."
+	test $OPTION_ENV -eq 0 && { echolog Excluded; return 1; }
+	OF=env.txt
+	addHeaderFile $OF
+	log_icmd $OF 'ulimit -a'
+	log_cmd $OF 'chkconfig boot.sysctl'
+	conf_files $OF /etc/sysconfig/sysctl /etc/sysctl.conf
+	log_cmd $OF 'sysctl -a'
+	log_cmd $OF 'getconf -a'
+	log_cmd $OF 'ipcs -l'
+	log_cmd $OF 'ipcs -a'
+	log_cmd $OF 'CASAcli -l'
+	test -d /etc/default && FILES=$(find -L /etc/default/ -type f) || FILES=""
+	conf_files $OF $FILES /root/.xauth/export
+	log_cmd $OF 'env'
+	# s390 specific
+	if grep vmcp /proc/modules &>/dev/null; then
+		log_cmd $OF 'vmcp query virtual all'
+		log_cmd $OF 'vmcp query privclass'
+		log_cmd $OF 'vmcp query cplevel'
+		log_cmd $OF 'vmcp query mdc'
+		log_cmd $OF 'vmcp query qioassist'
+		log_cmd $OF 'vmcp query files'
+		log_cmd $OF 'vmcp query userid'
+	else
+		case $(uname -i) in
+		s390x) 
+			log_write $OF "#==[ s390x Hardware Detected ]======================#"
+			log_write $OF "# Consider loading vmcp for more info: modprobe vmcp"
+			log_write $OF
+			;;
+		esac
+	fi
+	conf_files $OF /etc/profile /etc/profile.local /etc/profile.d/*
+	conf_files $OF /etc/bash.bashrc /etc/csh\.* /etc/ksh*
+	sed -i -e 's/\r//g' $LOG/$OF
+	echolog Done
+}
+
+chkconfig_info() {
+	printlog "System Daemons..."
+	test $OPTION_CHKCONFIG -eq 0 && { echolog Excluded; return 1; }
+	OF=chkconfig.txt
+	addHeaderFile $OF
+	log_cmd $OF 'chkconfig --list'
+	LOGFILE=$LOG/$OF
+	echo "# individual boot services:" >> $LOGFILE
+	for BOOTSERVICE in $(find -L /etc/init.d/ -type f -name boot\* | grep -v rpmsave$)
+	do
+		NAME=$(basename $BOOTSERVICE)
+		wait_trace_on "chkconfig $NAME"
+		STATUS=$(chkconfig $NAME 2>>$LOGFILE)
+		printf "%25s:  %-4s\n" $(echo $STATUS | awk '{print $1}') $(echo $STATUS | awk '{print $2}') >> $LOGFILE
+		wait_trace_off
+	done
+	log_write $OF
+	log_cmd $OF 'ls -lR --time-style=long-iso /etc/init.d/'
+	log_cmd $OF 'ls -lR --time-style=long-iso /etc/xinetd.d/'
+	FILES=$(find /etc/xinetd.d/ -type f)
+	conf_files $OF $FILES
+	echolog Done
+}
+
+cron_info() {
+	printlog "CRON..."
+	test $OPTION_CRON -eq 0 && { echolog Excluded; return 1; }
+	OF=cron.txt
+	addHeaderFile $OF
+	if rpm_verify $OF cron
+	then
+		check_service $OF cron
+		conf_files $OF /var/spool/cron/allow /var/spool/cron/deny
+		log_write $OF "### Individual User Cron Jobs ###"
+		test -d /var/spool/cron/tabs && FILES=$(find -L /var/spool/cron/tabs/ -type f) || FILES=""
+		conf_files $OF $FILES
+		CRONS="cron.d cron.hourly cron.daily cron.weekly cron.monthly"
+		log_write $OF "### System Cron Job File List ###"
+		for CRONDIR in $CRONS
+		do
+			log_cmd $OF "find -L /etc/${CRONDIR}/ -type f"
+		done
+		log_write $OF "### System Cron Job File Content ###"
+		conf_files $OF /etc/crontab
+		for CRONDIR in $CRONS
+		do
+			FILES=$(find -L /etc/${CRONDIR}/ -type f)
+			conf_files $OF $FILES
+		done
+		echolog Done
+	else
+		echolog Skipped
+	fi
+	printlog "AT..."
+	log_write $OF "#----------------------------------------------------------------#"
+	if rpm_verify $OF at
+	then
+		check_service $OF atd
+		log_write $OF "### System at Job File List ###"
+		log_cmd $OF "find -L /var/spool/atjobs/ -type f"
+		log_write $OF "### System at Job File Content ###"
+		FILES=$(find -L /var/spool/atjobs/ -type f)
+		conf_files $OF $FILES
+		echolog Done
+	else
+		echolog Skipped
+	fi
+}
+
+soft_raid_info() {
+	printlog "Software Raid..."
+	test $OPTION_SRAID -eq 0 && { echolog Excluded; return 1; }
+	OF=fs-softraid.txt
+	addHeaderFile $OF
+	conf_files $OF /proc/mdstat
+	if rpm_verify $OF mdadm
+	then
+		log_cmd $OF 'mdadm --detail --scan'
+	fi
+	if rpm_verify $OF raidtools
+	then
+		LOGFILE=$LOG/$OF
+		for MDEVICE in $(cat /proc/mdstat | grep ^md | awk '{print $1}')
+		do
+			echo "# lsraid -a /dev/$MDEVICE" >> $LOGFILE
+			lsraid -a /dev/$MDEVICE >> $LOGFILE 2>&1
+			echo >> $LOGFILE
+		done
+	fi
+	conf_files $OF /etc/mdadm.conf /etc/raidtab
+	echolog Done
+}
+
+lvm_info() {
+	printlog "LVM..."
+	test $OPTION_LVM -eq 0 && { echolog Excluded; return 1; }
+	echonlog "Please Wait..."
+	OF=lvm.txt
+	addHeaderFile $OF
+	if rpm_verify $OF lvm2
+	then
+		echonlog Base
+		rpm -q lvm &>/dev/null
+		if [ $? -gt 0 ]; then
+			rpm -q lvm2 &>/dev/null
+			if [ $? -eq 0 ]; then
+				VGBIN="vgs"
+				LVBIN="lvs"
+			fi
+		else
+			VGBIN="vgscan"
+			LVBIN="lvscan"
+		fi
+		log_cmd $OF 'chkconfig boot.device-mapper'
+		log_cmd $OF 'chkconfig boot.lvm'
+		log_cmd $OF 'chkconfig boot.md'
+		log_cmd $OF 'chkconfig boot.evms'
+		log_cmd $OF 'pvscan'
+		log_cmd $OF "$VGBIN"
+		log_cmd $OF "$LVBIN"
+		conf_files $OF /etc/sysconfig/lvm
+		conf_files $OF /etc/lvm/lvm.conf
+		conf_files $OF /etc/lvm/.cache
+		log_cmd $OF 'dmsetup ls --tree'
+		log_cmd $OF 'dmsetup table'
+		log_cmd $OF 'dmsetup info'
+		log_cmd $OF 'ls -l --time-style=long-iso /etc/lvm/backup/'
+		conf_files $OF /etc/lvm/backup/*
+		log_cmd $OF 'ls -l --time-style=long-iso /etc/lvm/archive/'
+		conf_files $OF /etc/lvm/archive/*
+		echonlog Detail
+		log_write $OF
+		log_write $OF "###[ Detail Scans ]###########################################################################"
+		log_write $OF
+		log_cmd $OF 'pvdisplay -vv'
+		log_cmd $OF 'vgdisplay -vv'
+		log_cmd $OF 'lvdisplay -vv'
+		log_cmd $OF 'pvs -vvvv'
+		log_cmd $OF 'pvscan -vvv'
+		log_cmd $OF "$VGBIN -vvvv"
+		log_cmd $OF "$LVBIN -vvvv"
+		echolog Done
+	else
+		echolog Skipped
+	fi
+}
+
+mpio_info() {
+	printlog "Multipathing..."
+	test $OPTION_MPIO -eq 0 && { echolog Excluded; return 1; }
+	OF=mpio.txt
+	addHeaderFile $OF
+	SKIP=0
+	MPIO_RPM=$(rpm -qf `which multipath 2>/dev/null` 2>/dev/null)
+	if [ -z "$MPIO_RPM" ]; then
+		MPIO_RPM=multipath-tools
+	fi
+	if rpm_verify $OF $MPIO_RPM
+	then
+		log_cmd $OF 'chkconfig boot.device-mapper'
+		log_cmd $OF 'chkconfig boot.multipath'
+		check_service $OF multipathd
+		log_cmd $OF 'lspci -b'
+		log_cmd $OF 'multipath -ll'
+		log_cmd $OF 'ls -lR --time-style=long-iso /dev/disk/'
+		conf_files $OF /etc/multipath.conf /etc/modprobe.conf.local /etc/sysconfig/hotplug /etc/sysconfig/kernel /etc/fstab
+		log_cmd $OF 'lsscsi -g'
+		log_cmd $OF 'dmsetup ls --tree'
+		log_cmd $OF 'dmsetup table'
+		log_cmd $OF 'dmsetup info'
+		case $SLES_VER in
+		80|90) log_cmd $OF "udevinfo -d" ;;
+		10*) log_cmd $OF "udevinfo -e" ;;
+		11*) log_cmd $OF "udevadm info -e" ;;
+		esac 
+		test -d /proc/scsi && SCSI_DIRS=$(find /proc/scsi/ -type d) || SCSI_DIRS=""
+		for SDIR in $SCSI_DIRS
+		do
+			# Skip unwanted scsi directories
+			test "$SDIR" = "/proc/scsi" -o "$SDIR" = "/proc/scsi/sg" -o "$SDIR" = "/proc/scsi/mptspi" && continue
+			FILES=$(find ${SDIR}/ -maxdepth 1 -type f 2>/dev/null)
+			conf_files $OF $FILES
+		done
+		log_cmd $OF 'multipath -v3 -d'
+	else
+		((SKIP++))
+	fi
+	if rpm_verify $OF EMCpower.LINUX
+	then
+		test -x /sbin/powermt && log_cmd $OF 'powermt display dev=all'
+	else
+		((SKIP++))
+	fi
+	test $SKIP -lt 2 && echolog Done || echolog Skipped
+}
+
+evms_info() {
+	printlog "EVMS..."
+	test $OPTION_EVMS -eq 0 && { echolog Excluded; return 1; }
+	OF=evms.txt
+	addHeaderFile $OF
+	if rpm_verify $OF evms
+	then
+		log_cmd $OF 'chkconfig boot.evms'
+		log_cmd $OF 'chkconfig boot.device-mapper'
+		log_cmd $OF 'chkconfig boot.lvm'
+		log_cmd $OF 'chkconfig boot.md'
+		log_cmd $OF 'dmsetup ls --tree'
+		log_cmd $OF 'dmsetup table'
+		log_cmd $OF 'dmsetup info'
+		conf_files $OF '/etc/evms.conf'
+		if [ -d /dev/evms ]; then
+			log_cmd $OF 'ls -alR /dev/evms'
+		else
+			log_write $OF "# Missing Directory: /dev/evms"
+		fi
+		conf_files $OF /etc/init.d/boot.evms
+		if [ $MIN_OPTION_AUTOMOD -eq 0 ]; then
+			log_write $OF "#==[ Warning ]======================================#"
+			log_write $OF "# Autoloading kernel modules disabled. Don't use -k."
+			log_write $OF "# Excluding evms_gather_info"
+			log_write $OF
+		else
+			timed_log_cmd $OF 'evms_gather_info'
+		fi
+		if [ $ADD_OPTION_LOGS -gt 0 ]; then
+			log_write $OF "#  >Additional Logs Activated"
+			FILES=$(find -L /var/log/ -type f -name 'evms-engine*')
+		else
+			FILES="/var/log/evms-engine.log"
+		fi
+		log_files $OF 0 $FILES
+		test -f gather_info.qry && rm -f gather_info.qry
+		echolog Done
+	else
+		echolog Skipped
+	fi
+}
+
+detectProducts() {
+	OUT=$1
+	if rpm -q SUSE_SLES_SAP-release &>/dev/null; then
+		log_write $OUT "#==[ System ]=======================================#"
+		log_write $OUT "# Product"
+		log_write $OUT "SUSE Linux Enterprise Server for SAP Applications"
+		log_write $OUT
+	elif rpm -q SLES-for-VMware-release &>/dev/null; then
+		log_write $OUT "#==[ System ]=======================================#"
+		log_write $OUT "# Product"
+		log_write $OUT "SUSE Linux Enterprise Server for VMware"
+		log_write $OUT
+	fi
+}
+
+detectVirtualization() {
+	if echo $ARCH | egrep -v "i386|i586|i686|x86_64" &>/dev/null; then
+		return 5
+	fi
+	OUT=$1
+	log_write $OUT "#==[ System ]=======================================#"
+	log_write $OUT "# Virtualization"
+	NO_HYPER=1
+	if [ -x /usr/sbin/dmidecode ]; then
+		MANUFACTURERNAME=$(/usr/sbin/dmidecode -s system-manufacturer 2>/dev/null)
+		SYSPRODNAME=$(/usr/sbin/dmidecode -s system-product-name 2>/dev/null)
+		if [ -n "$MANUFACTURERNAME" ]; then
+			log_write $OUT "Manufacturer:  $MANUFACTURERNAME"
+			log_write $OUT "Hardware:      $SYSPRODNAME"
+		else
+			log_write $OUT "Hardware:      See hardware.txt"
+		fi
+	fi
+
+	# Xen Hypervisor
+	if [ -d /proc/xen ]; then
+		NO_HYPER=0
+		if [ -e /proc/xen/xsd_port ]; then
+			log_write $OUT "Hypervisor:    Xen (/proc/xen)"
+			log_write $OUT "Identity:      Virtual Machine Server - Dom0 (/proc/xen/xsd_port)"
+		else
+			log_write $OUT "Hypervisor:    Xen (/proc/xen)"
+			log_write $OUT "Identity:      Virtual Machine - DomU (No /proc/xen/xsd_port)"
+			if uname -r | grep -vi xen &>/dev/null; then
+				log_write $OUT "Type:          Fully Virtualized (no xen kernel)"
+			else
+				log_write $OUT "Type:          Para Virtualized (xen kernel)"
+			fi
+		fi
+	fi
+
+	# KVM Hypervisor
+	CPUMODEL=$(grep -i '^model name' /proc/cpuinfo | head -1)
+	if grep '^kvm' /proc/modules &>/dev/null; then
+		NO_HYPER=0
+		if echo $CPUMODEL | grep -i 'QEMU Virtual CPU' &>/dev/null; then
+			KVMID="Virtual Machine (QEMU Virtual CPU)"
+		else
+			KVMID="Virtual Machine Server (No QEMU Virtual CPU)"
+		fi
+		log_write $OUT "Hypervisor:    KVM (kvm loaded)"
+		log_write $OUT "Identity:      $KVMID"
+	elif echo $CPUMODEL | grep -i 'QEMU Virtual CPU' &>/dev/null; then
+		NO_HYPER=0
+		log_write $OUT "Hypervisor:    KVM (QEMU Virtual CPU)"
+		log_write $OUT "Identity:      Virtual Machine (QEMU Virtual CPU)"
+	fi
+
+	# VMware Hypervisor
+	if grep '^vmmon' /proc/modules &>/dev/null; then
+		NO_HYPER=0
+		log_write $OUT "Hypervisor:    VMware (vmmon loaded)"
+		log_write $OUT "Identity:      Virtual Machine Server (Not vmware hardware platform)"
+	elif echo $SYSPRODNAME | grep -i vmware &>/dev/null; then
+		NO_HYPER=0
+		log_write $OUT "Hypervisor:    VMware (hardware platform)"
+		if rpm -q "SLES-for-VMware-release" &>/dev/null; then
+			log_write $OUT "Identity:      Virtual Machine (SLES for VMware)"
+		else
+			log_write $OUT "Identity:      Virtual Machine (hardware platform)"
+		fi
+	fi
+
+	# Microsoft Virtual Server Hypervisor
+	if echo $MANUFACTURERNAME | grep -i microsoft &>/dev/null; then
+		NO_HYPER=0
+		log_write $OUT "Hypervisor:    Microsoft (manufacturer)"
+		log_write $OUT "Identity:      Virtual Machine (hardware)"
+	fi
+
+	# Sun VirtualBox Hypervisor
+	if grep '^vboxdrv' /proc/modules &>/dev/null; then
+		NO_HYPER=0
+		log_write $OUT "Hypervisor:    Sun VirtualBox (vboxdrv loaded)"
+		log_write $OUT "Identity:      Virtual Machine Server (Not VirtualBox hardware platform)"
+	elif echo $SYSPRODNAME | grep -i VirtualBox &>/dev/null; then
+		NO_HYPER=0
+		log_write $OUT "Hypervisor:    Sun VirtualBox (hardware platform)"
+		log_write $OUT "Identity:      Virtual Machine (hardware platform)"
+	fi
+
+	if (( NO_HYPER )); then
+		log_write $OUT "Hypervisor:    None"
+		log_write $OUT "Identity:      Not Detected"
+	fi
+
+	log_write $OUT
+}
+
+hardware_info() {
+	# This is a minimum required function, do not exclude
+	printlog "Hardware..."
+	test $MIN_OPTION_HARDWARE -eq 0 && { echolog EXCLUDED; return 1; }
+	echonlog "Please Wait..."
+	OF=hardware.txt
+	addHeaderFile $OF
+	log_cmd $OF 'procinfo'
+	test $SLES_VER -ge 110 && log_cmd $OF 'lscpu'
+	detectVirtualization $OF
+	conf_files $OF /proc/cpuinfo /proc/cmdline /proc/ioports /proc/dma /proc/devices /proc/bus/usb/devices
+	log_cmd $OF 'lspci -b'
+	if [ $MIN_OPTION_AUTOMOD -eq 0 ]; then
+		log_write $OF "#==[ Warning ]======================================#"
+		log_write $OF "# Autoloading kernel modules disabled. Don't use -k."
+		log_write $OF "# Excluding hwinfo"
+		log_write $OF
+		log_cmd $OF 'biosdecode'
+	else
+		timed_log_cmd $OF 'hwinfo -braille'
+	fi
+	log_cmd $OF 'dmidecode'
+	log_cmd $OF 'lspci -nn'
+	log_cmd $OF 'lspci -vvv'
+	log_cmd $OF 'lsusb -vv'
+	log_cmd $OF 'ls -al /dev | egrep "fd.*|dvd.*|cdr.*"'
+	ALSABIN='/usr/sbin/alsa-info.sh'
+	if [ -x $ALSABIN ]; then
+		AVER=$(grep SCRIPT_VERSION= $ALSABIN | cut -d= -f2 | sed -e 's/\.//g')
+		if [ $AVER -ge 0458 ]; then
+			log_cmd $OF "$ALSABIN --stdout --no-upload --with-configs --with-devices --with-dmesg --with-alsactl"
+		else
+			log_cmd $OF "echo y | $ALSABIN --no-dialog --no-upload --with-configs --with-devices &>/dev/null"
+			log_files $OF 0 /tmp/alsa-info.txt
+		fi
+	fi
+	echolog Done
+}
+
+net_info() {
+	printlog "Networking..."
+	test $OPTION_NET -eq 0 && { echolog Excluded; return 1; }
+	OF=network.txt
+	addHeaderFile $OF
+	rpm_verify $OF sysconfig
+	check_service $OF network
+	check_service $OF nscd
+	log_cmd $OF 'ifconfig -a'
+	log_cmd $OF "ip addr"
+	log_cmd $OF "ip route"
+	log_cmd $OF "ip -s link"
+	if [ $MIN_OPTION_AUTOMOD -ne 0 ]; then
+		log_cmd $OF 'hwinfo --netcard'
+	fi
+	conf_files $OF /proc/sys/net/ipv4/ip_forward /etc/HOSTNAME /etc/services
+	log_cmd $OF 'hostname'
+	# s390 specific
+	if grep vmcp /proc/modules &>/dev/null; then
+		log_cmd $OF 'vmcp query nic details'
+		log_cmd $OF 'vmcp query lan details'
+		log_cmd $OF 'vmcp query vswitch detail'
+	else
+		case $(uname -i) in
+		s390x) 
+			log_write $OF "#==[ s390x Hardware Detected ]======================#"
+			log_write $OF "# Consider loading vmcp for more info: modprobe vmcp"
+			log_write $OF
+			;;
+		esac
+	fi
+	IPADDRS=$(ip addr | grep 'inet ' | awk '{print $2}' | cut -d/ -f1)
+	for IPADDR in $IPADDRS
+	do
+		ping_addr $OF 'Local Interface' $IPADDR
+	done
+
+	IPADDR=$(route -n | awk '$1 == "0.0.0.0" {print $2}')
+	ping_addr $OF 'Default Route' $IPADDR
+
+	test -e /etc/resolv.conf && IPADDRS=$(grep ^nameserver /etc/resolv.conf | cut -d' ' -f2) || IPADDRS=""
+	for IPADDR in $IPADDRS
+	do
+		ping_addr $OF 'DNS Server' $IPADDR
+	done
+
+	log_cmd $OF 'route'
+	log_cmd $OF 'route -n'
+	log_cmd $OF 'netstat -as'
+	log_cmd $OF 'netstat -nlp'
+	log_cmd $OF 'netstat -nr'
+	log_cmd $OF 'netstat -i'
+	log_cmd $OF 'arp -v'
+	if [ $MIN_OPTION_AUTOMOD -eq 0 ]; then
+		log_write $OF "#==[ Warning ]======================================#"
+		log_write $OF "# Autoloading kernel modules disabled. Don't use -k."
+		log_write $OF "# Excluding Bridge command: brctl"
+		log_write $OF
+	else
+		if [ -x /sbin/brctl ]; then
+			log_cmd $OF 'brctl show'
+			for BRIDGE in `brctl show | sed 1d | awk '{print$1}'` 
+			do 
+				log_cmd $OF "brctl showmacs $BRIDGE"
+			done
+		fi
+	fi
+	for NIC in /sys/class/net/*
+	do
+		[[ "`cat ${NIC}/type`" = 772 ]] && continue
+		NIC="${NIC##*/}"
+		log_cmd $OF "ethtool $NIC"
+		log_cmd $OF "ethtool -k $NIC"
+		log_cmd $OF "ethtool -i $NIC"
+		log_cmd $OF "ethtool -S $NIC"
+		log_cmd $OF "mii-tool -v $NIC"
+	done
+	log_cmd $OF "nscd -g"
+	conf_files $OF /etc/hosts /etc/host.conf /etc/resolv.conf /etc/nsswitch.conf /etc/nscd.conf /etc/hosts.allow /etc/hosts.deny
+	conf_files $OF /etc/sysconfig/SuSEfirewall2 /etc/sysconfig/personal-firewall
+	for TABLE in filter nat mangle raw
+	do
+		if grep iptable_$TABLE /proc/modules &>/dev/null
+		then
+			log_cmd $OF "iptables -t $TABLE -nvL"
+			log_cmd $OF "iptables-save -t $TABLE"
+		else
+			log_entry $OF command "iptables"
+			log_write $OF "# NOTE: The iptable_$TABLE module is not loaded, skipping check"
+			log_write $OF
+		fi
+	done
+	for TABLE in filter nat mangle raw
+	do
+		if grep ip6table_$TABLE /proc/modules &>/dev/null
+		then
+			log_cmd $OF "ip6tables -t $TABLE -nvL"
+			log_cmd $OF "ip6tables-save -t $TABLE"
+		else
+			log_entry $OF command "ip6tables"
+			log_write $OF "# NOTE: The ip6table_$TABLE module is not loaded, skipping check"
+			log_write $OF
+		fi
+	done
+	test -d /etc/sysconfig/network && FILES=$(find -L /etc/sysconfig/network/ -maxdepth 1 -type f) || FILES=""
+	conf_files $OF /etc/sysconfig/proxy $FILES 
+	sed -i -e 's/.*_PASSWORD[[:space:]]*=.*/*REMOVED BY SUPPORTCONFIG*/g' $LOG/$OF
+	if [ -d /proc/net/bonding ]; then
+		FILES=$(find /proc/net/bonding/ -type f)
+		conf_files $OF $FILES 
+	fi
+	FILES=$(grep logfile /etc/nscd.conf 2> /dev/null | grep -v ^# | awk '{print $2}' | tail -1)
+	test -n "$FILES" || FILES="/var/log/nscd.log"
+	FILES="$FILES /var/log/NetworkManager"
+	test $ADD_OPTION_LOGS -gt 0 && log_files $OF 0 $FILES || log_files $OF $VAR_OPTION_LINE_COUNT $FILES
+	echolog Done
+}
+
+disk_info() {
+	printlog "Disk I/O..."
+	test $OPTION_DISK -eq 0 && { echolog Excluded; return 1; }
+	OF=fs-diskio.txt
+	addHeaderFile $OF
+	log_cmd $OF 'fdisk -l 2>/dev/null | grep Disk'
+	conf_files $OF /proc/partitions /etc/fstab
+	[[ -x /usr/bin/findmnt ]] && log_cmd $OF "findmnt"
+	log_cmd $OF "mount"
+	conf_files $OF /proc/mounts /etc/mtab
+
+	for DISK in $(cat /proc/partitions | grep -v ^m | grep -v ^$ | awk '{print $4}')
+	do
+		case $DISK in
+		sd[a-z]|sd[a-z][a-z]) log_cmd $OF "parted -s /dev/$DISK unit s print" ;;
+		hd[a-z]|hd[a-z][a-z]) log_cmd $OF "parted -s /dev/$DISK unit s print" ;;
+		xvd[a-z]|xvd[a-z][a-z]) log_cmd $OF "parted -s /dev/$DISK unit s print" ;;
+		dasd[a-z]|dasd[a-z][a-z]) 
+			log_cmd $OF "dasdview -i -f /dev/$DISK"
+			log_cmd $OF "dasdview -t info -f /dev/$DISK"
+			;;
+		cciss*) 
+			CCISS_DISK=$(echo $DISK | cut -d/ -f2)
+			case $CCISS_DISK in
+			c[0-9]d[0-9]) log_cmd $OF "parted -s /dev/cciss/$CCISS_DISK unit s print" ;;
+			esac
+			CCISS_DISK=$(echo $DISK | cut -d\! -f2)
+			case $CCISS_DISK in
+			c[0-9]d[0-9]) log_cmd $OF "parted -s /dev/cciss/$CCISS_DISK unit s print" ;;
+			esac
+			;;
+		esac
+	done
+
+	log_cmd $OF 'ls -lR --time-style=long-iso /dev/disk/'
+	log_cmd $OF 'ls -l --time-style=long-iso /sys/block/'
+
+	if [ $ADD_OPTION_MINDISK -eq 0 ]; then
+		log_cmd $OF 'iostat -x 1 4'
+		log_cmd $OF 'sg_map -i -x'
+		if [ -d /sys/block ]; then
+			IDE_DISKS=$(find /sys/block/ -maxdepth 1 | grep hd\.)
+			SCSI_DISKS=$(find /sys/block/ -maxdepth 1 | grep sd\.)
+			CCISS_DISKS=$(find /sys/block/ -maxdepth 1 | grep cciss\*)
+		else
+			IDE_DISKS=""
+			SCSI_DISKS=""
+			CCISS_DISKS=""
+		fi
+
+
+		if [ -n "$IDE_DISKS" -a -d /proc/ide ]; then
+			log_write $OF "#==[ IDE Detailed Info ]============================#"
+			log_write $OF "#---------------------------------------------------#"
+			FILES=$(find /proc/ide/ -maxdepth 1 -type f 2>/dev/null)
+			conf_files $OF $FILES
+			if rpm_verify $OF hdparm
+			then
+				DISKS=$(find /proc/ide/ -maxdepth 1 | grep hd\. | sort)
+				for DISK in $DISKS
+				do
+					CURRENT_DISK="/dev/$(basename $DISK)"
+					log_cmd $OF "hdparm -vi $CURRENT_DISK"
+				done
+			fi
+		fi
+
+		if [ -n "$SCSI_DISKS" ]; then
+			log_write $OF "#==[ SCSI Detailed Info ]===========================#"
+			log_write $OF "#---------------------------------------------------#"
+			log_cmd $OF 'lsscsi'
+			log_cmd $OF 'lsscsi -H'
+			[[ -x /bin/lsblk ]] && log_cmd $OF "lsblk -o 'NAME,KNAME,MAJ:MIN,FSTYPE,LABEL,RO,RM,MODEL,SIZE,OWNER,GROUP,MODE,ALIGNMENT,MIN-IO,OPT-IO,PHY-SEC,LOG-SEC,ROTA,SCHED,MOUNTPOINT'"
+			if log_cmd $OF 'scsiinfo -l'
+			then
+				FILES=$(scsiinfo -l)
+				for DEVICE in $FILES
+				do
+					log_cmd $OF "scsiinfo -i $DEVICE"
+				done
+			fi
+			log_cmd $OF 'lsscsi -v'
+			test -d /proc/scsi && SCSI_DIRS=$(find /proc/scsi/ -type d) || SCSI_DIRS=""
+			for SDIR in $SCSI_DIRS
+			do
+				test "$SDIR" = "/proc/scsi" -o "$SDIR" = "/proc/scsi/sg" -o "$SDIR" = "/proc/scsi/mptspi" && continue
+				FILES=$(find ${SDIR}/ -maxdepth 1 -type f 2>/dev/null)
+				conf_files $OF $FILES
+			done
+		fi
+
+		if [ -n "$CCISS_DISKS" -a -d /proc/driver/cciss ]; then
+			log_write $OF "#==[ CCISS Detailed Info ]==========================#"
+			log_write $OF "#---------------------------------------------------#"
+			FILES=$(find /proc/driver/cciss/ -maxdepth 1 -type f 2>/dev/null)
+			conf_files $OF $FILES
+		fi
+		log_cmd $OF 'sfdisk -d'
+	fi
+	echolog Done
+}
+
+btrfs_info() {
+	printlog "B-tree File System..."
+	test $OPTION_BTRFS -eq 0 && { echolog Excluded; return 1; }
+	OF=fs-btrfs.txt
+	if rpm_verify $OF btrfsprogs; then
+		addHeaderFile $OF
+		log_cmd $OF "btrfs filesystem show"
+		conf_files $OF /etc/fstab
+		[[ -x /usr/bin/findmnt ]] && log_cmd $OF "findmnt" || log_cmd $OF "mount"
+		log_cmd $OF "df -h"
+		log_cmd $OF "modinfo btrfs"
+		for DISK in $(mount | grep -i btrfs | awk '{ print $3 }')
+		do
+			log_write $OF "#___________________________________________________________#"
+			log_write $OF "#____[ B-tree Filesystem: $DISK"
+			log_write $OF
+			log_cmd $OF "btrfs filesystem df $DISK"
+			log_cmd $OF "btrfs scrub status $DISK"
+			log_cmd $OF "btrfs subvolume list $DISK"
+			log_cmd $OF "btrfs subvolume get-default $DISK"
+		done
+		log_write $OF "#___________________________________________________________#"
+		log_write $OF
+		FILES="/var/log/messages"
+		test $ADD_OPTION_LOGS -gt 0 && grep_log_files btrfs $OF 0 $FILES || grep_log_files btrfs $OF $VAR_OPTION_LINE_COUNT $FILES
+
+		if rpm_verify $OF snapper; then
+			log_cmd $OF "snapper list-configs"
+			conf_files $OF /etc/sysconfig/snapper /etc/snapper/configs/* /etc/snapper/filters/*
+			CONFIGS=$(snapper list-configs | sed -e '1,2d;s/ *//g' | cut -d\| -f1)
+			for CONFIG in $CONFIGS
+			do
+				log_cmd $OF "snapper -c $CONFIG list"
+			done
+		fi
+		FILES="/var/log/snapper.log"
+		test $ADD_OPTION_LOGS -gt 0 && log_files $OF 0 $FILES || log_files $OF $VAR_OPTION_LINE_COUNT $FILES
+		echolog Done
+	else
+		echolog Skipped
+	fi
+}
+
+iscsi_info() {
+	printlog "iSCSI..."
+	test $OPTION_ISCSI -eq 0 && { echolog Excluded; return 1; }
+	OF=fs-iscsi.txt
+	addHeaderFile $OF
+	case $SLES_VER in
+	80|90) 
+		if rpm_verify $OF linux-iscsi
+		then
+			log_cmd $OF 'iscsi-ls -l'
+			conf_files $OF /etc/iscsi.conf /etc/initiatorname.iscsi
+			log_cmd $OF 'sfdisk -l'
+		fi
+		;;
+	10*|11*)
+		log_write $OF "#___________________________________________________________#"
+		log_write $OF "#____[ iSCSI Target Information ]___________________________#"
+		log_write $OF
+		if rpm_verify $OF iscsitarget
+		then
+			check_service $OF iscsitarget
+			log_cmd $OF 'ietadm --op show'
+			conf_files $OF /etc/ietd.conf /proc/net/iet/volume /proc/net/iet/session
+		fi
+		log_write $OF "#___________________________________________________________#"
+		log_write $OF "#____[ iSCSI Initiator Information ]________________________#"
+		log_write $OF
+		if rpm_verify $OF open-iscsi
+		then
+			log_cmd $OF 'chkconfig boot.open-iscsi'
+			check_service $OF open-iscsi
+			CHKSRV=$?
+			log_cmd $OF 'iscsi-iname'
+			conf_files $OF /etc/iscsid.conf
+			if [ $CHKSRV -eq 0 ]; then
+				log_cmd $OF 'iscsiadm -m session'
+				if log_cmd $OF 'iscsiadm -m node'
+				then
+					if [ $SLES_VER -ge 102 ]; then
+						NODES=$(iscsiadm -m node -P 1 | grep -i Target | awk '{print $2}')
+						IBIN='iscsiadm -m node -T'
+					else
+						NODES=$(iscsiadm -m node | cut -d] -f1 | cut -d[ -f2)
+						IBIN='iscsiadm -m node -r'
+					fi
+					for NODE in $NODES
+					do
+						log_cmd $OF "$IBIN $NODE"
+					done
+				fi
+			fi
+		fi
+		;;
+	esac
+	echolog Done
+}
+
+nfs_info() {
+	printlog "NFS..."
+	test $OPTION_NFS -eq 0 && { echolog Excluded; return 1; }
+	OF=nfs.txt
+	addHeaderFile $OF
+	if rpm -q nfs-client &>/dev/null; then
+		if rpm_verify $OF nfs-client
+		then
+			rpm_verify $OF nfs-kernel-server
+			check_service $OF nfs
+			if check_service $OF nfsserver
+			then
+				log_cmd $OF 'exportfs -v'
+				log_cmd $OF 'nfsstat'
+				if log_cmd $OF 'showmount'
+				then
+					log_cmd $OF 'showmount -e'
+					log_cmd $OF 'showmount -a'
+				fi
+			fi
+			conf_files $OF /etc/exports /etc/sysconfig/nfs
+			log_cmd $OF "grep '[[:space:]]nfs[[:space:]]' /etc/fstab"
+			IPADDRS=$(grep '[[:space:]]nfs[[:space:]]' /etc/fstab | egrep -v '^#|^;' | cut -d\: -f1 | sort | uniq)
+			for IPADDR in $IPADDRS
+			do
+				ping_addr $OF 'NFS Server' $IPADDR
+			done
+			for IPADDR in $IPADDRS
+			do
+				log_cmd $OF "showmount -e $IPADDR"
+			done
+			echolog Done
+		else
+			echolog Skipped
+		fi
+	else
+		if rpm_verify $OF nfs-utils
+		then
+			check_service $OF portmap
+			check_service $OF nfslock
+			check_service $OF nfs
+			if check_service $OF nfsserver
+			then
+				log_cmd $OF 'exportfs -v'
+				log_cmd $OF 'nfsstat'
+				if log_cmd $OF 'showmount'
+				then
+					log_cmd $OF 'showmount -e'
+					log_cmd $OF 'showmount -a'
+				fi
+			fi
+			conf_files $OF /etc/exports /etc/sysconfig/nfs
+			echolog Done
+		else
+			echolog Skipped
+		fi
+	fi
+}
+
+ntp_info() {
+	printlog "NTP..."
+	test $OPTION_NTP -eq 0 && { echolog Excluded; return 1; }
+	OF=ntp.txt
+	CONFFILE=/etc/ntp.conf
+	addHeaderFile $OF
+	case $SLES_VER in
+	8*|9*|10*)
+		if rpm_verify $OF xntp
+		then
+			case $SLES_VER in
+			80|90) check_service $OF xntpd ;;
+			10*)   check_service $OF ntp ;;
+			esac
+			log_cmd $OF 'ntpq -p'
+			conf_files $OF $CONFFILE
+			IPADDRS=$(egrep "^peer |^server " $CONFFILE | awk '{print $2}' | sort | uniq)
+			for IPADDR in $IPADDRS
+			do
+				ping_addr $OF 'NTP Server' $IPADDR
+			done
+			if [ -f $CONFFILE ]; then
+				log_write $OF "#___________________________________________________________#"
+				log_write $OF "#____[ Files Included in $CONFFILE ]____________________#"
+				log_write $OF
+				for KEYNAME in driftfile
+				do
+					FILES=$(grep ^${KEYNAME} $CONFFILE | awk '{print $2}')
+					conf_files $OF $FILES
+				done
+				KEYNAME=logfile
+				FILES=$(grep ^${KEYNAME} $CONFFILE | awk '{print $2}')
+				[ -z "$FILES" ] && FILES=/var/log/ntp
+				test $ADD_OPTION_LOGS -gt 0 && log_files $OF 0 $FILES || log_files $OF $VAR_OPTION_LINE_COUNT $FILES
+			fi
+			echolog Done
+		else
+			echolog Skipped
+		fi
+		;;
+	11*)
+		if rpm_verify $OF ntp
+		then
+			check_service $OF ntp
+			log_cmd $OF 'ntpq -p'
+			conf_files $OF $CONFFILE
+			IPADDRS=$(egrep "^peer |^server " $CONFFILE | awk '{print $2}' | sort | uniq)
+			for IPADDR in $IPADDRS
+			do
+				ping_addr $OF 'NTP Server' $IPADDR
+			done
+			if [ -f $CONFFILE ]; then
+				log_write $OF "#___________________________________________________________#"
+				log_write $OF "#____[ Files Included in $CONFFILE ]____________________#"
+				log_write $OF
+				for KEYNAME in driftfile
+				do
+					FILES=$(grep ^${KEYNAME} $CONFFILE | awk '{print $2}')
+					conf_files $OF $FILES
+				done
+				KEYNAME=logfile
+				FILES=$(grep ^${KEYNAME} $CONFFILE | awk '{print $2}')
+				[ -z "$FILES" ] && FILES=/var/log/ntp
+				test $ADD_OPTION_LOGS -gt 0 && log_files $OF 0 $FILES || log_files $OF $VAR_OPTION_LINE_COUNT $FILES
+			fi
+			echolog Done
+		else
+			echolog Skipped
+		fi
+		;;
+	esac
+}
+
+udev_info() {
+	printlog "UDEV..."
+	test $OPTION_UDEV -eq 0 && { echolog Excluded; return 1; }
+	OF=udev.txt
+	addHeaderFile $OF
+	if rpm_verify $OF udev
+	then
+		UDEV_CONF=/etc/udev/udev.conf
+		log_cmd $OF 'chkconfig boot.udev'
+		conf_files $OF $UDEV_CONF
+		case $SLES_VER in
+		80|90) log_cmd $OF "udevinfo -d" ;;
+		10*) log_cmd $OF "udevinfo -e" ;;
+		11*) log_cmd $OF "udevadm info -e" ;;
+		esac 
+		if [ -f $UDEV_CONF ]; then
+			. $UDEV_CONF
+			if [ -d "${udev_rules:=/etc/udev/rules.d}" ]; then
+				FILES=$(find -L ${udev_rules}/ -type f)
+				conf_files $OF $FILES
+			fi
+			test "$udev_db" != "" && log_cmd $OF "ls -l --time-style=long-iso ${udev_db}/"
+		fi
+		echolog Done
+	else
+		echolog Skipped
+	fi
+}
+
+crash_info() {
+	printlog "Crash Info..."
+	# Call fslist_info first to search for core files
+	test $OPTION_CRASH -eq 0 && { echolog Excluded; return 1; }
+	OF=crash.txt
+	addHeaderFile $OF
+	SKIP=0
+	if rpm_verify $OF lkcdutils
+	then
+		DUMPCFG="/etc/sysconfig/dump"
+		log_cmd $OF "lkcd query"
+		log_cmd $OF "chkconfig boot.lkcd"
+		log_cmd $OF "chkconfig lkcd-netdump --list"
+		conf_files $OF $DUMPCFG
+		if [ -f $DUMPCFG ]; then
+			DUMPDEV=$(grep ^DUMPDEV $DUMPCFG | sed -e 's/"//g' | cut -d= -f2)
+			FOUND=$(echo $DUMPDEV | grep /dev)
+			if [ -n "$FOUND" ]; then
+				log_cmd $OF "ls -l --time-style=long-iso ${DUMPDEV}/"
+			fi
+		fi
+		log_cmd $OF "sysctl kernel.sysrq"
+		log_cmd $OF 'grep -A20 -i "saving lkcd dump" /var/log/boot.msg'
+		test -d /var/log/dump && FILES=$(find -L /var/log/dump/ -type f 2>/dev/null | grep analysis) || FILES=""
+		test -z "$FILES" || conf_files $OF $FILES
+	fi
+
+	if rpm -q kernel-kdump &>/dev/null; then
+		rpm_verify $OF kernel-kdump
+		DUMPCFG="/etc/sysconfig/kdump"
+		rpm_verify $OF kexec-tools
+		log_cmd $OF "uname -r"
+		check_service $OF kdump
+		conf_files $OF $DUMPCFG /proc/cmdline
+		log_cmd $OF "sysctl kernel.sysrq"
+		log_cmd $OF 'sysctl kernel 2>/dev/null | grep panic'
+		if [ -f $DUMPCFG ]; then
+			DUMPDIR=$(grep ^KDUMP_SAVEDIR $DUMPCFG | sed -e 's/"//g;s!file://!!g' | cut -d= -f2)
+			if [ -d $DUMPDIR ]; then
+				log_cmd $OF "find -L ${DUMPDIR}/"
+			else
+				log_entry $OF conf "KDUMP_SAVEDIR not found: ${DUMPDIR}"
+			fi
+		fi
+	elif rpm -q kdump &>/dev/null; then
+		rpm_verify $OF kdump
+		DUMPCFG="/etc/sysconfig/kdump"
+		rpm_verify $OF kexec-tools
+		log_cmd $OF "uname -r"
+		check_service $OF boot.kdump
+		check_service $OF kexec
+		conf_files $OF $DUMPCFG /proc/cmdline /sys/kernel/kexec_*
+		log_cmd $OF "sysctl kernel.sysrq"
+		log_cmd $OF 'sysctl kernel 2>/dev/null | grep panic'
+		if [ -f $DUMPCFG ]; then
+			DUMPDIR=$(grep ^KDUMP_SAVEDIR $DUMPCFG | sed -e 's/"//g;s!file://!!g' | cut -d= -f2)
+			if [ -d $DUMPDIR ]; then
+				log_cmd $OF "find -L ${DUMPDIR}/"
+			else
+				log_entry $OF conf "KDUMP_SAVEDIR not found: ${DUMPDIR}"
+			fi
+		fi
+	fi
+
+	for i in $(ls -1 /var/log/nts_analyzevmcore* 2>/dev/null)
+	do
+		log_write $OF "#==[ Kernel Core Logs ]==========================#"
+		log_write $OF "# $i"
+		cat $i >> $LOG/$OF
+		log_write $OF
+	done
+
+	# Application core dump information
+	log_write $OF "#==[ Application Crash Info ]==========================#"
+	log_write $OF
+	log_icmd $OF "ulimit -c"
+	log_cmd $OF "sysctl kernel.core_uses_pid"
+	log_cmd $OF "sysctl kernel.core_pattern"
+	conf_files $OF "/etc/sysconfig/ulimit /etc/security/limits.conf"
+	log_cmd $OF "grep -n 'ulimit -c' /etc/init.d/*"
+	CORE=$(cat /proc/sys/kernel/core_pattern)
+	SEARCH_LIST=$(mktemp $LOG/crash.search.list.XXXXXXXX)
+	COREFILE=""
+	log_write $OF "#==[ Application Core Files ]==========================#"
+	# Search core_pattern
+	if echo $CORE | grep '/' &>/dev/null; then
+		log_write $OF '# Core Files Found in core_pattern, lsof-cwd, $PATH, ld.so.conf'
+		COREDIR=$(dirname $CORE)
+		COREFILE=$(basename $CORE | sed -e 's/\%./\*/g')
+		ls -l --time-style=long-iso ${COREDIR}/${COREFILE} ${COREDIR}/${COREFILE}\.* ${COREDIR}/core ${COREDIR}/core\.* >> $SEARCH_LIST 2>/dev/null
+	else
+		log_write $OF '# Core File List in lsof-cwd, $PATH, ld.so.conf'
+		COREFILE=$(echo $CORE | sed -e 's/\%./\*/g')
+	fi
+	# Search CWD per lsof
+	SEARCH="$(lsof -b +M -n -l 2>/dev/null | grep '[[:space:]]cwd[[:space:]]' | awk '{print $9}' | sort | uniq)"
+	for i in $SEARCH
+	do
+		ls -l --time-style=long-iso ${i}/${COREFILE} ${i}/${COREFILE}\.* ${i}/core ${i}/core\.* >> $SEARCH_LIST 2>/dev/null
+	done
+	# Search specific products
+	SEARCH="/opt/novell/groupwise/agents/bin/ /var/log/samba/cores/smbd/ /var/log/samba/cores/nmbd/"
+	for i in $SEARCH
+	do
+		ls -l --time-style=long-iso ${i}/${COREFILE} ${i}/${COREFILE}\.* ${i}/core ${i}/core\.* >> $SEARCH_LIST 2>/dev/null
+	done
+	# Search $PATH
+	SEARCH="$(echo $PATH | sed -e 's/:/ /g')"
+	for i in $SEARCH
+	do
+		ls -l --time-style=long-iso ${i}/${COREFILE} ${i}/${COREFILE}\.* ${i}/core ${i}/core\.* >> $SEARCH_LIST 2>/dev/null
+	done
+	# Search ld.so.conf
+	SEARCH="/lib /usr/lib /var/lib $(cat /etc/ld.so.conf | grep '^/')"
+	for i in $SEARCH
+	do
+		ls -l --time-style=long-iso ${i}/${COREFILE} ${i}/${COREFILE}\.* ${i}/core ${i}/core\.* >> $SEARCH_LIST 2>/dev/null
+	done
+	# Search ld.so.conf includes
+	LDINCLUDES=$(grep -i ^include /etc/ld.so.conf | awk '{print $2}')
+	if [ -n "$LDINCLUDES" ]; then
+		SEARCH=$(cat $LDINCLUDES 2>/dev/null)
+		for i in $SEARCH
+		do
+			ls -l --time-style=long-iso ${i}/${COREFILE} ${i}/${COREFILE}\.* ${i}/core ${i}/core\.* >> $SEARCH_LIST 2>/dev/null
+		done
+	fi
+
+	# include the core file list found
+	cat $SEARCH_LIST | sort -k 9 | uniq | sed -e 's|//|/|g' > ${SEARCH_LIST}_U
+	cat ${SEARCH_LIST}_U >> $LOG/$OF
+	if [ -s ${SEARCH_LIST}_U ]; then
+		FILES=$(cat ${SEARCH_LIST}_U | awk '{print $9}')
+	else
+		FILES=""
+	fi
+	rm -f $SEARCH_LIST ${SEARCH_LIST}_U
+	log_write $OF
+	# determine the which app generated the core files found
+	if [ -n "$FILES" ]; then
+		log_cmd $OF "file $FILES"
+	fi
+
+	for i in $(ls -1 /var/log/nts_chkbin* 2>/dev/null)
+	do
+		log_write $OF "#==[ chkbin Logs ]==========================#"
+		log_write $OF "# $i"
+		cat $i >> $LOG/$OF
+		log_write $OF
+	done
+echolog Done
+}
+
+autofs_info() {
+printlog "AUTOFS..."
+	test $OPTION_AUTOFS -eq 0 && { echolog Excluded; return 1; }
+	OF=fs-autofs.txt
+	addHeaderFile $OF
+	if rpm_verify $OF autofs || rpm_verify $OF autofs4 || rpm_verify $OF autofs5
+	then
+		check_service $OF autofs
+		[[ -x /usr/bin/findmnt ]] && log_cmd $OF "findmnt" || log_cmd $OF "mount"
+		log_cmd $OF 'ps aux | grep automount | grep -v grep'
+		conf_files $OF /etc/sysconfig/autofs
+		log_cmd $OF 'grep ^automount: /etc/nsswitch.conf'
+		for SCHEME in $(grep ^automount: /etc/nsswitch.conf | sed -e 's/^.*:[ \t]*//')
+		do
+			log_write $OF "#--[ Automount Scheme: $SCHEME ]--#"
+			case "$SCHEME" in
+			files)
+				if [ -f /etc/auto.master ]; then
+					AFSMAPS=$(cat /etc/auto.master | grep -v ^# | awk '{print $2}' | cut -d\: -f2)
+					FILES=''
+					for MAP in $AFSMAPS
+					do
+						if [ -e $MAP ]; then
+							FILES="$FILES $MAP"
+						elif [ -e /etc/$MAP ]; then
+							FILES="$FILES /etc/$MAP"
+						else
+							FILES="$FILES $MAP"
+						fi
+					done
+					conf_files $OF /etc/auto.master $FILES
+				else
+					log_write $OF "Missing /etc/auto.master"
+					log_write $OF
+				fi
+				;;
+			nis)
+				if log_cmd $OF "ypcat -k auto.master"; then
+					FILES=$(ypcat -k auto.master | grep -v ^# | awk '{print $2}' | cut -d\: -f2)
+					for MAP in $FILES
+					do
+						log_cmd $OF "ypcat -k $MAP"
+					done
+				fi
+				;;
+			nisplus)
+				log_cmd $OF "niscat -k auto_master.org_dir"
+				;;
+			ldap)
+				conf_files $OF /etc/autofs_ldap_auth.conf
+				sed -i -e 's/secret[[:space:]]*=.*/secret=*REMOVED BY SUPPORTCONFIG*/g' $LOG/$OF
+				log_cmd $OF "ldapsearch -x \"(&(objectclass=automountMap))\""
+				log_cmd $OF "ldapsearch -x \"(&(objectclass=automount))\""
+				log_cmd $OF "ldapsearch -x \"(&(objectclass=nisMap))\""
+				log_cmd $OF "ldapsearch -x \"(&(objectclass=nisObject))\""
+				;;
+			esac
+		done
+		FILES="/var/log/messages"
+		test $ADD_OPTION_LOGS -gt 0 && grep_log_files automount $OF 0 $FILES || grep_log_files automount $OF $VAR_OPTION_LINE_COUNT $FILES
+		echolog Done
+	else
+		echolog Skipped
+	fi
+}
+
+get_sles_ver() {
+	KERNMAJ=$(uname -r | cut -d- -f1)
+	KERNREL=$(uname -r | cut -d- -f2)
+	KERNCNT=$(echo $KERNMAJ | sed -e 's/\./ /g' | wc -w)
+	test $KERNCNT -lt 4 && KERNMAJ="${KERNMAJ}.0"
+	KERNCNT=$(echo $KERNREL | sed -e 's/\./ /g' | wc -w)
+	if [ $KERNCNT -eq 2 ]; then
+		KERNREL="${KERNREL}.0"
+	elif [ $KERNCNT -eq 1 ]; then
+		KERNREL="${KERNREL}.0.0"
+	fi
+	KERNBASE="${KERNMAJ}.${KERNREL}"
+	KERNVER=$(echo $KERNBASE | awk -F\. '{printf "%g%g%02g%02g%03g%03g%03g\n", $1, $2, $3, $4, $5, $6, $7}')
+	if   [ $KERNVER -ge 263212000007000 ]; then SLES_VER=111;
+	elif [ $KERNVER -ge 262719005000000 ]; then SLES_VER=110;
+	elif [ $KERNVER -ge 261660000085001 ]; then SLES_VER=104;
+	elif [ $KERNVER -ge 261660000054005 ]; then SLES_VER=103;
+	elif [ $KERNVER -ge 261660000021000 ]; then SLES_VER=102;
+	elif [ $KERNVER -ge 261646000012000 ]; then SLES_VER=101;
+	elif [ $KERNVER -ge 261621000008000 ]; then SLES_VER=100;
+	elif [ $KERNVER -ge 260500007097000 ]; then SLES_VER=90;
+	elif [ $KERNVER -ge 241900120000000 ]; then SLES_VER=80;
+	else SLES_VER=90;
+	fi
+	grep -i "open enterprise server" /etc/*release* &>/dev/null
+	OESFOUND=$?
+	
+}
+
+rpm_full_verify() {
+	OF=rpm-verify.txt
+	OFTMP=$LOG/$RPM_QA_FILE
+	if [ $ADD_OPTION_RPMV -eq 1 ]; then
+		printlog -b "Full RPM Verification..."
+		addHeaderFile $OF
+		STARTCNT=1
+		ENDCNT=$(cat $OFTMP | wc -l)
+		for RPMNAME in $(cat $OFTMP)
+		do
+			if (( $VAR_OPTION_SBM )); then
+				log_cmd $OF "rpm -V $RPMNAME"
+			else
+				printvrpmlog $RPMNAME "$((STARTCNT++)) of $ENDCNT"
+				log_cmd $OF "rpm -V $RPMNAME"
+			fi
+			echolog Done
+		done
+		rm -f $OFTMP
+	fi
+}
+
+xen_info() {
+	printlog "Xen..."
+	test $OPTION_XEN -eq 0 && { echolog Excluded; return 1; }
+	OF=xen.txt
+	addHeaderFile $OF
+	if rpm_verify $OF xen-tools
+	then
+		rpm_verify $OF libvirt
+		log_cmd $OF "egrep \"vmdp|libvirt\" $RPMPATH"
+		log_cmd $OF 'uname -r'
+		check_service $OF xend
+		log_cmd $OF 'grep ^NETWORKMANAGER /etc/sysconfig/network/config'
+		log_write $OF "NOTE: NETWORKMANAGER should be set to \"no\" for Xen"
+		log_write $OF
+		log_cmd $OF 'lscpu'
+		conf_files $OF '/boot/grub/menu.lst /etc/xen/xend-config.sxp /etc/sysconfig/xendomains /etc/libvirt/libvirtd.conf'
+		log_cmd $OF 'xm info'
+		log_cmd $OF 'xm list'
+		log_cmd $OF 'xm vcpu-list'
+		log_cmd $OF 'ls -alR /etc/xen/vm/'
+		log_cmd $OF 'ls -alR /etc/xen/images/'
+
+
+		test -d /etc/xen/vm && FILES=$(find -L /etc/xen/vm/ -type f | sort) || FILES=""
+		conf_text_files $OF $FILES
+		log_cmd $OF 'xm list -l'
+		test -d /var/lib/xend/domains && FILES=$(find -L /var/lib/xend/domains/ -type f | grep config.sxp) || FILES=""
+		conf_text_files $OF $FILES
+
+		log_cmd $OF 'route -n'
+		log_cmd $OF 'arp -v'
+		unset NETCMD
+		unset XSCRIPTS
+		XCONF=/etc/xen/xend-config.sxp
+
+		if [ -s $XCONF ]; then
+			NETCMDLINE=$(grep '^(network\-script' $XCONF | sed -e 's/(//g;s/)//g')
+			NETCMDTEST=$(echo $NETCMDLINE | awk '{print $2}')
+			if [ -n "$NETCMDTEST" ]; then
+				if echo $NETCMDTEST | grep \' &> /dev/null; then
+					NETCMD="/etc/xen/scripts/`echo $NETCMDTEST | sed -e s/\'//g`"
+				else
+					NETCMD="/etc/xen/scripts/$NETCMDTEST"
+				fi
+			fi
+			XSCRIPTS=$(grep '\-script' $XCONF 2>/dev/null | grep '^(' | awk '{print $2}' | sed -e "s/)//g;s/'//g")
+			test -n "$NETCMD" && log_cmd $OF "$NETCMD status"
+		fi
+		if [ $MIN_OPTION_AUTOMOD -eq 0 ]; then
+			log_write $OF "#==[ Warning ]======================================#"
+			log_write $OF "# Autoloading kernel modules disabled. Don't use -k."
+			log_write $OF "# Excluding Bridge command: brctl"
+			log_write $OF
+		else
+			if log_cmd $OF 'brctl show'; then
+				for BRIDGE in `brctl show | grep -v ^bridge | egrep "^[a-z]|^[A-Z]" | awk '{print $1}'` 
+				do 
+					log_cmd $OF "brctl showmacs $BRIDGE"
+				done
+			fi
+		fi
+
+		for XSCRIPT in $XSCRIPTS
+		do
+			conf_text_files $OF /etc/xen/scripts/$XSCRIPT
+		done
+
+
+		if [ $ADD_OPTION_LOGS -gt 0 ]; then
+			test -d /root/.virt-manager && FILES="$(find -L /root/.virt-manager/ -type f)" || FILES=""
+			test -d /var/log/xen && FILES="$FILES $(find -L /var/log/xen/ -type f | sort)"
+		else
+			test -d /root/.virt-manager && FILES=/root/.virt-manager/virt-manager.log || FILES=""
+			test -d /var/log/xen && FILES="$FILES $(find -L /var/log/xen/ -type f | grep 'log$' | sort)"
+		fi
+		test $ADD_OPTION_LOGS -gt 0 && log_files $OF 0 $FILES || log_files $OF $VAR_OPTION_LINE_COUNT $FILES
+
+
+		log_cmd $OF 'xm dmesg'
+		echolog Done
+	else
+		echolog Skipped
+	fi
+}
+
+kvm_info() {
+	printlog "KVM..."
+	test $OPTION_KVM -eq 0 && { echolog Excluded; return 1; }
+	OF=kvm.txt
+	addHeaderFile $OF
+	if rpm_verify $OF kvm
+	then
+		rpm_verify $OF libvirt
+		rpm_verify $OF virt-manager
+		log_cmd $OF "egrep \"kvm|libvirt|virt-manager\" $RPMPATH"
+		log_cmd $OF 'uname -r'
+		check_service $OF libvirtd
+		log_cmd $OF 'grep ^NETWORKMANAGER /etc/sysconfig/network/config'
+		log_write $OF "NOTE: NETWORKMANAGER should be set to \"no\" for KVM"
+		log_write $OF
+		log_cmd $OF 'lscpu'
+		log_cmd $OF 'kvm_stat -1'
+		conf_files $OF '/etc/libvirt/libvirtd.conf'
+
+		log_cmd $OF 'lsmod | grep ^kvm'
+
+		for MODULE in `lsmod | grep ^kvm | cut -d ' ' -f 1`
+		do
+			log_cmd $OF "modinfo $MODULE"
+		done
+
+		log_cmd $OF "virsh version"
+		if [ -x /usr/bin/virsh ]; then
+			log_cmd $OF "virsh capabilities"
+			log_cmd $OF "virsh nodeinfo"
+			log_cmd $OF "virsh nodedev-list"
+			log_cmd $OF "virsh list --all"
+			for KVMDOM in $(virsh list | grep "[[:space:]]*[[:digit:]]" | awk '{print $2}')
+			do
+				log_cmd $OF "virsh vcpuinfo $KVMDOM"
+				log_cmd $OF "virsh dominfo $KVMDOM"
+				log_cmd $OF "virsh domjobinfo $KVMDOM"
+				log_cmd $OF "virsh dommemstat $KVMDOM"
+				log_cmd $OF "virsh dumpxml $KVMDOM"
+				log_cmd $OF "virsh snapshot-list $KVMDOM"
+			done
+
+			for KVMDOM in $(virsh list --all | grep "[[:space:]]*-" | awk '{print $2}')
+			do
+				log_cmd $OF "virsh dominfo $KVMDOM"
+				log_cmd $OF "virsh snapshot-list $KVMDOM"
+			done
+		fi
+
+		log_cmd $OF 'ls -alR /etc/libvirt/qemu/'
+		log_cmd $OF 'ls -alR /var/lib/kvm/images/'
+
+
+		test -d /etc/libvirt/qemu/ && FILES=$(find -L /etc/libvirt/qemu/ -type f | sort) || FILES=""
+		conf_text_files $OF $FILES
+
+		log_cmd $OF 'route -n'
+		log_cmd $OF 'arp -v'
+
+		if [ $MIN_OPTION_AUTOMOD -eq 0 ]; then
+			log_write $OF "#==[ Warning ]======================================#"
+			log_write $OF "# Autoloading kernel modules disabled. Don't use -k."
+			log_write $OF "# Excluding Bridge command: brctl"
+			log_write $OF
+		else
+			if log_cmd $OF 'brctl show'; then
+				for BRIDGE in `brctl show | grep -v ^bridge | egrep "^[a-z]|^[A-Z]" | awk '{print $1}'`
+				do
+					log_cmd $OF "brctl showmacs $BRIDGE"
+				done
+			fi
+		fi
+
+		if [ $ADD_OPTION_LOGS -gt 0 ]; then
+			test -d /root/.virt-manager && FILES="$(find -L /root/.virt-manager/ -type f)" || FILES=""
+			test -d /var/log/libvirt/qemu && FILES="$FILES $(find -L /var/log/libvirt/qemu/ -type f | sort)"
+		else
+			test -d /root/.virt-manager && FILES=/root/.virt-manager/virt-manager.log || FILES=""
+			test -d /var/log/libvirt/qemu && FILES="$FILES $(find -L /var/log/libvirt/qemu/ -type f | grep 'log$' | sort)"
+		fi
+		test $ADD_OPTION_LOGS -gt 0 && log_files $OF 0 $FILES || log_files $OF $VAR_OPTION_LINE_COUNT $FILES
+
+		echolog Done
+	else
+		echolog Skipped
+	fi
+}
+
+apparmor_info() {
+	printlog "AppArmor..."
+	test $OPTION_APPARMOR -eq 0 && { rm -f $AARPTMP &>/dev/null; echolog Excluded; return 1; }
+	OF=security-apparmor.txt
+	addHeaderFile $OF
+	SKIP=0
+	if rpm_verify $OF subdomain-parser
+	then
+			rpm_verify $OF subdomain-parser-common
+			rpm_verify $OF subdomain-utils
+			rpm_verify $OF subdomain-profiles
+			test -f $AARPTMP && cat $AARPTMP >> $LOG/$OF
+			check_service $OF boot.subdomain
+			log_cmd $OF 'unconfined'
+	else
+		((SKIP++))
+	fi
+
+	if rpm_verify $OF apparmor-parser
+	then
+		rpm_verify $OF apparmor-utils
+		rpm_verify $OF apparmor-profiles
+		test -f $AARPTMP && cat $AARPTMP >> $LOG/$OF
+		log_cmd $OF "/etc/init.d/boot.apparmor status"
+		log_cmd $OF 'unconfined'
+		log_files $OF 0 /var/log/audit/audit.log
+		test -d /etc/apparmor && FILES=$(find -L /etc/apparmor/ | grep conf) || FILES=""
+		conf_files $OF $FILES
+	else
+		((SKIP++))
+	fi
+
+	rm -f $AARPTMP &>/dev/null
+	test $SKIP -lt 2 && echolog Done || echolog Skipped
+}
+
+ha_info() {
+	printlog "HA Cluster..."
+	test $OPTION_HA -eq 0 && { echolog Excluded; return 1; }
+	OF=ha.txt
+	addHeaderFile $OF
+	if [ $SLES_VER -ge 110 ]; then
+		if rpm_verify $OF pacemaker
+		then
+			rpm_verify $OF openais
+			log_cmd $OF "rpm -qa | egrep 'ais|resource-agents|cluster-glue|corosync|csync2|pacemaker|heartbeat'"
+			check_service $OF openais
+			if [ $SLES_VER -ge 111 ]; then
+				log_cmd $OF 'chkconfig -l csync2'
+				if [ -s /etc/xinetd.d/csync2 ]; then
+					TMPORT=$(grep -i port /etc/xinetd.d/csync2 | awk '{print $3}')
+					log_cmd $OF "netstat -nlp | grep $TMPORT"
+				fi
+			fi
+			log_cmd $OF 'ntpq -p'
+			log_cmd $OF 'crm_mon -r -1'
+			log_cmd $OF 'corosync-cfgtool -s'
+			conf_files $OF /etc/ais/openais.conf /etc/corosync/corosync.conf /etc/ais/amf.conf /etc/sysconfig/ctdb /etc/sysconfig/sbd
+			if [ -s /etc/sysconfig/sbd ]; then
+				. /etc/sysconfig/sbd
+				for SBD in $(echo $SBD_DEVICE | sed -e 's/;/ /g')
+				do
+					log_cmd $OF "sbd -d $SBD list"
+					log_cmd $OF "sbd -d $SBD dump"
+				done
+			fi
+			if [ $SLES_VER -ge 111 ]; then
+				log_cmd $OF 'ls -lR --time-style=long-iso /etc/csync2'
+				conf_files $OF /etc/csync2/csync2.cfg /etc/xinetd.d/csync2
+			fi
+			CURRENT_PATH=$(pwd)
+			for HBRDIR in $VAR_OPTION_HBREPORT_DIRS
+			do
+				HBRS=$(ls -1 $HBRDIR | egrep "^hb[_,-]*report" | grep \.tar\.bz2$)
+				if [ -n "$HBRS" ]; then
+					cd $LOG
+					for HBR in $HBRS
+					do
+						log_cmd $OF "tar jxf ${HBRDIR}/${HBR}"
+						conf_files $OF "$LOG/${HBR%%.tar.bz2}/analysis.txt"
+					done
+				fi
+			done
+			cd $CURRENT_PATH
+			CURRENT_CIB=''
+			FILES=''
+			if [[ -d /var/lib/heartbeat/ ]]; then
+				FILES=$(find -L /var/lib/heartbeat/ -type f | egrep -v "cores|pengine|hb_uuid|cib\.xml")
+				[[ -e /var/lib/heartbeat/crm/cib.xml ]] && CURRENT_CIB='/var/lib/heartbeat/crm/cib.xml'
+				for i in $(find -L /var/lib/heartbeat/cores -type f)
+				do
+					log_cmd $OF "file $i"
+				done
+			fi
+			if [[ -d /var/lib/pacemaker/ ]]; then
+				TFILES=$(find -L /var/lib/pacemaker/ -type f | egrep -v "cores|pengine|hb_uuid|cib\.xml")
+				FILES="$FILES $TFILES"
+				[[ -e /var/lib/pacemaker/cib/cib.xml ]] && CURRENT_CIB='/var/lib/pacemaker/cib/cib.xml'
+			fi
+			log_cmd $OF 'cibadmin -Q'
+			conf_files $OF $CURRENT_CIB $FILES
+			FILES="/var/log/ha-log /var/log/ctdb/log.ctdb"
+			test $ADD_OPTION_LOGS -gt 0 && log_files $OF 0 $FILES || log_files $OF $VAR_OPTION_LINE_COUNT $FILES
+			CORBIN="/usr/sbin/corosync-fplay"
+			if [ -x $CORBIN ]; then
+				CLN=$($CORBIN 2>/dev/null | wc -l)
+				if [ $CLN -gt 1000 ]; then
+					log_cmd $OF 'corosync-fplay | head -500'
+					log_cmd $OF 'corosync-fplay | tail -500'
+				else
+					log_cmd $OF 'corosync-fplay'
+				fi
+			fi
+			echolog Done
+		else
+			echolog Skipped
+		fi
+	else
+		if rpm_verify $OF heartbeat
+		then
+			check_service $OF heartbeat
+			log_cmd $OF 'cl_status hbstatus'
+			conf_files $OF /etc/ha.d/ha.cf /etc/ha.d/haresources
+			log_cmd $OF 'ls -l --time-style=long-iso /etc/ha.d/authkeys/'
+			log_cmd $OF 'ntpq -p'
+			CHECKDIR="/var/lib/heartbeat/pengine"
+			HALOG="$LOG/ha-pengine"
+			if [ -d $CHECKDIR ]; then
+				FOUND=$(find -L ${CHECKDIR}/ -type f)
+				if [ -n "$FOUND" ]; then
+					mkdir -p $HALOG
+					log_write $OF "#==[ Command ]======================================#"
+					if [ $ADD_OPTION_LOGS -gt 0 ]; then
+						log_write $OF "# cp -a $CHECKDIR $HALOG"
+						cp -a $CHECKDIR/* $HALOG &>/dev/null
+					else
+						log_write $OF "# cp $CHECKDIR $HALOG"
+						log_write $OF "# NOTE: Only the newest $VAR_OPTION_PENGINE_FILES_LIMIT files are copied"
+						for i in $(\ls -rA1t $CHECKDIR | tail -${VAR_OPTION_PENGINE_FILES_LIMIT})
+						do
+							cp ${CHECKDIR}/${i} $HALOG &>/dev/null
+						done
+					fi
+					log_write $OF
+				fi
+			fi
+			if cl_status hbstatus &>/dev/null
+			then
+				test $SLES_VER -ge 100 && log_cmd $OF 'crm_mon -r -1'
+				log_cmd $OF 'cl_status listnodes'
+				log_cmd $OF 'cl_status rscstatus'
+				for HBNODE in $(cl_status listnodes 2>/dev/null)
+				do
+					log_cmd $OF "cl_status listhblinks $HBNODE"
+					for HBLINK in $(cl_status listhblinks $HBNODE 2>/dev/null)
+					do
+						log_cmd $OF "cl_status hblinkstatus $HBNODE $HBLINK"
+					done
+				done
+			fi
+			test -d /var/lib/heartbeat && FILES=$(find -L /var/lib/heartbeat/ -type f | egrep -v "cores|pengine|hb_uuid") || FILES=""
+			conf_files $OF /etc/ha_logd.cf $FILES
+			test $SLES_VER -ge 100 && log_cmd $OF 'cibadmin -Q'
+			FILES="/var/log/ha-log"
+			test $ADD_OPTION_LOGS -gt 0 && log_files $OF 0 $FILES || log_files $OF $VAR_OPTION_LINE_COUNT $FILES
+			echolog Done
+		else
+			echolog Skipped
+		fi
+	fi
+}
+
+slp_info() {
+	printlog "SLP..."
+	test $OPTION_SLP -eq 0 && { echolog Excluded; return 1; }
+	OF=slp.txt
+	addHeaderFile $OF
+	if rpm_verify $OF openslp-server
+	then
+		check_service $OF slpd
+	fi
+	if rpm_verify $OF openslp
+	then
+		conf_files $OF /etc/slp.conf
+		if [ -s /etc/slp.conf ]; then
+			IPADDRS=$(grep -i '^net.slp.DAAddresses' /etc/slp.conf | sed -e "s/[[:space:]]+//g;s/\'//g;s/\"//g" | cut -d= -f2 | sed -e "s/,/ /g")
+			for IPADDR in $IPADDRS
+			do
+				ping_addr $OF 'SLP DA' $IPADDR
+			done
+		fi
+		conf_files $OF /etc/slp.reg /etc/slp.spi
+		if [ -d /etc/slp.reg.d ]; then
+			FILES=$(find -L /etc/slp.reg.d/ -type f)
+			conf_files $OF $FILES
+		fi
+		log_cmd $OF 'slptool findscopes'
+		if [ $ADD_OPTION_SLP -gt 0 ]; then
+			echonlog "Please Wait..."
+			if log_cmd $OF 'slptool findsrvtypes'
+			then
+				echonlog Services
+				STATE=0
+				SRV_TYPES=''
+				while read LINE
+				do
+					if [ $STATE -gt 0 ]; then
+						SRV_TYPES="$SRV_TYPES $LINE"
+					elif echo $LINE | grep findsrvtypes &>/dev/null; then
+						STATE=1
+					fi
+				done < ${LOG}/${OF}
+				for SERVICE in $SRV_TYPES
+				do
+					log_cmd $OF "slptool findsrvs $SERVICE"
+				done
+			fi
+		else
+			log_write $OF "ERROR: Unable to get full SLP service lists, check 'slptool findsrvtypes'"
+		fi
+	fi
+	echolog Done
+	FILES="/var/log/slpd.log"
+	test $ADD_OPTION_LOGS -gt 0 && log_files $OF 0 $FILES || log_files $OF $VAR_OPTION_LINE_COUNT $FILES
+}
+
+ocfs2_info() {
+	printlog "OCFS2..."
+	test $OPTION_OCFS2 -eq 0 && { echolog Excluded; return 1; }
+	OF=ocfs2.txt
+	addHeaderFile $OF
+	if rpm_verify $OF ocfs2-tools
+	then
+		case $SLES_VER in
+		8*|9*|10*)
+			check_service $OF o2cb
+			check_service $OF ocfs2
+			[[ -x /usr/bin/findmnt ]] && log_cmd $OF "findmnt" || log_cmd $OF "mount"
+			timed_log_cmd $OF "mounted.ocfs2 -d"
+			timed_log_cmd $OF "mounted.ocfs2 -f"
+			conf_files $OF "/etc/ocfs2/cluster.conf /etc/sysconfig/o2cb"
+			;;
+		11*)
+			[[ -x /usr/bin/findmnt ]] && log_cmd $OF "findmnt" || log_cmd $OF "mount"
+			timed_log_cmd $OF "mounted.ocfs2 -d"
+			timed_log_cmd $OF "mounted.ocfs2 -f"
+			log_cmd $OF "ps aux | grep ocfs2 | grep -v grep"
+			log_cmd $OF "lsmod | grep ocfs2"
+			;;
+		esac
+		CHECKDIR="/sys/o2cb"
+		if [ -d $CHECKDIR ]; then
+			FILES=$(find -L ${CHECKDIR}/ -type f)
+			conf_files $OF $FILES
+		fi
+		CHECKDIR="/sys/kernel/config/cluster"
+		if [ -d $CHECKDIR ]; then
+			FILES=$(find -L ${CHECKDIR}/ -type f)
+			conf_files $OF $FILES
+		fi
+		DEVICES=$(/sbin/mounted.ocfs2 -d | grep ^/ | awk '{ print $1}')
+		log_entry $OF x "OCFS2 Devices"
+		log_write $OF $DEVICES
+		log_write $OF
+		if [ -n "$DEVICES" ]; then
+			O2C=$(mktemp $LOG/ocfs2_commands.XXXXXXXX)
+			for DEVICE in $DEVICES
+			do
+				log_entry $OF note "OCFS2 Superblock Info on Device $DEVICE"
+				echo 'stats' > $O2C
+				wait_trace_on "debugfs.ocfs2 -n -f $O2C $DEVICE"
+				SLOTS=$(debugfs.ocfs2 -n -f $O2C $DEVICE | awk '/Max Node Slots:/ { print $4 }')
+				wait_trace_off
+				for CMD in 'stats' 'stat //global_bitmap' 'slotmap' 'stat //slot_map' 'stat //heartbeat'
+				do
+					echo $CMD > $O2C
+					wait_trace_on "debugfs.ocfs2 -n -R \"$CMD\" $DEVICE"
+					log_entry $OF command "debugfs.ocfs2 -n -R \"$CMD\" $DEVICE"
+					debugfs.ocfs2 -n -f $O2C $DEVICE >> $LOG/$OF 2>&1
+					log_write $OF
+					wait_trace_off
+				done
+				log_entry $OF note "SLOT Details for $SLOTS Slots on $DEVICE"
+				for SLOT in $(seq --format="%04g" 0 $[${SLOTS}-1])
+				do
+					for CMDEL in inode_alloc extent_alloc local_alloc truncate_log journal orphan_dir
+					do
+						CMD="stat //${CMDEL}:${SLOT}"
+						wait_trace_on "debugfs.ocfs2 -n -R \"$CMD\" $DEVICE"
+						echo $CMD > $O2C
+						log_entry $OF command "debugfs.ocfs2 -n -R \"$CMD\" $DEVICE"
+						debugfs.ocfs2 -n -f $O2C $DEVICE >> $LOG/$OF 2>&1
+						log_write $OF
+						wait_trace_off
+					done
+				done
+			done
+			rm -f $O2C
+		fi
+		FILES="/var/log/messages"
+		test $ADD_OPTION_LOGS -gt 0 && grep_log_files ocfs $OF 0 $FILES || grep_log_files ocfs $OF $VAR_OPTION_LINE_COUNT $FILES
+		echolog Done
+	else
+		echolog Skipped
+	fi
+}
+
+drbd_info() {
+	printlog "DRBD..."
+	test $OPTION_DRBD -eq 0 && { echolog Excluded; return 1; }
+	OF=drbd.txt
+	addHeaderFile $OF
+	if rpm_verify $OF drbd
+	then
+		check_service $OF drbd
+		log_cmd $OF "egrep \"drbd\" $RPMPATH"
+		log_write $OF
+		log_cmd $OF "lsmod | grep drbd"
+		log_cmd $OF "modinfo drbd"
+		log_cmd $OF "ps aux | grep drbd | grep -v grep"
+		[[ -x /usr/bin/findmnt ]] && log_cmd $OF "findmnt" || log_cmd $OF "mount"
+		log_cmd $OF "df -h"
+        if [ -s /etc/drbd.conf ]; then
+            DIRLIST=$(cat /etc/drbd.conf | grep ^include | cut -d\" -f2 | sed 's!\(.*\)/.*!\1/!' | sort | uniq)
+            FILES=''
+            for DIR in $DIRLIST
+            do
+		        [ -d $DIR ] && FILES="$FILES $(find -L $DIR -type f)"
+            done
+		    conf_files $OF "/etc/drbd.conf $FILES"
+        fi
+		FILES="/var/log/messages"
+		test $ADD_OPTION_LOGS -gt 0 && grep_log_files drbd $OF 0 $FILES || grep_log_files drbd $OF $VAR_OPTION_LINE_COUNT $FILES
+		echolog Done
+	else
+		echolog Skipped
+	fi
+}
+
+memory_info() {
+	printlog "Memory Details..."
+	test $OPTION_MEM -eq 0 && { echolog Excluded; return 1; }
+	OF=memory.txt
+	addHeaderFile $OF
+	log_cmd $OF "vmstat 1 4"
+	log_cmd $OF "free -k"
+	conf_files $OF /proc/meminfo /proc/vmstat
+	log_cmd $OF 'sysctl -a 2>/dev/null | grep ^vm'
+	[ -d /sys/kernel/mm/transparent_hugepage/ ] && FILES=$(find /sys/kernel/mm/transparent_hugepage/ -type f) || FILES=''
+	conf_files $OF /proc/buddyinfo /proc/slabinfo /proc/zoneinfo $FILES
+	if rpm -q numactl &>/dev/null; then
+		log_cmd $OF 'numactl --hardware'
+		log_cmd $OF 'numastat'
+	fi
+	if [ -x /usr/bin/pmap ]; then
+		for I in $(ps axo pid)
+		do
+			log_cmd $OF "pmap $I"
+		done
+	fi
+	echolog Done
+}
+
+open_files() {
+	printlog "Open Files..."
+	test $OPTION_OFILES -eq 0 && { echolog Excluded; return 1; }
+	OF=open-files.txt
+	addHeaderFile $OF
+	if rpm_verify $OF lsof
+	then
+		log_cmd $OF "lsof -b +M -n -l"
+		echolog Done
+	else
+		echolog Skipped
+	fi
+}
+
+samba_info() {
+	printlog "Samba..."
+	test $OPTION_SMB -eq 0 && { echolog Excluded; return 1; }
+	OF=samba.txt
+	RPMPATH=$LOG/$RPMFILE
+	addHeaderFile $OF
+
+	log_cmd $OF "egrep \"samba|smb|cifs|libtallo|libtdb|libwbclient\" $RPMPATH"
+	log_write $OF
+
+	if rpm_verify $OF samba
+	then
+		for SERVICE in smb nmb
+		do
+			check_service $OF $SERVICE
+		done
+		SAMBA_LIB="/var/lib/samba"
+		SAMBA_KRB="$SAMBA_LIB/smb_krb5"
+		if [ -d $SAMBA_LIB ]; then
+			log_cmd $OF "ls -al $SAMBA_LIB"
+			conf_files $OF $SAMBA_LIB/browse.dat $SAMBA_LIB/wins.dat
+		fi
+		if [ -d $SAMBA_KRB ]; then
+			conf_files $OF /etc/krb5.conf ${SAMBA_KRB}/* 
+		fi
+	fi
+
+	if rpm_verify $OF samba-client
+	then
+		conf_files $OF /etc/samba/smb.conf
+		log_cmd $OF "testparm -sv"
+		log_cmd $OF "pdbedit -L"
+	fi
+
+	if rpm_verify $OF samba-winbind
+	then
+		for SERVICE in winbind
+		do
+			check_service $OF $SERVICE
+		done
+		log_cmd $OF 'wbinfo -u'
+		log_cmd $OF 'wbinfo -g'
+		log_cmd $OF 'wbinfo -p'
+		log_cmd $OF 'wbinfo --own-domain'
+		log_cmd $OF 'wbinfo --trusted-domains'
+		log_cmd $OF 'wbinfo --check-secret'
+		conf_files $OF /etc/samba/lmhosts /etc/nsswitch.conf /etc/security/pam_winbind.conf
+	fi
+
+	if [ -d /var/log/samba ]; then
+		FILES=$(find -L /var/log/samba/ -type f | grep -v '/core')
+		test $ADD_OPTION_LOGS -gt 0 && log_files $OF 0 $FILES || log_files $OF $VAR_OPTION_LINE_COUNT $FILES
+	fi
+	
+	echolog Done
+}
+
+fslist_info() {
+	printlog "File System List..."
+	test $ADD_OPTION_FSLIST -eq 0 && { echolog Skipped; return 1; }
+	echonlog "Please Wait..."
+	OF=$FSLIST_FILE
+	addHeaderFile $OF
+	log_cmd $OF 'find / -print'
+	echolog Done
+}
+
+fslist_ufiles_info() {
+	printlog "Additional Files List..."
+	test $OPTION_UFILES -eq 0 && { echolog Skipped; return 1; }
+	OF=fs-files-additional.txt
+	addHeaderFile $OF
+	UFUID=$(stat -c%u $FSLIST_ADD_FILE)
+	conf_files $OF $FSLIST_ADD_FILE
+	if [ "$UFUID" = "0" ]; then
+		while read FILE
+		do
+			if [ -d "$FILE" ]; then
+				log_write $OF "#==[ Directory ]====================================#"
+				log_write $OF "# $FILE - Not a regular file"
+				log_write $OF
+			elif [ -e "$FILE" ]; then
+				MIME1=$(file -Li "$FILE" | awk -F\: '{print $2}' | awk '{print $1}' | cut -d/ -f1)
+				MIME2=$(file -Li "$FILE" | awk -F\: '{print $2}' | awk '{print $1}' | cut -d/ -f2)
+				case $MIME1 in
+				text) FILE=${FILE// /%7B%20%7D%7B%20%7D}; log_files $OF 0 "$FILE" ;;
+				application)
+					case $MIME2 in
+					x-shellscript) FILE=${FILE// /%7B%20%7D%7B%20%7D}; log_files $OF 0 "$FILE" ;;
+					x-perl) FILE=${FILE// /%7B%20%7D%7B%20%7D}; log_files $OF 0 "$FILE" ;;
+					*) BFILE=$(basename "$FILE"); log_cmd $OF "uuencode -m \"$FILE\" \"$BFILE\"" ;;
+					esac
+					;;
+				*) BFILE=$(basename "$FILE"); log_cmd $OF "uuencode -m \"$FILE\" \"$BFILE\"" ;;
+				esac
+			else
+				FILE=${FILE// /%7B%20%7D%7B%20%7D}; log_files $OF 0 "$FILE"
+			fi
+		done < $FSLIST_ADD_FILE
+		echolog Done
+	else
+		echolog Error
+		log_write $OF "ERROR: Invalid owner for ${FSLIST_ADD_FILE}, must be owned by root"
+	fi
+}
+
+smartmon_info() {
+	printlog "SMART Disks..."
+	test $OPTION_SMART -eq 0 && { echolog Excluded; return 1; }
+	OF=fs-smartmon.txt
+	addHeaderFile $OF
+	if rpm_verify $OF smartmontools
+	then
+		check_service $OF smartd
+		conf_files $OF /proc/partitions /etc/smartd.conf
+		for DISK in $(cat /proc/partitions | grep -v ^m | grep -v ^$ | awk '{print $4}')
+		do
+			case $DISK in
+			sd[a-z]|sd[a-z][a-z]) log_cmd smartmon-$DISK "smartctl --all /dev/$DISK" ;;
+			hd[a-z]|hd[a-z][a-z]) log_cmd smartmon-$DISK "smartctl --all /dev/$DISK" ;;
+			esac
+		done
+		log_write $OF "#==[ Quick Status Check ]===========================#"
+		grep -i "^SMART overall" $LOG/smartmon-* | awk -F/ '{print $5}' >> $LOG/$OF
+		log_write $OF 
+		cat $LOG/smartmon-* >> $LOG/$OF
+		rm -f $LOG/smartmon-*
+		echolog Done
+	else
+		echolog Skipped
+	fi
+}
+
+ldap_info() {
+	printlog "LDAP..."
+	test $OPTION_LDAP -eq 0 && { echolog Excluded; return 1; }
+	OF=ldap.txt
+	addHeaderFile $OF
+	SKIP=0
+
+	log_write $OF "#___________________________________________________________#"
+	log_write $OF "#____[ LDAP Client Information ]____________________________#"
+	log_write $OF
+	if rpm_verify $OF pwdutils
+	then
+		conf_files $OF /etc/ldap.conf
+		IPADDRS=$(grep -i '^uri[[:space:]]' /etc/ldap.conf | sed -e 's!uri[[:space:]]*!!g;s!ldap://!!g;s!ldaps://!!g;s!ldapi://[[:alnum:][:punct:]]*!!g')
+		for I in $IPADDRS
+		do
+			IPADDR=$(echo $I | sed -e "s/:[[:digit:]]*//g")
+			ping_addr $OF 'LDAP Server' $IPADDR
+		done
+		conf_files $OF /etc/nsswitch.conf /etc/sysconfig/ldap
+	else
+		((SKIP++))
+	fi
+
+	# Right now only openLDAP v2 is supported
+	if rpm_verify $OF openldap2-client
+	then
+		LDAP_BIN="/usr/bin/ldapsearch"
+		conf_files $OF /etc/openldap/ldap.conf
+		IPADDRS=$(grep -i '^uri[[:space:]]' /etc/openldap/ldap.conf | sed -e 's!uri[[:space:]]*!!g;s!ldap://!!g;s!ldaps://!!g;s!ldapi://[[:alnum:][:punct:]]*!!g')
+		for I in $IPADDRS
+		do
+			IPADDR=$(echo $I | sed -e "s/:[[:digit:]]*//g")
+			ping_addr $OF 'LDAP Server' $IPADDR
+		done
+		log_write $OF "#==[ Search for LDAP Server's root DSE ]============#"
+		if log_cmd $OF "$LDAP_BIN -x -b \"\" -s base \"objectclass=*\""; then
+			log_write $OF "LDAP Connection: Success"
+		else
+			log_write $OF "LDAP Connection: FAILED"
+		fi
+		log_write $OF
+	else
+		((SKIP++))
+	fi
+
+	# Right now only openLDAP v2 is supported
+	log_write $OF "#___________________________________________________________#"
+	log_write $OF "#____[ LDAP Server Information ]____________________________#"
+	log_write $OF
+	if rpm_verify $OF openldap2
+	then
+		SLAPD_CONF="/etc/openldap/slapd.conf"
+		# Extract the SLAPD directory from the conf file
+		if [ -f $SLAPD_CONF ]; then
+			SLAPD_DIR=$(grep -i ^directory $SLAPD_CONF | awk '{print $2}')
+			test -z "$SLAPD_DIR" && SLAPD_DIR="/var/lib/ldap"
+			SLAPD_PIDF=$(grep -i ^pidfile $SLAPD_CONF | awk '{print $2}')
+			test -z "$SLAPD_PIDF" && SLAPD_PIDF="/var/run/slapd/slapd.pid"
+			if [ -f $SLAPD_PIDF ]; then
+				SLAPD_PID=$(cat $SLAPD_PIDF)
+			else
+				SLAPD_PID=""
+			fi
+			SLAPD_SCHEMAS=$(grep ^include $SLAPD_CONF | awk '{print $2}')
+		fi
+		check_service $OF ldap
+		log_cmd $OF "netstat -nlp | grep slapd"
+		log_cmd $OF "ls -al /etc/openldap/schema"
+		conf_files $OF $SLAPD_CONF /etc/sysconfig/openldap
+		if [ -d $SLAPD_DIR ]; then
+			conf_files $OF $SLAPD_DIR/DB_CONFIG
+			log_cmd $OF "ls -al $SLAPD_DIR"
+		fi
+		log_cmd $OF "lsof -p $SLAPD_PID"
+		log_write $OF "#___________________________________________________________#"
+		log_write $OF "#____[ Schema Files Included in LDAP Server ]_______________#"
+		log_write $OF
+		log_write $OF "$SLAPD_SCHEMAS"
+		log_write $OF
+		conf_files $OF $SLAPD_SCHEMAS
+	else
+		((SKIP++))
+	fi
+
+	test $SKIP -lt 3 && echolog Done || echolog Skipped
+}
+
+etc_info() {
+	printlog "ETC..."
+	test $OPTION_ETC -eq 0 && { echolog Excluded; return 1; }
+	OF=etc.txt
+	addHeaderFile $OF
+	conf_files $OF $(find -L /etc/ -type f | grep conf$)
+	[ -d /etc/logrotate.d ] && conf_files $OF /etc/logrotate.d/*
+	conf_files $OF /etc/rc.dialout /etc/ppp/options /etc/ppp/ioptions /etc/ppp/peers/pppoe
+	echolog Done
+}
+
+sysconfig_info() {
+	printlog "SYSCONFIG..."
+	test $OPTION_SYSCONFIG -eq 0 && { echolog Excluded; return 1; }
+	OF=sysconfig.txt
+	addHeaderFile $OF
+	for FILE in $(find -L /etc/sysconfig/ -maxdepth 1 -type f | sort -f)
+	do
+		conf_files $OF $FILE
+	done
+	for FDIR in $(find -L /etc/sysconfig/ -maxdepth 1 -type d | grep -v "/etc/sysconfig/$" | sort)
+	do
+		for FILE in $(find -L ${FDIR}/ -type f | sort)
+		do
+			conf_files $OF $FILE
+		done
+	done
+	sed -i -e 's/.*_PASSWORD[[:space:]]*=.*/*REMOVED BY SUPPORTCONFIG*/g' $LOG/$OF
+	echolog Done
+}
+
+proc_info() {
+	printlog "PROC..."
+	test $OPTION_PROC -eq 0 && { echolog Excluded; return 1; }
+	OF=proc.txt
+	addHeaderFile $OF
+	FILES=$(find /proc/ -maxdepth 1 -type f 2>/dev/null | egrep -iv "kcore$|kpagecount$|kpageflags$|vmcore$|config.gz$|kmsg$|sysrq-trigger$|kallsyms$|mm$|ssstm" | sort -f)
+	conf_files $OF $FILES
+	conf_files $OF /proc/mounts /proc/zoneinfo
+	ADDPROCS="/proc/sys/kernel/ /proc/scsi/ /proc/net/ /proc/dasd/"
+	for PROCDIR in $ADDPROCS
+	do
+		FILES=$(find $PROCDIR -maxdepth 1 -type f 2>/dev/null | egrep -iv "rt_acct$" | sort -f)
+		conf_files $OF $FILES
+	done
+	FULLPROCS="/proc/irq/ /proc/sys/"
+	for PROCDIR in $FULLPROCS
+	do
+		FILES=$(find $PROCDIR -type f 2>/dev/null | egrep -iv "fs/binfmt_misc/register|net/ipv4/route/flush|vm/compact_memory" | sort -f)
+		conf_files $OF $FILES
+	done
+	echolog Done
+}
+
+x_info() {
+	printlog "X..."
+	test $OPTION_X -eq 0 && { echolog Excluded; return 1; }
+	OF=x.txt
+	addHeaderFile $OF
+	case $SLES_VER in
+	80|90) if rpm_verify $OF XFree86
+	then
+		log_cmd $OF 'ls -al /dev | egrep "video.*|mouse.*"'
+		log_cmd $OF '3Ddiag'
+		rpm_verify $OF XFree86-Mesa
+		rpm_verify $OF XFree86-libs
+		log_cmd $OF 'hwinfo --framebuffer'
+		conf_files $OF /etc/XF86Config /etc/X11/XF86Config
+		if rpm_verify $OF sax2
+		then
+			log_cmd $OF 'sysp -q mouse'
+			log_cmd $OF 'sysp -c'
+			log_cmd $OF 'sysp -q keyboard'
+			FILES="/var/log/SaX.log"
+			test $ADD_OPTION_LOGS -gt 0 && log_files $OF 0 $FILES || log_files $OF $VAR_OPTION_LINE_COUNT $FILES
+		fi
+		FILES="/var/log/XFree86.[0,1].log /var/log/xdm.errors /root/.X.err /root/.xsession-errors"
+		test $ADD_OPTION_LOGS -gt 0 && log_files $OF 0 $FILES || log_files $OF $VAR_OPTION_LINE_COUNT $FILES
+		echolog Done
+	else
+		echolog Skipped
+	fi
+	;;
+	10*|11*) if rpm_verify $OF xorg-x11-server
+	then
+		log_cmd $OF 'ls -al /dev | egrep "video.*|mouse.*"'
+		log_cmd $OF '3Ddiag'
+		rpm_verify $OF Mesa
+		rpm_verify $OF xorg-x11-libs
+		log_cmd $OF 'hwinfo --framebuffer'
+		conf_files $OF /etc/sysconfig/displaymanager /etc/sysconfig/windowmanager /etc/X11/xorg.conf
+		log_cmd $OF 'systool -vc drm'
+		log_cmd $OF 'intel_reg_dumper'
+		log_cmd $OF 'lspci -n'
+		log_cmd $OF 'modetest'
+		if rpm_verify $OF sax2
+		then
+			log_cmd $OF 'sysp -q mouse'
+			log_cmd $OF 'sysp -c'
+			log_cmd $OF 'sysp -q keyboard'
+			log_files $OF $VAR_OPTION_LINE_COUNT /var/log/SaX.log
+		fi
+		log_cmd $OF 'dmesg | grep drm'
+		if grep -v 'drm.debug=' /proc/cmdline &>/dev/null; then
+			log_write $OF "Warning, enable drm.debug=0xe on boot options line"
+		fi
+		FILES="/var/log/Xorg.[0,1].log /var/log/xdm.errors /root/.X.err /root/.xsession-errors"
+		test $ADD_OPTION_LOGS -gt 0 && log_files $OF 0 $FILES || log_files $OF $VAR_OPTION_LINE_COUNT $FILES
+		echolog Done
+	else
+		echolog Skipped
+	fi
+	;;
+	esac
+}
+
+ssh_info() {
+	printlog "SSH..."
+	test $OPTION_SSH -eq 0 && { echolog Excluded; return 1; }
+	OF=ssh.txt
+	addHeaderFile $OF
+	if rpm_verify $OF openssh
+	then
+		check_service $OF sshd
+		conf_files $OF /etc/ssh/sshd_config /etc/ssh/ssh_config /etc/pam.d/sshd
+		log_cmd $OF 'netstat -nlp | grep sshd'
+		echolog Done
+	else
+		echolog Skipped
+	fi
+}
+
+slert_info() {
+	printlog "SLERT..."
+	test $OPTION_SLERT -eq 0 && { echolog Excluded; return 1; }
+	OF=slert.txt
+	addHeaderFile $OF
+	if rpm_verify $OF kernel-rt
+	then
+		log_cmd $OF "uname -r"
+		[ -e /etc/init.d/slert ] && check_service $OF slert
+		if rpm -q cpuset &>/dev/null; then
+			rpm_verify $OF cpuset
+			if [ -e /etc/init.d/cset ]; then
+				CSETSRV=cset
+				check_service $OF $CSETSRV
+			elif [ -e /etc/init.d/cset.init.d ]; then
+				CSETSRV='cset.init.d'
+				check_service $OF $CSETSRV
+			fi
+			CSETFILES="/etc/cset.conf /etc/init.d/$CSETSRV"
+		else
+			CSETFILES=""
+		fi
+		log_cmd $OF "ps -eo pid,user,args,ni,rtprio --sort -rtprio"
+		conf_files $OF /etc/slert/setup /proc/cpuinfo /etc/sysconfig/cset $CSETFILES
+		if [ -e /proc/irq/default_smp_affinity ]; then
+			conf_files $OF /proc/irq/default_smp_affinity /proc/irq/*/smp_affinity
+		fi
+		log_cmd $OF "grep cpuset /etc/mtab"
+		CPUSET=$(grep ' cpuset ' /etc/mtab | cut -d' ' -f2)
+		if [ -n "$CPUSET" ]; then
+			log_cmd $OF "find -L ${CPUSET}/ -type f"
+			FILES=$(find -L ${CPUSET}/ -type f)
+			conf_files $OF $FILES
+			for TASKS in $(find -L ${CPUSET}/ -type f | grep tasks)
+			do
+				log_write $OF "#==[ Task Scheduling ]==============================#"
+				log_write $OF "# Threads in CPUSET: $TASKS"
+				log_write $OF
+				for TASK in $(cat $TASKS)
+				do
+					log_cmd $OF chrt -p $TASK
+				done
+			done
+		else
+			for TASK in $(ps axo pid | sed -e '/PID/d')
+			do
+				test -e /proc/$TASK && log_cmd $OF "chrt -p $TASK"
+			done
+		fi
+		echolog Done
+	else
+		echolog Skipped
+	fi
+}
+
+print_info() {
+	printlog "Printing..."
+	test $OPTION_PRINT -eq 0 && { echolog Excluded; return 1; }
+	OF=print.txt
+	addHeaderFile $OF
+	SKIP=0
+	if rpm_verify $OF cups
+	then
+		check_service $OF cups
+		log_cmd $OF 'netstat -nlp | grep cupsd'
+		BEP=$(ls -1 /usr/lib*/cups/backend/parallel 2>/dev/null | head -n1)
+		if [ $SLES_VER -ge 110 ]; then
+			if [ $MIN_OPTION_AUTOMOD -eq 0 ]; then
+				log_write $OF "#==[ Warning ]======================================#"
+				log_write $OF "# Autoloading kernel modules disabled. Don't use -k."
+				log_write $OF "# Excluding $BEP"
+				log_write $OF
+			else
+				test -x "$BEP" && log_cmd $OF "$BEP"
+			fi
+		else
+			test -x "$BEP" && log_cmd $OF "$BEP"
+		fi
+		BEU=$(ls -1 /usr/lib*/cups/backend/usb 2>/dev/null | head -n1)
+		test -x "$BEU" && log_cmd $OF "$BEU"
+		test -d /etc/cups/ppd && PPDFILES=$(find -L /etc/cups/ppd/ -type f) || PPDFILES=""
+		conf_files $OF /etc/sysconfig/cups /etc/sysconfig/printer /etc/printcap /etc/cups/cupsd.conf /etc/cups/printers.conf /etc/cups/mime.types /etc/cups/mime.convs $PPDFILES
+
+		test -d /etc/cups/ppd && PPDFILES=$(find -L /etc/cups/ppd/ -type f) || PPDFILES=""
+		conf_files $OF /etc/sysconfig/printer /etc/printcap /etc/cups/cupsd.conf /etc/cups/printers.conf /etc/cups/mime.types /etc/cups/mime.convs $PPDFILES
+		FILES="/var/log/cups/error_log /var/log/cups/error_log.test /tmp/prnlog"
+		test $ADD_OPTION_LOGS -gt 0 && log_files $OF 0 $FILES || log_files $OF $VAR_OPTION_LINE_COUNT $FILES
+	else
+		((SKIP++))
+	fi
+
+	if rpm_verify $OF cups-client
+	then
+		timed_log_cmd $OF 'lpstat -t'
+		log_cmd $OF 'lpc status'
+	else
+		((SKIP++))
+	fi
+
+	test $SKIP -lt 2 && echolog Done || echolog Skipped
+}
+
+sar_info() {
+	printlog "SAR Files..."
+	test $OPTION_SAR -eq 0 && { echolog Excluded; return 1; }
+	OF=sar.txt
+	addHeaderFile $OF
+	SARDIR=/var/log/sa
+	SARSCDIR=$LOG/sar
+	if rpm_verify $OF sysstat; then
+		if [ -d $SARDIR ]; then
+			FOUND=$(ls -A1 $SARDIR)
+			if [ -n "$FOUND" ]; then
+				mkdir -p $SARSCDIR
+				log_write $OF "#==[ Command ]======================================#"
+				log_write $OF "# cp $SARDIR/sa* $SARSCDIR"
+				if [ $ADD_OPTION_LOGS -gt 0 ]; then
+					cp $SARDIR/sa* $SARSCDIR &>/dev/null
+				else
+					log_write $OF "# NOTE: Only the newest $VAR_OPTION_SAR_FILES_LIMIT files are copied"
+					for i in $(\ls -A1 $SARDIR/sa* 2>/dev/null | tail -$VAR_OPTION_SAR_FILES_LIMIT)
+					do
+						cp $i $SARSCDIR &>/dev/null
+					done
+				fi
+				echolog Done
+			else
+				echolog Skipped
+			fi
+		else
+			echolog Skipped
+		fi
+	else
+		echolog Skipped
+	fi
+}
+
+dns_info() {
+	printlog "DNS..."
+	test $OPTION_DNS -eq 0 && { echolog Excluded; return 1; }
+	SKIP=0
+	OF=dns.txt
+	addHeaderFile $OF
+	log_write $OF "#-----[ Novell DNS ]--------------------------------#"
+	if rpm_verify $OF novell-bind; then
+		check_service $OF novell-named
+		log_cmd $OF 'netstat -nlp | grep named'
+		FILES=/etc/sysconfig/novell/NvlDns*
+		SYSNOVLDNS=$(ls -1 /etc/sysconfig/novell/NvlDns* | sort | tail -1)
+		conf_text_files $OF $FILES
+		if [ -s $SYSNOVLDNS ]; then
+			log_write $OF "#-----[ Configuration File Used by Supportconfig ]--#"
+			log_write $OF "$SYSNOVLDNS"
+			log_write $OF
+			. $SYSNOVLDNS &>/dev/null
+			[ -n "$CONFIG_DNS_LDAP_SERVER" ] && ping_addr $OF 'LDAP Server' $CONFIG_DNS_LDAP_SERVER
+			[ -n "$CONFIG_DNS_EXISTING_DNS_IP" ] && ping_addr $OF 'Existing DNS IP' $CONFIG_DNS_EXISTING_DNS_IP
+			[ -n "$CONFIG_DNS_LOCATOR_CONTEXT" ] && timed_log_cmd $OF "ldapsearch -x -s one -b $CONFIG_DNS_LOCATOR_CONTEXT objectclass=dNIPLocator"
+			[ -n "$CONFIG_DNS_GROUP_CONTEXT" ] && timed_log_cmd $OF "ldapsearch -x -b cn=DNSDHCP-GROUP,$CONFIG_DNS_GROUP_CONTEXT"
+		fi
+		[ -d /etc/opt/novell/named ] && FILES=$(find -L /etc/opt/novell/named -type f | grep -v named.conf) || FILES=''
+		conf_text_files $OF /etc/opt/novell/named/named.conf $FILES
+		if [ -d /var/opt/novell/log/named ]; then
+			FILES=$(find -L /var/opt/novell/log/named -type f)
+			conf_text_files $OF $FILES
+		fi
+	else
+		((SKIP++))
+	fi
+	log_write $OF "#-----[ System DNS ]--------------------------------#"
+	if rpm_verify $OF bind; then
+		check_service $OF named
+		[ $SKIP -gt 0 ] && log_cmd $OF 'netstat -nlp | grep named'
+		FILES=$(grep ^include /etc/named.conf | cut -d';' -f1 | sed -e 's/"//g'  | awk '{print $2}')
+		conf_files $OF /etc/named.conf $FILES /etc/sysconfig/named
+		ZDIR=$(grep ^[[:space:]]*directory /etc/named.conf | cut -d';' -f1 | sed -e 's/"//g'  | awk '{print $2}')
+		if [ -n "$ZDIR" ]; then
+			FILES=$(find -L ${ZDIR}/ -type f | grep zone | grep -v '/proc/') || unset FILES
+			conf_files $OF $FILES
+			FILES=$(find -L ${ZDIR}/ -type f | egrep -v "localtime|zone" | grep -v '/proc/') || unset FILES
+			conf_files $OF $FILES
+		fi
+	else
+		((SKIP++))
+	fi
+	if [ $SKIP -lt 2 ]; then
+		log_write $OF "#-----[ System Logs ]-------------------------------#"
+		log_cmd $OF "grep named /var/log/warn"
+		log_cmd $OF "grep named /var/log/messages"
+		echolog Done
+	else
+		echolog Skipped
+	fi
+}
+
+dhcp_info() {
+	printlog "DHCP..."
+	test $OPTION_DHCP -eq 0 && { echolog Excluded; return 1; }
+	OF=dhcp.txt
+	addHeaderFile $OF
+	SKIP=0
+	if rpm_verify $OF dhcp-server; then
+		check_service $OF dhcpd
+		log_cmd $OF 'netstat -nlp | grep dhcp'
+		conf_files $OF /etc/sysconfig/dhcpd
+		conf_files $OF /etc/dhcpd.conf /var/lib/dhcp/db/dhcpd.leases
+	else
+		((SKIP++))
+	fi
+	if rpm_verify $OF novell-oes-dhcp-conf; then
+		SYSNOVLDHCP=/etc/sysconfig/novell/NvlDhcp*
+		ACTIVEFILE=$(ls -1 /etc/sysconfig/novell/NvlDhcp* | sort | tail -1)
+		if [ -s $ACTIVEFILE ]; then
+			. $ACTIVEFILE
+			log_entry $OF entry "Using $ACTIVEFILE"
+			conf_files $OF $CONFIG_DHCPSRV_LDAP_DEBUGFILE $SYSNOVLDHCP
+			[ -n "$CONFIG_DHCPSRV_LOCATOR_CONTEXT" ] && timed_log_cmd $OF "ldapsearch -x -s one -b $CONFIG_DHCPSRV_LOCATOR_CONTEXT objectclass=dhcpLocator"
+			[ -n "$CONFIG_DHCPSRV_GROUP_CONTEXT" ] && timed_log_cmd $OF "ldapsearch -x -b cn=DHCPGroup,$CONFIG_DHCPSRV_GROUP_CONTEXT"
+		else
+			conf_files $OF $SYSNOVLDHCP
+		fi
+	else
+		((SKIP++))
+	fi
+	if [ $SKIP -eq 2 ]; then
+		echolog Skipped
+	else
+		log_cmd $OF "grep ' dhcpd' /var/log/warn"
+		log_cmd $OF "grep ' dhcpd' /var/log/messages"
+		echolog Done
+	fi
+}
+
+cimom_info() {
+	printlog "CIMOM..."
+	test $OPTION_CIMOM -eq 0 && { echolog Excluded; return 1; }
+	OF=cimom.txt
+	addHeaderFile $OF
+	SKIP=0
+	if rpm_verify $OF openwbem; then
+		log_cmd $OF "egrep -i \"cim|provider\" $RPMPATH"
+		check_service $OF owcimomd
+		conf_files $OF /etc/openwbem/openwbem.conf
+		log_cmd $OF 'ls -lR --time-style=long-iso /etc/openwbem/'
+		for i in cert key
+		do
+			unset OWSSLCHECK
+			OWSSLCHECK=$(grep "^http_server.SSL_${i}" /etc/openwbem/openwbem.conf | awk '{print $3}')
+			if [ -n "$OWSSLCHECK" ]; then
+				if [ -L $OWSSLCHECK ]; then
+					case $SLES_VER in
+					90*) log_cmd $OF "readlink -fv $OWSSLCHECK" ;;
+					10*|11*) log_cmd $OF "readlink -ev $OWSSLCHECK" ;;
+					esac
+				fi
+			fi
+		done
+		log_cmd $OF 'owenumnamespace -u https://localhost/root/cimv2'
+		log_cmd $OF 'owenumclassnames -u https://localhost/root/cimv2'
+		test -f /var/lib/openwbem/loadmof.log && FILES="/var/lib/openwbem/loadmof.log /var/lib/openwbem/loadmof.log.*" || unset FILES
+		test $ADD_OPTION_LOGS -gt 0 && log_files $OF 0 $FILES || log_files $OF $VAR_OPTION_LINE_COUNT $FILES
+	else
+		((SKIP++))
+	fi
+	if rpm_verify $OF sblim-sfcb; then
+		log_cmd $OF "egrep -i \"cim|provider\" $RPMPATH"
+		check_service $OF sfcb
+		log_cmd $OF "netstat -nlp | grep sfcb"
+		conf_files $OF /etc/sfcb/sfcb.cfg
+		log_cmd $OF "ls -lR --time-style=long-iso /etc/sfcb/"
+	else
+		((SKIP++))
+	fi
+
+	test $SKIP -lt 2 && echolog Done || echolog Skipped
+}
+
+ib_info() {
+	printlog "InfiniBand..."
+	test $OPTION_IB -eq 0 && { echolog Excluded; return 1; }
+	OF=ib.txt
+	addHeaderFile $OF
+	if rpm_verify $OF ofed; then
+		check_service $OF openibd
+		conf_files $OF /etc/infiniband/openib.conf
+		log_cmd $OF 'lspci -b'
+		log_cmd $OF 'lspci -nn'
+		log_cmd $OF 'lsmod'
+		log_cmd $OF 'ibv_devinfo -v'
+		log_cmd $OF 'ibdiagnet'
+		FILES=$(find -L /tmp/ -type f | grep ibdiagnet)
+		test $ADD_OPTION_LOGS -gt 0 && log_files $OF 0 $FILES || log_files $OF $VAR_OPTION_LINE_COUNT $FILES
+		echolog Done
+	else
+		echolog Skipped
+	fi
+}
+
+web_info() {
+	printlog "Web..."
+	test $OPTION_WEB -eq 0 && { echolog Excluded; return 1; }
+	SKIP=0
+	OF=web.txt
+	addHeaderFile $OF
+	if rpm_verify $OF apache2; then
+		check_service $OF apache2
+		conf_files $OF /etc/sysconfig/apache2 /etc/apache2/httpd.conf
+		FILES=$(find -L /etc/apache2/ -type f | grep 'conf$' | grep -v 'httpd.conf')
+		conf_files $OF $FILES
+		FILES=$(find -L /var/log/apache2/ -type f)
+		test $ADD_OPTION_LOGS -gt 0 && log_files $OF 0 $FILES || log_files $OF $VAR_OPTION_LINE_COUNT $FILES
+		TOMCAT=$(cat $LOG/$RPM_QA_FILE | grep '^tomcat')
+		for i in $TOMCAT
+		do
+			rpm_verify $OF $i
+		done
+		for WEB_SERVICE in $(ls -1 /etc/init.d/*tomcat* 2>/dev/null)
+		do
+			check_service $OF $(basename $WEB_SERVICE)
+		done
+		OES_CATALINA_BASE=''
+		if [ -d /var/opt/novell ]; then
+			OES_CATALINA_BASE=$(find -L /var/opt/novell -maxdepth 1 -type d | grep tomcat | tail -1)
+		fi
+		if [ -d $OES_CATALINA_BASE ]; then
+			conf_files $OF $OES_CATALINA_BASE/conf/*xml
+			FILES="$OES_CATALINA_BASE/logs/catalina.out"
+			test $ADD_OPTION_LOGS -gt 0 && log_files $OF 0 $FILES || log_files $OF $VAR_OPTION_LINE_COUNT $FILES
+		fi
+		if [ -s /etc/sysconfig/j2ee ]; then
+			conf_files $OF /etc/sysconfig/j2ee
+			. /etc/sysconfig/j2ee
+			conf_files $OF $CATALINA_HOME/conf/server.xml
+			FILES="$CATALINA_HOME/logs/catalina.out $CATALINA_HOME/logs/localhost_log*"
+			test $ADD_OPTION_LOGS -gt 0 && log_files $OF 0 $FILES || log_files $OF $VAR_OPTION_LINE_COUNT $FILES
+		fi
+	else
+		((SKIP++))
+	fi
+	if rpm -q novell-nrm &>/dev/null; then
+		check_service $OF novell-httpstkd
+		conf_files $OF /etc/opt/novell/httpstkd.conf
+		log_cmd $OF 'netstat -nlp | grep -i http'
+		log_cmd $OF 'ps -eaf | grep httpstkd'
+		[ -d /etc/opt/novell/httpstkd ] && log_cmd $OF 'ls -lR --time-style=long-iso /etc/opt/novell/httpstkd'
+	else
+		((SKIP++))
+	fi
+	[ $SKIP -eq 2 ] && echolog Skipped || echolog Done
+}
+
+hppsp_info() {
+	OFPSP=psp.txt
+	if [ -s /var/log/hppldu.log ]; then
+		addHeaderFile $OFPSP
+		PSPFILES="/var/log/hppldu.log"
+		test $ADD_OPTION_LOGS -gt 0 && log_files $OFPSP 0 $PSPFILES || log_files $OFPSP $VAR_OPTION_LINE_COUNT $PSPFILES
+		if [ -d /var/hp ]; then
+			PSPCFILES="$(find -L /var/hp/ -type f)"
+			conf_files $OFPSP $PSPCFILES
+		fi
+	fi
+}
+
+sysfs_info() {
+	printlog "SYSFS..."
+	test $OPTION_SYSFS -eq 0 && { echolog Excluded; return 1; }
+	OF=sysfs.txt
+	addHeaderFile $OF
+	log_cmd $OF "find /sys | xargs ls -ld --time-style=long-iso"
+	log_cmd $OF "systool"
+	for ITEM in $(systool)
+	do
+		case $ITEM in
+		Supported) SBUS=0; SCLS=0; SDEV=0; SMOD=0 ;;
+		buses:) SBUS=1; continue ;;
+		classes:) SCLS=1; continue ;;
+		devices:) SDEV=1; continue ;;
+		modules:) SMOD=1; continue ;;
+		esac
+		if (( SBUS )); then
+			log_cmd $OF "systool -vb $ITEM"
+		elif (( SCLS )); then
+			log_cmd $OF "systool -vc $ITEM"
+		elif (( SMOD )); then
+			log_cmd $OF "systool -vm $ITEM"
+		fi
+	done
+	echolog Done
+}
+
+sam_info() {
+	printlog "Supportability Analysis..."
+	test $OPTION_SAM -eq 0 && { echolog Excluded; return 1; }
+	OF=sam.txt
+	addHeaderFile $OF
+	cd $LOG
+	test $ADD_OPTION_RPMV -gt 0 && RPMVER="--orphan-search" || RPMVER="--no-rpm-verify"
+	if rpm_verify $OF suse-sam; then
+		echonlog "Please Wait..."
+		wait_trace_on "sam -vvv --no-log-timestamp $RPMVER"
+		sam -vvv --no-log-timestamp $RPMVER &>/dev/null
+		wait_trace_off
+		conf_files $OF sam.log
+		rm -f sam.log sam.report sam.xml
+		if [ -s sam.html -a -s $VAR_OPTION_HEADER_FILE ]; then
+			mv sam.html sam.html.tmp
+			echo '<!--' > sam.html
+			cat $VAR_OPTION_HEADER_FILE >> sam.html
+			echo '-->' >> sam.html
+			cat sam.html.tmp >> sam.html
+			rm -f sam.html.tmp
+		fi
+		echolog Done
+	else
+		echolog Skipped
+	fi
+}
+
+timed_cmd_cleanup() {
+	TIMEOUT_PIDS=$(\ls -A1 $LOG/*SEMAPHORE.pid 2>/dev/null)
+	if [ -n "$TIMEOUT_PIDS" ]; then
+		test $VAR_OPTION_SILENT -eq 0 && { echo; }
+		if (( $VAR_OPTION_SBM )); then
+			printlog -b "Command Clean Up..."
+		else
+			printlog -b "Command Clean Up"
+		fi
+		for TIMEOUT_PID_FILE in $TIMEOUT_PIDS
+		do
+			echolog " -> $(basename $TIMEOUT_PID_FILE) ($(cat $TIMEOUT_PID_FILE))"
+			PIDS2KILL=$(ps -eaf | grep `cat $TIMEOUT_PID_FILE` 2>/dev/null | grep -v grep | awk '{print $2}')
+			wait_trace_on "kill $PIDS2KILL"
+			kill $PIDS2KILL &>/dev/null
+			sleep 1
+			PIDS2KILL=$(ps -eaf | grep `cat $TIMEOUT_PID_FILE` 2>/dev/null | grep -v grep | awk '{print $2}')
+			if [ -z "$PIDS2KILL" ]; then
+				rm -f $TIMEOUT_PID_FILE &>/dev/null
+			fi
+			wait_trace_off
+		done
+	fi
+}
+
+ascii_plugin() {
+	FOUND=$(grep -i elf $PLUGIN_BIN 2>/dev/null)
+	if [ -n "$FOUND" ]; then
+		return 1
+	else
+		return 0
+	fi
+}
+
+bad_plugin_dir() {
+	if [ -d $XPLUGIN_DIR ]; then
+		XPLUGIN_DIR_OWNER=$(stat -c %u $XPLUGIN_DIR)
+		XPLUGIN_DIR_GRP=$(stat -c %g $XPLUGIN_DIR)
+		XPLUGIN_DIR_MODE=$(stat -c %a $XPLUGIN_DIR)
+
+		test $XPLUGIN_DIR_OWNER -eq 0 && OWNER_DENIED=0 || OWNER_DENIED=1
+		case $XPLUGIN_DIR_GRP in
+		0) GROUP_DENIED=0 ;;
+		*)	if [ ${#XPLUGIN_DIR_MODE} -eq 3 ]; then
+				case ${XPLUGIN_DIR_MODE:1:1} in
+				0|1|4|5) GROUP_DENIED=0 ;;
+				*) GROUP_DENIED=1 ;;
+				esac
+			else
+				# Don't allow suid, guid, or sticky bits to be set
+				GROUP_DENIED=1
+			fi
+		esac
+		if [ ${#XPLUGIN_DIR_MODE} -eq 3 ]; then
+			case ${XPLUGIN_DIR_MODE:2:1} in
+			0|1|4|5) OTHER_DENIED=0 ;;
+			*) OTHER_DENIED=1 ;;
+			esac
+		else
+			# Don't allow suid, guid, or sticky bits to be set
+			OTHER_DENIED=1
+		fi
+
+		BAD_DIR=0
+		test $OWNER_DENIED -gt 0 && ((BAD_DIR++))
+		test $GROUP_DENIED -gt 0 && ((BAD_DIR++))
+		test $OTHER_DENIED -gt 0 && ((BAD_DIR++))
+		test $BAD_DIR -gt 0 && return 0 || return 1
+	else
+		# good plugin directory
+		return 1
+	fi
+}
+
+exec_plugins() {
+	if [ -d $XPLUGIN_DIR ]; then
+		printlog "Supportconfig Plugins:"
+		if bad_plugin_dir; then
+			echolog Skipped
+			return 5
+		fi
+		echolog $PLUGIN_CNT
+		for PLUGIN_FEATURE in $PLUGIN_FEATURES
+		do
+			PLUGIN=${PLUGIN_FEATURE/p/}
+			printlog "  Plugin: ${PLUGIN}..."
+			test $((PLUGIN_OPTION_${PLUGIN})) -eq 0 && { echolog Excluded; continue; }
+			PLUGIN_ERROR=0
+			PLUGIN_SKIP=0
+			PLUGIN_LOG_FILE="plugin-${PLUGIN}.txt"
+			PLUGIN_LOG="${LOG}/${PLUGIN_LOG_FILE}"
+			PLUGIN_BIN="${XPLUGIN_DIR}/${PLUGIN}"
+			addHeaderFile $PLUGIN_LOG_FILE
+
+			log_write $PLUGIN_LOG_FILE "#==[ Plugin ]=======================================#"			
+			log_write $PLUGIN_LOG_FILE "# Output: $PLUGIN_BIN"
+			log_write $PLUGIN_LOG_FILE
+
+			if [ -x $PLUGIN_BIN ]; then
+				log_cmd $PLUGIN_LOG_FILE "$PLUGIN_BIN"
+				PLUGIN_RC=$?
+				if [ $PLUGIN_RC -ne 0 ]; then
+					if [ $PLUGIN_RC -eq 111 ]; then
+						((PLUGIN_SKIP++))
+					else
+						((PLUGIN_ERROR++))
+					fi
+				fi
+			else
+				log_write $PLUGIN_LOG_FILE "ERROR: Missing or non-executible plugin"
+				((PLUGIN_ERROR++))
+			fi
+			log_write $PLUGIN_LOG_FILE
+
+			log_write $PLUGIN_LOG_FILE "#==[ Plugin ]=======================================#"			
+			log_write $PLUGIN_LOG_FILE "# File: cat -n $PLUGIN_BIN"
+			log_write $PLUGIN_LOG_FILE
+
+			if ascii_plugin; then
+				cat -n $PLUGIN_BIN >> $PLUGIN_LOG 2>&1
+			else
+				log_write $PLUGIN_LOG_FILE "Excluding non ASCII file"
+			fi
+			log_write $PLUGIN_LOG_FILE
+
+			if ((PLUGIN_ERROR)); then
+				echolog Error
+			elif ((PLUGIN_SKIP)); then
+				echolog Skipped
+			else
+				echolog Done
+			fi
+		done
+	fi
+}
+
+set_to_min() {
+	init_plugins off
+	for SRCH in OPTION_ ADD_OPTION_
+	do
+		for i in $(grep ^$SRCH $0 | cut -d= -f1 | sort)
+		do
+			(( $i=0 ))
+		done
+	done
+	for SRCH in MIN_OPTION_ ADD_OPTION_MIN_
+	do
+		for i in $(grep ^$SRCH $0 | cut -d= -f1 | sort)
+		do
+			(( $i=1 ))
+		done
+	done
+}
+
+set_to_all() {
+	init_plugins on
+	for SRCH in OPTION_ ADD_OPTION_ MIN_OPTION_
+	do
+		for i in $(grep ^$SRCH $0 | cut -d= -f1 | sort)
+		do
+			(( $i=1 ))
+		done
+	done
+	for SRCH in ADD_OPTION_MIN_
+	do
+		for i in $(grep ^$SRCH $0 | cut -d= -f1 | sort)
+		do
+			(( $i=0 ))
+		done
+	done
+}
+
+set_to_default() {
+	log2sys "Set Default Features"
+	init_plugins on
+	DEF_FILE=$(mktemp /tmp/supportconfig-defoption.XXXXXXXXXXXXXX)
+	for SRCH in OPTION_ ADD_OPTION_ MIN_OPTION_ VAR_OPTION_
+	do
+		for i in $(grep ^$SRCH $0 | sort)
+		do
+			echo "$i" >> $DEF_FILE
+		done
+	done
+	grep ^VAR_OPTION_ $0 | sort >> $DEF_FILE
+	. $DEF_FILE
+#	rm -f $DEF_FILE
+}
+
+valid_srnum() {
+	log2sys "Validate SR Number"
+	if echo $CONTACT_SRNUM | egrep "[[:alpha:]|[:space:]]" &>/dev/null; then
+		return 1
+	elif [ ${#CONTACT_SRNUM} -ne $SRLEN ]; then
+		return 1
+	else
+		return 0
+	fi
+}
+
+check_log_dir() {
+	# if supportconfig repeats execution too fast, make sure the directory is unique so files are not overwritten
+	ORIGBASE=$BASE
+	if [ -d ${LOG}/${BASE} -o -f ${LOG}/${BASE}.${COMPRESS} ]; then
+		BASE="${ORIGBASE}_%u"
+		normalize_base
+	fi
+}
+
+get_features() {
+	log2sys "Display Feature Set"
+	FEATURES=$(grep ^OPTION_ $0 | cut -d= -f1 | sed -e 's/OPTION_//g')
+	ADDITIONAL_FEATURES=$(grep ^ADD_OPTION_ $0 | cut -d= -f1 | sed -e 's/ADD_OPTION_/a/g')
+	echo $FEATURES $ADDITIONAL_FEATURES $PLUGIN_FEATURES
+}
+
+# Default state is "on", unless "off" is specified as a parameter
+init_plugins() {
+	PLUGIN_FEATURES=""
+	PLUGIN_CNT=0
+	case $1 in
+	off) FEATURE_STATE=0; log2sys "Plugins: OFF" ;;
+	*) FEATURE_STATE=1; log2sys "Plugins: ON" ;;
+	esac
+	if [ -d $XPLUGIN_DIR ]; then
+		for FILE in $(\ls -A1 $XPLUGIN_DIR)
+		do
+			if [ -x ${XPLUGIN_DIR}/${FILE} ]; then
+				PLUGIN_FEATURES="p${FILE} $PLUGIN_FEATURES"
+				((PLUGIN_CNT++))
+			fi
+		done
+	fi
+	for PLUGIN_FEATURE in $PLUGIN_FEATURES
+	do
+		eval PLUGIN_OPTION_${PLUGIN_FEATURE/p/}=$FEATURE_STATE
+	done
+}
+
+# Requires one parameter with value "on" or "off"
+selected_features() {
+	INVALID_KEYWORDS=0
+	case $1 in
+	on) FEATURE_STATE=1 ;;
+	off) FEATURE_STATE=0 ;;
+	*) echo "ERROR: selected_features: Invalid FEATURE_STATE, $1"; exit_10 ;;
+	esac
+	FEATURE_LIST="$(get_features)"
+	for FEATURE in $(echo $SELECTED_FEATURE_LIST | sed -e 's/,/ /g')
+	do
+		if echo $FEATURE_LIST | grep $FEATURE &>/dev/null; then
+			case ${FEATURE:0:1} in
+			a) eval ADD_OPTION_${FEATURE/a/}=${FEATURE_STATE} ;;
+			p) eval PLUGIN_OPTION_${FEATURE/p/}=${FEATURE_STATE} ;;
+			*) eval OPTION_${FEATURE}=${FEATURE_STATE} ;;
+			esac
+		else
+			echo "ERROR: Invalid Feature Keyword: $FEATURE"
+			((INVALID_KEYWORDS++))
+		fi
+	done
+	if (( INVALID_KEYWORDS )); then
+		echo "Use -F for a list of valid feature keywords. Keywords are case sensitive."
+		echo
+		exit_11
+	fi
+}
+
+toggle_features() {
+	INVALID_KEYWORDS=0
+	FEATURE_LIST="$(get_features)"
+	for FEATURE in $(echo $SELECTED_FEATURE_LIST | sed -e 's/,/ /g')
+	do
+		if echo $FEATURE_LIST | grep $FEATURE &>/dev/null; then
+			case ${FEATURE:0:1} in
+			a) [ $(( ADD_OPTION_${FEATURE/a/} )) -eq 0 ] && eval ADD_OPTION_${FEATURE/a/}=1 || eval ADD_OPTION_${FEATURE/a/}=0 ;;
+			p) [ $(( PLUGIN_OPTION_${FEATURE/p/} )) -eq 0 ] && eval PLUGIN_OPTION_${FEATURE/p/}=1 || eval PLUGIN_OPTION_${FEATURE/p/}=0 ;;
+			*) [ $(( OPTION_${FEATURE} )) -eq 0 ] && eval OPTION_${FEATURE}=1 || eval OPTION_${FEATURE}=0 ;;
+			esac
+		else
+			echo "ERROR: Invalid Feature Keyword: $FEATURE"
+			((INVALID_KEYWORDS++))
+		fi
+	done
+	if (( INVALID_KEYWORDS )); then
+		echo "Use -F for a list of valid feature keywords. Keywords are case sensitive."
+		echo
+		exit_11
+	fi
+}
+
+ehr() {
+	echo "-----------------------------------------------------------------------------"
+}
+
+encrypt_tarball() {
+	log2sys "Encrypt Tar Ball"
+	FOUND_KEY=$(gpg --list-keys 2>/dev/null | grep "$VAR_OPTION_GPG_UID" 2>/dev/null)
+	if [ -z "$FOUND_KEY" ]; then
+		echo "ERROR: GPG key not found: $VAR_OPTION_GPG_UID"
+		echo "       File encryption failed, aborting"
+		echo
+		gpg --list-keys
+		exit_13
+	fi
+	if (( VAR_OPTION_SILENT )); then
+		gpg --batch --yes --trust-model always --encrypt --recipient "$VAR_OPTION_GPG_UID" $TARBALL &> /dev/null
+		ERR=$?
+		if [ $ERR -ne 0 ]; then
+			echo "ERROR: gpg failed, RC=$ERR, aborting"
+			echo
+			exit_13
+		fi
+	else
+		if (( $VAR_OPTION_SBM )); then
+			echo "Encrypting Tar Ball..."
+		else
+			echo "Encrypting Tar Ball"
+			ehr
+		fi
+		echo
+		echo "Using GPG Key:  $VAR_OPTION_GPG_UID"
+		echo "Command:        gpg --batch --yes --trust-model always --encrypt --recipient \"$VAR_OPTION_GPG_UID\" $TARBALL"
+		wait_trace_on "gpg --batch --yes --trust-model always --encrypt --recipient "$VAR_OPTION_GPG_UID" $TARBALL"
+		gpg --batch --yes --trust-model always --encrypt --recipient "$VAR_OPTION_GPG_UID" $TARBALL
+		ERR=$?
+		wait_trace_off
+		if [ $ERR -ne 0 ]; then
+			echo "ERROR: gpg failed, RC=$ERR, aborting"
+			echo
+			exit_13
+		fi
+		ENCRYPTED_TARBALL=1
+		echo "Encrypted File: ${TARBALL}.gpg"
+		echo
+	fi
+}
+
+upload_tarball() {
+	if (( UPLOAD_TARBALL )); then
+		log2sys "Uploading Tar Ball"
+		TARBALL_FILE=$(basename $TARBALL)
+		UPLOAD_SERVICE=$(echo ${VAR_OPTION_UPLOAD_TARGET} | cut -d: -f1)
+		if (( VAR_OPTION_SILENT )); then
+			case $UPLOAD_SERVICE in
+			ftp)
+				UPLOAD_URL=${VAR_OPTION_UPLOAD_TARGET}
+				if (( ENCRYPTED_TARBALL )); then
+					curl -sT "${TARBALL}.md5" "${UPLOAD_URL}/${TARBALL_FILE}.md5" &>/dev/null
+					curl -sT "${TARBALL}.gpg" "${UPLOAD_URL}/${TARBALL_FILE}.gpg" &>/dev/null
+				else
+					curl -sT "${TARBALL}.md5" "${UPLOAD_URL}/${TARBALL_FILE}.md5" &>/dev/null
+					curl -sT "${TARBALL}" "${UPLOAD_URL}/${TARBALL_FILE}" &>/dev/null
+				fi
+				;;
+			scp)
+				UPLOAD_URL=$(echo ${VAR_OPTION_UPLOAD_TARGET} | sed -e 's!scp://!!g;s!/!:/!')
+				if (( ENCRYPTED_TARBALL )); then
+					scp -qp "${TARBALL}.md5" "${UPLOAD_URL}/${TARBALL_FILE}.md5" &>/dev/null
+					scp -qp "${TARBALL}.gpg" "${UPLOAD_URL}/${TARBALL_FILE}.gpg" &>/dev/null
+				else
+					scp -qp "${TARBALL}.md5" "${UPLOAD_URL}/${TARBALL_FILE}.md5" &>/dev/null
+					scp -qp "${TARBALL}" "${UPLOAD_URL}/${TARBALL_FILE}" &>/dev/null
+				fi
+				;;
+			http|https)
+				if (( ENCRYPTED_TARBALL )); then
+					UPLOAD_URL=$(echo $VAR_OPTION_UPLOAD_TARGET | sed -e "s/{[Tt][Aa][Rr][Bb][Aa][Ll][Ll]}/${TARBALL_FILE}.md5/g")
+					curl -s -L -A SupportConfig -T "${TARBALL}.md5" "${UPLOAD_URL}" &>/dev/null
+					UPLOAD_URL=$(echo $VAR_OPTION_UPLOAD_TARGET | sed -e "s/{[Tt][Aa][Rr][Bb][Aa][Ll][Ll]}/${TARBALL_FILE}.gpg/g")
+					curl -s -L -A SupportConfig -T "${TARBALL}.gpg" "${UPLOAD_URL}" &>/dev/null
+				else
+					UPLOAD_URL=$(echo $VAR_OPTION_UPLOAD_TARGET | sed -e "s/{[Tt][Aa][Rr][Bb][Aa][Ll][Ll]}/${TARBALL_FILE}.md5/g")
+					curl -s -L -A SupportConfig -T "${TARBALL}.md5" "${UPLOAD_URL}" &>/dev/null
+					UPLOAD_URL=$(echo $VAR_OPTION_UPLOAD_TARGET | sed -e "s/{[Tt][Aa][Rr][Bb][Aa][Ll][Ll]}/${TARBALL_FILE}/g")
+					curl -s -L -A SupportConfig -T "${TARBALL}" "${UPLOAD_URL}" &>/dev/null
+				fi
+				;;
+			*)
+				exit 7
+				;;
+			esac
+		else
+			if (( $VAR_OPTION_SBM )); then
+				echo "Uploading Tar Ball..."
+			else
+				echo "Uploading Tar Ball"
+				ehr
+			fi
+			echo
+			case $UPLOAD_SERVICE in
+			ftp)
+				UPLOAD_URL=${VAR_OPTION_UPLOAD_TARGET}
+				if (( VAR_OPTION_SBM )); then
+					wait_trace_on -t "curl -sT \"${TARBALL}.md5\" \"${UPLOAD_URL}/${TARBALL_FILE}.md5\""
+					curl -sT "${TARBALL}.md5" "${UPLOAD_URL}/${TARBALL_FILE}.md5" &>/dev/null
+					wait_trace_off -t
+					if (( ENCRYPTED_TARBALL )); then
+						wait_trace_on -t "curl -sT \"${TARBALL}.gpg\" \"${UPLOAD_URL}/${TARBALL_FILE}.gpg\""
+						curl -sT "${TARBALL}.gpg" "${UPLOAD_URL}/${TARBALL_FILE}.gpg" &>/dev/null
+						wait_trace_off -t
+					else
+						wait_trace_on -t "curl -sT \"${TARBALL}\" \"${UPLOAD_URL}/${TARBALL_FILE}\""
+						curl -sT "${TARBALL}" "${UPLOAD_URL}/${TARBALL_FILE}" &>/dev/null
+						wait_trace_off -t
+					fi
+				else
+					echo "curl -#T \"${TARBALL}.md5\" \"${UPLOAD_URL}/${TARBALL_FILE}.md5\""
+					echo
+					curl -#T "${TARBALL}.md5" "${UPLOAD_URL}/${TARBALL_FILE}.md5"
+					echo
+					if (( ENCRYPTED_TARBALL )); then
+						echo "curl -#T \"${TARBALL}.gpg\" \"${UPLOAD_URL}/${TARBALL_FILE}.gpg\""
+						echo
+						curl -#T "${TARBALL}.gpg" "${UPLOAD_URL}/${TARBALL_FILE}.gpg"
+					else
+						echo "curl -#T \"${TARBALL}\" \"${UPLOAD_URL}/${TARBALL_FILE}\""
+						echo
+						curl -#T "${TARBALL}" "${UPLOAD_URL}/${TARBALL_FILE}"
+					fi
+				fi
+				;;
+			scp)
+				UPLOAD_URL=$(echo ${VAR_OPTION_UPLOAD_TARGET} | sed -e 's!scp://!!g;s!/!:/!')
+				if (( VAR_OPTION_SBM )); then
+					wait_trace_on -t "scp -qp \"${TARBALL}.md5\" \"${UPLOAD_URL}/${TARBALL_FILE}.md5\""
+					scp -qp "${TARBALL}.md5" "${UPLOAD_URL}/${TARBALL_FILE}.md5" &>/dev/null
+					wait_trace_off -t
+					if (( ENCRYPTED_TARBALL )); then
+						wait_trace_on -t "scp -qp \"${TARBALL}.gpg\" \"${UPLOAD_URL}/${TARBALL_FILE}.gpg\""
+						scp -qp "${TARBALL}.gpg" "${UPLOAD_URL}/${TARBALL_FILE}.gpg" &>/dev/null
+						wait_trace_off -t
+					else
+						wait_trace_on -t "scp -qp \"${TARBALL}\" \"${UPLOAD_URL}/${TARBALL_FILE}\""
+						scp -qp "${TARBALL}" "${UPLOAD_URL}/${TARBALL_FILE}" &>/dev/null
+						wait_trace_off -t
+					fi
+				else
+					echo "scp -p \"${TARBALL}.md5\" \"${UPLOAD_URL}/${TARBALL_FILE}.md5\""
+					echo
+					scp -p "${TARBALL}.md5" "${UPLOAD_URL}/${TARBALL_FILE}.md5"
+					echo
+					if (( ENCRYPTED_TARBALL )); then
+						echo "scp -p \"${TARBALL}.gpg\" \"${UPLOAD_URL}/${TARBALL_FILE}.gpg\""
+						echo
+						scp -p "${TARBALL}.gpg" "${UPLOAD_URL}/${TARBALL_FILE}.gpg"
+					else
+						echo "scp -p \"${TARBALL}\" \"${UPLOAD_URL}/${TARBALL_FILE}\""
+						echo
+						scp -p "${TARBALL}" "${UPLOAD_URL}/${TARBALL_FILE}"
+					fi
+				fi
+				;;
+			http|https)
+				if (( VAR_OPTION_SBM )); then
+					UPLOAD_URL=$(echo $VAR_OPTION_UPLOAD_TARGET | sed -e "s/{[Tt][Aa][Rr][Bb][Aa][Ll][Ll]}/${TARBALL_FILE}.md5/g")
+					wait_trace_on -t "curl -s -L -A SupportConfig -T \"${TARBALL}.md5\" \"${UPLOAD_URL}\""
+					curl -s -L -A SupportConfig -T "${TARBALL}.md5" "${UPLOAD_URL}" &>/dev/null
+					wait_trace_off -t
+					if (( ENCRYPTED_TARBALL )); then
+						UPLOAD_URL=$(echo $VAR_OPTION_UPLOAD_TARGET | sed -e "s/{[Tt][Aa][Rr][Bb][Aa][Ll][Ll]}/${TARBALL_FILE}.gpg/g")
+						wait_trace_on -t "curl -s -L -A SupportConfig -T \"${TARBALL}.gpg\" \"${UPLOAD_URL}\""
+						curl -s -L -A SupportConfig -T "${TARBALL}.gpg" "${UPLOAD_URL}" &>/dev/null
+						wait_trace_off -t
+					else
+						UPLOAD_URL=$(echo $VAR_OPTION_UPLOAD_TARGET | sed -e "s/{[Tt][Aa][Rr][Bb][Aa][Ll][Ll]}/${TARBALL_FILE}/g")
+						wait_trace_on -t "curl -s -L -A SupportConfig -T \"${TARBALL}\" \"${UPLOAD_URL}\""
+						curl -s -L -A SupportConfig -T "${TARBALL}" "${UPLOAD_URL}" &>/dev/null
+						wait_trace_off -t
+					fi
+				else
+					UPLOAD_URL=$(echo $VAR_OPTION_UPLOAD_TARGET | sed -e "s/{[Tt][Aa][Rr][Bb][Aa][Ll][Ll]}/${TARBALL_FILE}.md5/g")
+					echo "curl -v -L -A SupportConfig -T \"${TARBALL}.md5\" \"${UPLOAD_URL}\""
+					echo
+					curl -v -L -A SupportConfig -T "${TARBALL}.md5" "${UPLOAD_URL}"
+					echo
+					if (( ENCRYPTED_TARBALL )); then
+						UPLOAD_URL=$(echo $VAR_OPTION_UPLOAD_TARGET | sed -e "s/{[Tt][Aa][Rr][Bb][Aa][Ll][Ll]}/${TARBALL_FILE}.gpg/g")
+						echo "curl -v -L -A SupportConfig -T \"${TARBALL}.gpg\" \"${UPLOAD_URL}\""
+						echo
+						curl -v -L -A SupportConfig -T "${TARBALL}.gpg" "${UPLOAD_URL}"
+					else
+						UPLOAD_URL=$(echo $VAR_OPTION_UPLOAD_TARGET | sed -e "s/{[Tt][Aa][Rr][Bb][Aa][Ll][Ll]}/${TARBALL_FILE}/g")
+						echo "curl -v -L -A SupportConfig -T \"${TARBALL}\" \"${UPLOAD_URL}\""
+						echo
+						curl -v -L -A SupportConfig -T "${TARBALL}" "${UPLOAD_URL}"
+					fi
+				fi
+				;;
+			*)
+				echo "ERROR: Unsupported upload service type: ${UPLOAD_SERVICE}"
+				echo
+				echo "  Supported service types: ftp, scp"
+				echo "  Example URI: ftp://ftp.novell.com/incoming"
+				echo
+				echo "  VAR_OPTION_UPLOAD_TARGET=\"${VAR_OPTION_UPLOAD_TARGET}\""
+				;;
+			esac
+			echo
+		fi
+	fi
+}
+
+post_lsmod_list() {
+	OF=modules.txt
+	log_write $OF "#==[ Command ]======================================#"
+	log_write $OF "# lsmod - Post run module list"
+	MOD_FIRST=$(mktemp $LOG/mod-first-XXXXXXXXXXXXXXX)
+	MOD_LAST=$(mktemp $LOG/mod-last-XXXXXXXXXXXXXXX)
+
+	# Get module list before running supportconfig commands
+	LN_INIT=$(grep -n '#==\[ Command \]' $LOG/$OF | head -1 | cut -d: -f1)
+	LN_FIN=$(grep -n '#==\[ Command \]' $LOG/$OF | head -2 | tail -1 | cut -d: -f1)
+	LN_TOTAL=$((LN_FIN - LN_INIT))
+	head -$LN_TOTAL $LOG/$OF | sed -e '/^#/d;/Module.*Size.*Used/d;/^$/d' | cut -d' ' -f1 | sort > $MOD_FIRST
+	MOD_CNT_BEFORE=$(cat $MOD_FIRST | wc -l)
+	log_write $OF "Modules Loaded Before Suportconfig:       $MOD_CNT_BEFORE"
+
+	# Get module list after running supportconfig commands
+	lsmod | sed -e '1d' | cut -d' ' -f1 | sort > $MOD_LAST
+	MOD_CNT_AFTER=$(cat $MOD_LAST | wc -l)
+	log_write $OF "Modules Loaded After Suportconfig:        $MOD_CNT_AFTER"
+
+	# Show the module list difference
+	MOD_CNT_ADDED=$((MOD_CNT_AFTER - MOD_CNT_BEFORE))
+	log_write $OF "Modules Loaded Incident to Supportconfig: $MOD_CNT_ADDED"
+	if [ $MOD_CNT_ADDED -gt 0 ]; then
+		log_write $OF
+		diff $MOD_FIRST $MOD_LAST | grep '>' >> $LOG/$OF
+		log_write $OF
+		log_write $OF "Use -k to prevent supportconfig from loading modules"
+		log_write $OF "needed for system analysis. Using -k is not recommended."
+		log_write $OF "See supportconfig(8)."
+	fi
+	log_write $OF
+	log_write $OF
+
+	# clean up
+	rm -f $MOD_FIRST $MOD_LAST
+}
+
+remove_local_tarball() {
+	if [ $VAR_OPTION_RM_LOCAL_FILE -gt 0 ]; then
+		log2sys "Deleting $TARBALL"
+		echo "Deleting local supportconfig file: $TARBALL"
+		rm -f $TARBALL ${TARBALL}.md5
+		echo
+	else
+		log2sys "Saved Tar Ball: $TARBALL"
+	fi
+}
+
+exit_code() {
+	XC=$1
+	shift
+	MSG="$@"
+	[ -n "$MSG" ] && log2sys "$MSG"
+	log2sys "END"
+	exit $XC
+}
+
+normalize_base() {
+	# Valid identifiers for tar ball filename
+	# %r - SR number if provided
+	# %s - Server's hostname
+	# %d - Supportconfig run date
+	# %t - Supportconfig run time
+	# %u - Unique ID, UUID (prefered) or Seconds since 1970
+	# %B - Base filename options = %s_%d_%t
+	test -n "$CONTACT_SRNUM" && BASE=$(echo $BASE | sed -e "s/%r/SR${CONTACT_SRNUM}/g") || BASE=$(echo $BASE | sed -e "s/%r//g") 
+	BASE=$(echo $BASE | sed -e "s/%s/${SC_SRV}/g")
+	BASE=$(echo $BASE | sed -e "s/%d/${SC_DATE}/g")
+	BASE=$(echo $BASE | sed -e "s/%t/${SC_TIME}/g")
+	BASE=$(echo $BASE | sed -e "s/%u/${SC_UID}/g")
+	BASE=$(echo $BASE | sed -e "s/%B/${SC_SRV}_${SC_DATE}_${SC_TIME}/g")
+}
+
+write_xml_file() {
+	echo \<\?xml\ version=\"1.0\"\?\> >> $LOG/$XML_FILE
+	if [ -s $VAR_OPTION_HEADER_FILE ]; then
+		echo '<note>' >> $LOG/$XML_FILE
+		cat $VAR_OPTION_HEADER_FILE >> $LOG/$XML_FILE
+		echo '</note>' >> $LOG/$XML_FILE
+	fi
+	echo '<summary>' >> $LOG/$XML_FILE
+	xml_write 'scriptversion' "${SVER}"
+	xml_write 'scriptdate' "${SDATE}"
+	xml_write 'rundate' "${SC_DATE}"
+	xml_write 'runtime' "${SC_TIME}"
+	xml_write 'logdir' "${LOG}"
+	HOSTOUT=$(hostname --long 2>/dev/null)
+	if [ -n "$HOSTOUT" ]; then
+		xml_write 'hostname' "$HOSTOUT"
+	else
+		xml_write 'hostname' "$(hostname 2>/dev/null)"
+	fi
+	xml_write 'arch' "$(uname -i)"
+	xml_write 'kernel' "$(uname -r)"
+	if [ -s /etc/SuSE-release ]; then
+		if rpm -q 'SUSE_SLES_SAP-release' &>/dev/null; then
+			xml_write 'sle_type' 'SUSE Linux Enterprise Server for SAP Applications'
+		elif rpm -q 'SLES-for-VMware-release' &>/dev/null; then
+			xml_write 'sle_type' 'SUSE Linux Enterprise Server for VMware'
+		elif grep -i 'enterprise server' /etc/SuSE-release &>/dev/null; then
+			xml_write 'sle_type' 'SUSE Linux Enterprise Server'
+		elif grep -i 'enterprise desktop' /etc/SuSE-release &>/dev/null; then
+			xml_write 'sle_type' 'SUSE Linux Enterprise Desktop'
+		else
+			xml_write 'sle_type' ''
+		fi
+		xml_write 'sle_version' "$(sed -ne 's/VERSION = //p' /etc/SuSE-release)"
+		xml_write 'sle_patchlevel' "$(sed -ne 's/PATCHLEVEL = //p' /etc/SuSE-release)"
+	else
+		xml_write 'sle_type' ''
+		xml_write 'sle_version' ''
+		xml_write 'sle_patchlevel' ''
+	fi
+
+	if [ -f /etc/novell-release ]; then
+		if grep -i open /etc/novell-release &>/dev/null; then
+			xml_write 'oes_version' "$(sed -ne 's/VERSION = //p' /etc/novell-release)"
+			xml_write 'oes_patchlevel' "$(sed -ne 's/PATCHLEVEL = //p' /etc/novell-release)"
+		fi
+	fi
+	echo '</summary>' >> $LOG/$XML_FILE
+	echo '<customer>' >> $LOG/$XML_FILE
+	test -n "$VAR_OPTION_CONTACT_COMPANY" && 		{ xml_write 'company' "$VAR_OPTION_CONTACT_COMPANY"; }
+	test -n "$VAR_OPTION_CONTACT_STOREID" && 		{ xml_write 'storeid' "$VAR_OPTION_CONTACT_STOREID"; }
+	test -n "$VAR_OPTION_CONTACT_TERMINALID" && 	{ xml_write 'terminalid' "$VAR_OPTION_CONTACT_TERMINALID"; }
+	test -n "$VAR_OPTION_CONTACT_NAME" && 			{ xml_write 'contact' "$VAR_OPTION_CONTACT_NAME"; }
+	test -n "$VAR_OPTION_CONTACT_PHONE" && 		{ xml_write 'phone' "$VAR_OPTION_CONTACT_PHONE"; }
+	test -n "$VAR_OPTION_CONTACT_EMAIL" && 		{ xml_write 'email' "$VAR_OPTION_CONTACT_EMAIL"; }
+	xml_write 'srnum' "$CONTACT_SRNUM"
+	echo '</customer>' >> $LOG/$XML_FILE
+	if [ -d /etc/products.d ]; then
+		echo '<products>' >> $LOG/$XML_FILE
+		for i in $(find -L /etc/products.d/ -type f)
+		do
+			if file $i | grep XML &>/dev/null; then
+				sed -e 1d $i >> $LOG/$XML_FILE
+			fi
+		done
+		echo '</products>' >> $LOG/$XML_FILE
+	fi
+	sed -i -e '/^[[:space:]]*$/d' $LOG/$XML_FILE
+}
+
+##############################################################################
+#  main 
+##############################################################################
+
+log2sys "BEGIN Version: $SVER"
+
+CURRENTUID=$(id -u)
+if [ $CURRENTUID -ne 0 ]; then
+	echo "ERROR: You must be logged in as root."
+	echo "       $(id)"
+	echo
+	exit_code 1 "ERROR: You must be logged in as root"
+fi
+
+# check for valid conf file
+if [ -s ${SC_CONF:="/etc/${CURRENT_SCRIPT}.conf"} ]; then
+	if [ -x /usr/bin/dos2unix ]; then
+		/usr/bin/dos2unix $SC_CONF &>/dev/null
+	else
+		sed -i -e 's/\r//g' $SC_CONF &>/dev/null
+	fi
+	. ${SC_CONF}
+fi
+
+init_plugins on
+NSA_CHECK=0
+ALL_ARGS="$@"
+while getopts :\#AB:CDE:FG:H:I:LM:N:O:P:QR:S:T:U:W:X:abdef:ghi:klmo:pqr:st:uvwx:y TMPOPT
+do
+	case $TMPOPT in
+	\:)	clear; title
+			case $OPTARG in
+			*) echo "ERROR: Missing Argument -$OPTARG"
+				;;
+			esac
+			echo; show_help; exit_code 0 "ERROR: Missing Argument -$OPTARG" ;;
+	\?)	clear; title
+			case $OPTARG in
+			*) echo "ERROR: Invalid Option -$OPTARG"
+				;;
+			esac
+			echo; show_help; exit_code 0 "ERROR: Invalid Options -$OPTARG" ;;
+	A) set_to_all ;;
+	B) VAR_OPTION_CUSTOM_ARCH="$OPTARG" ;;
+	C) clear; title; echo "Overwriting $SC_CONF with default options."; gen_sysconfig; exit_code 0 ;;
+	D) set_to_default ;;
+	F) get_features; exit_code 0 ;;
+	G) VAR_OPTION_GPG_UID="$OPTARG" ;;
+	L) ADD_OPTION_FSLIST=1 ;;
+	Q) VAR_OPTION_SILENT=1 ;;
+	T) VAR_OPTION_BIN_TIMEOUT_SEC=$OPTARG ;;
+	O) VAR_OPTION_CONTACT_COMPANY="$OPTARG" ;;
+	E) VAR_OPTION_CONTACT_EMAIL="$OPTARG" ;;
+	M) VAR_OPTION_CONTACT_TERMINALID="$OPTARG" ;;
+	N) VAR_OPTION_CONTACT_NAME="$OPTARG" ;;
+	P) VAR_OPTION_CONTACT_PHONE="$OPTARG" ;;
+	R) VAR_OPTION_LOG_DIRS="$OPTARG" ;;
+	I) VAR_OPTION_LINE_COUNT=$OPTARG ;;
+	X) VAR_OPTION_MSG_MAXSIZE=$OPTARG ;;
+	H) VAR_OPTION_PENGINE_FILES_LIMIT=$OPTARG ;;
+	S) VAR_OPTION_SAR_FILES_LIMIT=$OPTARG ;;
+	U) VAR_OPTION_UPLOAD_TARGET="$OPTARG" && UPLOAD_TARBALL=1 ;;
+	W) VAR_OPTION_CONTACT_STOREID="$OPTARG" ;;
+	a) UPLOAD_TARBALL=1; VAR_OPTION_UPLOAD_TARGET=$VAR_OPTION_UPLOAD_ALT ;;
+	b) VAR_OPTION_SBM=1 ;;
+	d) ADD_OPTION_MINDISK=1 ;;
+	e) ADD_OPTION_EDIR=1 ;;
+	g) COMPRESS="tgz"; COMPRESS_OPT="zcf" ;;
+	h) title; show_help; exit_code 0 ;;
+	i) SELECTED_FEATURE_LIST=$OPTARG; set_to_min; selected_features on ;;
+	k) MIN_OPTION_AUTOMOD=0 ;;
+	l) ADD_OPTION_LOGS=1 ;;
+	p) init_plugins off ;;
+	m) set_to_min ;;
+	o) SELECTED_FEATURE_LIST=$OPTARG; toggle_features ;;
+	q) VAR_OPTION_UNIQUE_FILE=1 ;;
+	r) CONTACT_SRNUM=$OPTARG;
+		if valid_srnum; then
+			BASE="nts_%r_%B"
+		else
+			clear; title
+			echo "ERROR: Invalid SR Number, -${TMPOPT} $CONTACT_SRNUM"
+			echo "       Must be an $SRLEN digit numeric value."
+			echo; show_help; exit_code 2
+		fi ;;
+	\#) set_to_min; MIN_OPTION_HC=0; MIN_OPTION_HARDWARE=0; MIN_OPTION_YAST=0; MIN_OPTION_SYSLOGS=0; NSA_CHECK=1; COMPRESS="tgz"; COMPRESS_OPT="zcf" ;;
+	s) ADD_OPTION_SLP=1 ;;
+	u) UPLOAD_TARBALL=1 ;;
+	v) ADD_OPTION_RPMV=1 ;;
+	w) VAR_OPTION_WAIT_TRACE=1; VAR_OPTION_SBM=1 ;;
+	x) SELECTED_FEATURE_LIST=$OPTARG; set_to_all; selected_features off ;;
+	y) ADD_OPTION_MAXYAST=1 ;;
+	t) TARGET_DIRECTORY=$OPTARG && SAVE_LOGS_ONLY=1;;
+	f) FROM_DIRECTORY=$OPTARG  && USE_SAVED_LOGS_ONLY=1;;
+	esac
+done
+
+test $ADD_OPTION_EDIR -eq 1 && ADD_OPTION_FSLIST=1
+test $ADD_OPTION_LOGS -gt 0 && ADD_OPTION_MAXYAST=1
+
+umask 0077
+log2sys "Initialize"
+get_sles_ver
+
+if [ -n "$TARGET_DIRECTORY" ]; then
+	VAR_OPTION_LOG_DIRS=$TARGET_DIRECTORY
+fi
+
+# Ensures files uploaded to a novell.com address have unique file names
+if (( UPLOAD_TARBALL )); then
+	TONOVELL=$(echo $VAR_OPTION_UPLOAD_TARGET | grep -i "novell.com")
+	[ -n "$TONOVELL" ] && VAR_OPTION_UNIQUE_FILE=1
+fi
+
+# Add custom tar ball name element
+if [ -n "$VAR_OPTION_CUSTOM_ARCH" ]; then
+	TMP=$(echo "$VAR_OPTION_CUSTOM_ARCH" | sed -e 's/ /_/g')
+	BASE="nts_${TMP}"
+fi
+
+if (( VAR_OPTION_UNIQUE_FILE )); then
+	NOTFOUND=$(echo $BASE | grep '%u')
+	test -z "$NOTFOUND" && BASE="${BASE}_%u" #add UID if not present already
+fi
+
+if [ -n "$FROM_DIRECTORY" ]; then
+	VAR_OPTION_LOG_DIRS=$FROM_DIRECTORY
+	BASE=$(ls -t $FROM_DIRECTORY | grep nts | head -n1)
+fi
+
+for LOG in $VAR_OPTION_LOG_DIRS
+do
+	# If a full path was not assigned, the cwd will be prepended to the LOG path
+	VALID_LOG=$(echo $LOG | grep '^/')
+	if [ -z "$VALID_LOG" ]; then
+		VALID_LOG=$(echo $LOG | grep '^\./')
+		CURRENT_PATH="$(pwd)"
+		if [ -n "$VALID_LOG" ]; then
+			LOG="${CURRENT_PATH}/${LOG:2}"
+		else
+			LOG="${CURRENT_PATH}/${LOG}"
+		fi
+	fi
+	# Create the paths
+	normalize_base
+	[ $USE_SAVED_LOGS_ONLY -eq 0 ] && check_log_dir
+	LOG=${LOG}/${BASE}
+	if mkdir -p $LOG &>/dev/null; then 
+		unset LOGERROR
+		break
+	else
+		echo "ERROR: Cannot create $LOG"
+		LOGERROR=1
+	fi
+done
+
+test $LOGERROR && { echo; exit_code 3; }
+export LOG
+
+if [ "$USE_SAVED_LOGS_ONLY" != "1" ]; then
+
+	if ! (( $VAR_OPTION_SILENT )); then
+		if ! (( $VAR_OPTION_SBM )); then
+			clear
+		fi
+	fi
+	test $VAR_OPTION_SILENT -gt 0 && title >> $LOG/$BASIC_ENVF || title | tee -a $LOG/$BASIC_ENVF
+
+	addHeaderFile $CSFILE
+	log_entry $CSFILE note "Privacy Statement"
+	log_write $CSFILE "Detailed system information and logs are collected and organized in a"
+	log_write $CSFILE "manner that helps reduce service request resolution times. Private system"
+	log_write $CSFILE "information can be disclosed when using this tool. If this is a concern,"
+	log_write $CSFILE "please prune private data from the log files. Several startup options"
+	log_write $CSFILE "are available to exclude more sensitive information. Supportconfig data is"
+	log_write $CSFILE "used only for diagnostic purposes and is considered confidential information."
+	log_write $CSFILE "See http://www.novell.com/company/legal/privacy/"
+	log_write $CSFILE
+	rpm_verify ${CSFILE} supportutils
+
+	echolog "Gathering system information"
+	log_write ${CSFILE} 	"  Script Version:    ${SVER}"
+	log_write ${CSFILE} 	"  Script Date:       ${SDATE}"
+	echolog 					"  Data Directory:    ${LOG}"
+	log2sys "Data Directory: ${LOG}"
+
+	if bad_plugin_dir; then
+		echolog "  WARNING: Invalid plugin directory, all plugins will be skipped."
+		echo    "           See $CSFILE for details."
+		log_write ${CSFILE} "   Plugin Directory:  $XPLUGIN_DIR"
+		log_write ${CSFILE} "   Owner.Group:       ${XPLUGIN_DIR_OWNER}.${XPLUGIN_DIR_GRP}"
+		log_write ${CSFILE} "   Access Rights:     $XPLUGIN_DIR_MODE"
+		log_write ${CSFILE} "   The plugin directory should be writable only for root and group root."
+		log_write ${CSFILE} "   Currently SUID, SGID and sticky bits are not allowed."
+	fi
+	log_write ${CSFILE} "  Environment Value: $SLES_VER ($KERNVER)"
+	log_write ${CSFILE} "  Command with Args: $0 $ALL_ARGS"
+	log2sys "Supportconfig Args: $ALL_ARGS"
+
+	test -s $SC_CONF && log_write ${CSFILE} "  Using Options:     $SC_CONF"
+	echolog
+
+	log_options
+
+	basic_healthcheck	#Minimum Requirement
+	rpm_info				#Minimum Requirement
+	basic_environment	#Minimum Requirement
+	basic_report
+	module_info
+	memory_info
+	disk_info
+	[ $SLES_VER -ge 110 ] && btrfs_info
+	yast_files			#Minimum Requirement
+	fslist_info
+	audit_info
+	crash_info
+	ntp_info
+	proc_info
+	boot_info
+	slert_info
+	update_info
+	[ $SLES_VER -lt 110 ] && update_d_info
+	smt_info
+	[ $OESFOUND -eq 0 -o $OPTION_EDIR -eq 1 ] && novell_edir_info
+	[ $OESFOUND -eq 0 -o $OPTION_LUM -eq 1 ] && novell_lum_info
+	[ $OESFOUND -eq 0 -o $OPTION_NCP -eq 1 ] && novell_ncp_info
+	[ $OESFOUND -eq 0 -o $OPTION_NSS -eq 1 ] && novell_nss_info
+	[ $OESFOUND -eq 0 -o $OPTION_DFS -eq 1 ] && novell_dfs_info
+	[ $OESFOUND -eq 0 -o $OPTION_SMS -eq 1 ] && novell_sms_info
+	[ $OESFOUND -eq 0 -o $OPTION_NCS -eq 1 ] && novell_ncs_info
+	[ $OESFOUND -eq 0 -o $OPTION_AFP -eq 1 ] && novell_afp_info
+	[ $OESFOUND -eq 0 -o $OPTION_CIFS -eq 1 ] && novell_cifs_info
+	[ $OESFOUND -eq 0 -o $OPTION_IMAN -eq 1 ] && novell_iman_info
+	[ $OESFOUND -eq 0 -o $OPTION_DSFW -eq 1 ] && novell_dsfw_info
+	[ $OESFOUND -eq 0 -o $OPTION_PROXY -eq 1 ] && novell_proxy_info
+	ha_info
+	ocfs2_info
+	drbd_info
+	pam_info
+	ldap_info
+	[ $SLES_VER -ge 110 ] && sssd_info
+	cimom_info
+	open_files
+	environment_info
+	etc_info
+	sysconfig_info
+	sysfs_info
+	chkconfig_info
+	cron_info
+	udev_info
+	lvm_info
+	evms_info
+	soft_raid_info
+	mpio_info
+	net_info
+	web_info
+	[ $SLES_VER -ge 100 ] && ib_info
+	dns_info
+	dhcp_info
+	slp_info
+	ssh_info
+	iscsi_info
+	samba_info
+	nfs_info
+	autofs_info
+	sar_info
+	apparmor_info
+	[ $SLES_VER -ge 100 ] && xen_info
+	[ $SLES_VER -ge 110 ] && kvm_info
+	x_info
+	print_info
+	smartmon_info
+	[ -s ${FSLIST_ADD_FILE} ] && fslist_ufiles_info
+	hardware_info		#Minimum Requirement
+	[ $SLES_VER -ge 110 ] && sam_info
+	rpm_full_verify
+	exec_plugins
+	[ $OPTION_MOD -eq 1 ] && post_lsmod_list
+	log2sys "Finished Gathering"
+	messages_file		#Minimum Requirement
+	write_xml_file
+
+	rm -f $LOG/$RPM_QA_FILE $LOG/$RPM_DIST_FILE
+	timed_cmd_cleanup
+	test $VAR_OPTION_SILENT -eq 0 && { echo; }
+
+else
+	test $VAR_OPTION_SILENT -eq 0 && { clear; title; }
+fi
+
+# don't continue if SAVE_LOGS_ONLY is set
+[ "$SAVE_LOGS_ONLY" = "1" ] && exit_code 0;
+
+
+# creating tar ball for NTS
+TARBALL=${LOG}.${COMPRESS}
+log2sys "Creating Tar Ball"
+if ! (( $VAR_OPTION_SILENT )); then
+	if (( $VAR_OPTION_SBM )); then
+		echo 'Creating Tar Ball...'
+	else
+		echo 'Creating Tar Ball'
+	fi
+fi
+
+cd $LOG
+cd ..
+wait_trace_on -t "tar ${COMPRESS_OPT} ${TARBALL} ${BASE}/*"
+tar ${COMPRESS_OPT} ${TARBALL} ${BASE}/*
+LOGSIZE=$(ls -lh ${TARBALL} | awk '{print $5}')
+wait_trace_off -t
+wait_trace_on -t "md5sum $TARBALL"
+md5sum $TARBALL | awk '{print $1}' > ${TARBALL}.md5
+LOGMD5=$(cat ${TARBALL}.md5)
+wait_trace_off -t
+
+rm -rf $LOG
+
+if [ $VAR_OPTION_SILENT -eq 0 ]; then
+cat << EOF1
+
+==[ DONE ]===================================================================
+  Log file tar ball: ${TARBALL}
+  Log file size:     ${LOGSIZE}
+  Log file md5sum:   ${LOGMD5}
+=============================================================================
+
+
+EOF1
+fi
+
+trap "{ echo TERMINATED BY USER; echo; exit 5; }" SIGINT
+trap "{ echo SKIPPED BY USER; return 4; }" SIGQUIT
+
+test -n "$VAR_OPTION_GPG_UID" && encrypt_tarball
+upload_tarball
+remove_local_tarball
+log2sys "END"
+
