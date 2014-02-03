@@ -1,4 +1,13 @@
 -------------------------------------------------------------------
+Mon Feb 03 15:46:14 MST 2014 - jrecord@suse.com
+
+-excluding ldauditor logs from security-audit.txt (bnc#860003)
+-fixed console error from network.txt 
+-limit mcelog to VAR_OPTION_LINE_COUNT
+-added wait_times to messages
+-supportconfig: 2.25-390.7
+
+-------------------------------------------------------------------
 Mon Dec 16 07:59:10 MST 2013 - jrecord@suse.com
 
 -fixed HAE cib location for sle11sp3 (bnc#855230)

@@ -1,6 +1,6 @@
 #!/bin/bash
 
-SVER=2.25-390.4
+SVER=2.25-390.7
 SDATE="2014 02 03"
 
 ##############################################################################
@@ -302,6 +302,7 @@ wait_trace_on() {
 		esac
 		LOGGING="$@"
 		WT_START=$(date +%T:%N)
+		log2sys "<$WT_START> $LOGGING"
 		if (( $TEE )); then
 			printf "%s" "    <$WT_START> $LOGGING  " | tee -a ${LOG}/${CSFILE}
 		else
@@ -1056,7 +1057,12 @@ basic_healthcheck() {
 	fi
 	test -f $AARPTMP && cat $AARPTMP >> $LOG/$OF
 
-	test -s /var/log/mcelog && { log_cmd $OF "ls -l --time-style=long-iso /var/log/mcelog"; conf_files $OF /var/log/mcelog; }
+	MCE_LOG='/var/log/mcelog'
+	FILES=$MCE_LOG
+	if [[ -s $MCE_LOG ]]; then
+		log_cmd $OF "ls -l --time-style=long-iso $MCE_LOG"
+		test $ADD_OPTION_LOGS -gt 0 && log_files $OF 0 $FILES || log_files $OF $VAR_OPTION_LINE_COUNT $FILES
+	fi
 
 	cat $PSPTMP >> $LOG/$OF
 	rm $PSPTMP
@@ -2756,13 +2762,15 @@ net_info() {
 	fi
 	for NIC in /sys/class/net/*
 	do
-		[[ "`cat ${NIC}/type`" = 772 ]] && continue
-		NIC="${NIC##*/}"
-		log_cmd $OF "ethtool $NIC"
-		log_cmd $OF "ethtool -k $NIC"
-		log_cmd $OF "ethtool -i $NIC"
-		log_cmd $OF "ethtool -S $NIC"
-		log_cmd $OF "mii-tool -v $NIC"
+		if [[ -e ${NIC}/type ]]; then
+			[[ "`cat ${NIC}/type`" = 772 ]] && continue
+			NIC="${NIC##*/}"
+			log_cmd $OF "ethtool $NIC"
+			log_cmd $OF "ethtool -k $NIC"
+			log_cmd $OF "ethtool -i $NIC"
+			log_cmd $OF "ethtool -S $NIC"
+			log_cmd $OF "mii-tool -v $NIC"
+		fi
 	done
 	log_cmd $OF "nscd -g"
 	conf_files $OF /etc/hosts /etc/host.conf /etc/resolv.conf /etc/nsswitch.conf /etc/nscd.conf /etc/hosts.allow /etc/hosts.deny

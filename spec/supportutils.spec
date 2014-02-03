@@ -1,7 +1,4 @@
-#
-# spec file for package supportutils (Version 1.20-80)
-#
-# Copyright (C) 2008-2013 SUSE LLC
+# Copyright (C) 2008-2014 SUSE LLC
 # This file and all modifications and additions to the pristine
 # package are under the same license as the package itself.
 #
@@ -19,7 +16,7 @@ License:      GPL-2.0
 Group:        System/Management
 Autoreqprov:  on
 Version:      1.20
-Release:      80.140124.PTF.1
+Release:      82.140203.PTF.2
 Source:       %{name}-%{version}.tar.gz
 BuildRoot:    %{_tmppath}/%{name}-%{version}-build
 BuildArch:    noarch
