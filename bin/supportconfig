@@ -1,11 +1,11 @@
 #!/bin/bash
 
-SVER=2.25-390.3
-SDATE="2013 12 16"
+SVER=2.25-390.4
+SDATE="2014 02 03"
 
 ##############################################################################
 #  supportconfig - Gathers system troubleshooting information for NTS.
-#  Copyright (C) 2001-2013 SUSE LLC
+#  Copyright (C) 2001-2014 SUSE LLC
 #
 #  Creates a tar ball to attach to the SR or send to support. Basic info is 
 #  collected for SLES8. More comprehensive information is collected for 
@@ -58,7 +58,6 @@ OPTION_DHCP=1
 OPTION_DISK=1
 OPTION_DNS=1
 OPTION_DRBD=1
-OPTION_DSFW=1
 OPTION_EDIR=1
 OPTION_ENV=1
 OPTION_ETC=1
@@ -1203,7 +1202,7 @@ audit_info() {
 				FILES="/etc/auditd.conf /etc/audit.rules"
 			fi
 			conf_files $OF $FILES
-			FILES=$(find -L /var/log/audit/ -type f | grep log$)
+			FILES=$(find -L /var/log/audit/ -type f | egrep -v "/ltaudit/" | grep log$)
 			test $ADD_OPTION_LOGS -gt 0 && log_files $OF 0 $FILES || log_files $OF $VAR_OPTION_LINE_COUNT $FILES
 			echolog Done
 		else
@@ -1632,19 +1631,6 @@ novell_edir_info() {
 	fi
 
 	test $SKIP -lt 2 && echolog Done || echolog Skipped
-}
-
-novell_dsfw_info() {
-	printlog "Novell DSfW..."
-	test $OPTION_DSFW -eq 0 && { echolog Excluded; return 1; }
-	OF=novell-dsfw.txt
-	RPMPATH=$LOG/$RPMFILE
-	addHeaderFile $OF
-
-	log_cmd $OF "egrep \"novell-oes-samba|novell-xad-\" $RPMPATH"
-	log_write $OF
-
-	echolog Done
 }
 
 novell_ncp_info() {
@@ -5653,7 +5639,6 @@ if [ "$USE_SAVED_LOGS_ONLY" != "1" ]; then
 	[ $OESFOUND -eq 0 -o $OPTION_AFP -eq 1 ] && novell_afp_info
 	[ $OESFOUND -eq 0 -o $OPTION_CIFS -eq 1 ] && novell_cifs_info
 	[ $OESFOUND -eq 0 -o $OPTION_IMAN -eq 1 ] && novell_iman_info
-	[ $OESFOUND -eq 0 -o $OPTION_DSFW -eq 1 ] && novell_dsfw_info
 	[ $OESFOUND -eq 0 -o $OPTION_PROXY -eq 1 ] && novell_proxy_info
 	ha_info
 	ocfs2_info
