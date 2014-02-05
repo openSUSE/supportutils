@@ -1,4 +1,7 @@
+# spec file for package supportutils
+#
 # Copyright (C) 2008-2014 SUSE LLC
+#
 # This file and all modifications and additions to the pristine
 # package are under the same license as the package itself.
 #
@@ -16,7 +19,7 @@ License:      GPL-2.0
 Group:        System/Management
 Autoreqprov:  on
 Version:      1.20
-Release:      82.140203.PTF.2
+Release:      83
 Source:       %{name}-%{version}.tar.gz
 BuildRoot:    %{_tmppath}/%{name}-%{version}-build
 BuildArch:    noarch
@@ -78,5 +81,5 @@ install -m 644 man/*.8.gz $RPM_BUILD_ROOT/usr/share/man/man8
 %clean
 rm -rf $RPM_BUILD_ROOT
 
-%changelog -n supportutils
+%changelog
 
