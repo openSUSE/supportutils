@@ -1,6 +1,6 @@
 #!/bin/bash
 
-SVER=3.0-8.2
+SVER=3.0-8.4
 SDATE="2014 02 07"
 
 ##############################################################################
@@ -172,11 +172,7 @@ ARCH=$(uname -i)
 SAVE_LOGS_ONLY=0
 USE_SAVED_LOGS_ONLY=0
 ENCRYPTED_TARBALL=0
-if rpm -q systemd &>/dev/null; then
-	CENTAURI=1
-else
-	CENTAURI=0
-fi
+
 # These are minimum options and should never be unset.
 MIN_OPTION_RPM=1
 MIN_OPTION_ENV=1
@@ -1126,7 +1122,7 @@ module_info() {
 		[ -n "$MODOPT" ] && { log_write $OF "# Module Configuration"; log_write $OF "$MODOPT"; log_write $OF; }
 	done
 	conf_files $OF /lib/modules/$(uname -r)/modules.dep
-	if (( CENTAURI )); then
+	if (( SLES_VER >= 120 )); then
 		conf_files $OF /etc/modprobe.d/*
 	else
 		[[ -s /etc/modprobe.conf ]] && LIST=$(grep ^include /etc/modprobe.conf | awk '{print $2}') || LIST=''
@@ -1291,7 +1287,7 @@ boot_info() {
 	test -s /var/log/mcelog && { log_cmd $OF "ls -l --time-style=long-iso /var/log/mcelog"; conf_files $OF /var/log/mcelog; }
 	log_cmd $OF 'last -xF | egrep "reboot|shutdown|runlevel|system"'
 
-	(( CENTAURI )) && FILES='/var/log/boot.log' || FILES='/etc/inittab'
+	(( SLES_VER >= 120 )) && FILES='/var/log/boot.log' || FILES='/etc/inittab'
 	conf_files $OF /proc/cmdline /etc/sysconfig/kernel $FILES /etc/init.d/boot.local /etc/init.d/before.local /etc/init.d/after.local /etc/init.d/halt.local
 
 	log_cmd $OF 'ls -lR --time-style=long-iso /boot/'
@@ -1305,7 +1301,7 @@ boot_info() {
 			fi
 		done
 	fi
-	(( CENTAURI )) || conf_files $OF /var/log/boot.msg /var/log/boot.omsg
+	(( SLES_VER >= 120 )) || conf_files $OF /var/log/boot.msg /var/log/boot.omsg
 	log_cmd $OF 'dmesg'
 	echolog Done
 }
@@ -2103,7 +2099,11 @@ sssd_info() {
 	if rpm_verify $OF sssd; then
 		rpm_verify $OF sssd-tool
 		rpm_verify $OF python-sssd-config
-		check_service $OF sssd
+		if (( SLES_VER >= 120 )); then
+			log_cmd $OF 'systemctl status sssd.service'
+		else
+			check_service $OF sssd
+		fi
 		conf_files $OF "/etc/nsswitch.conf /etc/sssd/sssd.conf"
 		SRVS_LDAP=$(grep "^[[:space:]]*ldap_uri" /etc/sssd/sssd.conf | cut -d= -f2 | sed -e 's/ *//g;s/,/ /g')
 		if [ -n "$SRVS_LDAP" ]; then
@@ -2123,20 +2123,25 @@ sssd_info() {
 		fi
 		log_cmd $OF 'date +"%Y-%m-%d %H:%M"'
 		log_cmd $OF 'ls -lR --time-style=long-iso /var/lib/sss/'
-		[ -s /etc/init.d/sssd ] && SSSD_PIDF=$(grep '^PID_FILE' /etc/init.d/sssd | sed -e 's/ *//g' | cut -d= -f2)
-		test -z "$SSSD_PIDF" && SLAPD_PIDF="/var/run/sssd.pid"
-		if [ -f $SSSD_PIDF ]; then
-			SSSD_PID=$(cat $SSSD_PIDF)
-		else
-			SSSD_PID=""
-		fi
-		if [ -n "$SSSD_PID" ]; then
-			SSSD_PIDS=$(ps axwwo pid,ppid,cmd | grep ${SSSD_PID} | grep -v grep | awk '{print $1}' | sort -n)
-			log_cmd $OF "ps axwwo user,pid,ppid,%cpu,%mem,vsz,rss,stat,time,cmd | egrep \"${SSSD_PID}|PPID\" | grep -v grep"
-			for THISPID in $SSSD_PIDS
-			do
-				log_cmd $OF "lsof -p $THISPID"
-			done
+		if (( SLES_VER < 120 )); then
+			[ -s /etc/init.d/sssd ] && SSSD_PIDF=$(grep '^PID_FILE' /etc/init.d/sssd | sed -e 's/ *//g' | cut -d= -f2)
+			test -z "$SSSD_PIDF" && SLAPD_PIDF="/var/run/sssd.pid"
+			if [ -f $SSSD_PIDF ]; then
+				SSSD_PID=$(cat $SSSD_PIDF)
+			else
+				SSSD_PID=""
+			fi
+			if [ -n "$SSSD_PID" ]; then
+				SSSD_PIDS=$(ps axwwo pid,ppid,cmd | grep ${SSSD_PID} | grep -v grep | awk '{print $1}' | sort -n)
+				log_cmd $OF "ps axwwo user,pid,ppid,%cpu,%mem,vsz,rss,stat,time,cmd | egrep \"${SSSD_PID}|PPID\" | grep -v grep"
+				for THISPID in $SSSD_PIDS
+				do
+					log_cmd $OF "lsof -p $THISPID"
+				done
+			else
+				log_cmd $OF "ps axwwo user,pid,ppid,%cpu,%mem,vsz,rss,stat,time,cmd | egrep \"sssd|PPID\" | grep -v grep"
+				log_cmd $OF "lsof | grep sssd"
+			fi
 		else
 			log_cmd $OF "ps axwwo user,pid,ppid,%cpu,%mem,vsz,rss,stat,time,cmd | egrep \"sssd|PPID\" | grep -v grep"
 			log_cmd $OF "lsof | grep sssd"
