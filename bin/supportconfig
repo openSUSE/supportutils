@@ -1,6 +1,6 @@
 #!/bin/bash
 
-SVER=3.0-6
+SVER=3.0-8
 SDATE="2014 02 07"
 
 ##############################################################################
@@ -2488,7 +2488,7 @@ mpio_info() {
 		case $SLES_VER in
 		80|90) log_cmd $OF "udevinfo -d" ;;
 		10*) log_cmd $OF "udevinfo -e" ;;
-		11*) log_cmd $OF "udevadm info -e" ;;
+		11*|12*) log_cmd $OF "udevadm info -e" ;;
 		esac 
 		test -d /proc/scsi && SCSI_DIRS=$(find /proc/scsi/ -type d) || SCSI_DIRS=""
 		for SDIR in $SCSI_DIRS
@@ -2981,7 +2981,7 @@ iscsi_info() {
 			log_cmd $OF 'sfdisk -l'
 		fi
 		;;
-	10*|11*)
+	10*|11*|12*)
 		log_write $OF "#___________________________________________________________#"
 		log_write $OF "#____[ iSCSI Target Information ]___________________________#"
 		log_write $OF
@@ -3123,7 +3123,7 @@ ntp_info() {
 			echolog Skipped
 		fi
 		;;
-	11*)
+	11*|12*)
 		if rpm_verify $OF ntp
 		then
 			check_service $OF ntp
@@ -3169,7 +3169,7 @@ udev_info() {
 		case $SLES_VER in
 		80|90) log_cmd $OF "udevinfo -d" ;;
 		10*) log_cmd $OF "udevinfo -e" ;;
-		11*) log_cmd $OF "udevadm info -e" ;;
+		11*|12*) log_cmd $OF "udevadm info -e" ;;
 		esac 
 		if [ -f $UDEV_CONF ]; then
 			. $UDEV_CONF
@@ -3417,7 +3417,8 @@ get_sles_ver() {
 	fi
 	KERNBASE="${KERNMAJ}.${KERNREL}"
 	KERNVER=$(echo $KERNBASE | awk -F\. '{printf "%g%g%02g%02g%03g%03g%03g\n", $1, $2, $3, $4, $5, $6, $7}')
-	if   [ $KERNVER -ge 263212000007000 ]; then SLES_VER=111;
+	if   [ $KERNVER -ge 3120900001000000 ]; then SLES_VER=120;
+	elif [ $KERNVER -ge 263212000007000 ]; then SLES_VER=111;
 	elif [ $KERNVER -ge 262719005000000 ]; then SLES_VER=110;
 	elif [ $KERNVER -ge 261660000085001 ]; then SLES_VER=104;
 	elif [ $KERNVER -ge 261660000054005 ]; then SLES_VER=103;
@@ -3870,7 +3871,7 @@ ocfs2_info() {
 			timed_log_cmd $OF "mounted.ocfs2 -f"
 			conf_files $OF "/etc/ocfs2/cluster.conf /etc/sysconfig/o2cb"
 			;;
-		11*)
+		11*|12*)
 			[[ -x /usr/bin/findmnt ]] && log_cmd $OF "findmnt" || log_cmd $OF "mount"
 			timed_log_cmd $OF "mounted.ocfs2 -d"
 			timed_log_cmd $OF "mounted.ocfs2 -f"
@@ -4309,7 +4310,7 @@ x_info() {
 		echolog Skipped
 	fi
 	;;
-	10*|11*) if rpm_verify $OF xorg-x11-server
+	10*|11*|12*) if rpm_verify $OF xorg-x11-server
 	then
 		log_cmd $OF 'ls -al /dev | egrep "video.*|mouse.*"'
 		log_cmd $OF '3Ddiag'
@@ -4610,7 +4611,7 @@ cimom_info() {
 				if [ -L $OWSSLCHECK ]; then
 					case $SLES_VER in
 					90*) log_cmd $OF "readlink -fv $OWSSLCHECK" ;;
-					10*|11*) log_cmd $OF "readlink -ev $OWSSLCHECK" ;;
+					10*|11*|12*) log_cmd $OF "readlink -ev $OWSSLCHECK" ;;
 					esac
 				fi
 			fi
