@@ -1,6 +1,6 @@
 #!/bin/bash
 
-SVER=3.0-8.4
+SVER=3.0-8.5
 SDATE="2014 02 07"
 
 ##############################################################################
@@ -4269,6 +4269,34 @@ proc_info() {
 	test $OPTION_PROC -eq 0 && { echolog Excluded; return 1; }
 	OF=proc.txt
 	addHeaderFile $OF
+
+	if (( SLES_VER >= 120 )); then
+		# Check process name space against the default name space
+		log_write $OF "#==[ Processes with Different Default Name Space ]==#"
+		log_write $OF "# name_space: process_id: process_cmdline"
+		for NS_TAG in ipc net pid uts
+		do
+			wait_trace_on "Checking processes in $NS_TAG name space"
+			DEFAULT_NS="$(readlink /proc/1/ns/$NS_TAG | sed 's/\[/\\[/;s/\]/\\]/')"
+			INTERESTING_PIDS="$(find /proc/[0-9]*/ns -name "$NS_TAG" \! -lname "$DEFAULT_NS" 2>/dev/null | sed 's@/proc/\([0-9]\+\)/ns/.*@\1@' )"
+
+			unset PIDS
+			for pid in $INTERESTING_PIDS; do
+				if ! [ "$(sed -n 's/^State:[[:blank:]]\+\([^[:blank:]]\)[[:blank:]]\+.*/\1/p' < /proc/"$pid"/status)" = Z ]; then
+					PIDS[$((${#PIDS[@]} + 1))]="$pid"
+				fi
+			done
+    
+			if [ ${#PIDS[@]} -ne 0 ]; then
+				for pid in "${PIDS[@]}"; do
+					log_write $OF "${NS_TAG}: $pid: $(tr '\0' ' ' < /proc/"$pid"/cmdline)"
+				done
+			fi
+			wait_trace_off
+		done
+		log_write $OF
+	fi	
+
 	FILES=$(find /proc/ -maxdepth 1 -type f 2>/dev/null | egrep -iv "kcore$|kpagecount$|kpageflags$|vmcore$|config.gz$|kmsg$|sysrq-trigger$|kallsyms$|mm$|ssstm" | sort -f)
 	conf_files $OF $FILES
 	conf_files $OF /proc/mounts /proc/zoneinfo
