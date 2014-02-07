@@ -1,5 +1,5 @@
 OBSPACKAGE=supportutils
-SVNDIRS=spec bin man config
+SVNDIRS=spec bin man
 VERSION=$(shell awk '/Version:/ { print $$2 }' spec/${OBSPACKAGE}.spec)
 RELEASE=$(shell awk '/Release:/ { print $$2 }' spec/${OBSPACKAGE}.spec)
 SRCDIR=$(OBSPACKAGE)-$(VERSION)
@@ -26,6 +26,7 @@ dist:
 	@mkdir -p src
 	@mkdir -p $(SRCDIR)
 	@for i in $(SVNDIRS); do cp -a $$i $(SRCDIR); done
+	@cp -a COPYING.GPLv2 $(SRCDIR)
 	@tar cf $(SRCFILE) $(SRCDIR)/*
 	@gzip -9f $(SRCFILE)
 	@rm -rf $(SRCDIR)

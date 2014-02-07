@@ -1,7 +1,7 @@
 #!/bin/bash
 
-SVER=2.25-390.7
-SDATE="2014 02 03"
+SVER=3.0-6
+SDATE="2014 02 07"
 
 ##############################################################################
 #  supportconfig - Gathers system troubleshooting information for NTS.
@@ -9,7 +9,7 @@ SDATE="2014 02 03"
 #
 #  Creates a tar ball to attach to the SR or send to support. Basic info is 
 #  collected for SLES8. More comprehensive information is collected for 
-#  SLES9/SLE10/SLE11, OES1/OES2/OES11 for SLES.
+#  SLES9/SLE10/SLE11/SLE12, OES1/OES2/OES11 for SLES.
 #
 #  Please submit bug fixes or comments via:
 #    http://en.opensuse.org/Supportutils#Reporting_Bugs
@@ -48,7 +48,7 @@ OPTION_AUDIT=1
 OPTION_AUTOFS=1
 OPTION_BOOT=1
 OPTION_BTRFS=1
-OPTION_CHKCONFIG=1
+OPTION_DAEMONS=1
 OPTION_CIFS=1
 OPTION_CIMOM=1
 OPTION_CRASH=1
@@ -63,7 +63,6 @@ OPTION_ENV=1
 OPTION_ETC=1
 OPTION_EVMS=1
 OPTION_HA=1
-OPTION_HCREPORT=1
 OPTION_IB=1
 OPTION_IMAN=1
 OPTION_ISCSI=1
@@ -172,7 +171,11 @@ ARCH=$(uname -i)
 SAVE_LOGS_ONLY=0
 USE_SAVED_LOGS_ONLY=0
 ENCRYPTED_TARBALL=0
-
+if rpm -q systemd &>/dev/null; then
+	CENTAURI=1
+else
+	CENTAURI=0
+fi
 # These are minimum options and should never be unset.
 MIN_OPTION_RPM=1
 MIN_OPTION_ENV=1
@@ -1096,17 +1099,6 @@ rpm_info() {
 	echolog Done
 }
 
-basic_report() {
-	printlog "Basic Health Report..."
-	test $OPTION_HCREPORT -eq 0 && { echolog Excluded; return 1; }
-	OF=basic-health-report.txt
-	cd $LOG
-	addHeaderFile $OF
-	log_cmd $OF 'schealth -q'
-	echolog Done
-}
-
-	
 # Run basic_healthcheck first TAINT & TAINT_STRING must be defined first
 module_info() {
 	printlog "System Modules..."
@@ -1133,17 +1125,21 @@ module_info() {
 		[ -n "$MODOPT" ] && { log_write $OF "# Module Configuration"; log_write $OF "$MODOPT"; log_write $OF; }
 	done
 	conf_files $OF /lib/modules/$(uname -r)/modules.dep
-	LIST=$(grep ^include /etc/modprobe.conf | awk '{print $2}')
-	FILES=""
-	for FILE in $LIST
-	do
-		if [ -d $FILE ]; then
-			FILES="$FILES $(find -L $FILE -type f)"
-		else
-			FILES="$FILES $FILE"
-		fi
-	done
-	conf_files $OF /etc/modprobe.conf $FILES
+	if (( CENTAURI )); then
+		conf_files $OF /etc/modprobe.d/*
+	else
+		[[ -s /etc/modprobe.conf ]] && LIST=$(grep ^include /etc/modprobe.conf | awk '{print $2}') || LIST=''
+		FILES=""
+		for FILE in $LIST
+		do
+			if [ -d $FILE ]; then
+				FILES="$FILES $(find -L $FILE -type f)"
+			else
+				FILES="$FILES $FILE"
+			fi
+		done
+		conf_files $OF /etc/modprobe.conf $FILES
+	fi
 	echolog Done
 }
 
@@ -1263,6 +1259,13 @@ boot_info() {
 		conf_files $OF /etc/grub.conf /boot/grub/menu.lst /boot/grub/device.map
 		log_cmd $OF 'hwinfo --framebuffer'
 	fi
+	if rpm -q grub2 &> /dev/null; then
+		rpm_verify $OF grub2
+		conf_files $OF /etc/default/grub /etc/default/grub_installdevice /boot/grub2/device.map
+		BKOP=$ADD_OPTION_LOGS
+		ADD_OPTION_LOGS=1 conf_files $OF /boot/grub2/grub.cfg
+		ADD_OPTION_LOGS=$BKOP
+	fi
 	if rpm -q lilo &> /dev/null; then
 		rpm_verify $OF lilo
 		conf_files $OF /etc/lilo.conf /etc/yaboot.conf
@@ -1287,7 +1290,8 @@ boot_info() {
 	test -s /var/log/mcelog && { log_cmd $OF "ls -l --time-style=long-iso /var/log/mcelog"; conf_files $OF /var/log/mcelog; }
 	log_cmd $OF 'last -xF | egrep "reboot|shutdown|runlevel|system"'
 
-	conf_files $OF /proc/cmdline /etc/sysconfig/kernel /etc/inittab /etc/init.d/boot.local /etc/init.d/before.local /etc/init.d/after.local /etc/init.d/halt.local
+	(( CENTAURI )) && FILES='/var/log/boot.log' || FILES='/etc/inittab'
+	conf_files $OF /proc/cmdline /etc/sysconfig/kernel $FILES /etc/init.d/boot.local /etc/init.d/before.local /etc/init.d/after.local /etc/init.d/halt.local
 
 	log_cmd $OF 'ls -lR --time-style=long-iso /boot/'
 	if [ $SLES_VER -gt 90 ]; then
@@ -1300,7 +1304,7 @@ boot_info() {
 			fi
 		done
 	fi
-	conf_files $OF /var/log/boot.msg /var/log/boot.omsg
+	(( CENTAURI )) || conf_files $OF /var/log/boot.msg /var/log/boot.omsg
 	log_cmd $OF 'dmesg'
 	echolog Done
 }
@@ -2307,26 +2311,42 @@ environment_info() {
 }
 
 chkconfig_info() {
-	printlog "System Daemons..."
-	test $OPTION_CHKCONFIG -eq 0 && { echolog Excluded; return 1; }
-	OF=chkconfig.txt
+        printlog "System Daemons..."
+        test $OPTION_DAEMONS -eq 0 && { echolog Excluded; return 1; }
+        OF=chkconfig.txt
+        addHeaderFile $OF
+        log_cmd $OF 'chkconfig --list'
+        LOGFILE=$LOG/$OF
+        echo "# individual boot services:" >> $LOGFILE
+        for BOOTSERVICE in $(find -L /etc/init.d/ -type f -name boot\* | grep -v rpmsave$)
+        do
+                NAME=$(basename $BOOTSERVICE)
+                wait_trace_on "chkconfig $NAME"
+                STATUS=$(chkconfig $NAME 2>>$LOGFILE)
+                printf "%25s:  %-4s\n" $(echo $STATUS | awk '{print $1}') $(echo $STATUS | awk '{print $2}') >> $LOGFILE
+                wait_trace_off
+        done
+        log_write $OF
+        log_cmd $OF 'ls -lR --time-style=long-iso /etc/init.d/'
+        log_cmd $OF 'ls -lR --time-style=long-iso /etc/xinetd.d/'
+        FILES=$(find /etc/xinetd.d/ -type f)
+        conf_files $OF $FILES
+        echolog Done
+}
+
+systemd_info() {
+	printlog "SystemD Daemons..."
+	test $OPTION_DAEMONS -eq 0 && { echolog Excluded; return 1; }
+	OF=systemd.txt
 	addHeaderFile $OF
-	log_cmd $OF 'chkconfig --list'
-	LOGFILE=$LOG/$OF
-	echo "# individual boot services:" >> $LOGFILE
-	for BOOTSERVICE in $(find -L /etc/init.d/ -type f -name boot\* | grep -v rpmsave$)
+	rpm_verify $OF systemd
+	log_cmd $OF 'systemctl --no-pager list-units'
+	log_cmd $OF 'systemctl --no-pager list-sockets'
+	log_cmd $OF 'systemctl --no-pager list-unit-files'
+	for i in $(systemctl --no-pager list-unit-files | egrep -v '^UNIT FILE|^[[:digit:]]' | awk '{print $1}')
 	do
-		NAME=$(basename $BOOTSERVICE)
-		wait_trace_on "chkconfig $NAME"
-		STATUS=$(chkconfig $NAME 2>>$LOGFILE)
-		printf "%25s:  %-4s\n" $(echo $STATUS | awk '{print $1}') $(echo $STATUS | awk '{print $2}') >> $LOGFILE
-		wait_trace_off
+		log_cmd $OF "systemctl status '$i'"
 	done
-	log_write $OF
-	log_cmd $OF 'ls -lR --time-style=long-iso /etc/init.d/'
-	log_cmd $OF 'ls -lR --time-style=long-iso /etc/xinetd.d/'
-	FILES=$(find /etc/xinetd.d/ -type f)
-	conf_files $OF $FILES
 	echolog Done
 }
 
@@ -2408,24 +2428,13 @@ lvm_info() {
 	if rpm_verify $OF lvm2
 	then
 		echonlog Base
-		rpm -q lvm &>/dev/null
-		if [ $? -gt 0 ]; then
-			rpm -q lvm2 &>/dev/null
-			if [ $? -eq 0 ]; then
-				VGBIN="vgs"
-				LVBIN="lvs"
-			fi
-		else
-			VGBIN="vgscan"
-			LVBIN="lvscan"
-		fi
 		log_cmd $OF 'chkconfig boot.device-mapper'
 		log_cmd $OF 'chkconfig boot.lvm'
 		log_cmd $OF 'chkconfig boot.md'
 		log_cmd $OF 'chkconfig boot.evms'
-		log_cmd $OF 'pvscan'
-		log_cmd $OF "$VGBIN"
-		log_cmd $OF "$LVBIN"
+		log_cmd $OF 'pvs'
+		log_cmd $OF "vgs"
+		log_cmd $OF "lvs"
 		conf_files $OF /etc/sysconfig/lvm
 		conf_files $OF /etc/lvm/lvm.conf
 		conf_files $OF /etc/lvm/.cache
@@ -5029,9 +5038,12 @@ selected_features() {
 		fi
 	done
 	if (( INVALID_KEYWORDS )); then
-		echo "Use -F for a list of valid feature keywords. Keywords are case sensitive."
 		echo
-		exit_11
+		echo "Valid keywords listed below. They are case sensitive."
+		echo
+		get_features
+		echo
+		exit_code 11
 	fi
 }
 
@@ -5621,7 +5633,6 @@ if [ "$USE_SAVED_LOGS_ONLY" != "1" ]; then
 	basic_healthcheck	#Minimum Requirement
 	rpm_info				#Minimum Requirement
 	basic_environment	#Minimum Requirement
-	basic_report
 	module_info
 	memory_info
 	disk_info
@@ -5660,7 +5671,7 @@ if [ "$USE_SAVED_LOGS_ONLY" != "1" ]; then
 	etc_info
 	sysconfig_info
 	sysfs_info
-	chkconfig_info
+	(( CENTAURI )) && systemd_info || chkconfig_info
 	cron_info
 	udev_info
 	lvm_info
