@@ -1,6 +1,6 @@
 #!/bin/bash
 
-SVER=3.0-8
+SVER=3.0-8.2
 SDATE="2014 02 07"
 
 ##############################################################################
@@ -80,6 +80,7 @@ OPTION_NFS=1
 OPTION_NSS=1
 OPTION_NTP=1
 OPTION_OCFS2=1
+OPTION_OES=0
 OPTION_OFILES=1
 OPTION_PAM=1
 OPTION_PRINT=1
@@ -3431,7 +3432,7 @@ get_sles_ver() {
 	fi
 	grep -i "open enterprise server" /etc/*release* &>/dev/null
 	OESFOUND=$?
-	
+	(( OESFOUND < 1 )) && OPTION_OES=1
 }
 
 rpm_full_verify() {
@@ -5452,6 +5453,7 @@ if [ -s ${SC_CONF:="/etc/${CURRENT_SCRIPT}.conf"} ]; then
 fi
 
 init_plugins on
+get_sles_ver
 NSA_CHECK=0
 ALL_ARGS="$@"
 while getopts :\#AB:CDE:FG:H:I:LM:N:O:P:QR:S:T:U:W:X:abdef:ghi:klmo:pqr:st:uvwx:y TMPOPT
@@ -5529,7 +5531,6 @@ test $ADD_OPTION_LOGS -gt 0 && ADD_OPTION_MAXYAST=1
 
 umask 0077
 log2sys "Initialize"
-get_sles_ver
 
 if [ -n "$TARGET_DIRECTORY" ]; then
 	VAR_OPTION_LOG_DIRS=$TARGET_DIRECTORY
@@ -5637,7 +5638,7 @@ if [ "$USE_SAVED_LOGS_ONLY" != "1" ]; then
 	module_info
 	memory_info
 	disk_info
-	[ $SLES_VER -ge 110 ] && btrfs_info
+	(( SLES_VER >= 110 )) && btrfs_info
 	yast_files			#Minimum Requirement
 	fslist_info
 	audit_info
@@ -5647,32 +5648,34 @@ if [ "$USE_SAVED_LOGS_ONLY" != "1" ]; then
 	boot_info
 	slert_info
 	update_info
-	[ $SLES_VER -lt 110 ] && update_d_info
+	(( SLES_VER < 110 )) && update_d_info
 	smt_info
-	[ $OESFOUND -eq 0 -o $OPTION_EDIR -eq 1 ] && novell_edir_info
-	[ $OESFOUND -eq 0 -o $OPTION_LUM -eq 1 ] && novell_lum_info
-	[ $OESFOUND -eq 0 -o $OPTION_NCP -eq 1 ] && novell_ncp_info
-	[ $OESFOUND -eq 0 -o $OPTION_NSS -eq 1 ] && novell_nss_info
-	[ $OESFOUND -eq 0 -o $OPTION_DFS -eq 1 ] && novell_dfs_info
-	[ $OESFOUND -eq 0 -o $OPTION_SMS -eq 1 ] && novell_sms_info
-	[ $OESFOUND -eq 0 -o $OPTION_NCS -eq 1 ] && novell_ncs_info
-	[ $OESFOUND -eq 0 -o $OPTION_AFP -eq 1 ] && novell_afp_info
-	[ $OESFOUND -eq 0 -o $OPTION_CIFS -eq 1 ] && novell_cifs_info
-	[ $OESFOUND -eq 0 -o $OPTION_IMAN -eq 1 ] && novell_iman_info
-	[ $OESFOUND -eq 0 -o $OPTION_PROXY -eq 1 ] && novell_proxy_info
+	if (( OPTION_OES )); then
+		novell_edir_info
+		novell_lum_info
+		novell_ncp_info
+		novell_nss_info
+		novell_dfs_info
+		novell_sms_info
+		novell_ncs_info
+		novell_afp_info
+		novell_cifs_info
+		novell_iman_info
+		novell_proxy_info
+	fi
 	ha_info
 	ocfs2_info
 	drbd_info
 	pam_info
 	ldap_info
-	[ $SLES_VER -ge 110 ] && sssd_info
+	(( SLES_VER >= 110 )) && sssd_info
 	cimom_info
 	open_files
 	environment_info
 	etc_info
 	sysconfig_info
 	sysfs_info
-	(( CENTAURI )) && systemd_info || chkconfig_info
+	(( SLES_VER >= 120 )) && systemd_info || chkconfig_info
 	cron_info
 	udev_info
 	lvm_info
@@ -5681,7 +5684,7 @@ if [ "$USE_SAVED_LOGS_ONLY" != "1" ]; then
 	mpio_info
 	net_info
 	web_info
-	[ $SLES_VER -ge 100 ] && ib_info
+	(( SLES_VER >= 100 )) && ib_info
 	dns_info
 	dhcp_info
 	slp_info
@@ -5692,17 +5695,17 @@ if [ "$USE_SAVED_LOGS_ONLY" != "1" ]; then
 	autofs_info
 	sar_info
 	apparmor_info
-	[ $SLES_VER -ge 100 ] && xen_info
-	[ $SLES_VER -ge 110 ] && kvm_info
+	(( SLES_VER >= 100 )) && xen_info
+	(( SLES_VER >= 110 )) && kvm_info
 	x_info
 	print_info
 	smartmon_info
 	[ -s ${FSLIST_ADD_FILE} ] && fslist_ufiles_info
 	hardware_info		#Minimum Requirement
-	[ $SLES_VER -ge 110 ] && sam_info
+	(( SLES_VER >= 110 )) && sam_info
 	rpm_full_verify
 	exec_plugins
-	[ $OPTION_MOD -eq 1 ] && post_lsmod_list
+	(( OPTION_MOD > 0 )) && post_lsmod_list
 	log2sys "Finished Gathering"
 	messages_file		#Minimum Requirement
 	write_xml_file
