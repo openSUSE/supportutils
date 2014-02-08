@@ -19,7 +19,7 @@ License:      GPL-2.0
 Group:        System/Management
 Autoreqprov:  on
 Version:      3.0
-Release:      3
+Release:      4
 Source:       %{name}-%{version}.tar.gz
 BuildRoot:    %{_tmppath}/%{name}-%{version}-build
 BuildArch:    noarch
@@ -42,7 +42,9 @@ Authors:
 %setup -q
 
 %build
-gzip -9f man/*
+gzip -9f man/*3
+gzip -9f man/*5
+gzip -9f man/*8
 
 %install
 pwd;ls -la
@@ -54,7 +56,7 @@ install -d $RPM_BUILD_ROOT/usr/share/man/man5
 install -d $RPM_BUILD_ROOT/usr/share/man/man8
 install -d $RPM_BUILD_ROOT/usr/lib/supportconfig/resources
 install -d $RPM_BUILD_ROOT/usr/share/doc/packages/%{name}
-install -m 444 COPYING.GPLv2 $RPM_BUILD_ROOT/usr/share/doc/packages/%{name}
+install -m 444 man/COPYING.GPLv2 $RPM_BUILD_ROOT/usr/share/doc/packages/%{name}
 install -m 544 bin/supportconfig $RPM_BUILD_ROOT/sbin
 install -m 544 bin/chkbin $RPM_BUILD_ROOT/sbin
 install -m 544 bin/getappcore $RPM_BUILD_ROOT/sbin

@@ -26,7 +26,6 @@ dist:
 	@mkdir -p src
 	@mkdir -p $(SRCDIR)
 	@for i in $(SVNDIRS); do cp -a $$i $(SRCDIR); done
-	@cp -a COPYING.GPLv2 $(SRCDIR)
 	@tar cf $(SRCFILE) $(SRCDIR)/*
 	@gzip -9f $(SRCFILE)
 	@rm -rf $(SRCDIR)
