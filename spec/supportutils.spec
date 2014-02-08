@@ -19,7 +19,7 @@ License:      GPL-2.0
 Group:        System/Management
 Autoreqprov:  on
 Version:      3.0
-Release:      5
+Release:      6
 Source:       %{name}-%{version}.tar.gz
 BuildRoot:    %{_tmppath}/%{name}-%{version}-build
 BuildArch:    noarch
@@ -71,11 +71,12 @@ install -m 644 man/*.8.gz $RPM_BUILD_ROOT/usr/share/man/man8
 /sbin/*
 %dir /usr/lib/supportconfig
 %dir /usr/lib/supportconfig/resources
+%dir /usr/share/doc/packages/%{name}
+%doc /usr/share/doc/packages/%{name}/*
 /usr/lib/supportconfig/resources/*
 %doc /usr/share/man/man5/*
 %doc /usr/share/man/man3/*
 %doc /usr/share/man/man8/*
-%doc /usr/share/doc/packages/%{name}/*
 
 %clean
 rm -rf $RPM_BUILD_ROOT
