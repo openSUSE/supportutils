@@ -1,7 +1,7 @@
 #!/bin/bash
 
-SVER=3.0-8.5
-SDATE="2014 02 07"
+SVER=3.0-9
+SDATE="2014 02 08"
 
 ##############################################################################
 #  supportconfig - Gathers system troubleshooting information for NTS.
@@ -809,13 +809,23 @@ basic_environment() {
 		if rpm_verify $BASIC_ENVF SuSEfirewall2
 		then
 			log_write $BASIC_ENVF "#==[ Firewall Services ]============================#"
-			wait_trace_on "rpm -ql SuSEfirewall2 | grep init.d"
-			for i in $(rpm -ql SuSEfirewall2 | grep init.d)
-			do
-				FSRV=$(basename $i)
-				log_write $BASIC_ENVF "$(chkconfig $FSRV --list)"
-			done
-			wait_trace_off
+			log_write $BASIC_ENVF "# Service state"
+			if (( SLES_VER >= 120 )); then
+				wait_trace_on "systemctl status SuSEfirewall2.service"
+				log_write $BASIC_ENVF "$(systemctl status SuSEfirewall2.service)"
+				wait_trace_off
+				wait_trace_on "systemctl status SuSEfirewall2_init.service"
+				log_write $BASIC_ENVF "$(systemctl status SuSEfirewall2_init.service)"
+				wait_trace_off
+			else
+				for i in $(rpm -ql SuSEfirewall2 | grep init.d)
+				do
+					FSRV=$(basename $i)
+					wait_trace_on "chkconfig $FSRV --list"
+					log_write $BASIC_ENVF "$(chkconfig $FSRV --list)"
+					wait_trace_off
+				done
+			fi
 			IPBIN="/usr/sbin/iptables"
 			if [ -x $IPBIN ]; then
 				TOTAL_FIREWALL_RULES=0
@@ -2282,8 +2292,13 @@ environment_info() {
 	OF=env.txt
 	addHeaderFile $OF
 	log_icmd $OF 'ulimit -a'
-	log_cmd $OF 'chkconfig boot.sysctl'
-	conf_files $OF /etc/sysconfig/sysctl /etc/sysctl.conf
+	if (( SLES_VER >= 120 )); then
+		log_cmd $OF 'systemctl status sysctl'
+		conf_files $OF /etc/sysctl.conf /boot/sysctl.conf-* /lib/sysctl.d/*.conf /usr/lib/sysctl.d/*.conf /usr/local/lib/sysctl.d/*.conf /etc/sysctl.d/*.conf /run/sysctl.d/*.conf
+	else
+		log_cmd $OF 'chkconfig boot.sysctl'
+		conf_files $OF /etc/sysctl.conf /etc/sysconfig/sysctl
+	fi
 	log_cmd $OF 'sysctl -a'
 	log_cmd $OF 'getconf -a'
 	log_cmd $OF 'ipcs -l'
@@ -2434,16 +2449,19 @@ lvm_info() {
 	if rpm_verify $OF lvm2
 	then
 		echonlog Base
-		log_cmd $OF 'chkconfig boot.device-mapper'
-		log_cmd $OF 'chkconfig boot.lvm'
-		log_cmd $OF 'chkconfig boot.md'
-		log_cmd $OF 'chkconfig boot.evms'
+		if (( SLES_VER >= 120 )); then
+			FILES="/etc/lvm/lvm.conf"
+		else
+			log_cmd $OF 'chkconfig boot.device-mapper'
+			log_cmd $OF 'chkconfig boot.lvm'
+			log_cmd $OF 'chkconfig boot.md'
+			log_cmd $OF 'chkconfig boot.evms'
+			FILES="/etc/lvm/lvm.conf /etc/sysconfig/lvm /etc/lvm/.cache"
+		fi
 		log_cmd $OF 'pvs'
 		log_cmd $OF "vgs"
 		log_cmd $OF "lvs"
-		conf_files $OF /etc/sysconfig/lvm
-		conf_files $OF /etc/lvm/lvm.conf
-		conf_files $OF /etc/lvm/.cache
+		conf_files $OF $FILES
 		log_cmd $OF 'dmsetup ls --tree'
 		log_cmd $OF 'dmsetup table'
 		log_cmd $OF 'dmsetup info'
@@ -2480,9 +2498,14 @@ mpio_info() {
 	fi
 	if rpm_verify $OF $MPIO_RPM
 	then
-		log_cmd $OF 'chkconfig boot.device-mapper'
-		log_cmd $OF 'chkconfig boot.multipath'
-		check_service $OF multipathd
+		if (( SLES_VER >= 120 )); then
+			log_cmd $OF 'systemctl status multipathd.service'
+			log_cmd $OF 'systemctl status multipathd.socket'
+		else
+			log_cmd $OF 'chkconfig boot.device-mapper'
+			log_cmd $OF 'chkconfig boot.multipath'
+			check_service $OF multipathd
+		fi
 		log_cmd $OF 'lspci -b'
 		log_cmd $OF 'multipath -ll'
 		log_cmd $OF 'ls -lR --time-style=long-iso /dev/disk/'
@@ -2993,18 +3016,31 @@ iscsi_info() {
 		log_write $OF
 		if rpm_verify $OF iscsitarget
 		then
-			check_service $OF iscsitarget
-			log_cmd $OF 'ietadm --op show'
-			conf_files $OF /etc/ietd.conf /proc/net/iet/volume /proc/net/iet/session
+			if (( SLES_VER >= 120 )); then
+				log_cmd $OF 'systemctl status iscsitarget'
+				FILES='/etc/iet/ietd.conf /proc/net/iet/volume /proc/net/iet/session'
+			else
+				check_service $OF iscsitarget
+				log_cmd $OF 'ietadm --op show'
+				FILES='/etc/ietd.conf /proc/net/iet/volume /proc/net/iet/session'
+			fi
+			conf_files $OF $FILES
 		fi
 		log_write $OF "#___________________________________________________________#"
 		log_write $OF "#____[ iSCSI Initiator Information ]________________________#"
 		log_write $OF
 		if rpm_verify $OF open-iscsi
 		then
-			log_cmd $OF 'chkconfig boot.open-iscsi'
-			check_service $OF open-iscsi
-			CHKSRV=$?
+			if (( SLES_VER >= 120 )); then
+				log_cmd $OF 'systemctl status iscsi.service'
+				log_cmd $OF 'systemctl status iscsid.service'
+				log_cmd $OF 'systemctl status iscsid.socket'
+				CHKSRV=0
+			else
+				log_cmd $OF 'chkconfig boot.open-iscsi'
+				check_service $OF open-iscsi
+				CHKSRV=$?
+			fi
 			log_cmd $OF 'iscsi-iname'
 			conf_files $OF /etc/iscsid.conf
 			if [ $CHKSRV -eq 0 ]; then
@@ -3170,19 +3206,26 @@ udev_info() {
 	if rpm_verify $OF udev
 	then
 		UDEV_CONF=/etc/udev/udev.conf
-		log_cmd $OF 'chkconfig boot.udev'
+		if (( SLES_VER >= 120 )); then
+			log_cmd $OF 'systemctl status udev.service'
+		else
+			log_cmd $OF 'chkconfig boot.udev'
+		fi
 		conf_files $OF $UDEV_CONF
 		case $SLES_VER in
 		80|90) log_cmd $OF "udevinfo -d" ;;
 		10*) log_cmd $OF "udevinfo -e" ;;
 		11*|12*) log_cmd $OF "udevadm info -e" ;;
 		esac 
-		if [ -f $UDEV_CONF ]; then
+		if [[ -f $UDEV_CONF ]]; then
 			. $UDEV_CONF
-			if [ -d "${udev_rules:=/etc/udev/rules.d}" ]; then
-				FILES=$(find -L ${udev_rules}/ -type f)
-				conf_files $OF $FILES
-			fi
+			for UDEV_DIR in /usr/lib/udev/rules.d ${udev_rules:=/etc/udev/rules.d}
+			do
+				if [[ -d $UDEV_DIR ]]; then
+					FILES=$(find -L $UDEV_DIR/ -type f)
+					conf_files $OF $FILES
+				fi
+			done
 			test "$udev_db" != "" && log_cmd $OF "ls -l --time-style=long-iso ${udev_db}/"
 		fi
 		echolog Done
@@ -3198,59 +3241,75 @@ crash_info() {
 	OF=crash.txt
 	addHeaderFile $OF
 	SKIP=0
-	if rpm_verify $OF lkcdutils
-	then
-		DUMPCFG="/etc/sysconfig/dump"
-		log_cmd $OF "lkcd query"
-		log_cmd $OF "chkconfig boot.lkcd"
-		log_cmd $OF "chkconfig lkcd-netdump --list"
-		conf_files $OF $DUMPCFG
-		if [ -f $DUMPCFG ]; then
-			DUMPDEV=$(grep ^DUMPDEV $DUMPCFG | sed -e 's/"//g' | cut -d= -f2)
-			FOUND=$(echo $DUMPDEV | grep /dev)
-			if [ -n "$FOUND" ]; then
-				log_cmd $OF "ls -l --time-style=long-iso ${DUMPDEV}/"
-			fi
-		fi
-		log_cmd $OF "sysctl kernel.sysrq"
-		log_cmd $OF 'grep -A20 -i "saving lkcd dump" /var/log/boot.msg'
-		test -d /var/log/dump && FILES=$(find -L /var/log/dump/ -type f 2>/dev/null | grep analysis) || FILES=""
-		test -z "$FILES" || conf_files $OF $FILES
-	fi
-
-	if rpm -q kernel-kdump &>/dev/null; then
-		rpm_verify $OF kernel-kdump
-		DUMPCFG="/etc/sysconfig/kdump"
-		rpm_verify $OF kexec-tools
-		log_cmd $OF "uname -r"
-		check_service $OF kdump
-		conf_files $OF $DUMPCFG /proc/cmdline
-		log_cmd $OF "sysctl kernel.sysrq"
-		log_cmd $OF 'sysctl kernel 2>/dev/null | grep panic'
-		if [ -f $DUMPCFG ]; then
-			DUMPDIR=$(grep ^KDUMP_SAVEDIR $DUMPCFG | sed -e 's/"//g;s!file://!!g' | cut -d= -f2)
-			if [ -d $DUMPDIR ]; then
-				log_cmd $OF "find -L ${DUMPDIR}/"
-			else
-				log_entry $OF conf "KDUMP_SAVEDIR not found: ${DUMPDIR}"
-			fi
-		fi
-	elif rpm -q kdump &>/dev/null; then
+	if (( SLES_VER >= 120 )); then
 		rpm_verify $OF kdump
-		DUMPCFG="/etc/sysconfig/kdump"
 		rpm_verify $OF kexec-tools
 		log_cmd $OF "uname -r"
-		check_service $OF boot.kdump
-		check_service $OF kexec
-		conf_files $OF $DUMPCFG /proc/cmdline /sys/kernel/kexec_*
+		log_cmd $OF "systemctl status kdump.service"
+		log_cmd $OF "kdumptool dump_config"
+		conf_files $OF /proc/cmdline
+		DUMPDIR=$(kdumptool dump_config | grep ^KDUMP_SAVEDIR | sed -e 's/"//g;s!file://!!g' | cut -d= -f2)
+		if [[ -d $DUMPDIR ]]; then
+			log_cmd $OF "find -L ${DUMPDIR}/"
+		else
+			log_entry $OF conf "KDUMP_SAVEDIR not found: ${DUMPDIR}"
+		fi
 		log_cmd $OF "sysctl kernel.sysrq"
 		log_cmd $OF 'sysctl kernel 2>/dev/null | grep panic'
-		if [ -f $DUMPCFG ]; then
-			DUMPDIR=$(grep ^KDUMP_SAVEDIR $DUMPCFG | sed -e 's/"//g;s!file://!!g' | cut -d= -f2)
-			if [ -d $DUMPDIR ]; then
-				log_cmd $OF "find -L ${DUMPDIR}/"
-			else
-				log_entry $OF conf "KDUMP_SAVEDIR not found: ${DUMPDIR}"
+	else
+		if rpm -q lkcdutils &>/dev/null; then
+			rpm_verify $OF lkcdutils
+			DUMPCFG="/etc/sysconfig/dump"
+			log_cmd $OF "lkcd query"
+			log_cmd $OF "chkconfig boot.lkcd"
+			log_cmd $OF "chkconfig lkcd-netdump --list"
+			conf_files $OF $DUMPCFG
+			if [ -f $DUMPCFG ]; then
+				DUMPDEV=$(grep ^DUMPDEV $DUMPCFG | sed -e 's/"//g' | cut -d= -f2)
+				FOUND=$(echo $DUMPDEV | grep /dev)
+				if [ -n "$FOUND" ]; then
+					log_cmd $OF "ls -l --time-style=long-iso ${DUMPDEV}/"
+				fi
+			fi
+			log_cmd $OF "sysctl kernel.sysrq"
+			log_cmd $OF 'grep -A20 -i "saving lkcd dump" /var/log/boot.msg'
+			test -d /var/log/dump && FILES=$(find -L /var/log/dump/ -type f 2>/dev/null | grep analysis) || FILES=""
+			test -z "$FILES" || conf_files $OF $FILES
+		fi
+		if rpm -q kernel-kdump &>/dev/null; then
+			rpm_verify $OF kernel-kdump
+			DUMPCFG="/etc/sysconfig/kdump"
+			rpm_verify $OF kexec-tools
+			log_cmd $OF "uname -r"
+			check_service $OF kdump
+			conf_files $OF $DUMPCFG /proc/cmdline
+			log_cmd $OF "sysctl kernel.sysrq"
+			log_cmd $OF 'sysctl kernel 2>/dev/null | grep panic'
+			if [ -f $DUMPCFG ]; then
+				DUMPDIR=$(grep ^KDUMP_SAVEDIR $DUMPCFG | sed -e 's/"//g;s!file://!!g' | cut -d= -f2)
+				if [ -d $DUMPDIR ]; then
+					log_cmd $OF "find -L ${DUMPDIR}/"
+				else
+					log_entry $OF conf "KDUMP_SAVEDIR not found: ${DUMPDIR}"
+				fi
+			fi
+		elif rpm -q kdump &>/dev/null; then
+			rpm_verify $OF kdump
+			DUMPCFG="/etc/sysconfig/kdump"
+			rpm_verify $OF kexec-tools
+			log_cmd $OF "uname -r"
+			check_service $OF boot.kdump
+			check_service $OF kexec
+			conf_files $OF $DUMPCFG /proc/cmdline /sys/kernel/kexec_*
+			log_cmd $OF "sysctl kernel.sysrq"
+			log_cmd $OF 'sysctl kernel 2>/dev/null | grep panic'
+			if [ -f $DUMPCFG ]; then
+				DUMPDIR=$(grep ^KDUMP_SAVEDIR $DUMPCFG | sed -e 's/"//g;s!file://!!g' | cut -d= -f2)
+				if [ -d $DUMPDIR ]; then
+					log_cmd $OF "find -L ${DUMPDIR}/"
+				else
+					log_entry $OF conf "KDUMP_SAVEDIR not found: ${DUMPDIR}"
+				fi
 			fi
 		fi
 	fi
@@ -3270,7 +3329,7 @@ crash_info() {
 	log_cmd $OF "sysctl kernel.core_uses_pid"
 	log_cmd $OF "sysctl kernel.core_pattern"
 	conf_files $OF "/etc/sysconfig/ulimit /etc/security/limits.conf"
-	log_cmd $OF "grep -n 'ulimit -c' /etc/init.d/*"
+	log_cmd $OF "grep -n 'ulimit -c' /etc/init.d/* 2>/dev/null"
 	CORE=$(cat /proc/sys/kernel/core_pattern)
 	SEARCH_LIST=$(mktemp $LOG/crash.search.list.XXXXXXXX)
 	COREFILE=""
@@ -4307,9 +4366,10 @@ proc_info() {
 		conf_files $OF $FILES
 	done
 	FULLPROCS="/proc/irq/ /proc/sys/"
+	FILTER="fs/binfmt_misc/register|net/ipv4/route/flush|net/ipv6/route/flush|vm/compact_memory"
 	for PROCDIR in $FULLPROCS
 	do
-		FILES=$(find $PROCDIR -type f 2>/dev/null | egrep -iv "fs/binfmt_misc/register|net/ipv4/route/flush|vm/compact_memory" | sort -f)
+		FILES=$(find $PROCDIR -type f 2>/dev/null | egrep -iv "$FILTER" | sort -f)
 		conf_files $OF $FILES
 	done
 	echolog Done
@@ -5712,7 +5772,7 @@ if [ "$USE_SAVED_LOGS_ONLY" != "1" ]; then
 	cron_info
 	udev_info
 	lvm_info
-	evms_info
+	(( SLES_VER < 120 )) && evms_info
 	soft_raid_info
 	mpio_info
 	net_info
