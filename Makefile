@@ -63,7 +63,7 @@ obs: dist
 	@cp spec/$(OBSPACKAGE).spec Novell:NTS:Unstable/$(OBSPACKAGE)
 	@cp src/$(SRCFILE).gz Novell:NTS:Unstable/$(OBSPACKAGE)
 
-obsreplace: dist
+obreplace: dist
 	@echo [obs]: Committing changes to OBS Novell:NTS:Unstable/$(OBSPACKAGE)
 	@osc -A 'https://api.opensuse.org/' up Novell:NTS:Unstable/$(OBSPACKAGE)
 	@osc -A 'https://api.opensuse.org/' del Novell:NTS:Unstable/$(OBSPACKAGE)/*
@@ -96,7 +96,7 @@ help:
 	@echo ' build      Builds the RPM packages (default)'
 	@echo ' obsetup    Checks out the OBS repository for this package'
 	@echo ' obclean    Removes the local OBS repository files'
-	@echo ' obsreplace Builds the packages and checks files into OBS'
+	@echo ' obreplace  Builds the packages and checks files into OBS'
 	@echo ' obs        Copys source and spec files for OBS change, does not commit'
 	@echo ' commit     Commits all changes to GIT'
 	@echo ' push       Pushes commits to public GIT'
