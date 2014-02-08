@@ -64,7 +64,7 @@ obs: dist
 	@cp src/$(SRCFILE).gz Novell:NTS:Unstable/$(OBSPACKAGE)
 
 obreplace: dist
-	@echo [obs]: Committing changes to OBS Novell:NTS:Unstable/$(OBSPACKAGE)
+	@echo [obreplace]: Committing changes to OBS Novell:NTS:Unstable/$(OBSPACKAGE)
 	@osc -A 'https://api.opensuse.org/' up Novell:NTS:Unstable/$(OBSPACKAGE)
 	@osc -A 'https://api.opensuse.org/' del Novell:NTS:Unstable/$(OBSPACKAGE)/*
 	@osc -A 'https://api.opensuse.org/' ci -m "Removing old files before committing: $(OBSPACKAGE)-$(VERSION)-$(RELEASE)" Novell:NTS:Unstable/$(OBSPACKAGE)
