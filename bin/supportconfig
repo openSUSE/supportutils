@@ -1,6 +1,6 @@
 #!/bin/bash
 
-SVER=3.0-9.1
+SVER=3.0-10
 SDATE="2014 02 10"
 
 ##############################################################################
@@ -10,9 +10,6 @@ SDATE="2014 02 10"
 #  Creates a tar ball to attach to the SR or send to support. Basic info is 
 #  collected for SLES8. More comprehensive information is collected for 
 #  SLES9/SLE10/SLE11/SLE12, OES1/OES2/OES11 for SLES.
-#
-#  Please submit bug fixes or comments via:
-#    http://en.opensuse.org/Supportutils#Reporting_Bugs
 #
 #  Disclaimer:
 #  Detailed system information and logs are collected and organized in a
