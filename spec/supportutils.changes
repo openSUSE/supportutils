@@ -1,4 +1,10 @@
 -------------------------------------------------------------------
+Mon Feb 10 12:49:53 MST 2014 - jrecord@suse.com
+
+- Fixed systemd for slpd
+- supportconfig: 3.0-11
+
+-------------------------------------------------------------------
 Mon Feb 10 18:15:35 UTC 2014 - jrecord@suse.com
 
 - Added all systemd unit files

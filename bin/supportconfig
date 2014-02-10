@@ -1,6 +1,6 @@
 #!/bin/bash
 
-SVER=3.0-10
+SVER=3.0-11
 SDATE="2014 02 10"
 
 ##############################################################################
@@ -3910,7 +3910,12 @@ slp_info() {
 	addHeaderFile $OF
 	if rpm_verify $OF openslp-server
 	then
-		check_service $OF slpd
+		if (( SLES_VER >= 120 ))
+		then
+			log_cmd $OF 'systemctl status slpd'
+		else
+			check_service $OF slpd
+		fi
 	fi
 	if rpm_verify $OF openslp
 	then
