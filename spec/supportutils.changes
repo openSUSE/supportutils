@@ -1,4 +1,16 @@
 -------------------------------------------------------------------
+Mon Feb 10 18:15:35 UTC 2014 - jrecord@suse.com
+
+- Added all systemd unit files
+- Added PPC64 specific commands in hardware.txt (bnc#859658)
+- supportconfig: 3.0-10
+
+-------------------------------------------------------------------
+Sat Feb  8 21:44:10 UTC 2014 - jrecord@suse.com
+
+- Fixed packaging error
+
+-------------------------------------------------------------------
 Sat Feb 08 14:16:00 MST 2014 - jrecord@suse.com
 
 - Packaged COPYING.GPLv2
