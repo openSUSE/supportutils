@@ -2729,6 +2729,7 @@ hardware_info() {
 	if [[ "$ARCH" != "ppc64" ]]; then
 		if grep pSeries /proc/cpuinfo &>/dev/null; then
 			if rpm -q powerpc-utils &>/dev/null; then
+				rpm_verify $OF powerpc-utils
 				log_cmd $OF "nvram -v --partitions"
 				log_cmd $OF "nvram --partitions|awk 'NR>1{print \$5}' |xargs -I {} nvram --dump {}"
 				log_cmd $OF "ppc64_cpu --smt"
@@ -2742,16 +2743,19 @@ hardware_info() {
 				log_cmd $OF "lparstat -i"
 			fi
 			if rpm -q lsvpd &>/dev/null; then
+				rpm_verify $OF lsvpd
 				log_cmd $OF "lscfg -vp"
 				log_cmd $OF "lsmcode -A"
 				log_cmd $OF "lsvpd --debug"
 				log_cmd $OF "lsvio -des"
 			fi
 			if rpm -q servicelog &>/dev/null; then
+				rpm_verify $OF servicelog
 				log_cmd $OF "servicelog --dump"
 				log_cmd $OF "servicelog_notify --list"
 			fi
 			if rpm -q ppc64-diag &>/dev/null; then
+				rpm_verify $OF ppc64-diag
 				log_cmd $OF "usysattn"
 				log_cmd $OF "usysident"
 			fi
