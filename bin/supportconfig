@@ -1,7 +1,7 @@
 #!/bin/bash
 
-SVER=3.0-9
-SDATE="2014 02 08"
+SVER=3.0-9.1
+SDATE="2014 02 10"
 
 ##############################################################################
 #  supportconfig - Gathers system troubleshooting information for NTS.
@@ -2726,6 +2726,42 @@ hardware_info() {
 		else
 			log_cmd $OF "echo y | $ALSABIN --no-dialog --no-upload --with-configs --with-devices &>/dev/null"
 			log_files $OF 0 /tmp/alsa-info.txt
+		fi
+	fi
+	ARCH=$(uname -i)
+	if [[ "$ARCH" != "ppc64" ]]; then
+		if grep pSeries /proc/cpuinfo &>/dev/null; then
+			if rpm -q powerpc-utils &>/dev/null; then
+				log_cmd $OF "nvram -v --partitions"
+				log_cmd $OF "nvram --partitions|awk 'NR>1{print \$5}' |xargs -I {} nvram --dump {}"
+				log_cmd $OF "ppc64_cpu --smt"
+				log_cmd $OF "ppc64_cpu --cores-present"
+				log_cmd $OF "ppc64_cpu --cores-on"
+				log_cmd $OF "ppc64_cpu --run-mode"
+				log_cmd $OF "ppc64_cpu --frequency"
+				log_cmd $OF "ppc64_cpu --dscr"
+				log_cmd $OF "serv_config -l"
+				log_cmd $OF "bootlist -m both -r"
+				log_cmd $OF "lparstat -i"
+			fi
+			if rpm -q lsvpd &>/dev/null; then
+				log_cmd $OF "lscfg -vp"
+				log_cmd $OF "lsmcode -A"
+				log_cmd $OF "lsvpd --debug"
+				log_cmd $OF "lsvio -des"
+			fi
+			if rpm -q servicelog &>/dev/null; then
+				log_cmd $OF "servicelog --dump"
+				log_cmd $OF "servicelog_notify --list"
+			fi
+			if rpm -q ppc64-diag &>/dev/null; then
+				log_cmd $OF "usysattn"
+				log_cmd $OF "usysident"
+			fi
+			conf_files $OF /proc/ppc64/lparcfg /proc/ppc64/eeh /proc/ppc64/systemcfg
+			if [[ -d /proc/device-tree/ ]]; then
+				conf_files $OF /proc/device-tree/*
+			fi
 		fi
 	fi
 	echolog Done
