@@ -1,7 +1,7 @@
 -------------------------------------------------------------------
-Mon Feb 10 12:49:53 MST 2014 - jrecord@suse.com
+Tue Feb 11 21:41:06 UTC 2014 - jrecord@suse.com
 
-- Fixed systemd for slpd
+- Changed chkconfig lookups to systemctl
 - supportconfig: 3.0-11
 
 -------------------------------------------------------------------
@@ -9,7 +9,6 @@ Mon Feb 10 18:15:35 UTC 2014 - jrecord@suse.com
 
 - Added all systemd unit files
 - Added PPC64 specific commands in hardware.txt (bnc#859658)
-- supportconfig: 3.0-10
 
 -------------------------------------------------------------------
 Sat Feb  8 21:44:10 UTC 2014 - jrecord@suse.com
