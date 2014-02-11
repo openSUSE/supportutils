@@ -60,7 +60,7 @@ obclean: clean
 obs: dist
 	@echo [obs]: Preparing OBS Novell:NTS:Unstable/$(OBSPACKAGE) for checkin
 	@osc -A 'https://api.opensuse.org/' up Novell:NTS:Unstable/$(OBSPACKAGE)
-	@cp spec/$(OBSPACKAGE).spec Novell:NTS:Unstable/$(OBSPACKAGE)
+	@cp spec/* Novell:NTS:Unstable/$(OBSPACKAGE)
 	@cp src/$(SRCFILE).gz Novell:NTS:Unstable/$(OBSPACKAGE)
 
 obreplace: dist
