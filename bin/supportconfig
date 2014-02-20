@@ -1,7 +1,7 @@
 #!/bin/bash
 
 SVER=3.0-12
-SDATE="2014 02 19"
+SDATE="2014 02 20"
 
 ##############################################################################
 #  supportconfig - Gathers system troubleshooting information for NTS.
@@ -2337,7 +2337,7 @@ chkconfig_info() {
 }
 
 systemd_info() {
-	printlog "SystemD Daemons..."
+	printlog "SystemD..."
 	test $OPTION_DAEMONS -eq 0 && { echolog Excluded; return 1; }
 	OF=systemd.txt
 	addHeaderFile $OF
@@ -2345,9 +2345,14 @@ systemd_info() {
 	log_cmd $OF 'systemctl --no-pager --all list-units'
 	log_cmd $OF 'systemctl --no-pager --all list-sockets'
 	log_cmd $OF 'systemctl --no-pager list-unit-files'
-	for i in $(systemctl --no-pager list-unit-files | egrep -v '^UNIT FILE|^[[:digit:]]' | awk '{print $1}')
+	for i in $(systemctl --no-pager --all list-units | egrep -v '^UNIT |^LOAD |^ACTIVE |^SUB |^To |^[[:digit:]]* ' | awk '{print $1}')
 	do
-		log_cmd $OF "systemctl status '$i'"
+		if [[ -z "$i" ]]
+		then
+			break
+		else
+			log_cmd $OF "systemctl status '$i'"
+		fi
 	done
 	echolog Done
 }
@@ -2441,15 +2446,17 @@ lvm_info() {
 	then
 		echonlog Base
 		if (( SLES_VER >= 120 )); then
+			log_cmd $OF "systemctl status 'lvm2-activation-early.service'"
 			FILES="/etc/lvm/lvm.conf"
+			log_cmd $OF 'pvs'
 		else
 			log_cmd $OF 'chkconfig boot.device-mapper'
 			log_cmd $OF 'chkconfig boot.lvm'
 			log_cmd $OF 'chkconfig boot.md'
 			log_cmd $OF 'chkconfig boot.evms'
 			FILES="/etc/lvm/lvm.conf /etc/sysconfig/lvm /etc/lvm/.cache"
+			log_cmd $OF 'pvscan'
 		fi
-		log_cmd $OF 'pvs'
 		log_cmd $OF "vgs"
 		log_cmd $OF "lvs"
 		conf_files $OF $FILES
@@ -2576,12 +2583,14 @@ evms_info() {
 
 detectProducts() {
 	OUT=$1
-	if rpm -q SUSE_SLES_SAP-release &>/dev/null; then
+	if rpm -q SUSE_SLES_SAP-release &>/dev/null
+	then
 		log_write $OUT "#==[ System ]=======================================#"
 		log_write $OUT "# Product"
 		log_write $OUT "SUSE Linux Enterprise Server for SAP Applications"
 		log_write $OUT
-	elif rpm -q SLES-for-VMware-release &>/dev/null; then
+	elif rpm -q 'SLES-for-VMware-release' &>/dev/null
+	then
 		log_write $OUT "#==[ System ]=======================================#"
 		log_write $OUT "# Product"
 		log_write $OUT "SUSE Linux Enterprise Server for VMware"
