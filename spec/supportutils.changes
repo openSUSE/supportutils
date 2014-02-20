@@ -1,6 +1,7 @@
 -------------------------------------------------------------------
-Thu Feb 20 20:10:03 UTC 2014 - jrecord@suse.com
+Thu Feb 20 22:19:44 UTC 2014 - jrecord@suse.com
 
+- Added systemctl show to systemd.txt
 - Added LVM status check
 - Changed systemd.txt to check unit-files
 - Fixed tainted kernel detection
