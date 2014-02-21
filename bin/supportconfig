@@ -1,7 +1,7 @@
 #!/bin/bash
 
-SVER=3.0-12
-SDATE="2014 02 20"
+SVER=3.0-13
+SDATE="2014 02 21"
 
 ##############################################################################
 #  supportconfig - Gathers system troubleshooting information for NTS.
@@ -2342,7 +2342,10 @@ systemd_info() {
 	OF=systemd.txt
 	addHeaderFile $OF
 	rpm_verify $OF systemd
+	FILES=''
+	[[ -d /etc/systemd ]] && FILES=$(find -L /etc/systemd -maxdepth 1 -type f)
 	log_cmd $OF 'systemctl --no-pager show'
+	conf_files $OF $FILES
 	log_cmd $OF 'systemctl --no-pager --all list-units'
 	log_cmd $OF 'systemctl --no-pager --all list-sockets'
 	log_cmd $OF 'systemctl --no-pager list-unit-files'
@@ -2352,7 +2355,7 @@ systemd_info() {
 		then
 			break
 		else
-			log_cmd $OF "systemctl status '$i'"
+			log_cmd $OF "systemctl show '$i'"
 		fi
 	done
 	echolog Done
