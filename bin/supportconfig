@@ -1,6 +1,6 @@
 #!/bin/bash
 
-SVER=3.0-13
+SVER=3.0-14
 SDATE="2014 02 21"
 
 ##############################################################################
@@ -2732,8 +2732,8 @@ hardware_info() {
 			log_files $OF 0 /tmp/alsa-info.txt
 		fi
 	fi
-	ARCH=$(uname -i)
-	if [[ "$ARCH" != "ppc64" ]]; then
+	if uname -i | grep ppc64 &> /dev/null
+	then
 		if grep pSeries /proc/cpuinfo &>/dev/null; then
 			if rpm -q powerpc-utils &>/dev/null; then
 				rpm_verify $OF powerpc-utils
@@ -2768,7 +2768,8 @@ hardware_info() {
 			fi
 			conf_files $OF /proc/ppc64/lparcfg /proc/ppc64/eeh /proc/ppc64/systemcfg
 			if [[ -d /proc/device-tree/ ]]; then
-				conf_files $OF /proc/device-tree/*
+				log_cmd $OF 'ls -lR --time-style=long-iso /proc/device-tree/'
+				#conf_files $OF /proc/device-tree/*
 			fi
 		fi
 	fi

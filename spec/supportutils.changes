@@ -1,4 +1,10 @@
 -------------------------------------------------------------------
+Tue Feb 25 21:12:51 UTC 2014 - jrecord@suse.com
+
+- Fixed ppc64 detection in hardware.txt
+- supportconfig: 3.0-14
+
+-------------------------------------------------------------------
 Fri Feb 21 15:35:23 UTC 2014 - jrecord@suse.com
 
 - Added systemctl configuration files
