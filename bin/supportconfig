@@ -1,7 +1,7 @@
 #!/bin/bash
 
-SVER=3.0-14
-SDATE="2014 02 21"
+SVER=3.0-15
+SDATE="2014 02 25"
 
 ##############################################################################
 #  supportconfig - Gathers system troubleshooting information for NTS.
@@ -961,6 +961,7 @@ basic_healthcheck() {
 			if [ $? -gt 0 ]; then
 				log_write $OF "$(printf "%-25s %-25s %-25s" module=$MODULE ERROR "Module info unavailable")"
 			else
+				wait_trace_on "modinfo -l $MODULE"
 				LIC=$(modinfo -l $MODULE | head -1)
 				SUP=$(modinfo -F supported $MODULE | head -1)
 				test -z "$LIC" && LIC=None
@@ -970,6 +971,7 @@ basic_healthcheck() {
 				test "$SUP" != "yes" && ((LIST_MODULE++))
 				test $LIST_MODULE -gt 0 && log_write $OF "$(printf "%-25s %-25s %-25s" "module=$MODULE" "license=$LIC" "supported=$SUP")"
 				LIST_MODULES_ANY=$((LIST_MODULES_ANY + LIST_MODULE))
+				wait_trace_off
 			fi
 		done
 		if [ $LIST_MODULES_ANY -eq 0 ]; then
@@ -1027,7 +1029,11 @@ basic_healthcheck() {
 		# apparmor for SLE10/11
 		log_write $AARTMP "#==[ Summary ]======================================#"
 		log_write $AARTMP "# AppArmor REJECT Messages"
-		log_write $AARTMP "$(chkconfig -l boot.apparmor)"
+		if (( SLES_VER >= 120 )); then
+			log_write $AARTMP "$(systemctl status apparmor.service)"
+		else
+			log_write $AARTMP "$(chkconfig -l boot.apparmor)"
+		fi
 		APP_AUDIT_LOG="/var/log/audit/audit.log"
 		test -f $APP_AUDIT_LOG && AAREJECT=$(egrep 'REJECTING|DENIED' $APP_AUDIT_LOG | wc -l) || AAREJECT=0
 		test -z "$AAREJECT" && AAREJECT=0
@@ -5485,17 +5491,21 @@ post_lsmod_list() {
 	MOD_LAST=$(mktemp $LOG/mod-last-XXXXXXXXXXXXXXX)
 
 	# Get module list before running supportconfig commands
+	wait_trace_on "grep -n '#==\[ Command \]' $LOG/$OF"
 	LN_INIT=$(grep -n '#==\[ Command \]' $LOG/$OF | head -1 | cut -d: -f1)
 	LN_FIN=$(grep -n '#==\[ Command \]' $LOG/$OF | head -2 | tail -1 | cut -d: -f1)
 	LN_TOTAL=$((LN_FIN - LN_INIT))
 	head -$LN_TOTAL $LOG/$OF | sed -e '/^#/d;/Module.*Size.*Used/d;/^$/d' | cut -d' ' -f1 | sort > $MOD_FIRST
 	MOD_CNT_BEFORE=$(cat $MOD_FIRST | wc -l)
 	log_write $OF "Modules Loaded Before Suportconfig:       $MOD_CNT_BEFORE"
+	wait_trace_off
 
 	# Get module list after running supportconfig commands
+	wait_trace_on "lsmod | sed -e '1d' | cut -d' ' -f1 | sort"
 	lsmod | sed -e '1d' | cut -d' ' -f1 | sort > $MOD_LAST
 	MOD_CNT_AFTER=$(cat $MOD_LAST | wc -l)
 	log_write $OF "Modules Loaded After Suportconfig:        $MOD_CNT_AFTER"
+	wait_trace_off
 
 	# Show the module list difference
 	MOD_CNT_ADDED=$((MOD_CNT_AFTER - MOD_CNT_BEFORE))
@@ -5552,6 +5562,7 @@ normalize_base() {
 }
 
 write_xml_file() {
+	wait_trace_on "write_xml_file supportconfig"
 	echo \<\?xml\ version=\"1.0\"\?\> >> $LOG/$XML_FILE
 	if [ -s $VAR_OPTION_HEADER_FILE ]; then
 		echo '<note>' >> $LOG/$XML_FILE
@@ -5608,13 +5619,17 @@ write_xml_file() {
 	test -n "$VAR_OPTION_CONTACT_EMAIL" && 		{ xml_write 'email' "$VAR_OPTION_CONTACT_EMAIL"; }
 	xml_write 'srnum' "$CONTACT_SRNUM"
 	echo '</customer>' >> $LOG/$XML_FILE
+	wait_trace_off
+
 	if [ -d /etc/products.d ]; then
 		echo '<products>' >> $LOG/$XML_FILE
 		for i in $(find -L /etc/products.d/ -type f)
 		do
 			if file $i | grep XML &>/dev/null; then
+				wait_trace_on "write_xml_file $i"
 				sed -e 1d $i >> $LOG/$XML_FILE
-			fi
+				wait_trace_off
+			fi			
 		done
 		echo '</products>' >> $LOG/$XML_FILE
 	fi
