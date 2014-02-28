@@ -1,4 +1,10 @@
 -------------------------------------------------------------------
+Fri Feb 28 23:18:16 UTC 2014 - jrecord@suse.com
+
+- Added /proc/device-tree in hardware.txt for ppc64
+- supportconfig: 3.0-16
+
+-------------------------------------------------------------------
 Tue Feb 25 21:37:47 UTC 2014 - jrecord@suse.com
 
 - Added wait trace logging to module detection

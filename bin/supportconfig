@@ -1,7 +1,7 @@
 #!/bin/bash
 
-SVER=3.0-15
-SDATE="2014 02 25"
+SVER=3.0-16
+SDATE="2014 02 28"
 
 ##############################################################################
 #  supportconfig - Gathers system troubleshooting information for NTS.
@@ -2774,8 +2774,7 @@ hardware_info() {
 			fi
 			conf_files $OF /proc/ppc64/lparcfg /proc/ppc64/eeh /proc/ppc64/systemcfg
 			if [[ -d /proc/device-tree/ ]]; then
-				log_cmd $OF 'ls -lR --time-style=long-iso /proc/device-tree/'
-				#conf_files $OF /proc/device-tree/*
+				conf_files $OF /proc/device-tree/*
 			fi
 		fi
 	fi
