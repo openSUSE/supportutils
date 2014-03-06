@@ -1,7 +1,7 @@
 #!/bin/bash
 
-SVER=3.0-16
-SDATE="2014 02 28"
+SVER=3.0-17
+SDATE="2014 03 05"
 
 ##############################################################################
 #  supportconfig - Gathers system troubleshooting information for NTS.
@@ -3810,14 +3810,21 @@ ha_info() {
 	test $OPTION_HA -eq 0 && { echolog Excluded; return 1; }
 	OF=ha.txt
 	addHeaderFile $OF
-	if [ $SLES_VER -ge 110 ]; then
+	if (( SLES_VER >= 110 )); then
 		if rpm_verify $OF pacemaker
 		then
-			rpm_verify $OF openais
 			log_cmd $OF "rpm -qa | egrep 'ais|resource-agents|cluster-glue|corosync|csync2|pacemaker|heartbeat'"
-			check_service $OF openais
-			if [ $SLES_VER -ge 111 ]; then
-				log_cmd $OF 'chkconfig -l csync2'
+			if (( SLES_VER >= 120 ))
+			then
+				log_cmd $OF "systemctl status pacemaker.service"
+				CONF_FILES="/etc/corosync/corosync.conf /etc/sysconfig/ctdb /etc/sysconfig/sbd"
+			else
+				rpm_verify $OF openais
+				check_service $OF openais
+				CONF_FILES="/etc/ais/openais.conf /etc/corosync/corosync.conf /etc/ais/amf.conf /etc/sysconfig/ctdb /etc/sysconfig/sbd"
+			fi
+			if (( $SLES_VER >= 111 )); then
+				(( SLES_VER < 120 )) && log_cmd $OF 'chkconfig -l csync2'
 				if [ -s /etc/xinetd.d/csync2 ]; then
 					TMPORT=$(grep -i port /etc/xinetd.d/csync2 | awk '{print $3}')
 					log_cmd $OF "netstat -nlp | grep $TMPORT"
@@ -3825,8 +3832,9 @@ ha_info() {
 			fi
 			log_cmd $OF 'ntpq -p'
 			log_cmd $OF 'crm_mon -r -1'
+			log_cmd $OF 'crm_mon -r -n -1'
 			log_cmd $OF 'corosync-cfgtool -s'
-			conf_files $OF /etc/ais/openais.conf /etc/corosync/corosync.conf /etc/ais/amf.conf /etc/sysconfig/ctdb /etc/sysconfig/sbd
+			conf_files $OF $CONF_FILES
 			if [ -s /etc/sysconfig/sbd ]; then
 				. /etc/sysconfig/sbd
 				for SBD in $(echo $SBD_DEVICE | sed -e 's/;/ /g')
@@ -3835,7 +3843,7 @@ ha_info() {
 					log_cmd $OF "sbd -d $SBD dump"
 				done
 			fi
-			if [ $SLES_VER -ge 111 ]; then
+			if (( SLES_VER >= 111 )); then
 				log_cmd $OF 'ls -lR --time-style=long-iso /etc/csync2'
 				conf_files $OF /etc/csync2/csync2.cfg /etc/xinetd.d/csync2
 			fi

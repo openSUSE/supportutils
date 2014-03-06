@@ -1,4 +1,11 @@
 -------------------------------------------------------------------
+Thu Mar  6 19:29:56 UTC 2014 - jrecord@suse.com
+
+- Fixed systemd reference in ha.txt
+- Added node view to ha.txt
+- supportconfig: 3.0-17
+
+-------------------------------------------------------------------
 Fri Feb 28 23:18:16 UTC 2014 - jrecord@suse.com
 
 - Added /proc/device-tree in hardware.txt for ppc64
