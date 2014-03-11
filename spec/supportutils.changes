@@ -1,4 +1,10 @@
 -------------------------------------------------------------------
+Tue Mar 11 15:00:37 UTC 2014 - jrecord@suse.com
+
+- Fixed DNS find errors
+- supportconfig: 3.0-18
+
+-------------------------------------------------------------------
 Thu Mar  6 19:29:56 UTC 2014 - jrecord@suse.com
 
 - Fixed systemd reference in ha.txt
