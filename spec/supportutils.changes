@@ -1,4 +1,9 @@
 -------------------------------------------------------------------
+Thu Mar 13 16:48:49 UTC 2014 - jrecord@suse.com
+
+- Change to System/Monitoring spec Group
+
+-------------------------------------------------------------------
 Tue Mar 11 15:00:37 UTC 2014 - jrecord@suse.com
 
 - Fixed DNS find errors

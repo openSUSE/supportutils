@@ -16,10 +16,10 @@ Name:         supportutils
 Summary:      Support Troubleshooting Tools
 URL:          http://en.opensuse.org/Supportutils
 License:      GPL-2.0
-Group:        System/Management
+Group:        System/Monitoring
 Autoreqprov:  on
 Version:      3.0
-Release:      20
+Release:      21
 Source:       %{name}-%{version}.tar.gz
 BuildRoot:    %{_tmppath}/%{name}-%{version}-build
 BuildArch:    noarch
