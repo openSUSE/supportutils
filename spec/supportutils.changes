@@ -1,6 +1,7 @@
 -------------------------------------------------------------------
-Thu Mar 13 20:19:17 UTC 2014 - jrecord@suse.com
+Thu Mar 20 16:00:02 UTC 2014 - jrecord@suse.com
 
+- Corrected man page headers
 - Fixed FSF address in files
 - Change to System/Monitoring spec Group
 
