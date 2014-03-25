@@ -1,4 +1,11 @@
 -------------------------------------------------------------------
+Tue Mar 25 19:43:49 UTC 2014 - jrecord@suse.com
+
+- Scanning scan_unevictable_pages excluded (bnc#868888)
+- Scanning base_reachable_time excluded (bnc#863234)
+- supportconfig: 3.0-19
+
+-------------------------------------------------------------------
 Thu Mar 20 16:00:02 UTC 2014 - jrecord@suse.com
 
 - Corrected man page headers
