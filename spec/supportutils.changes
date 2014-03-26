@@ -1,4 +1,10 @@
 -------------------------------------------------------------------
+Wed Mar 26 20:30:13 UTC 2014 - jrecord@suse.com
+
+- Fixed duplicate snapshot listings (bnc#870473)
+- supportconfig: 3.0-20
+
+-------------------------------------------------------------------
 Tue Mar 25 19:43:49 UTC 2014 - jrecord@suse.com
 
 - Scanning scan_unevictable_pages excluded (bnc#868888)

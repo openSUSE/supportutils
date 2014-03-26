@@ -1,7 +1,7 @@
 #!/bin/bash
 
-SVER=3.0-19
-SDATE="2014 03 25"
+SVER=3.0-20
+SDATE="2014 03 26"
 
 ##############################################################################
 #  supportconfig - Gathers system troubleshooting information for NTS.
@@ -3021,27 +3021,25 @@ btrfs_info() {
 		log_cmd $OF "modinfo btrfs"
 		for DISK in $(mount | grep -i btrfs | awk '{ print $3 }')
 		do
-			log_write $OF "#___________________________________________________________#"
-			log_write $OF "#____[ B-tree Filesystem: $DISK"
-			log_write $OF
 			log_cmd $OF "btrfs filesystem df $DISK"
 			log_cmd $OF "btrfs scrub status $DISK"
-			log_cmd $OF "btrfs subvolume list $DISK"
-			log_cmd $OF "btrfs subvolume get-default $DISK"
 		done
-		log_write $OF "#___________________________________________________________#"
-		log_write $OF
+
 		FILES="/var/log/messages"
 		test $ADD_OPTION_LOGS -gt 0 && grep_log_files btrfs $OF 0 $FILES || grep_log_files btrfs $OF $VAR_OPTION_LINE_COUNT $FILES
 
 		if rpm_verify $OF snapper; then
 			log_cmd $OF "snapper list-configs"
-			conf_files $OF /etc/sysconfig/snapper /etc/snapper/configs/* /etc/snapper/filters/*
-			CONFIGS=$(snapper list-configs | sed -e '1,2d;s/ *//g' | cut -d\| -f1)
-			for CONFIG in $CONFIGS
+			CONFIGS=$(snapper --table-style 0 list-configs | sed -e 's/[[:space:]]*//g;1,2d')
+			for PAIR in $CONFIGS
 			do
+				CONFIG=$(echo $PAIR | cut -d\| -f1)
+				SUB_VOL=$(echo $PAIR | cut -d\| -f2)
+				log_cmd $OF "btrfs subvolume get-default $SUB_VOL"
+				log_cmd $OF "btrfs subvolume list $SUB_VOL | grep -v '.snapshots'"
 				log_cmd $OF "snapper -c $CONFIG list"
 			done
+			conf_files $OF /etc/sysconfig/snapper /etc/snapper/configs/* /etc/snapper/filters/*
 		fi
 		FILES="/var/log/snapper.log"
 		test $ADD_OPTION_LOGS -gt 0 && log_files $OF 0 $FILES || log_files $OF $VAR_OPTION_LINE_COUNT $FILES
