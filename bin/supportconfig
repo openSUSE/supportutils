@@ -1,7 +1,7 @@
 #!/bin/bash
 
-SVER=3.0-20
-SDATE="2014 03 26"
+SVER=3.0-21
+SDATE="2014 03 27"
 
 ##############################################################################
 #  supportconfig - Gathers system troubleshooting information for NTS.
@@ -2034,7 +2034,7 @@ NCSTEST
 		test -f /etc/sysconfig/NCS && NCS_FILES="/etc/sysconfig/NCS" || NCS_FILES="/etc/sysconfig/novell/ncs*"
 		for NCS_FILE in $NCS_FILES
 		do
-			conf_files $OF $NCS_FILES
+			conf_files $OF $NCS_FILE
 			IPADDR=$(grep ^CONFIG_NCS_CLUSTER_IP $NCS_FILE | cut -d= -f2 | sed -e 's/"//g')
 			[ -n "$IPADDR" ] && ping_addr $OF 'Cluster IP' $IPADDR
 			IPADDR=$(grep ^CONFIG_NCS_SERVER_IP $NCS_FILE | cut -d= -f2 | sed -e 's/"//g')
