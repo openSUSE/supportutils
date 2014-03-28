@@ -1,7 +1,7 @@
 #!/bin/bash
 
-SVER=3.0-21
-SDATE="2014 03 27"
+SVER=3.0-21.DEV_NCS.5
+SDATE="2014 03 28"
 
 ##############################################################################
 #  supportconfig - Gathers system troubleshooting information for NTS.
@@ -1921,7 +1921,7 @@ novell_ncs_info() {
 		unset LOADSCRIPT_DIR
 		for NCS_CHK_DIR in /var/run/ncs /var/opt/novell/log/ncs $NCSE_DIR $NCSV_DIR
 		do
-			if [ -d $NCS_CHK_DIR ]; then
+			if [[ -d $NCS_CHK_DIR ]]; then
 				SCRIPTS="$SCRIPTS $(find -L ${NCS_CHK_DIR}/ -type f | egrep '\.load$|\.unload$|\.monitor$' | sort)"
 				NCSCONFS="$NCSCONFS $(find -L ${NCS_CHK_DIR}/ -type f | egrep '\.conf$' | sort)"
 				NCSXML="$NCSXML $(find -L ${NCS_CHK_DIR}/ -type f | egrep '\.xml$' | sort)"
@@ -2054,11 +2054,158 @@ NCSTEST
 			*) conf_files $OF $i ;;
 			esac
 		done
-		test -s /_admin/Novell/Cluster/EventLog.xml && EVENTLOG="/_admin/Novell/Cluster/EventLog.xml" || EVENTLOG=""
-		test -s /admin/Novell/Cluster/EventLog.xml && EVENTLOG="$EVENTLOG /admin/Novell/Cluster/EventLog.xml"
-		FILES="$RESOURCELOGS $EVENTLOG $NCSXML $SCRIPTS"
+		FILES="$RESOURCELOGS $NCSXML $SCRIPTS"
 		conf_files $OF $FILES
 		sed -i -e 's/\r//g' $LOG/$OF
+		# Event log
+		test -s /_admin/Novell/Cluster/EventLog.xml && EVENTLOGS="/_admin/Novell/Cluster/EventLog.xml" || EVENTLOGS=""
+		test -s /admin/Novell/Cluster/EventLog.xml && EVENTLOGS="$EVENTLOGS /admin/Novell/Cluster/EventLog.xml"
+		OF_EVENTLOG=$(mktemp ${LOG}/novell-ncs-eventlog.XXXXXXXXXX)
+		for EVENTLOG in $EVENTLOGS
+		do
+			log_cmd $OF "cat $EVENTLOG | tac | sed -e 's/<[^>]*>/ /g;s/^[[:space:]]*//g;/^$/d'"
+			cat $EVENTLOG | tac | sed -e 's/<[^>]*>/ /g;s/^[[:space:]]*//g;/^$/d' >> $OF_EVENTLOG
+		done
+		log_cmd $OF "grep 'Failed $OF_EVENTLOG' | grep -v 'Failed at'"
+
+		if [[ -x /opt/novell/ncs/bin/dotoutparser.pl ]]
+		then
+			NCS_PARSER="/opt/novell/ncs/bin/dotoutparser.pl"
+		else
+			NCSOUTPARSEBIN="${LOG}/dotoutparser.pl"
+			BASEOUT="${NCSOUTPARSEBIN}.b64"
+
+# Base64 Ended dotoutparser.pl, it parses the resource .out files for errors
+cat << NCSPARSEOUT > $BASEOUT
+IyEvdXNyL2Jpbi9wZXJsCiMKIyBDb3B5cmlnaHQgKGMpIDIwMTMgTm92ZWxsLCBJbmMuCiMgQWxs
+IFJpZ2h0cyBSZXNlcnZlZC4KIyAgQXV0aG9yOiAgTm92ZWxsLCBJbmMuCiMKIyBUaGlzIHByb2dy
+YW0gaXMgZnJlZSBzb2Z0d2FyZTsgeW91IGNhbiByZWRpc3RyaWJ1dGUgaXQgYW5kL29yCiMgbW9k
+aWZ5IGl0IHVuZGVyIHRoZSB0ZXJtcyBvZiB2ZXJzaW9uIDIgb2YgdGhlIEdOVSBHZW5lcmFsIFB1
+YmxpYwojIExpY2Vuc2UgYXMgcHVibGlzaGVkIGJ5IHRoZSBGcmVlIFNvZnR3YXJlIEZvdW5kYXRp
+b24uCiMKIyBUaGlzIHByb2dyYW0gaXMgZGlzdHJpYnV0ZWQgaW4gdGhlIGhvcGUgdGhhdCBpdCB3
+aWxsIGJlIHVzZWZ1bCwKIyBidXQgV0lUSE9VVCBBTlkgV0FSUkFOVFk7IHdpdGhvdXQgZXZlbiB0
+aGUgaW1wbGllZCB3YXJyYW50eSBvZgojIE1FUkNIQU5UQUJJTElUWSBvciBGSVRORVNTIEZPUiBB
+IFBBUlRJQ1VMQVIgUFVSUE9TRS4gIFNlZSB0aGUKIyBHTlUgR2VuZXJhbCBQdWJsaWMgTGljZW5z
+ZSBmb3IgbW9yZSBkZXRhaWxzLgojCiMgWW91IHNob3VsZCBoYXZlIHJlY2VpdmVkIGEgY29weSBv
+ZiB0aGUgR05VIEdlbmVyYWwgUHVibGljIExpY2Vuc2UKIyBhbG9uZyB3aXRoIHRoaXMgcHJvZ3Jh
+bTsgaWYgbm90LCBjb250YWN0IE5vdmVsbCwgSW5jLgojCiMgVG8gY29udGFjdCBOb3ZlbGwgYWJv
+dXQgdGhpcyBmaWxlIGJ5IHBoeXNpY2FsIG9yIGVsZWN0cm9uaWMgbWFpbCwKIyB5b3UgbWF5IGZp
+bmQgY3VycmVudCBjb250YWN0IGluZm9ybWF0aW9uIGF0IHd3dy5ub3ZlbGwuY29tCiMKIyAgV29y
+a2ZpbGU6ICBkb3RvdXRwYXJzZXIucGwKIyAgQ29udGVudHM6ICBVdGlsaXR5IHRvIHBhcnNlICou
+b3V0IGZpbGVzCiMKCm15ICR2ZXJib3NlID0gMDsKbXkgJGVycm9yID0gMTsKbXkgJHByaW50TE4g
+PSAiXFxkKzogIjsKbXkgJHBDb3VudCA9IDA7CgpteSAkc2VhcmNoX2tleTEgPSAiZXhpdF9vbl9l
+cnJvciI7Cm15ICRzZWFyY2hfa2V5MiA9ICJpZ25vcmVfZXJyb3IiOwpteSBAc2VhcmNoX2tleXMg
+PSAoICRzZWFyY2hfa2V5MSwgJHNlYXJjaF9rZXkyICk7CgpzdWIgUHJvY2Vzc1JlY29yZAp7CiAg
+ICBteSAoJHJlY29yZCwgJHN0YXJ0RGF0ZSwgKCAka2V5MSwgJGtleTIgKSkgPSBAXzsKICAgIG15
+ICRwcm9jZXNzZWQ7CiAgICBteSAkZmFpbGVkID0gMDsKCiAgICAkcmVjb3JkID1+IHMvXHJcbi9c
+bi9tZzsKCiAgICBpZiggJHJlY29yZCA9fiAvXiR7cHJpbnRMTn1cKyAka2V5MSAuKiQvbSApCiAg
+ICB7CiAgICAgICAgJHByb2Nlc3NlZCA9ICRgOwogICAgfQogICAgZWxzZQogICAgewogICAgICAg
+ICRwcm9jZXNzZWQgPSAkcmVjb3JkOwogICAgfQoKICAgIHdoaWxlICgkcmVjb3JkID1+IC9eJHtw
+cmludExOfVwrICRrZXkxIC4qJC9tZyApCiAgICB7CiAgICAgICAgbXkgJGVudHJ5ID0gJCc7CiAg
+ICAgICAgbXkgJGxlZnQgPSAnJzsKCiAgICAgICAgJHByb2Nlc3NlZCAuPSAkJjsKCiAgICAgICAg
+aWYoICRlbnRyeSA9fiAvXiR7cHJpbnRMTn1cKyAka2V5MSAuKiQvbSApCiAgICAgICAgewogICAg
+ICAgICAgICAkZW50cnkgPSAkYDsKICAgICAgICB9CgogICAgICAgIGlmKCAkZW50cnkgPX4gL14k
+e3ByaW50TE59XCsgJGtleTIgLiokL20gKQogICAgICAgIHsKICAgICAgICAgICAgJGxlZnQgPSAk
+JiAuICQnOwogICAgICAgICAgICAkZW50cnkgPSAkYDsKICAgICAgICB9CgogICAgICAgIGlmKCAk
+ZW50cnkgIX4gL14ke3ByaW50TE59XCsgbG9jYWwgcmM9MFxuL20gKQogICAgICAgIHsKICAgICAg
+ICAgICAgJGZhaWxlZCA9IDE7CgogICAgICAgICAgICBpZiggJGVudHJ5ICA9fiAvXi4qXG4uKlxu
+L20gKQogICAgICAgICAgICB7CiAgICAgICAgICAgICAgICAkcHJvY2Vzc2VkIC49ICQmOwogICAg
+ICAgICAgICAgICAgJGVudHJ5ID0gJCc7CiAgICAgICAgICAgIH0KICAgICAgICAgICAgaWYoICRl
+bnRyeSA9fiAvXiR7cHJpbnRMTn1cKyBsb2NhbCByYz1cZCtcbi9tICkKICAgICAgICAgICAgewog
+ICAgICAgICAgICAgICAgJGxlZnQgPSAkJyAuICRsZWZ0OwogICAgICAgICAgICAgICAgJGVudHJ5
+ID0gJGAgLiAkJjsKICAgICAgICAgICAgfQogICAgICAgICAgICAkZW50cnkgPX4gcy9eKCR7cHJp
+bnRMTn0pKC4qKSQvXDFcKyBkb3RvdXRwYXJzZXIgXDIvbWc7CiAgICAgICAgfQoKICAgICAgICAk
+cHJvY2Vzc2VkIC49ICRlbnRyeSAuICRsZWZ0OwogICAgfQoKICAgIGlmKCAwICE9ICRlcnJvciAm
+JiAwID09ICRmYWlsZWQgKSB7IHJldHVybiB9OwoKICAgICRwQ291bnQrKzsKICAgIGlmKCAwID09
+ICR2ZXJib3NlICkKICAgIHsKICAgICAgICBteSAkZmlsdGVyZWQgPSAnJzsKCiAgICAgICAgJHBy
+b2Nlc3NlZCA9fiBzL14ke3ByaW50TE59XCtcKysgLipcbi8vbWc7CiAgICAgICAgd2hpbGUgKCAk
+cHJvY2Vzc2VkID1+IC9eJHtwcmludExOfVwrIC4qXG4vbWcgKQogICAgICAgIHsKICAgICAgICAg
+ICAkZmlsdGVyZWQgLj0gJCY7CiAgICAgICAgfQoKICAgICAgICAkZmlsdGVyZWQgPX4gcy9eJHtw
+cmludExOfVwrIGxvY2FsIHJjPVxkK1xuJHtwcmludExOfVwrIGRhdGVcbi4qXG4vL21nOwogICAg
+ICAgICRmaWx0ZXJlZCA9fiBzL14ke3ByaW50TE59XCsgZGF0ZVxuLipcbi8vbWc7CiAgICAgICAg
+JGZpbHRlcmVkID1+IHMvXiR7cHJpbnRMTn1cKyBldmFsIC4qXG4vL21nOwogICAgICAgICRmaWx0
+ZXJlZCA9fiBzL14ke3ByaW50TE59XCsgXHcrPS4qXG4vL21nOwogICAgICAgICRwcm9jZXNzZWQg
+PSAkZmlsdGVyZWQ7CiAgICB9CiAgICBlbHNpZiggMSA9PSAkdmVyYm9zZSApCiAgICB7CiAgICAg
+ICAgbXkgJGZpbHRlcmVkID0gJyc7CgogICAgICAgICRwcm9jZXNzZWQgPX4gcy9eJHtwcmludExO
+fVwrXCsrIC4qXG4vL21nOwogICAgICAgIHdoaWxlICggJHByb2Nlc3NlZCA9fiAvXiR7cHJpbnRM
+Tn1cKyAuKlxuL21nICkKICAgICAgICB7CiAgICAgICAgICAgICRmaWx0ZXJlZCAuPSAkJjsKICAg
+ICAgICB9CgogICAgICAgICRmaWx0ZXJlZCA9fiBzL14ke3ByaW50TE59XCsgbG9jYWwgcmM9XGQr
+XG4ke3ByaW50TE59XCsgZGF0ZVxuLipcbi8vbWc7CiAgICAgICAgJGZpbHRlcmVkID1+IHMvXiR7
+cHJpbnRMTn1cKyBkYXRlXG4uKlxuLy9tZzsKICAgICAgICAkZmlsdGVyZWQgPX4gcy9eJHtwcmlu
+dExOfVwrIGV2YWwgLipcbi8vbWc7CiAgICAgICAgJHByb2Nlc3NlZCA9ICRmaWx0ZXJlZDsKICAg
+IH0KICAgIGVsc2lmKCAyID09ICR2ZXJib3NlICkKICAgIHsKICAgICAgICBteSAkZmlsdGVyZWQg
+PSAnJzsKCiAgICAgICAgJHByb2Nlc3NlZCA9fiBzL14ke3ByaW50TE59XCtcK1wrKyAuKlxuLy9t
+ZzsKICAgICAgICB3aGlsZSAoICRwcm9jZXNzZWQgPX4gL14ke3ByaW50TE59XCsrIC4qXG4vbWcg
+KQogICAgICAgIHsKICAgICAgICAgICAgJGZpbHRlcmVkIC49ICQmOwogICAgICAgIH0KCiAgICAg
+ICAgJGZpbHRlcmVkID1+IHMvXiR7cHJpbnRMTn1cKyBsb2NhbCByYz1cZCtcbiR7cHJpbnRMTn1c
+KyBkYXRlXG4uKlxuLy9tZzsKICAgICAgICAkZmlsdGVyZWQgPX4gcy9eJHtwcmludExOfVwrIGRh
+dGVcbi4qXG4vL21nOwogICAgICAgICRmaWx0ZXJlZCA9fiBzL14ke3ByaW50TE59XCsgZXZhbCAu
+KlxuLy9tZzsKICAgICAgICAkcHJvY2Vzc2VkID0gJGZpbHRlcmVkOwogICAgfQogICAgZWxzaWYo
+IDMgPT0gJHZlcmJvc2UgKQogICAgewogICAgICAgIG15ICRmaWx0ZXJlZCA9ICcnOwoKICAgICAg
+ICAkcHJvY2Vzc2VkID1+IHMvXiR7cHJpbnRMTn1cK1wrXCtcKysgLipcbi8vbWc7CiAgICAgICAg
+d2hpbGUgKCAkcHJvY2Vzc2VkID1+IC9eJHtwcmludExOfVwrKyAuKlxuL21nICkKICAgICAgICB7
+CiAgICAgICAgICAgJGZpbHRlcmVkIC49ICQmOwogICAgICAgIH0KICAgICAgICAkcHJvY2Vzc2Vk
+ID0gJGZpbHRlcmVkOwogICAgfQoKICAgICRwcm9jZXNzZWQgPX4gcy9eKCR7cHJpbnRMTn0pXCsg
+ZG90b3V0cGFyc2VyIC9cMS9tZzsKICAgIHByaW50ICIkc3RhcnREYXRlICgjJHBDb3VudCk6XG4k
+cHJvY2Vzc2VkXG4iOwp9CgpzdWIgcHJpbnRfdXNhZ2UKewogICBwcmludCBTVERFUlIgIlVzYWdl
+OiAkMCBbLWFdIFstbl0gWy12fC12dnwtdnZ2fC12dnZ2XSBmaWxlX25hbWV8LVxuIjsKICAgcHJp
+bnQgU1RERVJSICIgIFstYV0gcHJpbnQgYWxsIHJlY29yZHMuXG4iOwogICBwcmludCBTVERFUlIg
+IiAgWy1uXSBkbyBub3QgYWRkIGxpbmUgbnVtYmVycy5cbiI7CiAgIHByaW50IFNUREVSUiAiICBb
+LWldIHByaW50IGlnbm9yZWQgZXJyb3JzLlxuIjsKICAgcHJpbnQgU1RERVJSICIgIFstdnwtdnZ8
+LXZ2dnwtdnZ2dl0gc3BlY2lmeSB2ZXJib3NlIGxldmVsLlxuIjsKICAgcHJpbnQgU1RERVJSICIg
+IGZpbGVfbmFtZXwtIHNwZWNpZnkgaW5wdXQgZmlsZSBvciBzdGFuZGFyZCBpbnB1dC5cbiI7Cn0K
+Cm15ICRmaWxlX25hbWUgPSAnJzsKCmZvcmVhY2ggJGFyZyAoQEFSR1YpCnsKICAgIGlmICggJy0t
+aGVscCcgZXEgJGFyZyB8fCAnLWgnIGVxICRhcmcgfHwgJy0/JyBlcSAkYXJnICkKICAgIHsKICAg
+ICAgICAmcHJpbnRfdXNhZ2UoKTsKICAgICAgICBleGl0IDA7CiAgICB9CgogICAgaWYgKCAnLWEn
+IGVxICRhcmcgKXsgJGVycm9yID0gMDsgfQogICAgZWxzaWYgKCAnLW4nIGVxICRhcmcgKXsgJHBy
+aW50TE4gPSAnJzsgfQogICAgZWxzaWYgKCAnLWknIGVxICRhcmcgKXsgQHNlYXJjaF9rZXlzID0g
+cmV2ZXJzZSBAc2VhcmNoX2tleXM7IH0KICAgIGVsc2lmICggJy0nIGVxICRhcmcgKXsgJGZpbGVf
+bmFtZSA9ICImU1RESU4iOyB9CiAgICBlbHNpZiAoICItdiIgZXEgJGFyZyl7ICR2ZXJib3NlID0g
+MTsgfQogICAgZWxzaWYgKCAiLXZ2IiBlcSAkYXJnICl7ICR2ZXJib3NlID0gMjsgfQogICAgZWxz
+aWYgKCAiLXZ2diIgZXEgJGFyZyApeyAkdmVyYm9zZSA9IDM7IH0KICAgIGVsc2lmICggIi12dnZ2
+IiBlcSAkYXJnICl7ICR2ZXJib3NlID0gNDsgfQogICAgZWxzZSB7ICRmaWxlX25hbWUgPSAkYXJn
+OyB9Cn0KCmlmICggJycgZXEgJGZpbGVfbmFtZSApCnsKICAgICZwcmludF91c2FnZSgpOwogICAg
+ZXhpdCAxOwp9CgppZiggMCA9PSBvcGVuKCBpbnB1dF9maWxlLCAiPCRmaWxlX25hbWUiICkpCnsK
+ICAgIHByaW50IFNUREVSUiAiRmFpbGVkIHRvIG9wZW4gaW5wdXQgZmlsZS5cbiI7CiAgICBleGl0
+IDI7Cn0KCm15ICRjb250ZW50ID0gJyc7Cm15ICRzdGFtcDsKCndoaWxlICggPGlucHV0X2ZpbGU+
+ICkKewogICAgaWYgKCAkXyA9fiAvXkNSTTogKC4qKSQvICkKICAgIHsKICAgICAgICAkc3RhbXAg
+PSAkKzsKICAgICAgICBpZiAoICcnIG5lICRjb250ZW50ICkKICAgICAgICB7CiAgICAgICAgICAg
+ICZQcm9jZXNzUmVjb3JkKCAkY29udGVudCwgJHN0YW1wLCBAc2VhcmNoX2tleXMgKTsKICAgICAg
+ICB9CiAgICAgICAgJGNvbnRlbnQgPSAnJzsKICAgIH0KICAgIGVsc2UKICAgIHsKICAgICAgICBp
+ZiggJycgbmUgJHByaW50TE4gKQogICAgICAgIHsKICAgICAgICAgICAgJGNvbnRlbnQgLj0gIiQu
+OiAiOwogICAgICAgIH0KICAgICAgICAkY29udGVudCAuPSAkXzsKICAgIH0KfQoKY2xvc2UoIGlu
+cHV0X2ZpbGUgKTsKCiZQcm9jZXNzUmVjb3JkKCAkY29udGVudCwgJHN0YW1wLCBAc2VhcmNoX2tl
+eXMgKTsKZXhpdCAwOwoK
+NCSPARSEOUT
+
+			base64 -d $BASEOUT > $NCSOUTPARSEBIN 2>/dev/null
+			[[ -s $NCSOUTPARSEBIN ]] && chmod 500 $NCSOUTPARSEBIN
+			NCS_PARSER=$NCSOUTPARSEBIN
+		fi
+
+		# Resource reports
+		CONF="/var/opt/novell/ncs/resource-priority.conf"
+		if [[ -s $CONF ]]
+		then
+			RESOURCE_LIST=$(cat $CONF | grep 'RESOURCE=' | grep -iv 'Master_IP_Address' | cut -d "=" -f2)
+			for RES in $RESOURCE_LIST
+			do
+				OF_RES="novell-ncs-resource-${RES}.txt"
+				addHeaderFile $OF_RES
+				conf_files $OF_RES "/var/opt/novell/ncs/$RES.load /var/opt/novell/ncs/$RES.unload /var/opt/novell/ncs/$RES.monitor"
+				log_cmd $OF_RES "grep $RES $OF_EVENTLOG"
+				log_cmd $OF_RES "$NCS_PARSER -v /var/opt/novell/log/ncs/$RES.load.out"
+				log_cmd $OF_RES "$NCS_PARSER -v /var/opt/novell/log/ncs/$RES.unload.out"
+				log_cmd $OF_RES "$NCS_PARSER -v /var/opt/novell/log/ncs/$RES.monitor.out"
+			done
+		else
+			log_entry $OF note "Error: Missing $CONF, skipping resource reports"
+		fi
+		rm -f $OF_EVENTLOG $NCSOUTPARSEBIN
+
+		# Cluster errors in system logs
+		log_cmd $OF "grep -A3 -i 'The cluster has lost' /var/log/messages"
+		log_cmd $OF "bzcat /var/log/messages*.bz2 | grep -A3 'The cluster has lost' 2>/dev/null"
 		echolog Done
 	else
 		echolog Skipped
