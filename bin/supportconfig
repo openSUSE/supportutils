@@ -1,7 +1,7 @@
 #!/bin/bash
 
-SVER=3.0-21.DEV_NCS.5
-SDATE="2014 03 28"
+SVER=3.0-21.DEV_NCS.7
+SDATE="2014 04 02"
 
 ##############################################################################
 #  supportconfig - Gathers system troubleshooting information for NTS.
@@ -1704,7 +1704,8 @@ novell_nss_info() {
 		else
 			NSS_DIR="/admin/Manage_NSS"
 		fi
-		FILES="$(ls -1 ${NSS_DIR}/*xml 2>/dev/null) $(ls -1 ${NSS_DIR}/Pool/*/*xml 2>/dev/null) $(ls -1 ${NSS_DIR}/Pool/*/ZLSS/*xml 2>/dev/null) $(ls -1 ${NSS_DIR}/LSS/ZLSS/*xml 2>/dev/null) $(ls -1 ${NSS_DIR}/Module/*xml 2>/dev/null)"
+		VOLS=$(find ${NSS_DIR}/Volume -type f | grep 'VolumeInfo.xml' | egrep -v '_IV_/|_ADMIN/')
+		FILES="$(ls -1 ${NSS_DIR}/*xml 2>/dev/null) $(ls -1 ${NSS_DIR}/Pool/*/*xml 2>/dev/null) $VOLS $(ls -1 ${NSS_DIR}/Pool/*/ZLSS/*xml 2>/dev/null) $(ls -1 ${NSS_DIR}/LSS/ZLSS/*xml 2>/dev/null) $(ls -1 ${NSS_DIR}/Module/*xml 2>/dev/null)"
 		conf_files $OF $FILES
 		FILES="/var/opt/novell/log/nss/debug/*"
 		if [ -n $FILES ]; then
@@ -2205,7 +2206,7 @@ NCSPARSEOUT
 
 		# Cluster errors in system logs
 		log_cmd $OF "grep -A3 -i 'The cluster has lost' /var/log/messages"
-		log_cmd $OF "bzcat /var/log/messages*.bz2 | grep -A3 'The cluster has lost' 2>/dev/null"
+		log_cmd $OF "bzcat /var/log/messages*.bz2 2>/dev/null | grep -A3 'The cluster has lost' 2>/dev/null"
 		echolog Done
 	else
 		echolog Skipped

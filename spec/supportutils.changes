@@ -1,4 +1,11 @@
 -------------------------------------------------------------------
+Wed Apr  2 19:20:22 UTC 2014 - jrecord@suse.com
+
+- novell-nss.txt should captures VolumeInfo.xml file (bnc#871536)
+- Added novell-ncs-resource*.txt files
+- Included NCS parsed log information (bnc#870451)
+
+-------------------------------------------------------------------
 Thu Mar 27 19:41:53 UTC 2014 - jrecord@suse.com
 
 - Fixed duplicate NCS files
