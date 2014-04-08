@@ -1,4 +1,10 @@
 -------------------------------------------------------------------
+Tue Apr  8 15:24:01 UTC 2014 - jrecord@suse.com
+
+- Added perl-Bootloader log (bnc#872542)
+- supportconfig: 3.0-27
+
+-------------------------------------------------------------------
 Thu Apr  3 15:36:03 UTC 2014 - jrecord@suse.com
 
 - Fixed drm coniguration commands
