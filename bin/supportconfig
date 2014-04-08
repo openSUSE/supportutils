@@ -1,7 +1,7 @@
 #!/bin/bash
 
-SVER=2.25-420.1
-SDATE="2014 04 04"
+SVER=2.25-421
+SDATE="2014 04 08"
 
 ##############################################################################
 #  supportconfig - Gathers system troubleshooting information for NTS.
