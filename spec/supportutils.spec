@@ -18,8 +18,8 @@ URL:          http://en.opensuse.org/Supportutils
 License:      GPL-2.0
 Group:        System/Monitoring
 Autoreqprov:  on
-Version:      3.0
-Release:      30.140408.DEV.1
+Version:      1.20
+Release:      100
 Source:       %{name}-%{version}.tar.gz
 BuildRoot:    %{_tmppath}/%{name}-%{version}-build
 BuildArch:    noarch

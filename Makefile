@@ -50,30 +50,18 @@ build: clean install
 	@echo
 
 obsetup: obclean
-	@echo [obsetup]: Setup OBS Novell:NTS:Unstable/$(OBSPACKAGE)
-	@osc -A 'https://api.opensuse.org/' co Novell:NTS:Unstable/$(OBSPACKAGE) &>/dev/null
+	@echo [obsetup]: Setup IBS SUSE:SLE-11-SP3:Update:Test/$(OBSPACKAGE)
+	@osc -A 'https://api.suse.de' bco SUSE:SLE-11-SP3:Update:Test/$(OBSPACKAGE) &>/dev/null
 
 obclean: clean
-	@echo [obclean]: Cleaning OBS Novell:NTS:Unstable
-	@rm -rf Novell:NTS:Unstable
+	@echo [obclean]: Cleaning IBS SUSE:SLE-11-SP3:Update:Test
+	@rm -rf home:jrecord:branches:SUSE:SLE-11-SP3:Update:Test
 
 obs: dist
-	@echo [obs]: Preparing OBS Novell:NTS:Unstable/$(OBSPACKAGE) for checkin
-	@osc -A 'https://api.opensuse.org/' up Novell:NTS:Unstable/$(OBSPACKAGE) &>/dev/null
-	@cp spec/* Novell:NTS:Unstable/$(OBSPACKAGE)
-	@cp src/$(SRCFILE).gz Novell:NTS:Unstable/$(OBSPACKAGE)
-
-obreplace: dist
-	@echo [obreplace]: Committing changes to OBS Novell:NTS:Unstable/$(OBSPACKAGE)
-	@osc -A 'https://api.opensuse.org/' up Novell:NTS:Unstable/$(OBSPACKAGE)
-	@osc -A 'https://api.opensuse.org/' del Novell:NTS:Unstable/$(OBSPACKAGE)/*
-	@osc -A 'https://api.opensuse.org/' ci -m "Removing old files before committing: $(OBSPACKAGE)-$(VERSION)-$(RELEASE)" Novell:NTS:Unstable/$(OBSPACKAGE)
-	@rm -f Novell:NTS:Unstable/$(OBSPACKAGE)/*
-	@cp spec/$(OBSPACKAGE).* Novell:NTS:Unstable/$(OBSPACKAGE)
-	@cp src/$(SRCFILE).gz Novell:NTS:Unstable/$(OBSPACKAGE)
-	@osc -A 'https://api.opensuse.org/' add Novell:NTS:Unstable/$(OBSPACKAGE)/*
-	@osc -A 'https://api.opensuse.org/' up Novell:NTS:Unstable/$(OBSPACKAGE)
-	@osc -A 'https://api.opensuse.org/' ci -m "Committing to OBS: $(OBSPACKAGE)-$(VERSION)-$(RELEASE)" Novell:NTS:Unstable/$(OBSPACKAGE)
+	@echo [obs]: Preparing IBS SUSE:SLE-11-SP3:Update:Test/$(OBSPACKAGE) for submit request
+	@osc -A 'https://api.suse.de/' up home:jrecord:branches:SUSE:SLE-11-SP3:Update:Test/$(OBSPACKAGE) &>/dev/null
+	@cp spec/* home:jrecord:branches:SUSE:SLE-11-SP3:Update:Test/$(OBSPACKAGE)
+	@cp src/$(SRCFILE).gz home:jrecord:branches:SUSE:SLE-11-SP3:Update:Test/$(OBSPACKAGE)
 
 commit: build
 	@echo [commit]: Committing changes to GIT
@@ -96,7 +84,6 @@ help:
 	@echo ' build      Builds the RPM packages (default)'
 	@echo ' obsetup    Checks out the OBS repository for this package'
 	@echo ' obclean    Removes the local OBS repository files'
-	@echo ' obreplace  Builds the packages and checks files into OBS'
 	@echo ' obs        Copys source and spec files for OBS change, does not commit'
 	@echo ' commit     Commits all changes to GIT'
 	@echo ' push       Pushes commits to public GIT'

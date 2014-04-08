@@ -1,35 +1,18 @@
 -------------------------------------------------------------------
-Tue Apr  8 15:24:01 UTC 2014 - jrecord@suse.com
-
-- Added perl-Bootloader log (bnc#872542)
-- supportconfig: 3.0-27
-
--------------------------------------------------------------------
 Thu Apr  3 15:36:03 UTC 2014 - jrecord@suse.com
 
-- Fixed drm coniguration commands
+- Fixed drm configuration commands
 - novell-nss.txt should captures VolumeInfo.xml file (bnc#871536)
 - Added novell-ncs-resource*.txt files
 - Included NCS parsed log information (bnc#870451)
-- supportconfig: 3.0-26
+- supportconfig: 2.25-421
 
 -------------------------------------------------------------------
 Thu Mar 27 19:41:53 UTC 2014 - jrecord@suse.com
 
 - Fixed duplicate NCS files
 - Fixed duplicate snapshot listings (bnc#870473)
-- supportconfig: 3.0-21
-
--------------------------------------------------------------------
-Tue Mar 25 19:43:49 UTC 2014 - jrecord@suse.com
-
-- Scanning scan_unevictable_pages excluded (bnc#868888)
 - Scanning base_reachable_time excluded (bnc#863234)
-- supportconfig: 3.0-19
-
--------------------------------------------------------------------
-Thu Mar 20 16:00:02 UTC 2014 - jrecord@suse.com
-
 - Corrected man page headers
 - Fixed FSF address in files
 - Change to System/Monitoring spec Group
@@ -38,70 +21,22 @@ Thu Mar 20 16:00:02 UTC 2014 - jrecord@suse.com
 Tue Mar 11 15:00:37 UTC 2014 - jrecord@suse.com
 
 - Fixed DNS find errors
-- supportconfig: 3.0-18
-
--------------------------------------------------------------------
-Thu Mar  6 19:29:56 UTC 2014 - jrecord@suse.com
-
-- Fixed systemd reference in ha.txt
 - Added node view to ha.txt
-- supportconfig: 3.0-17
-
--------------------------------------------------------------------
-Fri Feb 28 23:18:16 UTC 2014 - jrecord@suse.com
-
-- Added /proc/device-tree in hardware.txt for ppc64
-- supportconfig: 3.0-16
-
--------------------------------------------------------------------
-Tue Feb 25 21:37:47 UTC 2014 - jrecord@suse.com
-
 - Added wait trace logging to module detection
-- Fixed ppc64 detection in hardware.txt
-- supportconfig: 3.0-15
-
--------------------------------------------------------------------
-Fri Feb 21 15:35:23 UTC 2014 - jrecord@suse.com
-
-- Added systemctl configuration files
-- Added systemctl show to systemd.txt
 - Added LVM status check
-- Changed systemd.txt to check unit-files
-- Fixed tainted kernel detection
-- supportconfig: 3.0-13
-
--------------------------------------------------------------------
-Tue Feb 11 21:41:06 UTC 2014 - jrecord@suse.com
-
-- Changed chkconfig lookups to systemctl
-- supportconfig: 3.0-11
 
 -------------------------------------------------------------------
 Mon Feb 10 18:15:35 UTC 2014 - jrecord@suse.com
 
-- Added all systemd unit files
-- Added PPC64 specific commands in hardware.txt (bnc#859658)
-
--------------------------------------------------------------------
-Sat Feb  8 21:44:10 UTC 2014 - jrecord@suse.com
-
 - Fixed packaging error
-
--------------------------------------------------------------------
-Sat Feb 08 14:16:00 MST 2014 - jrecord@suse.com
-
 - Packaged COPYING.GPLv2
 - Added modprobe.conf check
-- Added systemd processing
-- Added grub2 processing
 - Fixed invalid keyword exit failure
 - Removed schealth, use SCA Appliance
 - Fixed LVM processing
 - Added OPTION_OES to activate other OES components
-- sssd service activated for sle12
 - Fixed ipv6 flush permission error
 - Env gets sysctl config files
-- supportconfig: 3.0-9
 
 -------------------------------------------------------------------
 Mon Feb 03 15:46:14 MST 2014 - jrecord@suse.com
@@ -110,10 +45,6 @@ Mon Feb 03 15:46:14 MST 2014 - jrecord@suse.com
 -fixed console error from network.txt 
 -limit mcelog to VAR_OPTION_LINE_COUNT
 -added wait_times to messages
-
--------------------------------------------------------------------
-Mon Dec 16 07:59:10 MST 2013 - jrecord@suse.com
-
 -fixed HAE cib location for sle11sp3 (bnc#855230)
 
 -------------------------------------------------------------------

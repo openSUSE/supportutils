@@ -1,7 +1,7 @@
 #!/bin/bash
 
-SVER=3.0-27
-SDATE="2014 04 08"
+SVER=2.25-420.1
+SDATE="2014 04 04"
 
 ##############################################################################
 #  supportconfig - Gathers system troubleshooting information for NTS.
@@ -805,22 +805,13 @@ basic_environment() {
 		then
 			log_write $BASIC_ENVF "#==[ Firewall Services ]============================#"
 			log_write $BASIC_ENVF "# Service state"
-			if (( SLES_VER >= 120 )); then
-				wait_trace_on "systemctl status SuSEfirewall2.service"
-				log_write $BASIC_ENVF "$(systemctl status SuSEfirewall2.service)"
+			for i in $(rpm -ql SuSEfirewall2 | grep init.d)
+			do
+				FSRV=$(basename $i)
+				wait_trace_on "chkconfig $FSRV --list"
+				log_write $BASIC_ENVF "$(chkconfig $FSRV --list)"
 				wait_trace_off
-				wait_trace_on "systemctl status SuSEfirewall2_init.service"
-				log_write $BASIC_ENVF "$(systemctl status SuSEfirewall2_init.service)"
-				wait_trace_off
-			else
-				for i in $(rpm -ql SuSEfirewall2 | grep init.d)
-				do
-					FSRV=$(basename $i)
-					wait_trace_on "chkconfig $FSRV --list"
-					log_write $BASIC_ENVF "$(chkconfig $FSRV --list)"
-					wait_trace_off
-				done
-			fi
+			done
 			IPBIN="/usr/sbin/iptables"
 			if [ -x $IPBIN ]; then
 				TOTAL_FIREWALL_RULES=0
@@ -896,7 +887,7 @@ basic_healthcheck() {
 		test $((TAINT & 1073741824)) -ne 0 && TAINT_STRING="${TAINT_STRING}N" || TAINT_STRING="${TAINT_STRING} "
 		test $((TAINT & 2147483648)) -ne 0 && TAINT_STRING="${TAINT_STRING}X" || TAINT_STRING="${TAINT_STRING} "
 		;;
-		11*|12*)
+		11*)
 		test $((TAINT & 64))         -ne 0 && TAINT_STRING="${TAINT_STRING}U" || TAINT_STRING="${TAINT_STRING} "
 		test $((TAINT & 128))        -ne 0 && TAINT_STRING="${TAINT_STRING}D" || TAINT_STRING="${TAINT_STRING} "
 		test $((TAINT & 256))        -ne 0 && TAINT_STRING="${TAINT_STRING}A" || TAINT_STRING="${TAINT_STRING} "
@@ -935,17 +926,6 @@ basic_healthcheck() {
 		test $((TAINT & 512))        -ne 0 && log_write $OF "  TAINT: (W) Taint on warning"
 		test $((TAINT & 1024))       -ne 0 && log_write $OF "  TAINT: (C) Modules from drivers/staging are loaded"
 		test $((TAINT & 2048))       -ne 0 && log_write $OF "  TAINT: (I) Working around severe firmware bug"
-		test $((TAINT & 1073741824)) -ne 0 && log_write $OF "  TAINT: (N) Unsupported modules loaded"
-		test $((TAINT & 2147483648)) -ne 0 && log_write $OF "  TAINT: (X) Modules with external support loaded"
-		;;
-		12*)
-		test $((TAINT & 64))         -ne 0 && log_write $OF "  TAINT: (U) Userspace-defined problems"
-		test $((TAINT & 128))        -ne 0 && log_write $OF "  TAINT: (D) Kernel has oopsed before"
-		test $((TAINT & 256))        -ne 0 && log_write $OF "  TAINT: (A) ACPI table overridden"
-		test $((TAINT & 512))        -ne 0 && log_write $OF "  TAINT: (W) Taint on warning"
-		test $((TAINT & 1024))       -ne 0 && log_write $OF "  TAINT: (C) Modules from drivers/staging are loaded"
-		test $((TAINT & 2048))       -ne 0 && log_write $OF "  TAINT: (I) Working around severe firmware bug"
-		test $((TAINT & 4096))       -ne 0 && log_write $OF "  TAINT: (O) Out-of-tree module has been loaded"
 		test $((TAINT & 1073741824)) -ne 0 && log_write $OF "  TAINT: (N) Unsupported modules loaded"
 		test $((TAINT & 2147483648)) -ne 0 && log_write $OF "  TAINT: (X) Modules with external support loaded"
 		;;
@@ -1028,11 +1008,7 @@ basic_healthcheck() {
 		# apparmor for SLE10/11
 		log_write $AARTMP "#==[ Summary ]======================================#"
 		log_write $AARTMP "# AppArmor REJECT Messages"
-		if (( SLES_VER >= 120 )); then
-			log_write $AARTMP "$(systemctl status apparmor.service)"
-		else
-			log_write $AARTMP "$(chkconfig -l boot.apparmor)"
-		fi
+		log_write $AARTMP "$(chkconfig -l boot.apparmor)"
 		APP_AUDIT_LOG="/var/log/audit/audit.log"
 		test -f $APP_AUDIT_LOG && AAREJECT=$(egrep 'REJECTING|DENIED' $APP_AUDIT_LOG | wc -l) || AAREJECT=0
 		test -z "$AAREJECT" && AAREJECT=0
@@ -1118,21 +1094,17 @@ module_info() {
 		[ -n "$MODOPT" ] && { log_write $OF "# Module Configuration"; log_write $OF "$MODOPT"; log_write $OF; }
 	done
 	conf_files $OF /lib/modules/$(uname -r)/modules.dep
-	if (( SLES_VER >= 120 )); then
-		conf_files $OF /etc/modprobe.d/*
-	else
-		[[ -s /etc/modprobe.conf ]] && LIST=$(grep ^include /etc/modprobe.conf | awk '{print $2}') || LIST=''
-		FILES=""
-		for FILE in $LIST
-		do
-			if [ -d $FILE ]; then
-				FILES="$FILES $(find -L $FILE -type f)"
-			else
-				FILES="$FILES $FILE"
-			fi
-		done
-		conf_files $OF /etc/modprobe.conf $FILES
-	fi
+	[[ -s /etc/modprobe.conf ]] && LIST=$(grep ^include /etc/modprobe.conf | awk '{print $2}') || LIST=''
+	FILES=""
+	for FILE in $LIST
+	do
+		if [ -d $FILE ]; then
+			FILES="$FILES $(find -L $FILE -type f)"
+		else
+			FILES="$FILES $FILE"
+		fi
+	done
+	conf_files $OF /etc/modprobe.conf $FILES
 	echolog Done
 }
 
@@ -1252,13 +1224,6 @@ boot_info() {
 		conf_files $OF /etc/grub.conf /boot/grub/menu.lst /boot/grub/device.map
 		log_cmd $OF 'hwinfo --framebuffer'
 	fi
-	if rpm -q grub2 &> /dev/null; then
-		rpm_verify $OF grub2
-		conf_files $OF /etc/default/grub /etc/default/grub_installdevice /boot/grub2/device.map
-		BKOP=$ADD_OPTION_LOGS
-		ADD_OPTION_LOGS=1 conf_files $OF /boot/grub2/grub.cfg
-		ADD_OPTION_LOGS=$BKOP
-	fi
 	if rpm -q lilo &> /dev/null; then
 		rpm_verify $OF lilo
 		conf_files $OF /etc/lilo.conf /etc/yaboot.conf
@@ -1278,18 +1243,12 @@ boot_info() {
 	if rpm -q z390-tools &> /dev/null; then
 		conf_files $OF /etc/zipl.conf
 	fi
-	if rpm -q perl-Bootloader &> /dev/null; then
-		rpm_verify $OF perl-Bootloader
-		FILES="/var/log/pbl.log"
-		test $ADD_OPTION_LOGS -gt 0 && log_files $OF 0 $FILES || log_files $OF $VAR_OPTION_LINE_COUNT $FILES
-	fi
 
 	test -e /usr/sbin/mcelog && log_cmd $OF "/usr/sbin/mcelog --ignorenodev --filter --dmi"
 	test -s /var/log/mcelog && { log_cmd $OF "ls -l --time-style=long-iso /var/log/mcelog"; conf_files $OF /var/log/mcelog; }
 	log_cmd $OF 'last -xF | egrep "reboot|shutdown|runlevel|system"'
 
-	(( SLES_VER >= 120 )) && FILES='/var/log/boot.log' || FILES='/etc/inittab'
-	conf_files $OF /proc/cmdline /etc/sysconfig/kernel $FILES /etc/init.d/boot.local /etc/init.d/before.local /etc/init.d/after.local /etc/init.d/halt.local
+	conf_files $OF /proc/cmdline /etc/sysconfig/kernel /etc/inittab /etc/init.d/boot.local /etc/init.d/before.local /etc/init.d/after.local /etc/init.d/halt.local
 
 	log_cmd $OF 'ls -lR --time-style=long-iso /boot/'
 	if [ $SLES_VER -gt 90 ]; then
@@ -1302,7 +1261,7 @@ boot_info() {
 			fi
 		done
 	fi
-	(( SLES_VER >= 120 )) || conf_files $OF /var/log/boot.msg /var/log/boot.omsg
+	conf_files $OF /var/log/boot.msg /var/log/boot.omsg
 	log_cmd $OF 'dmesg'
 	echolog Done
 }
@@ -2248,11 +2207,7 @@ sssd_info() {
 	if rpm_verify $OF sssd; then
 		rpm_verify $OF sssd-tool
 		rpm_verify $OF python-sssd-config
-		if (( SLES_VER >= 120 )); then
-			log_cmd $OF 'systemctl status sssd.service'
-		else
-			check_service $OF sssd
-		fi
+		check_service $OF sssd
 		conf_files $OF "/etc/nsswitch.conf /etc/sssd/sssd.conf"
 		SRVS_LDAP=$(grep "^[[:space:]]*ldap_uri" /etc/sssd/sssd.conf | cut -d= -f2 | sed -e 's/ *//g;s/,/ /g')
 		if [ -n "$SRVS_LDAP" ]; then
@@ -2272,25 +2227,20 @@ sssd_info() {
 		fi
 		log_cmd $OF 'date +"%Y-%m-%d %H:%M"'
 		log_cmd $OF 'ls -lR --time-style=long-iso /var/lib/sss/'
-		if (( SLES_VER < 120 )); then
-			[ -s /etc/init.d/sssd ] && SSSD_PIDF=$(grep '^PID_FILE' /etc/init.d/sssd | sed -e 's/ *//g' | cut -d= -f2)
-			test -z "$SSSD_PIDF" && SLAPD_PIDF="/var/run/sssd.pid"
-			if [ -f $SSSD_PIDF ]; then
-				SSSD_PID=$(cat $SSSD_PIDF)
-			else
-				SSSD_PID=""
-			fi
-			if [ -n "$SSSD_PID" ]; then
-				SSSD_PIDS=$(ps axwwo pid,ppid,cmd | grep ${SSSD_PID} | grep -v grep | awk '{print $1}' | sort -n)
-				log_cmd $OF "ps axwwo user,pid,ppid,%cpu,%mem,vsz,rss,stat,time,cmd | egrep \"${SSSD_PID}|PPID\" | grep -v grep"
-				for THISPID in $SSSD_PIDS
-				do
-					log_cmd $OF "lsof -p $THISPID"
-				done
-			else
-				log_cmd $OF "ps axwwo user,pid,ppid,%cpu,%mem,vsz,rss,stat,time,cmd | egrep \"sssd|PPID\" | grep -v grep"
-				log_cmd $OF "lsof | grep sssd"
-			fi
+		[ -s /etc/init.d/sssd ] && SSSD_PIDF=$(grep '^PID_FILE' /etc/init.d/sssd | sed -e 's/ *//g' | cut -d= -f2)
+		test -z "$SSSD_PIDF" && SLAPD_PIDF="/var/run/sssd.pid"
+		if [ -f $SSSD_PIDF ]; then
+			SSSD_PID=$(cat $SSSD_PIDF)
+		else
+			SSSD_PID=""
+		fi
+		if [ -n "$SSSD_PID" ]; then
+			SSSD_PIDS=$(ps axwwo pid,ppid,cmd | grep ${SSSD_PID} | grep -v grep | awk '{print $1}' | sort -n)
+			log_cmd $OF "ps axwwo user,pid,ppid,%cpu,%mem,vsz,rss,stat,time,cmd | egrep \"${SSSD_PID}|PPID\" | grep -v grep"
+			for THISPID in $SSSD_PIDS
+			do
+				log_cmd $OF "lsof -p $THISPID"
+			done
 		else
 			log_cmd $OF "ps axwwo user,pid,ppid,%cpu,%mem,vsz,rss,stat,time,cmd | egrep \"sssd|PPID\" | grep -v grep"
 			log_cmd $OF "lsof | grep sssd"
@@ -2431,13 +2381,8 @@ environment_info() {
 	OF=env.txt
 	addHeaderFile $OF
 	log_icmd $OF 'ulimit -a'
-	if (( SLES_VER >= 120 )); then
-		log_cmd $OF 'systemctl status sysctl'
-		conf_files $OF /etc/sysctl.conf /boot/sysctl.conf-* /lib/sysctl.d/*.conf /usr/lib/sysctl.d/*.conf /usr/local/lib/sysctl.d/*.conf /etc/sysctl.d/*.conf /run/sysctl.d/*.conf
-	else
-		log_cmd $OF 'chkconfig boot.sysctl'
-		conf_files $OF /etc/sysctl.conf /etc/sysconfig/sysctl
-	fi
+	log_cmd $OF 'chkconfig boot.sysctl'
+	conf_files $OF /etc/sysctl.conf /etc/sysconfig/sysctl
 	log_cmd $OF 'sysctl -a'
 	log_cmd $OF 'getconf -a'
 	log_cmd $OF 'ipcs -l'
@@ -2494,31 +2439,6 @@ chkconfig_info() {
         echolog Done
 }
 
-systemd_info() {
-	printlog "SystemD..."
-	test $OPTION_DAEMONS -eq 0 && { echolog Excluded; return 1; }
-	OF=systemd.txt
-	addHeaderFile $OF
-	rpm_verify $OF systemd
-	FILES=''
-	[[ -d /etc/systemd ]] && FILES=$(find -L /etc/systemd -maxdepth 1 -type f)
-	log_cmd $OF 'systemctl --no-pager show'
-	conf_files $OF $FILES
-	log_cmd $OF 'systemctl --no-pager --all list-units'
-	log_cmd $OF 'systemctl --no-pager --all list-sockets'
-	log_cmd $OF 'systemctl --no-pager list-unit-files'
-	for i in $(systemctl --no-pager --all list-units | egrep -v '^UNIT |^LOAD |^ACTIVE |^SUB |^To |^[[:digit:]]* ' | awk '{print $1}')
-	do
-		if [[ -z "$i" ]]
-		then
-			break
-		else
-			log_cmd $OF "systemctl show '$i'"
-		fi
-	done
-	echolog Done
-}
-
 cron_info() {
 	printlog "CRON..."
 	test $OPTION_CRON -eq 0 && { echolog Excluded; return 1; }
@@ -2526,12 +2446,7 @@ cron_info() {
 	addHeaderFile $OF
 	if rpm_verify $OF cron
 	then
-		if (( SLES_VER >= 120 ))
-		then
-			log_cmd $OF "systemctl status cron.service"
-		else
-			check_service $OF cron
-		fi
+		check_service $OF cron
 		conf_files $OF /var/spool/cron/allow /var/spool/cron/deny
 		log_write $OF "### Individual User Cron Jobs ###"
 		test -d /var/spool/cron/tabs && FILES=$(find -L /var/spool/cron/tabs/ -type f) || FILES=""
@@ -2557,12 +2472,7 @@ cron_info() {
 	log_write $OF "#----------------------------------------------------------------#"
 	if rpm_verify $OF at
 	then
-		if (( SLES_VER >= 120 ))
-		then
-			log_cmd $OF "systemctl status atd.service"
-		else
-			check_service $OF atd
-		fi
+		check_service $OF atd
 		log_write $OF "### System at Job File List ###"
 		log_cmd $OF "find -L /var/spool/atjobs/ -type f"
 		log_write $OF "### System at Job File Content ###"
@@ -2607,18 +2517,12 @@ lvm_info() {
 	if rpm_verify $OF lvm2
 	then
 		echonlog Base
-		if (( SLES_VER >= 120 )); then
-			log_cmd $OF "systemctl status 'lvm2-activation-early.service'"
-			FILES="/etc/lvm/lvm.conf"
-			log_cmd $OF 'pvs'
-		else
-			log_cmd $OF 'chkconfig boot.device-mapper'
-			log_cmd $OF 'chkconfig boot.lvm'
-			log_cmd $OF 'chkconfig boot.md'
-			log_cmd $OF 'chkconfig boot.evms'
-			FILES="/etc/lvm/lvm.conf /etc/sysconfig/lvm /etc/lvm/.cache"
-			log_cmd $OF 'pvscan'
-		fi
+		log_cmd $OF 'chkconfig boot.device-mapper'
+		log_cmd $OF 'chkconfig boot.lvm'
+		log_cmd $OF 'chkconfig boot.md'
+		log_cmd $OF 'chkconfig boot.evms'
+		FILES="/etc/lvm/lvm.conf /etc/sysconfig/lvm /etc/lvm/.cache"
+		log_cmd $OF 'pvscan'
 		log_cmd $OF "vgs"
 		log_cmd $OF "lvs"
 		conf_files $OF $FILES
@@ -2658,14 +2562,9 @@ mpio_info() {
 	fi
 	if rpm_verify $OF $MPIO_RPM
 	then
-		if (( SLES_VER >= 120 )); then
-			log_cmd $OF 'systemctl status multipathd.service'
-			log_cmd $OF 'systemctl status multipathd.socket'
-		else
-			log_cmd $OF 'chkconfig boot.device-mapper'
-			log_cmd $OF 'chkconfig boot.multipath'
-			check_service $OF multipathd
-		fi
+		log_cmd $OF 'chkconfig boot.device-mapper'
+		log_cmd $OF 'chkconfig boot.multipath'
+		check_service $OF multipathd
 		log_cmd $OF 'lspci -b'
 		log_cmd $OF 'multipath -ll'
 		log_cmd $OF 'ls -lR --time-style=long-iso /dev/disk/'
@@ -2677,7 +2576,7 @@ mpio_info() {
 		case $SLES_VER in
 		80|90) log_cmd $OF "udevinfo -d" ;;
 		10*) log_cmd $OF "udevinfo -e" ;;
-		11*|12*) log_cmd $OF "udevadm info -e" ;;
+		11*) log_cmd $OF "udevadm info -e" ;;
 		esac 
 		test -d /proc/scsi && SCSI_DIRS=$(find /proc/scsi/ -type d) || SCSI_DIRS=""
 		for SDIR in $SCSI_DIRS
@@ -2890,46 +2789,6 @@ hardware_info() {
 			log_files $OF 0 /tmp/alsa-info.txt
 		fi
 	fi
-	if uname -i | grep ppc64 &> /dev/null
-	then
-		if grep pSeries /proc/cpuinfo &>/dev/null; then
-			if rpm -q powerpc-utils &>/dev/null; then
-				rpm_verify $OF powerpc-utils
-				log_cmd $OF "nvram -v --partitions"
-				log_cmd $OF "nvram --partitions|awk 'NR>1{print \$5}' |xargs -I {} nvram --dump {}"
-				log_cmd $OF "ppc64_cpu --smt"
-				log_cmd $OF "ppc64_cpu --cores-present"
-				log_cmd $OF "ppc64_cpu --cores-on"
-				log_cmd $OF "ppc64_cpu --run-mode"
-				log_cmd $OF "ppc64_cpu --frequency"
-				log_cmd $OF "ppc64_cpu --dscr"
-				log_cmd $OF "serv_config -l"
-				log_cmd $OF "bootlist -m both -r"
-				log_cmd $OF "lparstat -i"
-			fi
-			if rpm -q lsvpd &>/dev/null; then
-				rpm_verify $OF lsvpd
-				log_cmd $OF "lscfg -vp"
-				log_cmd $OF "lsmcode -A"
-				log_cmd $OF "lsvpd --debug"
-				log_cmd $OF "lsvio -des"
-			fi
-			if rpm -q servicelog &>/dev/null; then
-				rpm_verify $OF servicelog
-				log_cmd $OF "servicelog --dump"
-				log_cmd $OF "servicelog_notify --list"
-			fi
-			if rpm -q ppc64-diag &>/dev/null; then
-				rpm_verify $OF ppc64-diag
-				log_cmd $OF "usysattn"
-				log_cmd $OF "usysident"
-			fi
-			conf_files $OF /proc/ppc64/lparcfg /proc/ppc64/eeh /proc/ppc64/systemcfg
-			if [[ -d /proc/device-tree/ ]]; then
-				conf_files $OF /proc/device-tree/*
-			fi
-		fi
-	fi
 	echolog Done
 }
 
@@ -2939,14 +2798,8 @@ net_info() {
 	OF=network.txt
 	addHeaderFile $OF
 	rpm_verify $OF sysconfig
-	if (( SLES_VER >= 120 ))
-	then
-		log_cmd $OF "systemctl status network.service"
-		log_cmd $OF "systemctl status nscd.service"
-	else
-		check_service $OF network
-		check_service $OF nscd
-	fi
+	check_service $OF network
+	check_service $OF nscd
 	log_cmd $OF 'ifconfig -a'
 	log_cmd $OF "ip addr"
 	log_cmd $OF "ip route"
@@ -3216,20 +3069,15 @@ iscsi_info() {
 			log_cmd $OF 'sfdisk -l'
 		fi
 		;;
-	10*|11*|12*)
+	10*|11*)
 		log_write $OF "#___________________________________________________________#"
 		log_write $OF "#____[ iSCSI Target Information ]___________________________#"
 		log_write $OF
 		if rpm_verify $OF iscsitarget
 		then
-			if (( SLES_VER >= 120 )); then
-				log_cmd $OF 'systemctl status iscsitarget.service'
-				FILES='/etc/iet/ietd.conf /proc/net/iet/volume /proc/net/iet/session'
-			else
-				check_service $OF iscsitarget
-				log_cmd $OF 'ietadm --op show'
-				FILES='/etc/ietd.conf /proc/net/iet/volume /proc/net/iet/session'
-			fi
+			check_service $OF iscsitarget
+			log_cmd $OF 'ietadm --op show'
+			FILES='/etc/ietd.conf /proc/net/iet/volume /proc/net/iet/session'
 			conf_files $OF $FILES
 		fi
 		log_write $OF "#___________________________________________________________#"
@@ -3237,16 +3085,9 @@ iscsi_info() {
 		log_write $OF
 		if rpm_verify $OF open-iscsi
 		then
-			if (( SLES_VER >= 120 )); then
-				log_cmd $OF 'systemctl status iscsi.service'
-				log_cmd $OF 'systemctl status iscsid.service'
-				log_cmd $OF 'systemctl status iscsid.socket'
-				CHKSRV=0
-			else
-				log_cmd $OF 'chkconfig boot.open-iscsi'
-				check_service $OF open-iscsi
-				CHKSRV=$?
-			fi
+			log_cmd $OF 'chkconfig boot.open-iscsi'
+			check_service $OF open-iscsi
+			CHKSRV=$?
 			log_cmd $OF 'iscsi-iname'
 			conf_files $OF /etc/iscsid.conf
 			if [ $CHKSRV -eq 0 ]; then
@@ -3281,16 +3122,9 @@ nfs_info() {
 		if rpm_verify $OF nfs-client
 		then
 			rpm_verify $OF nfs-kernel-server
-			if (( SLES_VER >= 120 ))
-			then
-				log_cmd $OF "systemctl status nfs.service"
-				log_cmd $OF "systemctl status nfsserver.service"
-				NFS_STATUS=$?
-			else
-				check_service $OF nfs
-				check_service $OF nfsserver
-				NFS_STATUS=$?
-			fi
+			check_service $OF nfs
+			check_service $OF nfsserver
+			NFS_STATUS=$?
 			if (( NFS_STATUS ))
 			then
 				log_cmd $OF 'exportfs -v'
@@ -3380,15 +3214,10 @@ ntp_info() {
 			echolog Skipped
 		fi
 		;;
-	11*|12*)
+	11*)
 		if rpm_verify $OF ntp
 		then
-			if (( SLES_VER >= 120 ))
-			then
-				log_cmd $OF "systemctl status ntp.service"
-			else
-				check_service $OF ntp
-			fi
+			check_service $OF ntp
 			log_cmd $OF 'ntpq -p'
 			conf_files $OF $CONFFILE
 			IPADDRS=$(egrep "^peer |^server " $CONFFILE | awk '{print $2}' | sort | uniq)
@@ -3426,16 +3255,12 @@ udev_info() {
 	if rpm_verify $OF udev
 	then
 		UDEV_CONF=/etc/udev/udev.conf
-		if (( SLES_VER >= 120 )); then
-			log_cmd $OF 'systemctl status udev.service'
-		else
-			log_cmd $OF 'chkconfig boot.udev'
-		fi
+		log_cmd $OF 'chkconfig boot.udev'
 		conf_files $OF $UDEV_CONF
 		case $SLES_VER in
 		80|90) log_cmd $OF "udevinfo -d" ;;
 		10*) log_cmd $OF "udevinfo -e" ;;
-		11*|12*) log_cmd $OF "udevadm info -e" ;;
+		11*) log_cmd $OF "udevadm info -e" ;;
 		esac 
 		if [[ -f $UDEV_CONF ]]; then
 			. $UDEV_CONF
@@ -3461,75 +3286,58 @@ crash_info() {
 	OF=crash.txt
 	addHeaderFile $OF
 	SKIP=0
-	if (( SLES_VER >= 120 )); then
-		rpm_verify $OF kdump
-		rpm_verify $OF kexec-tools
-		log_cmd $OF "uname -r"
-		log_cmd $OF "systemctl status kdump.service"
-		log_cmd $OF "kdumptool dump_config"
-		conf_files $OF /proc/cmdline
-		DUMPDIR=$(kdumptool dump_config | grep ^KDUMP_SAVEDIR | sed -e 's/"//g;s!file://!!g' | cut -d= -f2)
-		if [[ -d $DUMPDIR ]]; then
-			log_cmd $OF "find -L ${DUMPDIR}/"
-		else
-			log_entry $OF conf "KDUMP_SAVEDIR not found: ${DUMPDIR}"
+	if rpm -q lkcdutils &>/dev/null; then
+		rpm_verify $OF lkcdutils
+		DUMPCFG="/etc/sysconfig/dump"
+		log_cmd $OF "lkcd query"
+		log_cmd $OF "chkconfig boot.lkcd"
+		log_cmd $OF "chkconfig lkcd-netdump --list"
+		conf_files $OF $DUMPCFG
+		if [ -f $DUMPCFG ]; then
+			DUMPDEV=$(grep ^DUMPDEV $DUMPCFG | sed -e 's/"//g' | cut -d= -f2)
+			FOUND=$(echo $DUMPDEV | grep /dev)
+			if [ -n "$FOUND" ]; then
+				log_cmd $OF "ls -l --time-style=long-iso ${DUMPDEV}/"
+			fi
 		fi
 		log_cmd $OF "sysctl kernel.sysrq"
+		log_cmd $OF 'grep -A20 -i "saving lkcd dump" /var/log/boot.msg'
+		test -d /var/log/dump && FILES=$(find -L /var/log/dump/ -type f 2>/dev/null | grep analysis) || FILES=""
+		test -z "$FILES" || conf_files $OF $FILES
+	fi
+	if rpm -q kernel-kdump &>/dev/null; then
+		rpm_verify $OF kernel-kdump
+		DUMPCFG="/etc/sysconfig/kdump"
+		rpm_verify $OF kexec-tools
+		log_cmd $OF "uname -r"
+		check_service $OF kdump
+		conf_files $OF $DUMPCFG /proc/cmdline
+		log_cmd $OF "sysctl kernel.sysrq"
 		log_cmd $OF 'sysctl kernel 2>/dev/null | grep panic'
-	else
-		if rpm -q lkcdutils &>/dev/null; then
-			rpm_verify $OF lkcdutils
-			DUMPCFG="/etc/sysconfig/dump"
-			log_cmd $OF "lkcd query"
-			log_cmd $OF "chkconfig boot.lkcd"
-			log_cmd $OF "chkconfig lkcd-netdump --list"
-			conf_files $OF $DUMPCFG
-			if [ -f $DUMPCFG ]; then
-				DUMPDEV=$(grep ^DUMPDEV $DUMPCFG | sed -e 's/"//g' | cut -d= -f2)
-				FOUND=$(echo $DUMPDEV | grep /dev)
-				if [ -n "$FOUND" ]; then
-					log_cmd $OF "ls -l --time-style=long-iso ${DUMPDEV}/"
-				fi
+		if [ -f $DUMPCFG ]; then
+			DUMPDIR=$(grep ^KDUMP_SAVEDIR $DUMPCFG | sed -e 's/"//g;s!file://!!g' | cut -d= -f2)
+			if [ -d $DUMPDIR ]; then
+				log_cmd $OF "find -L ${DUMPDIR}/"
+			else
+				log_entry $OF conf "KDUMP_SAVEDIR not found: ${DUMPDIR}"
 			fi
-			log_cmd $OF "sysctl kernel.sysrq"
-			log_cmd $OF 'grep -A20 -i "saving lkcd dump" /var/log/boot.msg'
-			test -d /var/log/dump && FILES=$(find -L /var/log/dump/ -type f 2>/dev/null | grep analysis) || FILES=""
-			test -z "$FILES" || conf_files $OF $FILES
 		fi
-		if rpm -q kernel-kdump &>/dev/null; then
-			rpm_verify $OF kernel-kdump
-			DUMPCFG="/etc/sysconfig/kdump"
-			rpm_verify $OF kexec-tools
-			log_cmd $OF "uname -r"
-			check_service $OF kdump
-			conf_files $OF $DUMPCFG /proc/cmdline
-			log_cmd $OF "sysctl kernel.sysrq"
-			log_cmd $OF 'sysctl kernel 2>/dev/null | grep panic'
-			if [ -f $DUMPCFG ]; then
-				DUMPDIR=$(grep ^KDUMP_SAVEDIR $DUMPCFG | sed -e 's/"//g;s!file://!!g' | cut -d= -f2)
-				if [ -d $DUMPDIR ]; then
-					log_cmd $OF "find -L ${DUMPDIR}/"
-				else
-					log_entry $OF conf "KDUMP_SAVEDIR not found: ${DUMPDIR}"
-				fi
-			fi
-		elif rpm -q kdump &>/dev/null; then
-			rpm_verify $OF kdump
-			DUMPCFG="/etc/sysconfig/kdump"
-			rpm_verify $OF kexec-tools
-			log_cmd $OF "uname -r"
-			check_service $OF boot.kdump
-			check_service $OF kexec
-			conf_files $OF $DUMPCFG /proc/cmdline /sys/kernel/kexec_*
-			log_cmd $OF "sysctl kernel.sysrq"
-			log_cmd $OF 'sysctl kernel 2>/dev/null | grep panic'
-			if [ -f $DUMPCFG ]; then
-				DUMPDIR=$(grep ^KDUMP_SAVEDIR $DUMPCFG | sed -e 's/"//g;s!file://!!g' | cut -d= -f2)
-				if [ -d $DUMPDIR ]; then
-					log_cmd $OF "find -L ${DUMPDIR}/"
-				else
-					log_entry $OF conf "KDUMP_SAVEDIR not found: ${DUMPDIR}"
-				fi
+	elif rpm -q kdump &>/dev/null; then
+		rpm_verify $OF kdump
+		DUMPCFG="/etc/sysconfig/kdump"
+		rpm_verify $OF kexec-tools
+		log_cmd $OF "uname -r"
+		check_service $OF boot.kdump
+		check_service $OF kexec
+		conf_files $OF $DUMPCFG /proc/cmdline /sys/kernel/kexec_*
+		log_cmd $OF "sysctl kernel.sysrq"
+		log_cmd $OF 'sysctl kernel 2>/dev/null | grep panic'
+		if [ -f $DUMPCFG ]; then
+			DUMPDIR=$(grep ^KDUMP_SAVEDIR $DUMPCFG | sed -e 's/"//g;s!file://!!g' | cut -d= -f2)
+			if [ -d $DUMPDIR ]; then
+				log_cmd $OF "find -L ${DUMPDIR}/"
+			else
+				log_entry $OF conf "KDUMP_SAVEDIR not found: ${DUMPDIR}"
 			fi
 		fi
 	fi
@@ -3630,12 +3438,7 @@ printlog "AUTOFS..."
 	addHeaderFile $OF
 	if rpm_verify $OF autofs || rpm_verify $OF autofs4 || rpm_verify $OF autofs5
 	then
-		if (( SLES_VER >= 120 ))
-		then
-			log_cmd $OF "systemctl status autofs.service"
-		else
-			check_service $OF autofs
-		fi
+		check_service $OF autofs
 		[[ -x /usr/bin/findmnt ]] && log_cmd $OF "findmnt" || log_cmd $OF "mount"
 		log_cmd $OF 'ps aux | grep automount | grep -v grep'
 		conf_files $OF /etc/sysconfig/autofs
@@ -3707,8 +3510,7 @@ get_sles_ver() {
 	fi
 	KERNBASE="${KERNMAJ}.${KERNREL}"
 	KERNVER=$(echo $KERNBASE | awk -F\. '{printf "%g%g%02g%02g%03g%03g%03g\n", $1, $2, $3, $4, $5, $6, $7}')
-	if   [ $KERNVER -ge 3120900001000000 ]; then SLES_VER=120;
-	elif [ $KERNVER -ge 263212000007000 ]; then SLES_VER=111;
+	if [ $KERNVER -ge 263212000007000 ]; then SLES_VER=111;
 	elif [ $KERNVER -ge 262719005000000 ]; then SLES_VER=110;
 	elif [ $KERNVER -ge 261660000085001 ]; then SLES_VER=104;
 	elif [ $KERNVER -ge 261660000054005 ]; then SLES_VER=103;
@@ -3964,17 +3766,11 @@ ha_info() {
 		if rpm_verify $OF pacemaker
 		then
 			log_cmd $OF "rpm -qa | egrep 'ais|resource-agents|cluster-glue|corosync|csync2|pacemaker|heartbeat'"
-			if (( SLES_VER >= 120 ))
-			then
-				log_cmd $OF "systemctl status pacemaker.service"
-				CONF_FILES="/etc/corosync/corosync.conf /etc/sysconfig/ctdb /etc/sysconfig/sbd"
-			else
-				rpm_verify $OF openais
-				check_service $OF openais
-				CONF_FILES="/etc/ais/openais.conf /etc/corosync/corosync.conf /etc/ais/amf.conf /etc/sysconfig/ctdb /etc/sysconfig/sbd"
-			fi
+			rpm_verify $OF openais
+			check_service $OF openais
+			CONF_FILES="/etc/ais/openais.conf /etc/corosync/corosync.conf /etc/ais/amf.conf /etc/sysconfig/ctdb /etc/sysconfig/sbd"
 			if (( $SLES_VER >= 111 )); then
-				(( SLES_VER < 120 )) && log_cmd $OF 'chkconfig -l csync2'
+				log_cmd $OF 'chkconfig -l csync2'
 				if [ -s /etc/xinetd.d/csync2 ]; then
 					TMPORT=$(grep -i port /etc/xinetd.d/csync2 | awk '{print $3}')
 					log_cmd $OF "netstat -nlp | grep $TMPORT"
@@ -4106,12 +3902,7 @@ slp_info() {
 	addHeaderFile $OF
 	if rpm_verify $OF openslp-server
 	then
-		if (( SLES_VER >= 120 ))
-		then
-			log_cmd $OF "systemctl status slpd.service"
-		else
-			check_service $OF slpd
-		fi
+		check_service $OF slpd
 	fi
 	if rpm_verify $OF openslp
 	then
@@ -4174,7 +3965,7 @@ ocfs2_info() {
 			timed_log_cmd $OF "mounted.ocfs2 -f"
 			conf_files $OF "/etc/ocfs2/cluster.conf /etc/sysconfig/o2cb"
 			;;
-		11*|12*)
+		11*)
 			[[ -x /usr/bin/findmnt ]] && log_cmd $OF "findmnt" || log_cmd $OF "mount"
 			timed_log_cmd $OF "mounted.ocfs2 -d"
 			timed_log_cmd $OF "mounted.ocfs2 -f"
@@ -4323,12 +4114,7 @@ samba_info() {
 	then
 		for SERVICE in smb nmb
 		do
-			if (( SLES_VER >= 120 ))
-			then
-				log_cmd $OF "systemctl status ${SERVICE}.service"
-			else
-				check_service $OF ${SERVICE}
-			fi
+			check_service $OF ${SERVICE}
 		done
 		SAMBA_LIB="/var/lib/samba"
 		SAMBA_KRB="$SAMBA_LIB/smb_krb5"
@@ -4352,12 +4138,7 @@ samba_info() {
 	then
 		for SERVICE in winbind
 		do
-			if (( SLES_VER >= 120 ))
-			then
-				log_cmd $OF "systemctl status ${SERVICE}.service"
-			else
-				check_service $OF ${SERVICE}
-			fi
+			check_service $OF ${SERVICE}
 		done
 		log_cmd $OF 'wbinfo -u'
 		log_cmd $OF 'wbinfo -g'
@@ -4577,33 +4358,6 @@ proc_info() {
 	OF=proc.txt
 	addHeaderFile $OF
 
-	if (( SLES_VER >= 120 )); then
-		# Check process name space against the default name space
-		log_write $OF "#==[ Processes with Different Default Name Space ]==#"
-		log_write $OF "# name_space: process_id: process_cmdline"
-		for NS_TAG in ipc net pid uts
-		do
-			wait_trace_on "Checking processes in $NS_TAG name space"
-			DEFAULT_NS="$(readlink /proc/1/ns/$NS_TAG | sed 's/\[/\\[/;s/\]/\\]/')"
-			INTERESTING_PIDS="$(find /proc/[0-9]*/ns -name "$NS_TAG" \! -lname "$DEFAULT_NS" 2>/dev/null | sed 's@/proc/\([0-9]\+\)/ns/.*@\1@' )"
-
-			unset PIDS
-			for pid in $INTERESTING_PIDS; do
-				if ! [ "$(sed -n 's/^State:[[:blank:]]\+\([^[:blank:]]\)[[:blank:]]\+.*/\1/p' < /proc/"$pid"/status)" = Z ]; then
-					PIDS[$((${#PIDS[@]} + 1))]="$pid"
-				fi
-			done
-    
-			if [ ${#PIDS[@]} -ne 0 ]; then
-				for pid in "${PIDS[@]}"; do
-					log_write $OF "${NS_TAG}: $pid: $(tr '\0' ' ' < /proc/"$pid"/cmdline)"
-				done
-			fi
-			wait_trace_off
-		done
-		log_write $OF
-	fi	
-
 	FILES=$(find /proc/ -maxdepth 1 -type f 2>/dev/null | egrep -iv "kcore$|kpagecount$|kpageflags$|vmcore$|config.gz$|kmsg$|sysrq-trigger$|kallsyms$|mm$|ssstm" | sort -f)
 	conf_files $OF $FILES
 	conf_files $OF /proc/mounts /proc/zoneinfo
@@ -4652,7 +4406,7 @@ x_info() {
 		echolog Skipped
 	fi
 	;;
-	10*|11*|12*) if rpm_verify $OF xorg-x11-server
+	10*|11*) if rpm_verify $OF xorg-x11-server
 	then
 		log_cmd $OF 'ls -al /dev | egrep "video.*|mouse.*"'
 		log_cmd $OF '3Ddiag'
@@ -4703,12 +4457,7 @@ ssh_info() {
 	addHeaderFile $OF
 	if rpm_verify $OF openssh
 	then
-		if (( SLES_VER >= 120 ))
-		then
-			log_cmd $OF "systemctl status sshd.service"
-		else
-			check_service $OF sshd
-		fi
+		check_service $OF sshd
 		conf_files $OF /etc/ssh/sshd_config /etc/ssh/ssh_config /etc/pam.d/sshd
 		log_cmd $OF 'netstat -nlp | grep sshd'
 		echolog Done
@@ -4780,12 +4529,7 @@ print_info() {
 	SKIP=0
 	if rpm_verify $OF cups
 	then
-		if (( SLES_VER >= 120 ))
-		then
-			log_cmd $OF "systemctl status cups.service"
-		else
-			check_service $OF cups
-		fi
+		check_service $OF cups
 		log_cmd $OF 'netstat -nlp | grep cupsd'
 		BEP=$(ls -1 /usr/lib*/cups/backend/parallel 2>/dev/null | head -n1)
 		if [ $SLES_VER -ge 110 ]; then
@@ -4974,7 +4718,7 @@ cimom_info() {
 				if [ -L $OWSSLCHECK ]; then
 					case $SLES_VER in
 					90*) log_cmd $OF "readlink -fv $OWSSLCHECK" ;;
-					10*|11*|12*) log_cmd $OF "readlink -ev $OWSSLCHECK" ;;
+					10*|11*) log_cmd $OF "readlink -ev $OWSSLCHECK" ;;
 					esac
 				fi
 			fi
@@ -5027,12 +4771,7 @@ web_info() {
 	OF=web.txt
 	addHeaderFile $OF
 	if rpm_verify $OF apache2; then
-		if (( SLES_VER >= 120 ))
-		then
-			log_cmd $OF "systemctl status apache2.service"
-		else
-			check_service $OF apache2
-		fi
+		check_service $OF apache2
 		conf_files $OF /etc/sysconfig/apache2 /etc/apache2/httpd.conf
 		FILES=$(find -L /etc/apache2/ -type f | grep 'conf$' | grep -v 'httpd.conf')
 		conf_files $OF $FILES
@@ -6051,11 +5790,11 @@ if [ "$USE_SAVED_LOGS_ONLY" != "1" ]; then
 	etc_info
 	sysconfig_info
 	sysfs_info
-	(( SLES_VER >= 120 )) && systemd_info || chkconfig_info
+	chkconfig_info
 	cron_info
 	udev_info
 	lvm_info
-	(( SLES_VER < 120 )) && evms_info
+	evms_info
 	soft_raid_info
 	mpio_info
 	net_info
