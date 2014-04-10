@@ -1,8 +1,13 @@
 -------------------------------------------------------------------
+Thu Apr 10 13:32:06 UTC 2014 - jrecord@suse.com
+
+- Moved perl-Bootloader log to y2log.txt
+- supportconfig: 3.0-28
+
+-------------------------------------------------------------------
 Tue Apr  8 15:24:01 UTC 2014 - jrecord@suse.com
 
 - Added perl-Bootloader log (bnc#872542)
-- supportconfig: 3.0-27
 
 -------------------------------------------------------------------
 Thu Apr  3 15:36:03 UTC 2014 - jrecord@suse.com
@@ -11,21 +16,18 @@ Thu Apr  3 15:36:03 UTC 2014 - jrecord@suse.com
 - novell-nss.txt should captures VolumeInfo.xml file (bnc#871536)
 - Added novell-ncs-resource*.txt files
 - Included NCS parsed log information (bnc#870451)
-- supportconfig: 3.0-26
 
 -------------------------------------------------------------------
 Thu Mar 27 19:41:53 UTC 2014 - jrecord@suse.com
 
 - Fixed duplicate NCS files
 - Fixed duplicate snapshot listings (bnc#870473)
-- supportconfig: 3.0-21
 
 -------------------------------------------------------------------
 Tue Mar 25 19:43:49 UTC 2014 - jrecord@suse.com
 
 - Scanning scan_unevictable_pages excluded (bnc#868888)
 - Scanning base_reachable_time excluded (bnc#863234)
-- supportconfig: 3.0-19
 
 -------------------------------------------------------------------
 Thu Mar 20 16:00:02 UTC 2014 - jrecord@suse.com
@@ -45,20 +47,17 @@ Thu Mar  6 19:29:56 UTC 2014 - jrecord@suse.com
 
 - Fixed systemd reference in ha.txt
 - Added node view to ha.txt
-- supportconfig: 3.0-17
 
 -------------------------------------------------------------------
 Fri Feb 28 23:18:16 UTC 2014 - jrecord@suse.com
 
 - Added /proc/device-tree in hardware.txt for ppc64
-- supportconfig: 3.0-16
 
 -------------------------------------------------------------------
 Tue Feb 25 21:37:47 UTC 2014 - jrecord@suse.com
 
 - Added wait trace logging to module detection
 - Fixed ppc64 detection in hardware.txt
-- supportconfig: 3.0-15
 
 -------------------------------------------------------------------
 Fri Feb 21 15:35:23 UTC 2014 - jrecord@suse.com
@@ -68,13 +67,11 @@ Fri Feb 21 15:35:23 UTC 2014 - jrecord@suse.com
 - Added LVM status check
 - Changed systemd.txt to check unit-files
 - Fixed tainted kernel detection
-- supportconfig: 3.0-13
 
 -------------------------------------------------------------------
 Tue Feb 11 21:41:06 UTC 2014 - jrecord@suse.com
 
 - Changed chkconfig lookups to systemctl
-- supportconfig: 3.0-11
 
 -------------------------------------------------------------------
 Mon Feb 10 18:15:35 UTC 2014 - jrecord@suse.com

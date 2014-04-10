@@ -1,7 +1,7 @@
 #!/bin/bash
 
-SVER=3.0-27
-SDATE="2014 04 08"
+SVER=3.0-28
+SDATE="2014 04 10"
 
 ##############################################################################
 #  supportconfig - Gathers system troubleshooting information for NTS.
@@ -1227,6 +1227,11 @@ yast_files() {
 	addHeaderFile $OF
 	rpm_verify $OF yast2-packager
 	rpm_verify $OF yast2-packagemanager
+	if rpm -q perl-Bootloader &> /dev/null; then
+		rpm_verify $OF perl-Bootloader
+		FILES="/var/log/pbl.log"
+		(( ADD_OPTION_MAXYAST > 0 )) && log_files $OF 0 $FILES || log_files $OF $VAR_OPTION_LINE_COUNT $FILES
+	fi
 	test -d /var/log/YaST2 && FILES=$(find -L /var/log/YaST2/ -type f | egrep -v "_dev_|\.tbz$|\.tgz$|\.gz$|\.bz2$|\.zip$") || unset FILES
 	conf_files $OF /etc/youservers /etc/sysconfig/onlineupdate /etc/wgetrc
 	test $ADD_OPTION_MAXYAST -eq 1 && log_files $OF 0 $FILES || log_files $OF $VAR_OPTION_LINE_COUNT $FILES
@@ -1277,11 +1282,6 @@ boot_info() {
 	fi
 	if rpm -q z390-tools &> /dev/null; then
 		conf_files $OF /etc/zipl.conf
-	fi
-	if rpm -q perl-Bootloader &> /dev/null; then
-		rpm_verify $OF perl-Bootloader
-		FILES="/var/log/pbl.log"
-		test $ADD_OPTION_LOGS -gt 0 && log_files $OF 0 $FILES || log_files $OF $VAR_OPTION_LINE_COUNT $FILES
 	fi
 
 	test -e /usr/sbin/mcelog && log_cmd $OF "/usr/sbin/mcelog --ignorenodev --filter --dmi"
