@@ -1,6 +1,6 @@
 #!/bin/bash
 
-SVER=3.0-28
+SVER=3.0-29
 SDATE="2014 04 10"
 
 ##############################################################################
@@ -1231,8 +1231,8 @@ yast_files() {
 		rpm_verify $OF perl-Bootloader
 	fi
 	test -d /var/log/YaST2 && FILES=$(find -L /var/log/YaST2/ -type f | egrep -v "_dev_|\.tbz$|\.tgz$|\.gz$|\.bz2$|\.zip$") || unset FILES
-	FILES="/var/log/pbl.log $FILES"
-	conf_files $OF /etc/youservers /etc/sysconfig/onlineupdate /etc/wgetrc
+	conf_files $OF /etc/youservers /etc/sysconfig/onlineupdate /etc/wgetrc 
+	log_files $OF 0 /var/log/pbl.log
 	(( ADD_OPTION_MAXYAST > 0 )) && log_files $OF 0 $FILES || log_files $OF $VAR_OPTION_LINE_COUNT $FILES
 	FILES=$(find -L /root -type f | grep autoupg | grep '\.xml$')
 	conf_files $OF /root/autoinst.xml $FILES /var/adm/autoinstall/cache/installedSystem.xml

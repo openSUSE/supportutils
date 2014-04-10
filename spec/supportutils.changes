@@ -1,8 +1,8 @@
 -------------------------------------------------------------------
-Thu Apr 10 15:15:21 UTC 2014 - jrecord@suse.com
+Thu Apr 10 15:21:40 UTC 2014 - jrecord@suse.com
 
 - Moved perl-Bootloader log to y2log.txt
-- supportconfig: 3.0-28
+- supportconfig: 3.0-29
 
 -------------------------------------------------------------------
 Tue Apr  8 15:24:01 UTC 2014 - jrecord@suse.com
