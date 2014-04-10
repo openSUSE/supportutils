@@ -1,8 +1,9 @@
 -------------------------------------------------------------------
-Thu Apr 10 15:21:40 UTC 2014 - jrecord@suse.com
+Thu Apr 10 15:41:29 UTC 2014 - jrecord@suse.com
 
+- Added /proc/device-tree under ppc64 dir
 - Moved perl-Bootloader log to y2log.txt
-- supportconfig: 3.0-29
+- supportconfig: 3.0-30
 
 -------------------------------------------------------------------
 Tue Apr  8 15:24:01 UTC 2014 - jrecord@suse.com

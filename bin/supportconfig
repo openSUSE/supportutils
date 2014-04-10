@@ -1,6 +1,6 @@
 #!/bin/bash
 
-SVER=3.0-29
+SVER=3.0-30
 SDATE="2014 04 10"
 
 ##############################################################################
@@ -2923,9 +2923,15 @@ hardware_info() {
 				log_cmd $OF "usysattn"
 				log_cmd $OF "usysident"
 			fi
-			conf_files $OF /proc/ppc64/lparcfg /proc/ppc64/eeh /proc/ppc64/systemcfg
+			PPC_DIR="${LOG}/ppc64"
+			mkdir -p $PPC_DIR
+			log_entry $OF command "cp /proc/ppc64/eeh /proc/ppc64/lparcfg /proc/ppc64/systemcfg $PPC_DIR"
+			cp /proc/ppc64/eeh /proc/ppc64/lparcfg /proc/ppc64/systemcfg $PPC_DIR 2>/dev/null
 			if [[ -d /proc/device-tree/ ]]; then
-				conf_files $OF /proc/device-tree/*
+				SAVE_DIR="${PPC_DIR}/device-tree"
+				mkdir -p $SAVE_DIR
+				log_entry $OF command "cp -r /proc/device-tree/* $SAVE_DIR"
+				cp -r /proc/device-tree/* $SAVE_DIR 2>/dev/null
 			fi
 		fi
 	fi
@@ -4835,8 +4841,7 @@ sar_info() {
 			FOUND=$(ls -A1 $SARDIR)
 			if [ -n "$FOUND" ]; then
 				mkdir -p $SARSCDIR
-				log_write $OF "#==[ Command ]======================================#"
-				log_write $OF "# cp $SARDIR/sa* $SARSCDIR"
+				log_entry $OF command "cp $SARDIR/sa* $SARSCDIR"
 				if [ $ADD_OPTION_LOGS -gt 0 ]; then
 					cp $SARDIR/sa* $SARSCDIR &>/dev/null
 				else
