@@ -1,4 +1,9 @@
 -------------------------------------------------------------------
+Sun Apr 13 02:13:51 UTC 2014 - jrecord@suse.com
+
+- Removed tmp definition file
+
+-------------------------------------------------------------------
 Thu Apr 10 15:41:29 UTC 2014 - jrecord@suse.com
 
 - Added /proc/device-tree under ppc64 dir

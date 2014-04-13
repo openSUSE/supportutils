@@ -1,7 +1,7 @@
 #!/bin/bash
 
-SVER=3.0-30
-SDATE="2014 04 10"
+SVER=3.0-31
+SDATE="2014 04 12"
 
 ##############################################################################
 #  supportconfig - Gathers system troubleshooting information for NTS.
@@ -5335,7 +5335,7 @@ set_to_default() {
 	done
 	grep ^VAR_OPTION_ $0 | sort >> $DEF_FILE
 	. $DEF_FILE
-#	rm -f $DEF_FILE
+	rm -f $DEF_FILE
 }
 
 valid_srnum() {
