@@ -1,4 +1,10 @@
 -------------------------------------------------------------------
+Sun Apr 13 02:11:51 UTC 2014 - jrecord@suse.com
+
+- Removes tmp definition file
+- supportconfig: 2.25-422
+
+-------------------------------------------------------------------
 Tue Apr  8 21:20:27 UTC 2014 - jrecord@suse.com
 
 - Fixed drm configuration commands
