@@ -1,4 +1,9 @@
 -------------------------------------------------------------------
+Tue Apr 22 21:31:09 UTC 2014 - jrecord@suse.com
+
+- Fixed nlvm_debug.1.log: binary operator expected
+
+-------------------------------------------------------------------
 Sun Apr 13 02:13:51 UTC 2014 - jrecord@suse.com
 
 - Removed tmp definition file
