@@ -1,8 +1,9 @@
 -------------------------------------------------------------------
-Mon Apr 28 15:39:23 UTC 2014 - jrecord@suse.com
+Mon Apr 28 15:57:36 UTC 2014 - jrecord@suse.com
 
+- Fixed plugin detection (bnc#823662)
 - Removed /sys/class/drm due to find loops (bnc#875050)
-- supportconfig: 3.0-33
+- supportconfig: 3.0-34
 
 -------------------------------------------------------------------
 Tue Apr 22 21:31:09 UTC 2014 - jrecord@suse.com

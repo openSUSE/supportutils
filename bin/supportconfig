@@ -1,6 +1,6 @@
 #!/bin/bash
 
-SVER=3.0-33
+SVER=3.0-34
 SDATE="2014 04 28"
 
 ##############################################################################
@@ -5174,8 +5174,8 @@ timed_cmd_cleanup() {
 }
 
 ascii_plugin() {
-	FOUND=$(grep -i elf $PLUGIN_BIN 2>/dev/null)
-	if [ -n "$FOUND" ]; then
+	FOUND=$(file $PLUGIN_BIN | grep -i elf 2>/dev/null)
+	if [[ -n "$FOUND" ]]; then
 		return 1
 	else
 		return 0
