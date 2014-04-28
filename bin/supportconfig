@@ -1,7 +1,7 @@
 #!/bin/bash
 
-SVER=3.0-32
-SDATE="2014 04 22"
+SVER=3.0-33
+SDATE="2014 04 28"
 
 ##############################################################################
 #  supportconfig - Gathers system troubleshooting information for NTS.
@@ -4665,12 +4665,10 @@ x_info() {
 		rpm_verify $OF xorg-x11-libs
 		log_cmd $OF 'hwinfo --framebuffer'
 		conf_files $OF /etc/sysconfig/displaymanager /etc/sysconfig/windowmanager /etc/X11/xorg.conf
-		log_cmd $OF 'systool -vc drm'
 		if [[ -d /sys/class/drm ]]
 		then
+			log_cmd $OF 'systool -vc drm'
 			log_cmd $OF 'ls -lR --time-style=long-iso /sys/class/drm'
-			FILES=$(find -L /sys/class/drm -type f)
-			conf_files $OF $FILES
 		fi
 		log_cmd $OF 'intel_reg_dumper'
 		log_cmd $OF 'lspci -n'
