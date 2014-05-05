@@ -1,4 +1,10 @@
 -------------------------------------------------------------------
+Mon May  5 15:30:44 UTC 2014 - jrecord@suse.com
+
+- Added crm configure show to ha.txt (bnc#875831)
+- supportconfig: 3.0-35
+
+-------------------------------------------------------------------
 Mon Apr 28 15:57:36 UTC 2014 - jrecord@suse.com
 
 - Fixed plugin detection (bnc#823662)

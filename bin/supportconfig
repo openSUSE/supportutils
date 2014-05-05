@@ -1,7 +1,7 @@
 #!/bin/bash
 
-SVER=3.0-34
-SDATE="2014 04 28"
+SVER=3.0-35
+SDATE="2014 05 05"
 
 ##############################################################################
 #  supportconfig - Gathers system troubleshooting information for NTS.
@@ -3989,6 +3989,7 @@ ha_info() {
 			log_cmd $OF 'crm_mon -r -1'
 			log_cmd $OF 'crm_mon -r -n -1'
 			log_cmd $OF 'corosync-cfgtool -s'
+			log_cmd $OF 'crm configure show'
 			conf_files $OF $CONF_FILES
 			if [ -s /etc/sysconfig/sbd ]; then
 				. /etc/sysconfig/sbd

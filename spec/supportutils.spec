@@ -19,7 +19,7 @@ License:      GPL-2.0
 Group:        System/Monitoring
 Autoreqprov:  on
 Version:      3.0
-Release:      38
+Release:      39
 Source:       %{name}-%{version}.tar.gz
 BuildRoot:    %{_tmppath}/%{name}-%{version}-build
 BuildArch:    noarch
