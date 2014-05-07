@@ -1,6 +1,7 @@
 -------------------------------------------------------------------
-Wed May  7 20:38:34 UTC 2014 - jrecord@suse.com
+Wed May  7 22:14:13 UTC 2014 - jrecord@suse.com
 
+- Added xen systemd detection
 - Selects xm or xl for xen.txt
 - supportconfig: 3.0-36
 
