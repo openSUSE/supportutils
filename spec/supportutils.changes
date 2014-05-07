@@ -1,7 +1,7 @@
 -------------------------------------------------------------------
-Wed May  7 22:14:13 UTC 2014 - jrecord@suse.com
+Wed May  7 22:19:09 UTC 2014 - jrecord@suse.com
 
-- Added xen systemd detection
+- Update xen to new grub and systemd config
 - Selects xm or xl for xen.txt
 - supportconfig: 3.0-36
 
