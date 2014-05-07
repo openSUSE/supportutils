@@ -3777,7 +3777,7 @@ xen_info() {
 		else
 			XL=1
 			XL_XM='/usr/sbin/xl'
-			XEN_SVCS='xencommons.service xendomains.service xen-watchdog.service'
+			XEN_SVCS='xencommons xendomains xen-watchdog'
 			XEN_FILES="/etc/xen/xl.conf $XEN_FILES $LIBVIRT_FILES"
 		fi
 		rpm_verify $OF libvirt
@@ -3791,7 +3791,6 @@ xen_info() {
 		log_write $OF "NOTE: NETWORKMANAGER should be set to \"no\" for Xen"
 		log_write $OF
 		log_cmd $OF 'lscpu'
-		source /etc/sysconfig/bootloader
 		case $LOADER_TYPE in
 		grub)
 			GRUB_CONF='/boot/grub/menu.lst'
