@@ -167,6 +167,10 @@ ARCH=$(uname -i)
 SAVE_LOGS_ONLY=0
 USE_SAVED_LOGS_ONLY=0
 ENCRYPTED_TARBALL=0
+# Set bootloader type from sysconfig
+eval $(cat /etc/sysconfig/bootloader | grep LOADER_TYPE)
+# If environment is systemd, /sbin/init should be a symlink to systemd
+file /sbin/init | grep "systemd" &>/dev/null && SYSTEMD=1 || SYSTEMD=0
 
 # These are minimum options and should never be unset.
 MIN_OPTION_RPM=1
@@ -750,8 +754,14 @@ check_service() {
 	LOGFILE=$LOG/$1
 	BASEFILE=$1
 	SERVICE_NAME=$2
-	log_cmd $BASEFILE "chkconfig $SERVICE_NAME --list"
-	log_cmd $BASEFILE "/etc/init.d/$SERVICE_NAME status"
+	SYSTEMD_DIR=/usr/lib/systemd/system
+	if [ $SYSTEMD == 1 ] && [ -f $SYSTEMD_DIR/${SERVICE_NAME}.service ]; then
+		log_cmd $BASEFILE "systemctl status $SERVICE_NAME"
+		log_cmd $BASEFILE "systemctl is-enabled $SERVICE_NAME"
+	else
+		log_cmd $BASEFILE "chkconfig $SERVICE_NAME --list"
+		log_cmd $BASEFILE "/etc/init.d/$SERVICE_NAME status"
+	fi
 	return $?
 }
 
