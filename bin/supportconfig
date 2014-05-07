@@ -3758,25 +3758,58 @@ xen_info() {
 	addHeaderFile $OF
 	if rpm_verify $OF xen-tools
 	then
+		LIBVIRT_FILES='/etc/libvirt/libvirtd.conf'
+		XEN_FILES='/etc/sysconfig/xendomains'
+		if [ -x '/usr/sbin/xend' ] && /usr/sbin/xend status; then
+			XL_XM='/usr/sbin/xm'
+			XEN_SVCS='xend xencommons xendomains xen-watchdog'
+			XEN_FILES="/etc/xen/xend-config.sxp $XEN_FILES $LIBVIRT_FILES"
+		else
+			XL=1
+			XL_XM='/usr/sbin/xl'
+			XEN_SVCS='xencommons.service xendomains.service xen-watchdog.service'
+			XEN_FILES="/etc/xen/xl.conf $XEN_FILES $LIBVIRT_FILES"
+		fi
 		rpm_verify $OF libvirt
 		log_cmd $OF "egrep \"vmdp|libvirt\" $RPMPATH"
 		log_cmd $OF 'uname -r'
-		check_service $OF xend
+		for SVC in $XEN_SVCS
+		do
+			check_service $OF $SVC
+		done
 		log_cmd $OF 'grep ^NETWORKMANAGER /etc/sysconfig/network/config'
 		log_write $OF "NOTE: NETWORKMANAGER should be set to \"no\" for Xen"
 		log_write $OF
 		log_cmd $OF 'lscpu'
-		conf_files $OF '/boot/grub/menu.lst /etc/xen/xend-config.sxp /etc/sysconfig/xendomains /etc/libvirt/libvirtd.conf'
-		log_cmd $OF 'xm info'
-		log_cmd $OF 'xm list'
-		log_cmd $OF 'xm vcpu-list'
+		source /etc/sysconfig/bootloader
+		case $LOADER_TYPE in
+		grub)
+			GRUB_CONF='/boot/grub/menu.lst'
+			;;
+		grub2)
+			GRUB_CONF='/boot/grub2/grub.cfg'
+			;;
+		esac
+		conf_files $OF "$GRUB_CONF $XEN_FILES"
+		log_cmd $OF "$XL_XM info"
+		log_cmd $OF "$XL_XM list"
+		if [ ! -z "$XL" ] && [ -x /usr/bin/virsh ]; then
+			log_cmd $OF '/usr/bin/virsh list'
+		fi
+		log_cmd $OF "$XL_XM vcpu-list"
 		log_cmd $OF 'ls -alR /etc/xen/vm/'
 		log_cmd $OF 'ls -alR /etc/xen/images/'
 
 
 		test -d /etc/xen/vm && FILES=$(find -L /etc/xen/vm/ -type f | sort) || FILES=""
 		conf_text_files $OF $FILES
-		log_cmd $OF 'xm list -l'
+		if [ ! -z "$XL" ] && [ -x /usr/bin/virsh ]; then
+			for XENDOM in $(virsh list --all | grep "[[:space:]]*[[:digit:]]" | awk '{print $2}')
+			do
+				log_cmd $OF "virsh dumpxml $XENDOM"
+			done
+		fi
+		log_cmd $OF "$XL_XM list -l"
 		test -d /var/lib/xend/domains && FILES=$(find -L /var/lib/xend/domains/ -type f | grep config.sxp) || FILES=""
 		conf_text_files $OF $FILES
 
@@ -3829,7 +3862,7 @@ xen_info() {
 		test $ADD_OPTION_LOGS -gt 0 && log_files $OF 0 $FILES || log_files $OF $VAR_OPTION_LINE_COUNT $FILES
 
 
-		log_cmd $OF 'xm dmesg'
+		log_cmd $OF "$XL_XM dmesg"
 		echolog Done
 	else
 		echolog Skipped
