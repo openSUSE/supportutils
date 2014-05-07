@@ -750,8 +750,13 @@ check_service() {
 	LOGFILE=$LOG/$1
 	BASEFILE=$1
 	SERVICE_NAME=$2
-	log_cmd $BASEFILE "chkconfig $SERVICE_NAME --list"
-	log_cmd $BASEFILE "/etc/init.d/$SERVICE_NAME status"
+	if [[ $SERVICE_NAME == *.service ]]; then
+		log_cmd $BASEFILE "systemctl status $SERVICE_NAME"
+		log_cmd $BASEFILE "systemctl is-enabled $SERVICE_NAME"
+	else
+		log_cmd $BASEFILE "chkconfig $SERVICE_NAME --list"
+		log_cmd $BASEFILE "/etc/init.d/$SERVICE_NAME status"
+	fi
 	return $?
 }
 
