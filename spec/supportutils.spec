@@ -5,21 +5,20 @@
 # This file and all modifications and additions to the pristine
 # package are under the same license as the package itself.
 #
-# Please submit bug fixes or comments via 
-#  http://en.opensuse.org/Supportutils#Reporting_Bugs
+# Source developed at:
+#  https://github.com/g23guy/supportutils
 #
-
 # norootforbuild
 # neededforbuild  
 
 Name:         supportutils
 Summary:      Support Troubleshooting Tools
-URL:          http://en.opensuse.org/Supportutils
+URL:          https://github.com/g23guy/supportutils
 License:      GPL-2.0
 Group:        System/Monitoring
 Autoreqprov:  on
 Version:      3.0
-Release:      40
+Release:      40.1
 Source:       %{name}-%{version}.tar.gz
 BuildRoot:    %{_tmppath}/%{name}-%{version}-build
 BuildArch:    noarch
