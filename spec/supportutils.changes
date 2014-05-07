@@ -1,4 +1,10 @@
 -------------------------------------------------------------------
+Wed May  7 20:38:34 UTC 2014 - jrecord@suse.com
+
+- Selects xm or xl for xen.txt
+- supportconfig: 3.0-36
+
+-------------------------------------------------------------------
 Mon May  5 15:30:44 UTC 2014 - jrecord@suse.com
 
 - Added crm configure show to ha.txt (bnc#875831)
