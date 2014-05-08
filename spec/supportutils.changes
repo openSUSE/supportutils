@@ -1,6 +1,7 @@
 -------------------------------------------------------------------
-Wed May  7 22:19:09 UTC 2014 - jrecord@suse.com
+Thu May  8 14:39:47 UTC 2014 - jrecord@suse.com
 
+- Test for kvm and qemu-kvm before starting full kvm check
 - Update xen to new grub and systemd config
 - Selects xm or xl for xen.txt
 - supportconfig: 3.0-36
