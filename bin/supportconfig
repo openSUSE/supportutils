@@ -3883,7 +3883,12 @@ kvm_info() {
 	test $OPTION_KVM -eq 0 && { echolog Excluded; return 1; }
 	OF=kvm.txt
 	addHeaderFile $OF
-	if rpm_verify $OF kvm
+	KVM=0
+	for KVM_RPM in kvm qemu-kvm
+	do
+		rpm_verify $OF $KVM_RPM && KVM=1
+	done
+	if (( KVM ))
 	then
 		rpm_verify $OF libvirt
 		rpm_verify $OF virt-manager
