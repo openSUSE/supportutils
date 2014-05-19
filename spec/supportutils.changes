@@ -1,4 +1,10 @@
 -------------------------------------------------------------------
+Mon May 19 16:28:49 UTC 2014 - jrecord@suse.com
+
+- Added journalctl to boot.txt (bnc#878037)
+- supportconfig: 3.0-37
+
+-------------------------------------------------------------------
 Thu May  8 14:39:47 UTC 2014 - jrecord@suse.com
 
 - Test for kvm and qemu-kvm before starting full kvm check
