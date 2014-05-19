@@ -1,7 +1,7 @@
 -------------------------------------------------------------------
-Mon May 19 16:28:49 UTC 2014 - jrecord@suse.com
+Mon May 19 18:00:49 UTC 2014 - jrecord@suse.com
 
-- Added journalctl to boot.txt (bnc#878037)
+- Added journalctl to boot.txt
 - supportconfig: 3.0-37
 
 -------------------------------------------------------------------
