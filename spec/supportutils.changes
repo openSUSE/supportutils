@@ -1,4 +1,10 @@
 -------------------------------------------------------------------
+Wed Jun 11 15:10:03 UTC 2014 - jrecord@suse.com
+
+- Added kGraft detection in updates.txt (bnc#878840)
+- supportconfig: 3.0-39
+
+-------------------------------------------------------------------
 Mon May 19 18:00:49 UTC 2014 - jrecord@suse.com
 
 - Added journalctl to boot.txt
