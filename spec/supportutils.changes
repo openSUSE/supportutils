@@ -1,8 +1,9 @@
 -------------------------------------------------------------------
-Wed Jun 11 15:10:03 UTC 2014 - jrecord@suse.com
+Wed Jun 11 15:18:53 UTC 2014 - jrecord@suse.com
 
+- Supportconfig description is product independent (bnc#882256)
 - Added kGraft detection in updates.txt (bnc#878840)
-- supportconfig: 3.0-39
+- supportconfig: 3.0-40
 
 -------------------------------------------------------------------
 Mon May 19 18:00:49 UTC 2014 - jrecord@suse.com

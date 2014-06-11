@@ -1,6 +1,6 @@
 #!/bin/bash
 
-SVER=3.0-39
+SVER=3.0-40
 SDATE="2014 06 11"
 
 ##############################################################################
@@ -8,7 +8,8 @@ SDATE="2014 06 11"
 #  Copyright (C) 2001-2014 SUSE LLC
 #
 #  Creates a tar ball to attach to the SR or send to support. Collects
-#  comprehensive information for SLE10/SLE11/SLE12, OES2/OES11 for SLES.
+#  comprehensive system information for troubleshooting and reducing resolution
+#  time.
 #
 #  Disclaimer:
 #  Detailed system information and logs are collected and organized in a
