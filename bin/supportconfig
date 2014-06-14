@@ -3819,7 +3819,9 @@ xen_info() {
 			GRUB_CONF='/boot/grub/menu.lst'
 			;;
 		grub2)
-			GRUB_CONF='/boot/grub2/grub.cfg'
+			# customizations should not be in /boot/grub2/grub.cfg,
+			# so just get the editable config file
+			GRUB_CONF='/etc/default/grub'
 			;;
 		esac
 		conf_files $OF "$GRUB_CONF $XEN_FILES"
