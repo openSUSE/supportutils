@@ -2055,7 +2055,7 @@ NCSTEST
 		chmod 500 $NCSTESTBIN
 		timed_log_cmd $OF $NCSTESTBIN
 		rm -f $NCSTESTBIN
-
+		log_cmd $OF '/opt/novell/ncs/install/ncs_install.py -m display'
 		log_cmd $OF 'CASAcli -l'
 		log_cmd $OF 'sfdisk -l'
 		log_cmd $OF 'ndsstat -s'
