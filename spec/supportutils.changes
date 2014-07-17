@@ -1,4 +1,9 @@
 -------------------------------------------------------------------
+Thu Jul 17 18:40:45 UTC 2014 -mlatimer@suse.com
+
+- Ensure libvirtd is running before executing virsh commands. (bnc#887086)
+
+-------------------------------------------------------------------
 Fri Jun 27 22:20:49 UTC 2014 -rbrunt@novell.com
 
 - Added command in novell-ncs section to get status of ndsd monitoring. (bnc#884785)
