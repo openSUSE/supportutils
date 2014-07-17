@@ -3789,10 +3789,14 @@ xen_info() {
 	test $OPTION_XEN -eq 0 && { echolog Excluded; return 1; }
 	OF=xen.txt
 	addHeaderFile $OF
-	if rpm_verify $OF xen-tools
+	if rpm_verify $OF xen
 	then
-		LIBVIRT_FILES='/etc/libvirt/libvirtd.conf'
 		XEN_FILES='/etc/sysconfig/xendomains'
+		LIBVIRT_FILES='/etc/libvirt/libvirtd.conf'
+		# libvirt is recommended, but not required
+		if (checkproc /usr/sbin/libvirtd) && [ -x /usr/bin/virsh ]; then
+			LIBVIRT=1
+		fi
 		if [ -x '/usr/sbin/xend' ] && /usr/sbin/xend status; then
 			XL_XM='/usr/sbin/xm'
 			XEN_SVCS='xend xencommons xendomains xen-watchdog'
@@ -3803,8 +3807,10 @@ xen_info() {
 			XEN_SVCS='xencommons xendomains xen-watchdog'
 			XEN_FILES="/etc/xen/xl.conf $XEN_FILES $LIBVIRT_FILES"
 		fi
+		rpm_verify $OF xen-tools
+		rpm_verify $OF xen-libs
 		rpm_verify $OF libvirt
-		log_cmd $OF "egrep \"vmdp|libvirt\" $RPMPATH"
+		log_cmd $OF "sed -e '1,/{VERSION}/d' -e '/=====/,\$d' $RPMPATH | egrep \"libvirt|qemu|vmdp|xen\""
 		log_cmd $OF 'uname -r'
 		for SVC in $XEN_SVCS
 		do
@@ -3827,8 +3833,8 @@ xen_info() {
 		conf_files $OF "$GRUB_CONF $XEN_FILES"
 		log_cmd $OF "$XL_XM info"
 		log_cmd $OF "$XL_XM list"
-		if [ ! -z "$XL" ] && [ -x /usr/bin/virsh ]; then
-			log_cmd $OF '/usr/bin/virsh list'
+		if (( LIBVIRT )); then
+			log_cmd $OF 'virsh list'
 		fi
 		log_cmd $OF "$XL_XM vcpu-list"
 		log_cmd $OF 'ls -alR /etc/xen/vm/'
@@ -3837,7 +3843,7 @@ xen_info() {
 
 		test -d /etc/xen/vm && FILES=$(find -L /etc/xen/vm/ -type f | sort) || FILES=""
 		conf_text_files $OF $FILES
-		if [ ! -z "$XL" ] && [ -x /usr/bin/virsh ]; then
+		if (( LIBVIRT )); then
 			for XENDOM in $(virsh list --all | grep "[[:space:]]*[[:digit:]]" | awk '{print $2}')
 			do
 				log_cmd $OF "virsh dumpxml $XENDOM"
@@ -3917,7 +3923,7 @@ kvm_info() {
 	then
 		rpm_verify $OF libvirt
 		rpm_verify $OF virt-manager
-		log_cmd $OF "egrep \"kvm|libvirt|virt-manager\" $RPMPATH"
+		log_cmd $OF "sed -e '1,/{VERSION}/d' -e '/=====/,\$d' $RPMPATH | egrep \"kvm|libvirt|virt-manager\""
 		log_cmd $OF 'uname -r'
 		check_service $OF libvirtd
 		log_cmd $OF 'grep ^NETWORKMANAGER /etc/sysconfig/network/config'
@@ -3934,8 +3940,8 @@ kvm_info() {
 			log_cmd $OF "modinfo $MODULE"
 		done
 
-		log_cmd $OF "virsh version"
-		if [ -x /usr/bin/virsh ]; then
+		if (checkproc /usr/sbin/libvirtd) && [ -x /usr/bin/virsh ]; then
+			log_cmd $OF "virsh version"
 			log_cmd $OF "virsh capabilities"
 			log_cmd $OF "virsh nodeinfo"
 			log_cmd $OF "virsh nodedev-list"
