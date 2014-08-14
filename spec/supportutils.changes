@@ -1,5 +1,5 @@
 -------------------------------------------------------------------
-Thu Aug 14 20:36:48 UTC 2014 - jrecord@suse.com
+Thu Aug 14 20:53:57 UTC 2014 - jrecord@suse.com
 
 - Fixed LDAPS preferred server check (bnc#892038)
 
