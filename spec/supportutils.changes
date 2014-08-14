@@ -1,4 +1,9 @@
 -------------------------------------------------------------------
+Thu Aug 14 20:36:48 UTC 2014 - jrecord@suse.com
+
+- Fixed LDAPS preferred server check (bnc#892038)
+
+-------------------------------------------------------------------
 Thu Jul 17 18:40:45 UTC 2014 -mlatimer@suse.com
 
 - Ensure libvirtd is running before executing virsh commands. (bnc#887086)

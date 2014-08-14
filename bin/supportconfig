@@ -1,7 +1,7 @@
 #!/bin/bash
 
-SVER=3.0-40
-SDATE="2014 06 11"
+SVER='3.0-40'
+SDATE='2014 08 14'
 
 ##############################################################################
 #  supportconfig - Gathers system troubleshooting information for NTS.
@@ -2357,8 +2357,8 @@ novell_lum_info() {
 		check_service $OF namcd
 		conf_files $OF '/etc/nsswitch.conf /etc/nam.conf'
 		if [ -s /etc/nam.conf ]; then
-			IPADDR=$(grep '^preferred-server' /etc/nam.conf | sed -e "s/[[:space:]]+//g;s/\'//g;s/\"//g" | cut -d= -f2)
-			ping_addr $OF 'Preferred LDAP Server' $IPADDR
+			PREFERRED_SERVER=$(grep '^preferred-server' /etc/nam.conf | sed -e "s/[[:space:]]+//g;s/\'//g;s/\"//g" | cut -d= -f2)
+			ping_addr $OF 'Preferred LDAP Server' $PREFERRED_SERVER
 			IPADDRS=$(grep '^alternative-ldap-server-list' /etc/nam.conf | sed -e "s/[[:space:]]+//g;s/\'//g;s/\"//g" | cut -d= -f2 | sed -e "s/,/ /g")
 			for IPADDR in $IPADDRS
 			do
@@ -2397,6 +2397,7 @@ novell_lum_info() {
 					PREFERRED_OPTIONS="$LDAP_OPTIONS"
 				fi
 				log_write $OF "#===[ Checking for the LDAP's root DSE on Preferred Server: $PREFERRED_SERVER ]===#"
+				log_write $OF
 				if log_cmd $OF "$LDAP_BIN -x ${PREFERRED_OPTIONS}-b \"\" -s base \"objectclass=*\""; then
 					log_write $OF "LDAP  Connection: Success"
 					LDAP_OK=1
