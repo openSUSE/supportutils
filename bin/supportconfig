@@ -1,7 +1,7 @@
 #!/bin/bash
 
-SVER='3.0-41.DEV.5'
-SDATE='2014 08 28'
+SVER='3.0-41.DEV.6'
+SDATE='2014 08 29'
 
 ##############################################################################
 #  supportconfig - Gathers system troubleshooting information for NTS.
@@ -1912,9 +1912,14 @@ novell_dsfw_info() {
 		conf_files $OF /etc/sysconfig/novell/*xad*
 		FILES=$(find /etc/opt/novell/xad/ -type f | egrep -v "gss|msds.sch" | sort)
 		conf_files $OF $FILES
-		timed_log_cmd $OF "$LDAP_BIN -xLLLQ -b "" -s base"
-		DEFAULTNAMINGCONTEXT=`/usr/bin/ldapsearch -x -b "" -s base defaultnamingcontext | grep -i 'defaultnamingcontext: ' | awk '{print $2}'` 
-		timed_log_cmd $OF "$LDAP_BIN -Y EXTERNAL -b "$DEFAULTNAMINGCONTEXT" -s sub nspmPasswordPolicy=* nspmPasswordPolicy"
+		timed_log_cmd $OF "$LDAP_BIN -xLLL -b \"\" -s base"
+		DEFAULTNAMINGCONTEXT=`/usr/bin/ldapsearch -x -b "" -s base defaultnamingcontext | grep -i 'defaultnamingcontext: ' | awk '{print $2}'`
+		timed_log_cmd $OF "$LDAP_BIN -LLLQ -Y EXTERNAL -b \"$DEFAULTNAMINGCONTEXT\" -s sub GPlink=* GPlink"		
+		timed_log_cmd $OF "$LDAP_BIN -LLLQ -Y EXTERNAL -b \"$DEFAULTNAMINGCONTEXT\" -s sub nspmPasswordPolicyDN=* nspmPasswordPolicyDN"
+		timed_log_cmd $OF "$LDAP_BIN -LLLQ -Y EXTERNAL -b \"cn=Password Policies,cn=System,$DEFAULTNAMINGCONTEXT\" -s sub objectClass=nspmPasswordPolicy"
+		timed_log_cmd $OF "rpcclient -k localhost -c dsroledominfo"
+		timed_log_cmd $OF "rpcclient -k ncalrpc: -c dsroledominfo"
+		timed_log_cmd $OF "/opt/novell/xad/libexec/xadsd -S"
 		timed_log_cmd $OF 'wbinfo -u'
 		timed_log_cmd $OF 'wbinfo -g'
 		log_cmd $OF 'wbinfo -p'
@@ -1951,6 +1956,16 @@ novell_dsfw_info() {
 		log_cmd $OF '/opt/novell/xad/share/dcinit/printConfigKey.pl "LDAPADMINNAME"'
 		log_cmd $OF '/opt/novell/xad/share/dcinit/printConfigKey.pl "NDSDOMAINADMIN"'
 		log_cmd $OF '/opt/novell/xad/share/dcinit/printConfigKey.pl "PROVISIONED"'
+		if kinit -E administrator &>/dev/null
+		then
+			timed_log_cmd $OF "klist"
+			timed_log_cmd $OF "ldapsearch -Y GSSAPI -b \"\" -s one dn -LLL"
+			timed_log_cmd $OF "ldapsearch -Y GSS-SPNEGO -b \"\" -s one dn -LLL"
+			timed_log_cmd $OF "smbclient //localhost/sysvol -k  -I $IPADDR -c showconnect|grep -v WARNING:"
+			timed_log_cmd $OF "smbclient //localhost/netlogon -k  -I $IPADDR -c showconnect|grep -v WARNING:"
+		else
+			log_entry $OF note "Invalid or missing ADM_PASSWD, skipping additional administrative commands."
+		fi
 		test -d /var/opt/novell/xad/log && FILES=$(find /var/opt/novell/xad/log/ -type f) || FILES=""
 		test $ADD_OPTION_LOGS -gt 0 && log_files $OF 0 $FILES || log_files $OF $VAR_OPTION_LINE_COUNT $FILES
 		echolog Done
@@ -6307,4 +6322,5 @@ test -n "$VAR_OPTION_GPG_UID" && encrypt_tarball
 upload_tarball
 remove_local_tarball
 log2sys "END"
+
 
