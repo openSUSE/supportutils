@@ -1,4 +1,10 @@
 -------------------------------------------------------------------
+Fri Sep  5 19:01:59 UTC 2014 - jrecord@suse.com
+
+- Added DSfW
+- supportconfig: 3.0-42
+
+-------------------------------------------------------------------
 Thu Aug 14 20:53:57 UTC 2014 - jrecord@suse.com
 
 - Fixed LDAPS preferred server check (bnc#892038)
