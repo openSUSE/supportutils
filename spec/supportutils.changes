@@ -1,4 +1,9 @@
 -------------------------------------------------------------------
+Tue Sep  9 16:17:19 UTC 2014 - jrecord@suse.com
+
+- Fixed drm hang in X (bnc#889946)
+
+-------------------------------------------------------------------
 Sun Apr 13 02:11:51 UTC 2014 - jrecord@suse.com
 
 - Removes tmp definition file
