@@ -1,7 +1,7 @@
 #!/bin/bash
 
-SVER=2.25-425
-SDATE="2014 09 09"
+SVER=2.25-430
+SDATE="2014 09 10"
 
 ##############################################################################
 #  supportconfig - Gathers system troubleshooting information for NTS.
@@ -49,6 +49,7 @@ OPTION_CIMOM=1
 OPTION_CRASH=1
 OPTION_CRON=1
 OPTION_DFS=1
+OPTION_DSFW=1
 OPTION_DHCP=1
 OPTION_DISK=1
 OPTION_DNS=1
@@ -1798,6 +1799,109 @@ novell_dfs_info() {
 		FILES="$(find -L /var/opt/novell/log/dfs/ -type f 2> /dev/null)"
 		test $ADD_OPTION_LOGS -gt 0 && log_files $OF 0 $FILES || log_files $OF $VAR_OPTION_LINE_COUNT $FILES
 		log_cmd $OF 'egrep -i "volmnd[\[|:]|vldb[\[|:]|vlrpr[\[|:]|dfs[\[|:]|jstcpd[\[|:]" /var/log/messages'
+		echolog Done
+	else
+		echolog Skipped
+	fi
+}
+
+novell_dsfw_info() {
+	# Call fslist_info first in case -e was selected
+	printlog "Novell DSfW..."
+	test $OPTION_DSFW -eq 0 && { echolog Excluded; return 1; }
+	OF=novell-dsfw.txt
+	addHeaderFile $OF
+	if rpm_verify $OF novell-xad-framework
+	then
+		if [ -x /usr/bin/ldapsearch ]; then
+			LDAP_BIN=/usr/bin/ldapsearch
+		elif [ -x /opt/novell/eDirectory/bin/ldapsearch ]; then
+			LDAP_BIN=/opt/novell/eDirectory/bin/ldapsearch
+		elif [ -x /usr/ldaptools/bin/ldapsearch ]; then
+			LDAP_BIN=/usr/ldaptools/bin/ldapsearch
+		else
+			LDAP_BIN=""
+		fi
+		# Check if DSfW is installed then export ldap.conf
+		if [ -f /etc/opt/novell/xad/openldap/ldap.conf ]
+		then
+			_LIB=`/opt/novell/xad/share/dcinit/printConfigKey.pl "_Lib"`
+			LDAPCONF=/etc/opt/novell/xad/openldap/ldap.conf
+			export LDAPCONF
+			SASL_PATH=/opt/novell/xad/$_LIB/sasl2
+			export SASL_PATH
+		fi
+		#check_service $OF xadsd
+		log_cmd $OF 'xadcntrl validate | sed -r "s/\x1B\[([0-9]{1,2}(;[0-9]{1,2})?)?[m|K]//g"'
+		RPMPATH=$LOG/$RPMFILE
+		log_cmd $OF "egrep 'xad' $RPMPATH"
+		log_cmd $OF "rpm -q --queryformat \"%{DISTURL}\n\" novell-xad-framework"
+		conf_files $OF /etc/sysconfig/novell/*xad*
+		FILES=$(find /etc/opt/novell/xad/ -type f | egrep -v "gss|msds.sch" | sort)
+		conf_files $OF $FILES
+		timed_log_cmd $OF "$LDAP_BIN -xLLL -b \"\" -s base"
+		DEFAULTNAMINGCONTEXT=`/usr/bin/ldapsearch -x -b "" -s base defaultnamingcontext | grep -i 'defaultnamingcontext: ' | awk '{print $2}'`
+		timed_log_cmd $OF "$LDAP_BIN -LLLQ -Y EXTERNAL -b \"$DEFAULTNAMINGCONTEXT\" -s sub GPlink=* GPlink"		
+		timed_log_cmd $OF "$LDAP_BIN -LLLQ -Y EXTERNAL -b \"$DEFAULTNAMINGCONTEXT\" -s sub nspmPasswordPolicyDN=* nspmPasswordPolicyDN"
+		timed_log_cmd $OF "$LDAP_BIN -LLLQ -Y EXTERNAL -b \"cn=Password Policies,cn=System,$DEFAULTNAMINGCONTEXT\" -s sub objectClass=nspmPasswordPolicy"
+		timed_log_cmd $OF "rpcclient -k localhost -c dsroledominfo"
+		timed_log_cmd $OF "rpcclient -k ncalrpc: -c dsroledominfo"
+		timed_log_cmd $OF "/opt/novell/xad/libexec/xadsd -S"
+		timed_log_cmd $OF 'wbinfo -u'
+		timed_log_cmd $OF 'wbinfo -g'
+		log_cmd $OF 'wbinfo -p'
+		log_cmd $OF 'wbinfo -t'
+		log_cmd $OF 'wbinfo -n administrator'
+		log_cmd $OF 'wbinfo -i administrator'
+		log_cmd $OF 'wbinfo --check-secret'
+		log_cmd $OF 'net ads info'
+		log_cmd $OF 'net ads lookup'
+		log_cmd $OF 'net ads status'
+		log_cmd $OF 'net ads gpo listall'
+		log_cmd $OF 'net ads keytab list'
+		log_cmd $OF 'net ads testjoin'
+		log_cmd $OF '/opt/novell/xad/share/dcinit/printConfigKey.pl "IP Address"'
+		IPADDR=$(/opt/novell/xad/share/dcinit/printConfigKey.pl "IP Address" 2>/dev/null)
+		[[ -n $IPADDR ]] && ping_addr $OF "DSfW IP Address" $IPADDR
+		log_cmd $OF '/opt/novell/xad/share/dcinit/printConfigKey.pl "DNS_SERVER_IP"'
+		IPADDR=$(/opt/novell/xad/share/dcinit/printConfigKey.pl "DNS_SERVER_IP" 2>/dev/null)
+		[[ -n $IPADDR ]] && ping_addr $OF "DSfW DNS_SERVER_IP" $IPADDR
+		log_cmd $OF '/opt/novell/xad/share/dcinit/printConfigKey.pl "FORESTROOT"'
+		log_cmd $OF '/opt/novell/xad/share/dcinit/printConfigKey.pl "DOMAINNAME"'
+		log_cmd $OF '/opt/novell/xad/share/dcinit/printConfigKey.pl "XADRETAINPOLICIES"'
+		log_cmd $OF '/opt/novell/xad/share/dcinit/printConfigKey.pl "Domain GUID"'
+		log_cmd $OF '/opt/novell/xad/share/dcinit/printConfigKey.pl "DOMAINSID"'
+		log_cmd $OF '/opt/novell/xad/share/dcinit/printConfigKey.pl "NETBIOSNAME"'
+		log_cmd $OF '/opt/novell/xad/share/dcinit/printConfigKey.pl "Parent Domain"'
+		log_cmd $OF '/opt/novell/xad/share/dcinit/printConfigKey.pl "Machine GUID"'
+		log_cmd $OF '/opt/novell/xad/share/dcinit/printConfigKey.pl "DNS_LOCATOR_OBJECT"'
+		log_cmd $OF '/opt/novell/xad/share/dcinit/printConfigKey.pl "DNSDHCP_GROUP"'
+		log_cmd $OF '/opt/novell/xad/share/dcinit/printConfigKey.pl "DNS Master"'
+		log_cmd $OF '/opt/novell/xad/share/dcinit/printConfigKey.pl "DNSSERVER"'
+		log_cmd $OF '/opt/novell/xad/share/dcinit/printConfigKey.pl "DNS_NCPServer"'
+		log_cmd $OF '/opt/novell/xad/share/dcinit/printConfigKey.pl "DNSSERVER_CONTEXT"'
+		log_cmd $OF '/opt/novell/xad/share/dcinit/printConfigKey.pl "NDS_DCINIT"'
+		log_cmd $OF '/opt/novell/xad/share/dcinit/printConfigKey.pl "INSTALL_TYPE"'
+		log_cmd $OF '/opt/novell/xad/share/dcinit/printConfigKey.pl "NDSEXISTINGADMINNAME"'
+		log_cmd $OF '/opt/novell/xad/share/dcinit/printConfigKey.pl "Mapped Domain NC"'
+		log_cmd $OF '/opt/novell/xad/share/dcinit/printConfigKey.pl "NDS"'
+		log_cmd $OF '/opt/novell/xad/share/dcinit/printConfigKey.pl "Require TLS"'
+		log_cmd $OF '/opt/novell/xad/share/dcinit/printConfigKey.pl "LDAPADMINNAME"'
+		log_cmd $OF '/opt/novell/xad/share/dcinit/printConfigKey.pl "NDSDOMAINADMIN"'
+		log_cmd $OF '/opt/novell/xad/share/dcinit/printConfigKey.pl "PROVISIONED"'
+		
+		if kinit -E administrator &>/dev/null
+		then
+			timed_log_cmd $OF "klist"
+			timed_log_cmd $OF "ldapsearch -Y GSSAPI -b \"\" -s base -LLL"
+			timed_log_cmd $OF "ldapsearch -Y GSS-SPNEGO -b \"\" -s base -LLL"
+			timed_log_cmd $OF "smbclient //localhost/sysvol -k  -I $IPADDR -c showconnect|grep -v WARNING:"
+			timed_log_cmd $OF "smbclient //localhost/netlogon -k  -I $IPADDR -c showconnect|grep -v WARNING:"
+		else
+			log_entry $OF note "Invalid or missing ADM_PASSWD, skipping additional administrative commands."
+		fi
+		test -d /var/opt/novell/xad/log && FILES=$(find /var/opt/novell/xad/log/ -type f) || FILES=""
+		test $ADD_OPTION_LOGS -gt 0 && log_files $OF 0 $FILES || log_files $OF $VAR_OPTION_LINE_COUNT $FILES
 		echolog Done
 	else
 		echolog Skipped
@@ -5769,6 +5873,7 @@ if [ "$USE_SAVED_LOGS_ONLY" != "1" ]; then
 		novell_ncp_info
 		novell_nss_info
 		novell_dfs_info
+		novell_dsfw_info
 		novell_sms_info
 		novell_ncs_info
 		novell_afp_info
