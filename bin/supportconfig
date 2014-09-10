@@ -1,6 +1,6 @@
 #!/bin/bash
 
-SVER=2.25-430
+SVER=2.25-431
 SDATE="2014 09 10"
 
 ##############################################################################
@@ -1664,19 +1664,26 @@ novell_nss_info() {
 		do
 			test -e $i && conf_files $OF $i
 		done
-		if [ -d /_admin/Manage_NSS ]; then
+		if [[ -d /_admin/Manage_NSS ]]
+		then
 			NSS_DIR="/_admin/Manage_NSS"
-		else
+		elif [[ -d /admin/Manage_NSS ]]
+		then
 			NSS_DIR="/admin/Manage_NSS"
+		else
+			NSS_DIR=''
 		fi
-		VOLS=$(find ${NSS_DIR}/Volume -type f | grep 'VolumeInfo.xml' | egrep -v '_IV_/|_ADMIN/')
-		FILES="$(ls -1 ${NSS_DIR}/*xml 2>/dev/null) $(ls -1 ${NSS_DIR}/Pool/*/*xml 2>/dev/null) $VOLS $(ls -1 ${NSS_DIR}/Pool/*/ZLSS/*xml 2>/dev/null) $(ls -1 ${NSS_DIR}/LSS/ZLSS/*xml 2>/dev/null) $(ls -1 ${NSS_DIR}/Module/*xml 2>/dev/null)"
-		conf_files $OF $FILES
+		if [[ -n "$NSS_DIR" ]]
+		then
+			VOLS=$(find ${NSS_DIR}/Volume -type f | grep 'VolumeInfo.xml' | egrep -v '_IV_/|_ADMIN/')
+			FILES="$(ls -1 ${NSS_DIR}/*xml 2>/dev/null) $(ls -1 ${NSS_DIR}/Pool/*/*xml 2>/dev/null) $VOLS $(ls -1 ${NSS_DIR}/Pool/*/ZLSS/*xml 2>/dev/null) $(ls -1 ${NSS_DIR}/LSS/ZLSS/*xml 2>/dev/null) $(ls -1 ${NSS_DIR}/Module/*xml 2>/dev/null)"
+			conf_files $OF $FILES
+		fi
 		FILES="/var/opt/novell/log/nss/debug/*"
 		if [ -n $FILES ]; then
 			test $ADD_OPTION_LOGS -gt 0 && log_files $OF 0 $FILES || log_files $OF $VAR_OPTION_LINE_COUNT $FILES
 		fi
-		NSSPOOLS=$(nss /pools | grep ^[0-9,a-z,A-Z] | awk '{print $1}')
+		NSSPOOLS=$(nss /pools 2>/dev/null | grep ^[0-9,a-z,A-Z] | awk '{print $1}')
 		for ACTION in rtfn vbfn
 		do
 			for NSSPOOL in $NSSPOOLS
