@@ -4000,9 +4000,11 @@ xen_info() {
 		if [ $ADD_OPTION_LOGS -gt 0 ]; then
 			test -d /root/.virt-manager && FILES="$(find -L /root/.virt-manager/ -type f)" || FILES=""
 			test -d /var/log/xen && FILES="$FILES $(find -L /var/log/xen/ -type f | sort)"
+			test -d /var/log/libvirt/libxl && FILES="$FILES $(find -L /var/log/libvirt/libxl/ -type f | sort)"
 		else
 			test -d /root/.virt-manager && FILES=/root/.virt-manager/virt-manager.log || FILES=""
 			test -d /var/log/xen && FILES="$FILES $(find -L /var/log/xen/ -type f | grep 'log$' | sort)"
+			test -d /var/log/libvirt/libxl && FILES="$FILES $(find -L /var/log/libvirt/libxl/ -type f | grep 'log$' | sort)"
 		fi
 		test $ADD_OPTION_LOGS -gt 0 && log_files $OF 0 $FILES || log_files $OF $VAR_OPTION_LINE_COUNT $FILES
 
