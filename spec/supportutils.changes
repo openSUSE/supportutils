@@ -1,4 +1,9 @@
 -------------------------------------------------------------------
+Wed Oct 08 20:40:45 UTC 2014 -mlatimer@suse.com
+
+- Include /var/log/libvirt/libxl logs in xen.txt. (bnc#900366)
+
+-------------------------------------------------------------------
 Fri Sep  5 19:01:59 UTC 2014 - jrecord@suse.com
 
 - Added DSfW
