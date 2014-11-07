@@ -67,6 +67,7 @@ OPTION_KVM=1
 OPTION_LDAP=1
 OPTION_LUM=1
 OPTION_LVM=1
+OPTION_LXC=1
 OPTION_MEM=1
 OPTION_MOD=1
 OPTION_MPIO=1
@@ -4109,6 +4110,69 @@ kvm_info() {
 	fi
 }
 
+lxc_info() {
+	printlog "LXC..."
+	test $OPTION_LXC -eq 0 && { echolog Excluded; return 1; }
+	OF=lxc.txt
+	addHeaderFile $OF
+	LXC=0
+	LIBVIRT_LXC=0
+	rpm_verify $OF lxc && LXC=1
+	rpm_verify $OF libvirt-daemon-driver-lxc && LIBVIRT_LXC=1
+	if (( LIBVIRT_LXC || LXC )); then
+		if (( LIBVIRT_LXC )); then
+			check_service $OF libvirtd
+			conf_files $OF '/etc/libvirt/lxc.conf'
+			conf_files $OF '/etc/libvirt/libvirtd.conf'
+
+			if (checkproc /usr/sbin/libvirtd) && [ -x /usr/bin/virsh ]; then
+				log_cmd $OF "virsh version"
+				log_cmd $OF "virsh capabilities | sed -e '/guest/,/\/guest/{H;d;}' -e 'x;/libvirt_lxc/!d' | grep -v '^$'"
+				log_cmd $OF "virsh nodeinfo"
+				log_cmd $OF "virsh -c lxc:/// list --all"
+				for LXCDOM in $(virsh -c lxc:/// list | grep "[[:space:]]*[[:digit:]]" | awk '{print $2}')
+				do
+					log_cmd $OF "virsh -c lxc:/// dominfo $LXCDOM"
+					log_cmd $OF "virsh -c lxc:/// dumpxml $LXCDOM"
+				done
+
+				for LXCDOM in $(virsh -c lxc:/// list --all | grep "[[:space:]]-" | awk '{print $2}')
+				do
+					log_cmd $OF "virsh -c lxc:/// dominfo $LXCDOM"
+					log_cmd $OF "virsh -c lxc:/// dumpxml $LXCDOM"
+				done
+			fi
+
+			log_cmd $OF 'ls -alR /etc/libvirt/lxc/'
+
+
+			test -d /etc/libvirt/lxc/ && FILES=$(find -L /etc/libvirt/lxc/ -type f | sort) || FILES=""
+			conf_text_files $OF $FILES
+
+			if [ $ADD_OPTION_LOGS -gt 0 ]; then
+				test -d /root/.virt-manager && FILES="$(find -L /root/.virt-manager/ -type f)" || FILES=""
+				test -d /var/log/libvirt/lxc && FILES="$FILES $(find -L /var/log/libvirt/lxc/ -type f | sort)"
+			else
+				test -d /root/.virt-manager && FILES=/root/.virt-manager/virt-manager.log || FILES=""
+				test -d /var/log/libvirt/lxc && FILES="$FILES $(find -L /var/log/libvirt/lxc/ -type f | grep 'log$' | sort)"
+			fi
+			test $ADD_OPTION_LOGS -gt 0 && log_files $OF 0 $FILES || log_files $OF $VAR_OPTION_LINE_COUNT $FILES
+
+		elif (( LXC )); then
+			check_service $OF lxc
+			conf_file $OF '/etc/libvirt/lxc.conf'
+			log_cmd $OF 'lxc-checkconfig | sed "s,\x1B\[[0-9;]*[a-zA-Z],,g"'
+			log_cmd $OF 'lxc-ls'
+			test -d /etc/lxc/ && FILES=$(find -L /etc/lxc/ -type f -name config | sort) || FILES=""
+			conf_text_files $OF $FILES
+		fi
+
+		echolog Done
+	else
+		echolog Skipped
+	fi
+}
+
 apparmor_info() {
 	printlog "AppArmor..."
 	test $OPTION_APPARMOR -eq 0 && { rm -f $AARPTMP &>/dev/null; echolog Excluded; return 1; }
@@ -6262,6 +6326,7 @@ if [ "$USE_SAVED_LOGS_ONLY" != "1" ]; then
 	apparmor_info
 	(( SLES_VER >= 100 )) && xen_info
 	(( SLES_VER >= 110 )) && kvm_info
+	(( SLES_VER >= 110 )) && lxc_info
 	x_info
 	print_info
 	smartmon_info
