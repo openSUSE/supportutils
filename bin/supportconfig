@@ -1,7 +1,7 @@
 #!/bin/bash
 
-SVER='3.0-42'
-SDATE='2014 09 05'
+SVER='3.0-44'
+SDATE='2014 11 10'
 
 ##############################################################################
 #  supportconfig - Gathers system troubleshooting information for NTS.
@@ -3529,7 +3529,7 @@ ntp_info() {
 		then
 			if (( SLES_VER >= 120 ))
 			then
-				log_cmd $OF "systemctl status ntp.service"
+				log_cmd $OF "systemctl status ntpd.service"
 			else
 				check_service $OF ntp
 			fi
