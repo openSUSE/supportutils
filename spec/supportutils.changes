@@ -1,4 +1,10 @@
 -------------------------------------------------------------------
+Fri Nov 07 15:26:40 UTC 2014 -mlatimer@suse.com
+
+- Create a new lxc.txt file to include information for virtual containers
+  using lxc and/or libvirt-lxc. (bnc#904481)
+
+-------------------------------------------------------------------
 Wed Oct 08 20:40:45 UTC 2014 -mlatimer@suse.com
 
 - Include /var/log/libvirt/libxl logs in xen.txt. (bnc#900366)
