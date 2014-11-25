@@ -1,41 +1,40 @@
+#
 # spec file for package supportutils
 #
-# Copyright (C) 2008-2014 SUSE LLC
+# Copyright (c) 2014 SUSE LINUX Products GmbH, Nuernberg, Germany.
 #
-# This file and all modifications and additions to the pristine
-# package are under the same license as the package itself.
-#
-# Source developed at:
-#  https://github.com/g23guy/supportutils
-#
-# norootforbuild
-# neededforbuild  
+# All modifications and additions to the file contributed by third parties
+# remain the property of their copyright owners, unless otherwise agreed
+# upon. The license for this file, and modifications and additions to the
+# file, is the same license as for the pristine package itself (unless the
+# license for the pristine package is not an Open Source License, in which
+# case the license is the MIT License). An "Open Source License" is a
+# license that conforms to the Open Source Definition (Version 1.9)
+# published by the Open Source Initiative.
 
-Name:         supportutils
-Summary:      Support Troubleshooting Tools
-URL:          https://github.com/g23guy/supportutils
-License:      GPL-2.0
-Group:        System/Monitoring
-Autoreqprov:  on
-Version:      3.0
-Release:      51
-Source:       %{name}-%{version}.tar.gz
-BuildRoot:    %{_tmppath}/%{name}-%{version}-build
-BuildArch:    noarch
-Provides:     supportconfig-plugin-resource
-Provides:     supportconfig-plugin-tag
-Provides:     supportconfig-plugin-icommand
-Requires:     tar
-Requires:     bash
+# Please submit bugfixes or comments via http://bugs.opensuse.org/
+#
+
+
+Name:           supportutils
+Version:        3.0
+Release:        0
+Summary:        Support Troubleshooting Tools
+License:        GPL-2.0
+Group:          System/Monitoring
+Url:            https://github.com/g23guy/supportutils
+Source:         %{name}-%{version}.tar.gz
+Requires:       sysfsutils
+Requires:       tar
+Provides:       supportconfig-plugin-resource
+Provides:       supportconfig-plugin-tag
+Provides:       supportconfig-plugin-icommand
+BuildRoot:      %{_tmppath}/%{name}-%{version}-build
+BuildArch:      noarch
 
 %description
-A package containing troubleshooting tools. This package contains 
+A package containing troubleshooting tools. This package contains
 the following: supportconfig, chkbin, getappcore, analyzevmcore
-
-Authors:
---------
-    Jason Record <jrecord@suse.com>
-    Mike Latimer <mlatimer@suse.com>
 
 %prep
 %setup -q
@@ -47,38 +46,33 @@ gzip -9f man/*8
 
 %install
 pwd;ls -la
-rm -rf $RPM_BUILD_ROOT
-install -d $RPM_BUILD_ROOT/sbin
-install -d $RPM_BUILD_ROOT/etc
-install -d $RPM_BUILD_ROOT/usr/share/man/man3
-install -d $RPM_BUILD_ROOT/usr/share/man/man5
-install -d $RPM_BUILD_ROOT/usr/share/man/man8
-install -d $RPM_BUILD_ROOT/usr/lib/supportconfig/resources
-install -d $RPM_BUILD_ROOT/usr/share/doc/packages/%{name}
-install -m 444 man/COPYING.GPLv2 $RPM_BUILD_ROOT/usr/share/doc/packages/%{name}
-install -m 544 bin/supportconfig $RPM_BUILD_ROOT/sbin
-install -m 544 bin/chkbin $RPM_BUILD_ROOT/sbin
-install -m 544 bin/getappcore $RPM_BUILD_ROOT/sbin
-install -m 544 bin/analyzevmcore $RPM_BUILD_ROOT/sbin
-install -m 444 bin/scplugin.rc $RPM_BUILD_ROOT/usr/lib/supportconfig/resources
-install -m 644 man/*.3.gz $RPM_BUILD_ROOT/usr/share/man/man3
-install -m 644 man/*.5.gz $RPM_BUILD_ROOT/usr/share/man/man5
-install -m 644 man/*.8.gz $RPM_BUILD_ROOT/usr/share/man/man8
+install -d %{buildroot}/sbin
+install -d %{buildroot}/etc
+install -d %{buildroot}%{_mandir}/man3
+install -d %{buildroot}%{_mandir}/man5
+install -d %{buildroot}%{_mandir}/man8
+install -d %{buildroot}%{_libexecdir}/supportconfig/resources
+install -d %{buildroot}%{_docdir}/%{name}
+install -m 444 man/COPYING.GPLv2 %{buildroot}%{_docdir}/%{name}
+install -m 544 bin/supportconfig %{buildroot}/sbin
+install -m 544 bin/chkbin %{buildroot}/sbin
+install -m 544 bin/getappcore %{buildroot}/sbin
+install -m 544 bin/analyzevmcore %{buildroot}/sbin
+install -m 444 bin/scplugin.rc %{buildroot}%{_libexecdir}/supportconfig/resources
+install -m 644 man/*.3.gz %{buildroot}%{_mandir}/man3
+install -m 644 man/*.5.gz %{buildroot}%{_mandir}/man5
+install -m 644 man/*.8.gz %{buildroot}%{_mandir}/man8
 
 %files
 %defattr(-,root,root)
 /sbin/*
-%dir /usr/lib/supportconfig
-%dir /usr/lib/supportconfig/resources
-%dir /usr/share/doc/packages/%{name}
-%doc /usr/share/doc/packages/%{name}/*
-/usr/lib/supportconfig/resources/*
-%doc /usr/share/man/man5/*
-%doc /usr/share/man/man3/*
-%doc /usr/share/man/man8/*
-
-%clean
-rm -rf $RPM_BUILD_ROOT
+%dir %{_libexecdir}/supportconfig
+%dir %{_libexecdir}/supportconfig/resources
+%dir %{_docdir}/%{name}
+%doc %{_docdir}/%{name}/*
+%{_libexecdir}/supportconfig/resources/*
+%doc %{_mandir}/man5/*
+%doc %{_mandir}/man3/*
+%doc %{_mandir}/man8/*
 
 %changelog
-
