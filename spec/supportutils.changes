@@ -1,4 +1,11 @@
 -------------------------------------------------------------------
+Wed Nov 19 14:46:13 UTC 2014 - mpluskal@suse.com
+
+- Add missing dependency on sysfsutils
+- Remove unnecessary dependency on bash
+- Clean spec file using spec-cleaner
+
+-------------------------------------------------------------------
 Mon Nov 10 18:05:30 UTC 2014 - jrecord@suse.com
 
 - Fixed NTP service in ntp.txt (bnc#904729)
