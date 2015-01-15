@@ -1,11 +1,11 @@
 #!/bin/bash
 
-SVER=2.25-435
-SDATE="2014 09 10"
+SVER='2.25-436'
+SDATE="2015 01 15"
 
 ##############################################################################
 #  supportconfig - Gathers system troubleshooting information for NTS.
-#  Copyright (C) 2001-2014 SUSE LLC
+#  Copyright (C) 2001-2015 SUSE LLC
 #
 #  Creates a tar ball to attach to the SR or send to support. Collects
 #  comprehensive information for SLE10/SLE11/SLE12, OES2/OES11 for SLES.
@@ -4146,8 +4146,9 @@ drbd_info() {
 	test $OPTION_DRBD -eq 0 && { echolog Excluded; return 1; }
 	OF=drbd.txt
 	addHeaderFile $OF
-	if rpm_verify $OF drbd
+	if [[ -s /etc/drbd.conf ]]
 	then
+		rpm_verify $OF drbd
 		check_service $OF drbd
 		log_cmd $OF "egrep \"drbd\" $RPMPATH"
 		log_write $OF
@@ -4156,15 +4157,15 @@ drbd_info() {
 		log_cmd $OF "ps aux | grep drbd | grep -v grep"
 		[[ -x /usr/bin/findmnt ]] && log_cmd $OF "findmnt" || log_cmd $OF "mount"
 		log_cmd $OF "df -h"
-        if [ -s /etc/drbd.conf ]; then
-            DIRLIST=$(cat /etc/drbd.conf | grep ^include | cut -d\" -f2 | sed 's!\(.*\)/.*!\1/!' | sort | uniq)
-            FILES=''
-            for DIR in $DIRLIST
-            do
-		        [ -d $DIR ] && FILES="$FILES $(find -L $DIR -type f)"
-            done
-		    conf_files $OF "/etc/drbd.conf $FILES"
-        fi
+		if [[ -s /etc/drbd.conf ]]; then
+			DIRLIST=$(cat /etc/drbd.conf | grep ^include | cut -d\" -f2 | sed 's!\(.*\)/.*!\1/!' | sort | uniq)
+			FILES=''
+			for DIR in $DIRLIST
+			do
+				[ -d $DIR ] && FILES="$FILES $(find -L $DIR -type f)"
+			done
+			conf_files $OF "/etc/drbd.conf $FILES"
+		fi
 		FILES="/var/log/messages"
 		test $ADD_OPTION_LOGS -gt 0 && grep_log_files drbd $OF 0 $FILES || grep_log_files drbd $OF $VAR_OPTION_LINE_COUNT $FILES
 		echolog Done

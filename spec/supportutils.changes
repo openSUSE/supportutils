@@ -1,4 +1,10 @@
 -------------------------------------------------------------------
+Thu Jan 15 19:36:19 UTC 2015 - jrecord@suse.com
+
+- Fixed drbd check using drbd.conf (bnc#890604)
+- supportconfig: 2.25-436
+
+-------------------------------------------------------------------
 Wed Sep 10 19:05:41 UTC 2014 - jrecord@suse.com
 
 - Fixed /sys/class/drm hang issue (bnc#889946)
