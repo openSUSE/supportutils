@@ -1,6 +1,8 @@
 -------------------------------------------------------------------
-Thu Jan 15 18:06:07 UTC 2015 - jrecord@suse.com
+Thu Jan 15 19:31:42 UTC 2015 - jrecord@suse.com
 
+- Uses /etc/drbd.conf for test instead of rpm (bnc#890604)
+- Added lsinitrd to boot.txt for SLE12
 - Added missing taint flag E (bnc#912797)
 
 -------------------------------------------------------------------

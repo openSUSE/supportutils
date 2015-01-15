@@ -1,11 +1,11 @@
 #!/bin/bash
 
-SVER='3.0-45'
+SVER='3.0-47'
 SDATE='2015 01 15'
 
 ##############################################################################
 #  supportconfig - Gathers system troubleshooting information for NTS.
-#  Copyright (C) 2001-2014 SUSE LLC
+#  Copyright (C) 2001-2015 SUSE LLC
 #
 #  Creates a tar ball to attach to the SR or send to support. Collects
 #  comprehensive system information for troubleshooting and reducing resolution
@@ -1316,6 +1316,7 @@ boot_info() {
 			fi
 		done
 	fi
+	(( SLES_VER >= 120 )) && log_cmd $OF "lsinitrd -k $(uname -r)"
 	(( SLES_VER >= 120 )) && log_cmd $OF 'journalctl --no-pager --disk-usage'; log_cmd $OF 'journalctl --no-pager' || conf_files $OF /var/log/boot.msg /var/log/boot.omsg
 	log_cmd $OF 'dmesg'
 	echolog Done
@@ -4501,8 +4502,9 @@ drbd_info() {
 	test $OPTION_DRBD -eq 0 && { echolog Excluded; return 1; }
 	OF=drbd.txt
 	addHeaderFile $OF
-	if rpm_verify $OF drbd
+	if [[ -s /etc/drbd.conf ]]
 	then
+		rpm_verify $OF drbd
 		check_service $OF drbd
 		log_cmd $OF "egrep \"drbd\" $RPMPATH"
 		log_write $OF
