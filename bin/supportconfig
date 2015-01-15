@@ -1,7 +1,7 @@
 #!/bin/bash
 
-SVER='3.0-44'
-SDATE='2014 11 10'
+SVER='3.0-45'
+SDATE='2015 01 15'
 
 ##############################################################################
 #  supportconfig - Gathers system troubleshooting information for NTS.
@@ -917,6 +917,7 @@ basic_healthcheck() {
 		test $((TAINT & 1024))       -ne 0 && TAINT_STRING="${TAINT_STRING}C" || TAINT_STRING="${TAINT_STRING} "
 		test $((TAINT & 2048))       -ne 0 && TAINT_STRING="${TAINT_STRING}I" || TAINT_STRING="${TAINT_STRING} "
 		test $((TAINT & 4096))       -ne 0 && TAINT_STRING="${TAINT_STRING}O" || TAINT_STRING="${TAINT_STRING} "
+		test $((TAINT & 8192))       -ne 0 && TAINT_STRING="${TAINT_STRING}E" || TAINT_STRING="${TAINT_STRING} "
 		test $((TAINT & 1073741824)) -ne 0 && TAINT_STRING="${TAINT_STRING}N" || TAINT_STRING="${TAINT_STRING} "
 		test $((TAINT & 2147483648)) -ne 0 && TAINT_STRING="${TAINT_STRING}X" || TAINT_STRING="${TAINT_STRING} "
 		;;
@@ -959,6 +960,7 @@ basic_healthcheck() {
 		test $((TAINT & 1024))       -ne 0 && log_write $OF "  TAINT: (C) Modules from drivers/staging are loaded"
 		test $((TAINT & 2048))       -ne 0 && log_write $OF "  TAINT: (I) Working around severe firmware bug"
 		test $((TAINT & 4096))       -ne 0 && log_write $OF "  TAINT: (O) Out-of-tree module has been loaded"
+		test $((TAINT & 8192))       -ne 0 && log_write $OF "  TAINT: (E) Unsigned module has been loaded"
 		test $((TAINT & 1073741824)) -ne 0 && log_write $OF "  TAINT: (N) Unsupported modules loaded"
 		test $((TAINT & 2147483648)) -ne 0 && log_write $OF "  TAINT: (X) Modules with external support loaded"
 		;;
