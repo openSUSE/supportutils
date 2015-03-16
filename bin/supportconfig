@@ -1,6 +1,6 @@
 #!/bin/bash
 
-SVER='3.0-47.dev.2'
+SVER='3.0-47.dev.3'
 SDATE='2015 03 16'
 
 ##############################################################################
@@ -2589,7 +2589,7 @@ environment_info() {
 	conf_files $OF $FILES /root/.xauth/export
 	log_cmd $OF 'env'
 	# s390 specific
-	if grep vmcp /proc/modules &>/dev/null; then
+	if [[ -e /dev/vmcp ]]; then
 		log_cmd $OF 'vmcp query virtual all'
 		log_cmd $OF 'vmcp query privclass'
 		log_cmd $OF 'vmcp query cplevel'
