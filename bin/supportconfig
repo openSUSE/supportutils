@@ -1,6 +1,6 @@
 #!/bin/bash
 
-SVER='3.0-47.dev.3'
+SVER='3.0-54'
 SDATE='2015 03 16'
 
 ##############################################################################
@@ -3094,8 +3094,11 @@ net_info() {
 	rpm_verify $OF sysconfig
 	if (( SLES_VER >= 120 ))
 	then
+		rpm_verify $OF wicked
 		log_cmd $OF "systemctl status network.service"
 		log_cmd $OF "systemctl status nscd.service"
+		log_cmd $OF "wicked ifstatus --verbose all"
+		log_cmd $OF "wicked show-config"
 	else
 		check_service $OF network
 		check_service $OF nscd
@@ -3201,6 +3204,8 @@ net_info() {
 	test -d /etc/sysconfig/network && FILES=$(find -L /etc/sysconfig/network/ -maxdepth 1 -type f) || FILES=""
 	conf_files $OF /etc/sysconfig/proxy $FILES 
 	sed -i -e 's/.*_PASSWORD[[:space:]]*=.*/*REMOVED BY SUPPORTCONFIG*/g' $LOG/$OF
+	(( SLES_VER >= 120 )) && FILES=$(find /etc/wicked -type f | grep '\.xml$') || FILES=''
+	conf_files $OF $FILES
 	if [ -d /proc/net/bonding ]; then
 		FILES=$(find /proc/net/bonding/ -type f)
 		conf_files $OF $FILES 
