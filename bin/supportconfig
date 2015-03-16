@@ -1,6 +1,6 @@
 #!/bin/bash
 
-SVER='3.0-54'
+SVER='3.0-55'
 SDATE='2015 03 16'
 
 ##############################################################################
@@ -3626,11 +3626,13 @@ crash_info() {
 		log_cmd $OF "systemctl status kdump.service"
 		log_cmd $OF "kdumptool dump_config"
 		conf_files $OF /proc/cmdline
-		DUMPDIR=$(kdumptool dump_config | grep ^KDUMP_SAVEDIR | sed -e 's/"//g;s!file://!!g' | cut -d= -f2)
-		if [[ -d $DUMPDIR ]]; then
-			log_cmd $OF "find -L ${DUMPDIR}/"
-		else
-			log_entry $OF conf "KDUMP_SAVEDIR not found: ${DUMPDIR}"
+		if rpm -q kdump &>/dev/null; then
+			DUMPDIR=$(kdumptool dump_config | grep ^KDUMP_SAVEDIR | sed -e 's/"//g;s!file://!!g' | cut -d= -f2)
+			if [[ -d $DUMPDIR ]]; then
+				log_cmd $OF "find -L ${DUMPDIR}/"
+			else
+				log_entry $OF conf "KDUMP_SAVEDIR not found: ${DUMPDIR}"
+			fi
 		fi
 		log_cmd $OF "sysctl kernel.sysrq"
 		log_cmd $OF 'sysctl kernel 2>/dev/null | grep panic'
