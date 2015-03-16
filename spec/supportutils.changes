@@ -1,4 +1,9 @@
 -------------------------------------------------------------------
+Mon Mar 16 17:17:53 UTC 2015 - jrecord@suse.com
+
+- Added systemd information
+
+-------------------------------------------------------------------
 Thu Jan 15 19:31:42 UTC 2015 - jrecord@suse.com
 
 - Uses /etc/drbd.conf for test instead of rpm (bnc#890604)

@@ -1,7 +1,7 @@
 #!/bin/bash
 
-SVER='3.0-47'
-SDATE='2015 01 15'
+SVER='3.0-47.150126.1'
+SDATE='2015 01 26'
 
 ##############################################################################
 #  supportconfig - Gathers system troubleshooting information for NTS.
@@ -1317,7 +1317,7 @@ boot_info() {
 		done
 	fi
 	(( SLES_VER >= 120 )) && log_cmd $OF "lsinitrd -k $(uname -r)"
-	(( SLES_VER >= 120 )) && log_cmd $OF 'journalctl --no-pager --disk-usage'; log_cmd $OF 'journalctl --no-pager' || conf_files $OF /var/log/boot.msg /var/log/boot.omsg
+	(( SLES_VER >= 120 )) && { log_cmd $OF 'journalctl --no-pager --disk-usage'; log_cmd $OF 'journalctl --no-pager'; } || conf_files $OF /var/log/boot.msg /var/log/boot.omsg
 	log_cmd $OF 'dmesg'
 	echolog Done
 }
@@ -2371,6 +2371,7 @@ pam_info() {
 	conf_files $OF /etc/group
 	log_cmd $OF 'getent group'
 	conf_files $OF /etc/sudoers
+	(( SLES_VER >= 120 )) && log_cmd $OF 'loginctl --no-pager list-sessions'
 	log_write $OF "#==[ Files in /etc/security ]=======================#"
 	test -d /etc/security && FILES="$(find -L /etc/security/ -type f -name \*conf)" || FILES=""
 	conf_files $OF $FILES
@@ -2641,6 +2642,11 @@ systemd_info() {
 	OF=systemd.txt
 	addHeaderFile $OF
 	rpm_verify $OF systemd
+	log_cmd $OF 'hostnamectl status'
+	log_cmd $OF 'systemctl --failed'
+	log_cmd $OF 'busctl --no-pager --system list'
+	log_cmd $OF 'timedatectl --no-pager status'
+	log_cmd $OF 'systemd-analyze --no-pager blame'
 	FILES=''
 	[[ -d /etc/systemd ]] && FILES=$(find -L /etc/systemd -maxdepth 1 -type f)
 	log_cmd $OF 'systemctl --no-pager show'
