@@ -1,4 +1,10 @@
 -------------------------------------------------------------------
+Fri Mar 27 19:30:59 UTC 2015 - jrecord@suse.com
+
+- Added missing SUSEConnect (bnc#924738)
+- supportconfig: 3.0-58
+
+-------------------------------------------------------------------
 Mon Mar 16 19:46:33 UTC 2015 - jrecord@suse.com
 
 - Fixed kdumptool error (bnc#922607)
