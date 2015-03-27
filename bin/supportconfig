@@ -1,7 +1,7 @@
 #!/bin/bash
 
-SVER='3.0-55'
-SDATE='2015 03 16'
+SVER='3.0-55.dev1.1'
+SDATE='2015 03 27'
 
 ##############################################################################
 #  supportconfig - Gathers system troubleshooting information for NTS.
@@ -1405,6 +1405,18 @@ update_info() {
 		done
 		rpm_verify $OF lsb
 		conf_files $OF /etc/zypp/zypp.conf /etc/zypp/credentials.d/NCCcredentials
+	fi
+	if (( SLES_VER >= 120 ))
+	then
+		if rpm_verify $OF SUSEConnect
+		then
+			rpm_verify $OF ruby2.1-rubygem-suse-connect
+			log_cmd $OF "SUSEConnect --status"
+			FILES=$(find /etc/zypp/credentials.d/ -type f)
+			conf_files $OF /etc/SUSEConnect $FILES
+			timed_log_cmd $OF "curl --verbose --capath /etc/ssl/certs/ --digest --remote-time --fail https://updates.suse.com/"
+			timed_log_cmd $OF "curl --verbose --capath /etc/ssl/certs/ --digest --remote-time --fail https://scc.suse.com/"
+		fi
 	fi
 
 	if rpm -q libzypp &> /dev/null; then
