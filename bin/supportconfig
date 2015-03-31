@@ -1,6 +1,6 @@
 #!/bin/bash
 
-SVER='3.0-58.ptf.150331.2'
+SVER='3.0-58.ptf.150331.4'
 SDATE='2015 03 31'
 
 ##############################################################################
@@ -393,7 +393,7 @@ log_files() {
 	shift
 	for CONF in $@
 	do
-		BAD_FILE=$(echo "$CONF" | egrep "tbz$|bz2$|gz$|zip$")
+		BAD_FILE=$(echo "$CONF" | egrep "\.tbz$|\.bz2$|\.gz$|\.zip$|\.xz$")
 		if [ -n "$BAD_FILE" ]; then
 			continue
 		fi
