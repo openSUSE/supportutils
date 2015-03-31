@@ -1,7 +1,7 @@
 #!/bin/bash
 
-SVER='3.0-58'
-SDATE='2015 03 27'
+SVER='3.0-58.ptf.150331.2'
+SDATE='2015 03 31'
 
 ##############################################################################
 #  supportconfig - Gathers system troubleshooting information for NTS.
@@ -50,11 +50,12 @@ OPTION_CIMOM=1
 OPTION_CRASH=1
 OPTION_CRON=1
 OPTION_DFS=1
-OPTION_DSFW=1
 OPTION_DHCP=1
 OPTION_DISK=1
 OPTION_DNS=1
+OPTION_DOCKER=1
 OPTION_DRBD=1
+OPTION_DSFW=1
 OPTION_EDIR=1
 OPTION_ENV=1
 OPTION_ETC=1
@@ -2675,6 +2676,30 @@ systemd_info() {
 			log_cmd $OF "systemctl show '$i'"
 		fi
 	done
+	echolog Done
+}
+
+docker_info() {
+	printlog "Docker..."
+	test $OPTION_DOCKER -eq 0 && { echolog Excluded; return 1; }
+	OF=docker.txt
+	addHeaderFile $OF
+	if rpm_verify $OF docker
+	then
+		log_cmd $OF 'docker version'
+		log_cmd $OF "systemctl status docker.service"
+		log_cmd $OF 'docker info'
+		log_cmd $OF 'docker images'
+		log_cmd $OF 'docker ps'
+		FILES='/etc/sysconfig/docker'
+		conf_files $OF $FILES
+		if rpm_verify $OF ruby2.1-rubygem-sle2docker
+		then
+			log_cmd $OF 'sle2docker version'
+			log_cmd $OF 'sle2docker list'
+		fi
+		log_cmd $OF 'journalctl -u docker'
+	fi
 	echolog Done
 }
 
@@ -6334,6 +6359,7 @@ if [ "$USE_SAVED_LOGS_ONLY" != "1" ]; then
 	sysconfig_info
 	sysfs_info
 	(( SLES_VER >= 120 )) && systemd_info || chkconfig_info
+	(( SLES_VER >= 120 )) && docker_info
 	cron_info
 	udev_info
 	lvm_info

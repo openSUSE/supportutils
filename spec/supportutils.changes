@@ -1,4 +1,9 @@
 -------------------------------------------------------------------
+Tue Mar 31 19:19:51 UTC 2015 - jrecord@suse.com
+
+- Added docker support in docker.txt with OPTION_DOCKER=1 (bnc#925230)
+
+-------------------------------------------------------------------
 Fri Mar 27 19:30:59 UTC 2015 - jrecord@suse.com
 
 - Added missing SUSEConnect (bnc#924738)
