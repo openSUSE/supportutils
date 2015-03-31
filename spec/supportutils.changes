@@ -1,8 +1,10 @@
 -------------------------------------------------------------------
-Tue Mar 31 19:57:33 UTC 2015 - jrecord@suse.com
+Tue Mar 31 22:41:10 UTC 2015 - jrecord@suse.com
 
+- Fixed xz system logs compressed (bnc#924761)
 - Fixed xz compressed logs in updates.txt (bnc#924760)
 - Added docker support in docker.txt with OPTION_DOCKER=1 (bnc#925230)
+- supportconfig: 3.0-62
 
 -------------------------------------------------------------------
 Fri Mar 27 19:30:59 UTC 2015 - jrecord@suse.com
