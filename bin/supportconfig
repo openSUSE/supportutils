@@ -4943,7 +4943,33 @@ proc_info() {
 	echolog Done
 }
 
+drm_sub_info() {
+    log_cmd $OF 'systool -vc drm'
+    log_cmd $OF 'ls -lR --time-style=long-iso /sys/class/drm'
+    log_cmd $OF 'modetest'
+    log_cmd $OF 'intel_reg_dumper'
+    for i in /sys/class/drm/card?/device/uevent
+    do
+	module=$(cat $i | grep DRIVER | cut -d= -f2)
+	log_cmd $OF "modeprint $module"
+    done
+    for i in /sys/class/drm/card*-*
+    do
+	log_cmd $OF "cat $i/status $i/enabled "
+	log_cmd $OF 'hexdump -e '"'16/1 "'"%2.2x ""  "'"' -e '16/1 "'"%_p""\n"'"' $i/edid"
+    done
+    log_cmd $OF 'dmesg | grep drm'
+    if grep -v 'drm.debug=' /proc/cmdline &>/dev/null; then
+	log_write $OF "Warning, enable drm.debug=0xe on boot options line"
+    fi
+}
+
 x_info() {
+        local verify_list
+	local xserver_present=n
+	local drm_present=n
+	echo "$SLES_VER" > /tmp/supp_log
+
 	printlog "X..."
 	test $OPTION_X -eq 0 && { echolog Excluded; return 1; }
 	OF=x.txt
@@ -4972,44 +4998,179 @@ x_info() {
 		echolog Skipped
 	fi
 	;;
-	10*|11*|12*) if rpm_verify $OF xorg-x11-server
-	then
-		log_cmd $OF 'ls -al /dev | egrep "video.*|mouse.*"'
-		log_cmd $OF '3Ddiag'
-		rpm_verify $OF Mesa
-		rpm_verify $OF xorg-x11-libs
-		log_cmd $OF 'hwinfo --framebuffer'
-		conf_files $OF /etc/sysconfig/displaymanager /etc/sysconfig/windowmanager /etc/X11/xorg.conf
-		if [[ -d /sys/class/drm ]]
+	10*)
+                log_cmd $OF 'ls -al /dev | egrep "video.*|mouse.*"'
+                log_cmd $OF '3Ddiag'
+                rpm_verify $OF Mesa
+                rpm_verify $OF xorg-x11-libs
+                log_cmd $OF 'hwinfo --framebuffer'
+                conf_files $OF /etc/sysconfig/displaymanager /etc/sysconfig/windowmanager /etc/X11/xorg.conf
+                log_cmd $OF 'intel_reg_dumper'
+                log_cmd $OF 'lspci -n'
+                log_cmd $OF 'modetest'
+
+                if rpm_verify $OF sax2
 		then
-			log_cmd $OF 'systool -vc drm'
-			log_cmd $OF 'ls -lR --time-style=long-iso /sys/class/drm'
+                        log_cmd $OF 'sysp -q mouse'
+                        log_cmd $OF 'sysp -c'
+                        log_cmd $OF 'sysp -q keyboard'
+                        log_files $OF $VAR_OPTION_LINE_COUNT /var/log/SaX.log
 		fi
-		log_cmd $OF 'intel_reg_dumper'
-		log_cmd $OF 'lspci -n'
-		log_cmd $OF 'modetest'
-		if cat /proc/fb 2>/dev/null | grep -q drmfb; then 
-			module=$(cat /proc/fb | cut -d " " -f 2 | sed 's/drmfb//g')
-			log_cmd $OF "modeprint $module"
-		fi
-		log_cmd $OF 'dmesg | grep drm'
-		if grep -v 'drm.debug=' /proc/cmdline &>/dev/null; then
-			log_write $OF "Warning, enable drm.debug=0xe on boot options line"
-		fi
-		
-		if rpm_verify $OF sax2
+	;;
+	11*)
+		for i in xorg-x11-Xvnc xorg-x11-libs xorg-x11
+		do
+		    rpm -q $i &> /dev/null && rpm_verify $OF $i
+		done
+		if rpm_verify $OF xorg-x11-server
 		then
+		    xserver_present=y
+		    rpm_verify $OF Mesa
+		    if rpm_verify $OF sax2
+		    then
 			log_cmd $OF 'sysp -q mouse'
 			log_cmd $OF 'sysp -c'
 			log_cmd $OF 'sysp -q keyboard'
 			log_files $OF $VAR_OPTION_LINE_COUNT /var/log/SaX.log
+		    fi
+		    log_cmd $OF 'bash -c "for i in /sys/class/input/input*; do echo -n \"\$i: \"; echo -n \$i/event* \"  \" | sed -e \"s#\$i/##\"; cat \$i/name; done"'
+		    log_cmd $OF 'ls -al /dev | egrep "video.*|mouse.*"'
+		    log_cmd $OF '3Ddiag'
+		    [ $SLES_VER -ge 113 ] && log_cmd $OF 'mokutil --sb-state'
+		    log_cmd $OF 'cat /proc/fb'
+		    grep -q "VESA" /proc/fb && log_cmd $OF 'hwinfo --framebuffer'
+		    log_cmd $OF 'lspci -nn'
+
+		    conf_files $OF /etc/sysconfig/displaymanager /etc/sysconfig/windowmanager /etc/xinetd.d/vnc
+		    [ -e /etc/X11/xorg.conf ] && conf_files $OF /etc/X11/xorg.conf
+
+		    FILES="/var/log/Xorg.[0,1].log /var/log/Xorg.0.log.old /var/log/xdm.errors /root/.X.err /root/.xsession-errors"
+		    test $ADD_OPTION_LOGS -gt 0 && log_files $OF 0 $FILES || log_files $OF $VAR_OPTION_LINE_COUNT $FILES
 		fi
-		FILES="/var/log/Xorg.[0,1].log /var/log/xdm.errors /root/.X.err /root/.xsession-errors"
-		test $ADD_OPTION_LOGS -gt 0 && log_files $OF 0 $FILES || log_files $OF $VAR_OPTION_LINE_COUNT $FILES
-		echolog Done
-	else
-		echolog Skipped
-	fi
+		if [ -d /sys/class/drm ]
+		then
+		    drm_present=y
+		    if [ "$xserver_present" = "n" ]
+		    then
+			[ $SLES_VER -ge 113 ] && log_cmd $OF 'mokutil --sb-state'
+			log_cmd $OF 'lspci -nn'
+		    fi
+		    drm_sub_info
+		fi
+		if [ "$xserver_present" = "y" -o "$drm_present" = "y" ]
+		then
+		    echolog Done
+		else
+		    echolog Skipped
+		fi
+	;;
+	12*)
+		MESA="Mesa Mesa-32bit Mesa-demo-x Mesa-libEGL1 Mesa-libEGL1-32bit Mesa-libGL1 \
+		Mesa-libGL1-32bit Mesa-libGLESv2-2 Mesa-libGLESv2-2-32bit Mesa-libglapi0 \
+                Mesa-libglapi0-32bit"
+
+		XORG_APPS="appres autocutsel bitmap editres fonttosfnt glamor  iceauth listres luit \
+                mkfontdir mkfontscale numlockx rendercheck rgb s2tc sessreg setxkbmap \
+                viewres x11-tools x11perf xauth xbacklight xbitmaps xclock xconsole \
+                xcursorgen xdm xdmbgrd xdpyinfo xev xeyes xfd xfontsel xfsdump xfsprogs \
+                xgamma xhost xinit xinput xkbcomp xkbevd xkbprint xkbutils xkill xlogo \
+                xlsatoms xlsclients xlsfonts xmag xmessage xmodmap intel-gpu-tools xprop \
+                xrandr xrdb xrestop xscope xset xsetmode xsetpointer xsetroot xvinfo xwd \
+                xwininfo"
+
+		XORG_FONTS="gnu-unifont-bitmap-fonts efont-unicode-bitmap-fonts baekmuk-bitmap-fonts \
+                arabic-bitmap-fonts intlfonts-arabic-bitmap-fonts \
+                intlfonts-chinese-big-bitmap-fonts intlfonts-chinese-bitmap-fonts \
+                intlfonts-euro-bitmap-fonts intlfonts-japanese-big-bitmap-fonts \
+                intlfonts-japanese-bitmap-fonts terminus-bitmap-fonts \
+                wqy-bitmap-fonts x11-japanese-bitmap-fonts"
+
+		XORG_LIBS="libGLU1 libGLw1 libICE6 libSM6 libX11-6 libX11-data libX11-xcb1 libXRes1 \
+                libXau6 libXaw3d8 libXaw7 libXaw8 libXcomposite1 libXcursor1  libXdamage1 \
+                libXdmcp6 libXevie1 libXext6 libXfixes3 libXfont1 libXfontcache1 libXft2 \
+                libXi6 libXinerama1 libXiterm1 libXmu6 libXmuu1 libXp6 libXpm4 libXprintUtil1 \
+                libXrandr2 libXrender1 libXt6 libXt6-32bit libXtst6 libXvMC1 libXxf86dga1 \
+                libXxf86misc1 libXxf86vm1 libdmx1 libdrm2  libXv1 libdrm_intel1 \
+                libdrm_nouveau2 libdrm_radeon1 libevdev-tools libevdev2 libfontenc1 \
+                libgssglue1 libmtdev1 libpciaccess0 libsmartcols1 libsmbclient-raw0 \
+                libsmbclient0 libsmbconf0 libsmbios2 libsmbldap0 libsmi libsmi2 libvdpau1 \
+                libxcb-dri2-0 libxcb-glx0 libxcb-icccm4 libxcb-image0 libxcb-keysyms1 \
+                libxcb-randr0 libxcb-render-util0 libxcb-render0 libxcb-shape0 libxcb-shm0 \
+                libxcb-sync1 libxcb-util1 libxcb-xf86dri0 libxcb-xfixes0 libxcb-xkb1 \
+                libxcb-xv0 libxcb1 libxkbfile1 libxtables10"
+
+		XORG_32_LIBS="libGLU1-32bit libGLw1-32bit libICE6-32bit libSM6-32bit libX11-6-32bit \
+                libX11-xcb1-32bit libXRes1-32bit libXau6-32bit libXaw3d8-32bit libXaw7-32bit \
+                libXcomposite1-32bit libXcursor1-32bit libXdamage1-32bit libXdmcp6-32bit \
+                libXext6-32bit libXfixes3-32bit libXft2-32bit libXi6-32bit libXinerama1-32bit \
+                libXmu6-32bit libXp6-32bit libXpm4-32bit libXprintUtil1-32bit libXrandr2-32bit \
+                libXrender1-32bit libXxf86vm1-32bit libXtst6-32bit libXv1-32bit libdrm2-32bit \
+                libfontenc1-32bit libglut3-32bit libdrm_intel1-32bit libdrm_nouveau2-32bit \
+                libdrm_radeon1-32bit libgssglue1-32bit libpciaccess0-32bit \
+                libsmbclient-raw0-32bit libsmbclient0-32bit libsmbconf0-32bit \
+                libsmbldap0-32bit libvdpau1-32bit libxcb-dri2-0-32bit libxcb-glx0-32bit \
+                libxcb-render0-32bit libxcb-shm0-32bit libxcb-util1-32bit libxcb-xfixes0-32bit \
+                libxcb-xkb1-32bit libxcb1-32bit libxkbfile1-32bit"
+
+		XORG_DRIVERS="vaapi-intel-driver xf86-input-evdev xf86-input-synaptics xf86-input-vmmouse \
+                xf86-input-void xf86-input-wacom xf86-video-ati xf86-video-cirrus \
+                xf86-video-fbdev xf86-video-intel xf86-video-mga xf86-video-modesetting \
+                xf86-video-nouveau xf86-video-nv xf86-video-qxl xf86-video-v4l \
+                xf86-video-vesa xf86-video-vmware"
+
+                XORG_STUFF="xcursor-themes xkeyboard-config xkeyboard-config-lang xorg-docs"
+
+                XORG_DUMMY="xorg-x11 xorg-x11-driver-input xorg-x11-driver-video xorg-x11-essentials \
+                xorg-x11-fonts xorg-x11-fonts-core xorg-x11-libX11-ccache xorg-x11-libs \
+                xorg-x11-server xorg-x11-server-extra"
+
+		XORG_PACKAGES="$MESA $XORG_APPS $XORG_FONTS $XORG_LIBS $XORG_32_LIBS $XORG_DRIVERS $XORG_STUFF"
+		for i in $XORG_PACKAGES xorg-x11-Xvnc tigervnc xorg-x11-server
+		do
+		    rpm -q $i &> /dev/null && verify_list="$verify_list $i"
+		done
+		[ -n "$verify_list" ] && rpm_verify $OF "$verify_list"
+		if rpm -q xorg-x11-server &>/dev/null
+		then
+		    xserver_present=y
+		    log_cmd $OF 'bash -c "for i in /sys/class/input/input*; do echo -n \"\$i: \"; echo -n \$i/event* \"  \" | sed -e \"s#\$i/##\"; cat \$i/name; done"'
+		    log_cmd $OF 'ls -al /dev | egrep "video.*"'
+		    [ $SLES_VER -ge 1130 ] && log_cmd $OF 'mokutil --sb-state'
+		    log_cmd $OF 'cat /proc/fb'
+		    grep -q "VESA" /proc/fb && log_cmd $OF 'hwinfo --framebuffer'
+		    log_cmd $OF 'lspci -nn'
+
+		    conf_files $OF /etc/sysconfig/displaymanager /etc/sysconfig/windowmanager /etc/xinetd.d/vnc
+		    if [ -e /etc/X11/xorg.conf ]
+		    then
+			xorg_conf=/etc/X11/xorg.conf
+			TMPLOG=$ADD_OPTION_LOGS
+		    else [ -d /etc/X11/xorg.conf.d ]
+			xorg_conf='/etc/X11/xorg.conf.d/*'
+			TMPLOG=0
+		    fi
+		    [ -n "$xorg_conf" ] && ADD_OPTION_LOGS=$TMPLOG conf_files $OF $xorg_conf
+
+		    FILES="/var/log/Xorg.[0,1].log /var/log/Xorg.0.log.old /var/log/xdm.errors /root/.X.err /root/.xsession-errors"
+		    test $ADD_OPTION_LOGS -gt 0 && log_files $OF 0 $FILES || log_files $OF $VAR_OPTION_LINE_COUNT $FILES
+		fi
+		if [[ -d /sys/class/drm ]]
+		then
+		    drm_present=y
+		    if [ "$xserver_present" == "n" ]
+		    then
+			log_cmd $OF 'mokutil --sb-state'
+			log_cmd $OF 'lspci -nn'
+		    fi
+		    drm_sub_info
+		fi
+
+		if [ "$xserver_present" = "y" -o "$drm_present" = "y" ]
+		then
+		    echolog Done
+		else
+		    echolog Skipped
+		fi
 	;;
 	esac
 }
