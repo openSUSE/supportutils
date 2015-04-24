@@ -3911,17 +3911,20 @@ get_sles_ver() {
 		KERNREL="${KERNREL}.0.0"
 	fi
 	KERNBASE="${KERNMAJ}.${KERNREL}"
-	KERNVER=$(echo $KERNBASE | awk -F\. '{printf "%g%g%02g%02g%03g%03g%03g\n", $1, $2, $3, $4, $5, $6, $7}')
-	if   [ $KERNVER -ge 3120900001000000 ]; then SLES_VER=120;
-	elif [ $KERNVER -ge 263212000007000 ]; then SLES_VER=111;
-	elif [ $KERNVER -ge 262719005000000 ]; then SLES_VER=110;
-	elif [ $KERNVER -ge 261660000085001 ]; then SLES_VER=104;
-	elif [ $KERNVER -ge 261660000054005 ]; then SLES_VER=103;
-	elif [ $KERNVER -ge 261660000021000 ]; then SLES_VER=102;
-	elif [ $KERNVER -ge 261646000012000 ]; then SLES_VER=101;
-	elif [ $KERNVER -ge 261621000008000 ]; then SLES_VER=100;
-	elif [ $KERNVER -ge 260500007097000 ]; then SLES_VER=90;
-	elif [ $KERNVER -ge 241900120000000 ]; then SLES_VER=80;
+	KERNVER=$(echo $KERNBASE | awk -F\. '{printf "%g%02g%03g%02g%03g%03g%03g\n", $1, $2, $3, $4, $5, $6, $7}')
+	if   [ $KERNVER -ge 31200900001000000 ]; then SLES_VER=120;
+#	elif [ $KERNVER -ge 30010100054002000 ]; then SLES_VER=114;
+	elif [ $KERNVER -ge 30007600000011000 ]; then SLES_VER=113;
+	elif [ $KERNVER -ge 30001300000027000 ]; then SLES_VER=112;
+	elif [ $KERNVER -ge 20603212000007000 ]; then SLES_VER=111;
+	elif [ $KERNVER -ge 20602719005000000 ]; then SLES_VER=110;
+	elif [ $KERNVER -ge 20601660000085001 ]; then SLES_VER=104;
+	elif [ $KERNVER -ge 20601660000054005 ]; then SLES_VER=103;
+	elif [ $KERNVER -ge 20601660000021000 ]; then SLES_VER=102;
+	elif [ $KERNVER -ge 20601646000012000 ]; then SLES_VER=101;
+	elif [ $KERNVER -ge 20601621000008000 ]; then SLES_VER=100;
+	elif [ $KERNVER -ge 20600500007097000 ]; then SLES_VER=90;
+	elif [ $KERNVER -ge 20401900120000000 ]; then SLES_VER=80;
 	else SLES_VER=90;
 	fi
 	grep -i "open enterprise server" /etc/*release* &>/dev/null
