@@ -3084,28 +3084,39 @@ hardware_info() {
 	fi
 	if uname -i | grep ppc64 &> /dev/null
 	then
-		if grep pSeries /proc/cpuinfo &>/dev/null; then
-			if rpm -q powerpc-utils &>/dev/null; then
-				rpm_verify $OF powerpc-utils
-				log_cmd $OF "nvram -v --partitions"
-				log_cmd $OF "nvram --partitions|awk 'NR>1{print \$5}' |xargs -I {} nvram --dump {}"
-				log_cmd $OF "ppc64_cpu --smt"
-				log_cmd $OF "ppc64_cpu --cores-present"
-				log_cmd $OF "ppc64_cpu --cores-on"
-				log_cmd $OF "ppc64_cpu --run-mode"
-				log_cmd $OF "ppc64_cpu --frequency"
-				log_cmd $OF "ppc64_cpu --dscr"
+		platform=""
+		if grep PowerNV /proc/cpuinfo &> /dev/null; then
+			platform="PowerNV"
+		elif grep pSeries /proc/cpuinfo &> /dev/null; then
+			platform="pSeries"
+		fi
+
+		if rpm -q powerpc-utils &>/dev/null; then
+			rpm_verify $OF powerpc-utils
+			log_cmd $OF "ppc64_cpu --smt"
+			log_cmd $OF "ppc64_cpu --cores-present"
+			log_cmd $OF "ppc64_cpu --cores-on"
+			log_cmd $OF "ppc64_cpu --run-mode"
+			log_cmd $OF "ppc64_cpu --frequency"
+			log_cmd $OF "ppc64_cpu --dscr"
+			log_cmd $OF "nvram --print-config"
+			if [ $platform == "pSeries" ]; then
 				log_cmd $OF "serv_config -l"
 				log_cmd $OF "bootlist -m both -r"
 				log_cmd $OF "lparstat -i"
 			fi
-			if rpm -q lsvpd &>/dev/null; then
-				rpm_verify $OF lsvpd
-				log_cmd $OF "lscfg -vp"
-				log_cmd $OF "lsmcode -A"
-				log_cmd $OF "lsvpd --debug"
+		fi
+		if rpm -q lsvpd &>/dev/null; then
+			rpm_verify $OF lsvpd
+			log_cmd $OF "lscfg -vp"
+			log_cmd $OF "lsmcode -A"
+			log_cmd $OF "lsvpd --debug"
+			if [ $platform == "pSeries" ]; then
 				log_cmd $OF "lsvio -des"
 			fi
+		fi
+
+		if [ $platform == "pSeries" ]; then
 			if rpm -q servicelog &>/dev/null; then
 				rpm_verify $OF servicelog
 				log_cmd $OF "servicelog --dump"
@@ -3116,16 +3127,30 @@ hardware_info() {
 				log_cmd $OF "usysattn"
 				log_cmd $OF "usysident"
 			fi
-			PPC_DIR="${LOG}/ppc64"
-			mkdir -p $PPC_DIR
-			log_entry $OF command "cp /proc/ppc64/eeh /proc/ppc64/lparcfg /proc/ppc64/systemcfg $PPC_DIR"
-			cp /proc/ppc64/eeh /proc/ppc64/lparcfg /proc/ppc64/systemcfg $PPC_DIR 2>/dev/null
-			if [[ -d /proc/device-tree/ ]]; then
-				SAVE_DIR="${PPC_DIR}/device-tree"
-				mkdir -p $SAVE_DIR
-				log_entry $OF command "cp -r /proc/device-tree/* $SAVE_DIR"
-				cp -r /proc/device-tree/* $SAVE_DIR 2>/dev/null
-			fi
+		fi
+
+		PPC_DIR="${LOG}/ppc64"
+		mkdir -p $PPC_DIR
+		case $platform in
+		"pSeries")
+			log_entry $OF command "cp /proc/ppc64/eeh /proc/ppc64/lparcfg /proc/ppc64/systemcfg /var/log/platform /dev/nvram $PPC_DIR"
+			cp /proc/ppc64/eeh /proc/ppc64/lparcfg /proc/ppc64/systemcfg /var/log/platform /dev/nvram $PPC_DIR 2>/dev/null
+			;;
+		"PowerNV")
+			log_entry $OF command "cp /proc/ppc64/eeh /proc/ppc64/systemcfg /proc/ppc64/topology_updates /sys/firmware/opal/msglog /var/log/opal-elog /dev/nvram $PPC_DIR"
+			cp /proc/ppc64/eeh /proc/ppc64/systemcfg /proc/ppc64/topology_updates /sys/firmware/opal/msglog /var/log/opal-elog /dev/nvram $PPC_DIR 2>/dev/null
+			;;
+		esac
+
+		if [[ -d /proc/device-tree/ ]]; then
+			SAVE_DIR="${PPC_DIR}/device-tree"
+			mkdir -p $SAVE_DIR
+			log_entry $OF command "cp -r /proc/device-tree/* $SAVE_DIR"
+			cp -r /proc/device-tree/* $SAVE_DIR 2>/dev/null
+		fi
+
+		if [[ -d /var/log/dump ]]; then
+			log_cmd $OF "ls -l /var/log/dump"
 		fi
 	fi
 	echolog Done
