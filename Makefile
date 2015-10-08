@@ -4,7 +4,7 @@ VERSION=$(shell awk '/Version:/ { print $$2 }' spec/${OBSPACKAGE}.spec)
 RELEASE=$(shell awk '/Release:/ { print $$2 }' spec/${OBSPACKAGE}.spec)
 SRCDIR=$(OBSPACKAGE)-$(VERSION)
 SRCFILE=$(SRCDIR).tar
-BUILDDIR=/usr/src/packages
+BUILDDIR=/home/jrecord/rpmbuild
 
 default: build
 
