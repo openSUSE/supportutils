@@ -3962,7 +3962,7 @@ xen_info() {
 	if rpm_verify $OF xen
 	then
 		XEN_FILES='/etc/sysconfig/xendomains'
-		LIBVIRT_FILES='/etc/libvirt/libvirtd.conf'
+		LIBVIRT_FILES='/etc/libvirt/libvirtd.conf /etc/libvirt/libxl.conf /etc/libvirt/libxl-lockd.conf /etc/libvirt/virtlockd.conf'
 		# libvirt is recommended, but not required
 		if (checkproc /usr/sbin/libvirtd) && [ -x /usr/bin/virsh ]; then
 			LIBVIRT=1
@@ -4065,10 +4065,12 @@ xen_info() {
 		if [ $ADD_OPTION_LOGS -gt 0 ]; then
 			test -d /root/.virt-manager && FILES="$(find -L /root/.virt-manager/ -type f)" || FILES=""
 			test -d /var/log/xen && FILES="$FILES $(find -L /var/log/xen/ -type f | sort)"
+			test -d /var/log/libvirt && FILES="$FILES $(find -L /var/log/libvirt/ -name libvirtd.log* -type f | sort)"
 			test -d /var/log/libvirt/libxl && FILES="$FILES $(find -L /var/log/libvirt/libxl/ -type f | sort)"
 		else
 			test -d /root/.virt-manager && FILES=/root/.virt-manager/virt-manager.log || FILES=""
 			test -d /var/log/xen && FILES="$FILES $(find -L /var/log/xen/ -type f | grep 'log$' | sort)"
+			test -d /var/log/libvirt && FILES="$FILES $(find -L /var/log/libvirt/ -name libvirtd.log -type f)"
 			test -d /var/log/libvirt/libxl && FILES="$FILES $(find -L /var/log/libvirt/libxl/ -type f | grep 'log$' | sort)"
 		fi
 		test $ADD_OPTION_LOGS -gt 0 && log_files $OF 0 $FILES || log_files $OF $VAR_OPTION_LINE_COUNT $FILES
@@ -4103,7 +4105,7 @@ kvm_info() {
 		log_write $OF
 		log_cmd $OF 'lscpu'
 		log_cmd $OF 'kvm_stat -1'
-		conf_files $OF '/etc/libvirt/libvirtd.conf'
+		conf_files $OF '/etc/libvirt/libvirtd.conf /etc/libvirt/qemu-lockd.conf /etc/libvirt/virtlockd.conf'
 
 		log_cmd $OF 'lsmod | grep ^kvm'
 
@@ -4161,9 +4163,11 @@ kvm_info() {
 
 		if [ $ADD_OPTION_LOGS -gt 0 ]; then
 			test -d /root/.virt-manager && FILES="$(find -L /root/.virt-manager/ -type f)" || FILES=""
+			test -d /var/log/libvirt && FILES="$FILES $(find -L /var/log/libvirt/ -name libvirtd.log* -type f | sort)"
 			test -d /var/log/libvirt/qemu && FILES="$FILES $(find -L /var/log/libvirt/qemu/ -type f | sort)"
 		else
 			test -d /root/.virt-manager && FILES=/root/.virt-manager/virt-manager.log || FILES=""
+			test -d /var/log/libvirt && FILES="$FILES $(find -L /var/log/libvirt/ -name libvirtd.log -type f)"
 			test -d /var/log/libvirt/qemu && FILES="$FILES $(find -L /var/log/libvirt/qemu/ -type f | grep 'log$' | sort)"
 		fi
 		test $ADD_OPTION_LOGS -gt 0 && log_files $OF 0 $FILES || log_files $OF $VAR_OPTION_LINE_COUNT $FILES
@@ -4215,9 +4219,11 @@ lxc_info() {
 
 			if [ $ADD_OPTION_LOGS -gt 0 ]; then
 				test -d /root/.virt-manager && FILES="$(find -L /root/.virt-manager/ -type f)" || FILES=""
+				test -d /var/log/libvirt && FILES="$FILES $(find -L /var/log/libvirt/ -name libvirtd.log* -type f | sort)"
 				test -d /var/log/libvirt/lxc && FILES="$FILES $(find -L /var/log/libvirt/lxc/ -type f | sort)"
 			else
 				test -d /root/.virt-manager && FILES=/root/.virt-manager/virt-manager.log || FILES=""
+				test -d /var/log/libvirt && FILES="$FILES $(find -L /var/log/libvirt/ -name libvirtd.log -type f)"
 				test -d /var/log/libvirt/lxc && FILES="$FILES $(find -L /var/log/libvirt/lxc/ -type f | grep 'log$' | sort)"
 			fi
 			test $ADD_OPTION_LOGS -gt 0 && log_files $OF 0 $FILES || log_files $OF $VAR_OPTION_LINE_COUNT $FILES
