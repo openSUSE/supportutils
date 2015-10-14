@@ -1,6 +1,6 @@
 #!/bin/bash
 
-SVER='2.25-438.2'
+SVER='2.25-438.3'
 SDATE="2015 10 14"
 
 ##############################################################################
@@ -1242,7 +1242,7 @@ boot_info() {
 	if rpm -q efibootmgr &> /dev/null; then
 		log_cmd $OF "efibootmgr -v"
 	fi
-	if rpm -q z390-tools &> /dev/null; then
+	if rpm -q s390-tools &> /dev/null; then
 		conf_files $OF /etc/zipl.conf
 	fi
 
