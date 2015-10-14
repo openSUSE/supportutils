@@ -1,4 +1,11 @@
 -------------------------------------------------------------------
+Wed Oct 14 20:10:37 UTC 2015 - jrecord@suse.com
+
+- Fixed volmn DFS hang with timer (bnc#950432)
+- Added OPTION_NIT for novell-nit.txt (bnc#939079)
+- supportconfig: 2.25-438.2
+
+-------------------------------------------------------------------
 Mon Mar 16 18:15:09 UTC 2015 - jrecord@suse.com
 
 - Fixed DNS hang on files (bnc#918641)
