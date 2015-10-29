@@ -1,6 +1,7 @@
 -------------------------------------------------------------------
-Thu Oct 29 15:05:30 UTC 2015 - jrecord@suse.com
+Thu Oct 29 15:22:14 UTC 2015 - jrecord@suse.com
 
+- Fixed kernel taint flags (bnc#941773)
 - Fixed s390-tools reference (bnc#931390)
 - Fixed volmn DFS hang with timer (bnc#950432)
 - Added OPTION_NIT for novell-nit.txt (bnc#939079)
