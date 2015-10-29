@@ -1,6 +1,7 @@
 -------------------------------------------------------------------
-Thu Oct 29 15:34:47 UTC 2015 - jrecord@suse.com
+Thu Oct 29 17:14:08 UTC 2015 - jrecord@suse.com
 
+- Fixed find loop for autoupg (bnc#952024)
 - Added nic,lan,vswitch (bnc#915888)
 - Fixed kernel taint flags (bnc#941773)
 - Fixed package reference (bnc#931390)

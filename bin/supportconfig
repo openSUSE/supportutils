@@ -1,6 +1,6 @@
 #!/bin/bash
 
-SVER='3.0-65.2'
+SVER='3.0-65.5'
 SDATE='2015 10 29'
 
 ##############################################################################
@@ -1258,7 +1258,7 @@ yast_files() {
 	conf_files $OF /etc/youservers /etc/sysconfig/onlineupdate /etc/wgetrc 
 	log_files $OF 0 /var/log/pbl.log
 	(( ADD_OPTION_MAXYAST > 0 )) && log_files $OF 0 $FILES || log_files $OF $VAR_OPTION_LINE_COUNT $FILES
-	FILES=$(find -L /root -type f | grep autoupg | grep '\.xml$')
+	[[ -s /root/autoupg.xml ]] && FILES="/root/autoupg*xml" || FILES=''
 	conf_files $OF /root/autoinst.xml $FILES /var/adm/autoinstall/cache/installedSystem.xml
 	sed -i -e 's!<user_password>.*</user_password>!<user_password>*REMOVED BY SUPPORTCONFIG*</user_password>!g' $LOG/$OF
 	echolog Done
@@ -2668,6 +2668,8 @@ systemd_info() {
 	log_cmd $OF 'busctl --no-pager --system list'
 	log_cmd $OF 'timedatectl --no-pager status'
 	log_cmd $OF 'systemd-analyze --no-pager blame'
+	log_cmd $OF 'systemd-cgtop --batch --iterations=1'
+	log_cmd $OF 'systemd-cgls --no-pager --all --full'
 	FILES=''
 	[[ -d /etc/systemd ]] && FILES=$(find -L /etc/systemd -maxdepth 1 -type f)
 	log_cmd $OF 'systemctl --no-pager show'
@@ -2684,6 +2686,8 @@ systemd_info() {
 			log_cmd $OF "systemctl show '$i'"
 		fi
 	done
+	log_cmd $OF 'ls -alR /etc/systemd/'
+	log_cmd $OF 'ls -alR /usr/lib/systemd/'
 	echolog Done
 }
 
