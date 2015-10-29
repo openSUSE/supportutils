@@ -1217,7 +1217,7 @@ yast_files() {
 	test -d /var/log/YaST2 && FILES=$(find -L /var/log/YaST2/ -type f | egrep -v "_dev_|\.tbz$|\.tgz$|\.gz$|\.bz2$|\.zip$") || unset FILES
 	conf_files $OF /etc/youservers /etc/sysconfig/onlineupdate /etc/wgetrc
 	test $ADD_OPTION_MAXYAST -eq 1 && log_files $OF 0 $FILES || log_files $OF $VAR_OPTION_LINE_COUNT $FILES
-	FILES=$(find -L /root -type f | grep autoupg | grep '\.xml$')
+	[[ -s /root/autoupg.xml ]] && FILES="/root/autoupg*xml" || FILES=''
 	conf_files $OF /root/autoinst.xml $FILES /var/adm/autoinstall/cache/installedSystem.xml
 	sed -i -e 's!<user_password>.*</user_password>!<user_password>*REMOVED BY SUPPORTCONFIG*</user_password>!g' $LOG/$OF
 	echolog Done
