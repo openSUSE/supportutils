@@ -1,7 +1,7 @@
 #!/bin/bash
 
-SVER='3.0-65'
-SDATE='2015 10 13'
+SVER='3.0-65.1'
+SDATE='2015 10 29'
 
 ##############################################################################
 #  supportconfig - Gathers system troubleshooting information for NTS.
@@ -1303,7 +1303,7 @@ boot_info() {
 	if rpm -q efibootmgr &> /dev/null; then
 		log_cmd $OF "efibootmgr -v"
 	fi
-	if rpm -q z390-tools &> /dev/null; then
+	if rpm -q s390-tools &> /dev/null; then
 		conf_files $OF /etc/zipl.conf
 	fi
 

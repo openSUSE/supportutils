@@ -1,4 +1,9 @@
 -------------------------------------------------------------------
+Thu Oct 29 15:04:09 UTC 2015 - jrecord@suse.com
+
+- Fixed package reference (bnc#931390)
+
+-------------------------------------------------------------------
 Tue Oct 13 21:09:58 UTC 2015 - jrecord@suse.com
 
 - Added PowerNV info (bnc#944445)
