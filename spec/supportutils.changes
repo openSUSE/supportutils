@@ -1,6 +1,7 @@
 -------------------------------------------------------------------
-Thu Oct 29 17:40:44 UTC 2015 - jrecord@suse.com
+Thu Oct 29 20:14:29 UTC 2015 - jrecord@suse.com
 
+- Fixed DNS hang (bnc#951218)
 - Fixed find error in yast (bnc#952024)
 - Fixed kernel taint flags (bnc#941773)
 - Fixed s390-tools reference (bnc#931390)
