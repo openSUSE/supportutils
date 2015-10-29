@@ -1,12 +1,12 @@
 -------------------------------------------------------------------
-Thu Oct 29 17:17:45 UTC 2015 - jrecord@suse.com
+Thu Oct 29 17:40:44 UTC 2015 - jrecord@suse.com
 
 - Fixed find error in yast (bnc#952024)
 - Fixed kernel taint flags (bnc#941773)
 - Fixed s390-tools reference (bnc#931390)
 - Fixed volmn DFS hang with timer (bnc#950432)
 - Added OPTION_NIT for novell-nit.txt (bnc#939079)
-- supportconfig: 2.25-438.2
+- supportconfig: 2.25-442
 
 -------------------------------------------------------------------
 Mon Mar 16 18:15:09 UTC 2015 - jrecord@suse.com
