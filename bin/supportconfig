@@ -1,6 +1,6 @@
 #!/bin/bash
 
-SVER='3.0-65.5'
+SVER='3.0-70'
 SDATE='2015 10 29'
 
 ##############################################################################
@@ -76,6 +76,7 @@ OPTION_NCP=1
 OPTION_NCS=1
 OPTION_NET=1
 OPTION_NFS=1
+OPTION_NIT=1
 OPTION_NSS=1
 OPTION_NTP=1
 OPTION_OCFS2=1
@@ -1722,6 +1723,34 @@ novell_ncp_info() {
 			done
 		fi
 		test -d /var/opt/novell/log && FILES="/var/opt/novell/log/*ncp*log" || FILES=""
+		test $ADD_OPTION_LOGS -gt 0 && log_files $OF 0 $FILES || log_files $OF $VAR_OPTION_LINE_COUNT $FILES
+		echolog Done
+	else
+		echolog Skipped
+	fi
+}
+
+novell_nit_info() {
+	printlog "Novell NIT..."
+	test $OPTION_NIT -eq 0 && { echolog Excluded; return 1; }
+	OF=novell-nit.txt
+	addHeaderFile $OF
+	if rpm_verify $OF novell-nit
+	then
+		log_cmd $OF "egrep \"novell-nit\" $RPMPATH"
+		check_service $OF 'nitd'
+		conf_files $OF /etc/resolv.conf /etc/hosts /etc/krb5.conf /etc/opt/novell/nit/nitd.conf 
+		log_cmd $OF 'nitconfig get'
+		log_cmd $OF "lsof -p `pgrep nitd`"
+		log_cmd $OF 'ls -alR /var/opt/novell/nit/'
+		LOG_FILE_LOCATION=$(nitconfig get log-file-location | awk -F= '{print $2}')
+		if [[ -n $LOG_FILE_LOCATION ]]
+		then
+			test -d $LOG_FILE_LOCATION && FILES=${LOG_FILE_LOCATION}/* || FILES=""
+		else
+			[[ $ADD_OPTION_LOGS -gt 0 ]] && grep_log_files '\/nit\[' $OF 0 $FILES || grep_log_files '\/nit\[' $OF $VAR_OPTION_LINE_COUNT $FILES
+		fi
+		test -d /var/opt/novell/log/nit && FILES="/var/opt/novell/log/nit/*.log" || FILES=""
 		test $ADD_OPTION_LOGS -gt 0 && log_files $OF 0 $FILES || log_files $OF $VAR_OPTION_LINE_COUNT $FILES
 		echolog Done
 	else
@@ -6543,6 +6572,7 @@ if [ "$USE_SAVED_LOGS_ONLY" != "1" ]; then
 		novell_edir_info
 		novell_lum_info
 		novell_ncp_info
+		novell_nit_info
 		novell_nss_info
 		novell_dfs_info
 		novell_dsfw_info

@@ -1,11 +1,13 @@
 -------------------------------------------------------------------
-Thu Oct 29 17:15:06 UTC 2015 - jrecord@suse.com
+Thu Oct 29 17:42:19 UTC 2015 - jrecord@suse.com
 
+- Added OPTION_NIT for novell-nit.txt (bnc#939079)
 - Included control group listing in systemd.txt
 - Fixed find loop for autoupg (bnc#952024)
 - Added nic,lan,vswitch (bnc#915888)
 - Fixed kernel taint flags (bnc#941773)
 - Fixed package reference (bnc#931390)
+- supportconfig: 3.0-70
 
 -------------------------------------------------------------------
 Tue Oct 13 21:09:58 UTC 2015 - jrecord@suse.com
