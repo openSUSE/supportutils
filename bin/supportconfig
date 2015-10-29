@@ -1421,7 +1421,7 @@ update_info() {
 		then
 			rpm_verify $OF ruby2.1-rubygem-suse-connect
 			log_cmd $OF "SUSEConnect --status"
-			FILES=$(find /etc/zypp/credentials.d/ -type f)
+			FILES=$(find /etc/zypp/credentials.d/ -type f 2>/dev/null)
 			conf_files $OF /etc/SUSEConnect $FILES
 			timed_log_cmd $OF "curl --verbose --capath /etc/ssl/certs/ --digest --remote-time --fail https://updates.suse.com/"
 			timed_log_cmd $OF "curl --verbose --capath /etc/ssl/certs/ --digest --remote-time --fail https://scc.suse.com/"
