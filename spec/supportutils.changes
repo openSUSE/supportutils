@@ -1,5 +1,5 @@
 -------------------------------------------------------------------
-Wed Oct 14 21:37:39 UTC 2015 - jrecord@suse.com
+Thu Oct 29 15:05:30 UTC 2015 - jrecord@suse.com
 
 - Fixed s390-tools reference (bnc#931390)
 - Fixed volmn DFS hang with timer (bnc#950432)

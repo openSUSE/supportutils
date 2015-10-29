@@ -1,7 +1,7 @@
 #!/bin/bash
 
-SVER='2.25-438.3'
-SDATE="2015 10 14"
+SVER='2.25-438.4'
+SDATE="2015 10 29"
 
 ##############################################################################
 #  supportconfig - Gathers system troubleshooting information for NTS.
