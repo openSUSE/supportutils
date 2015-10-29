@@ -1,6 +1,7 @@
 -------------------------------------------------------------------
-Thu Oct 29 15:04:09 UTC 2015 - jrecord@suse.com
+Thu Oct 29 15:21:24 UTC 2015 - jrecord@suse.com
 
+- Fixed kernel taint flags (bnc#941773)
 - Fixed package reference (bnc#931390)
 
 -------------------------------------------------------------------

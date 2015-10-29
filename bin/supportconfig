@@ -1,6 +1,6 @@
 #!/bin/bash
 
-SVER='3.0-65.1'
+SVER='3.0-65.2'
 SDATE='2015 10 29'
 
 ##############################################################################
@@ -953,7 +953,7 @@ basic_healthcheck() {
 		test $((TAINT & 1073741824)) -ne 0 && log_write $OF "  TAINT: (N) Unsupported modules loaded"
 		test $((TAINT & 2147483648)) -ne 0 && log_write $OF "  TAINT: (X) Modules with external support loaded"
 		;;
-		12*)
+		11*|12*)
 		test $((TAINT & 64))         -ne 0 && log_write $OF "  TAINT: (U) Userspace-defined problems"
 		test $((TAINT & 128))        -ne 0 && log_write $OF "  TAINT: (D) Kernel has oopsed before"
 		test $((TAINT & 256))        -ne 0 && log_write $OF "  TAINT: (A) ACPI table overridden"
