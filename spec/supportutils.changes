@@ -1,4 +1,10 @@
 -------------------------------------------------------------------
+Wed Nov 18 19:16:28 UTC 2015 - jrecord@suse.com
+
+- Fixed mount option for bsc#951218
+- supportconfig: 3.0-71
+
+-------------------------------------------------------------------
 Thu Oct 29 17:42:19 UTC 2015 - jrecord@suse.com
 
 - Added OPTION_NIT for novell-nit.txt (bnc#939079)
