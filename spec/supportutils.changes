@@ -1,8 +1,9 @@
 -------------------------------------------------------------------
-Wed Nov 18 18:39:36 UTC 2015 - jrecord@suse.com
+Wed Nov 18 18:48:11 UTC 2015 - jrecord@suse.com
 
+- Using crm configure for clarity bnc#875831
 - Fixed additional syntax error in bnc#951218
-- supportconfig: 2.25-442
+- supportconfig: 2.25-443
 
 -------------------------------------------------------------------
 Thu Oct 29 20:14:29 UTC 2015 - jrecord@suse.com

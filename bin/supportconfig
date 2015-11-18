@@ -3933,7 +3933,7 @@ ha_info() {
 			log_cmd $OF 'crm_mon -r -1'
 			log_cmd $OF 'crm_mon -r -n -1'
 			log_cmd $OF 'corosync-cfgtool -s'
-			log_cmd $OF 'crm config show'
+			log_cmd $OF 'crm configure show'
 			conf_files $OF $CONF_FILES
 			if [ -s /etc/sysconfig/sbd ]; then
 				. /etc/sysconfig/sbd
