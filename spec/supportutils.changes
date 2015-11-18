@@ -1,4 +1,10 @@
 -------------------------------------------------------------------
+Wed Nov 18 18:39:36 UTC 2015 - jrecord@suse.com
+
+- Fixed additional syntax error in bnc#951218
+- supportconfig: 2.25-442
+
+-------------------------------------------------------------------
 Thu Oct 29 20:14:29 UTC 2015 - jrecord@suse.com
 
 - Fixed DNS hang (bnc#951218)
