@@ -4411,7 +4411,7 @@ ha_info() {
 			fi
 			log_cmd $OF 'cibadmin -Q'
 			conf_files $OF $CURRENT_CIB $FILES
-			FILES="/var/log/ha-log /var/log/ctdb/log.ctdb"
+			FILES="/var/log/ha-log /var/log/pacemaker.log /var/log/ctdb/log.ctdb"
 			test $ADD_OPTION_LOGS -gt 0 && log_files $OF 0 $FILES || log_files $OF $VAR_OPTION_LINE_COUNT $FILES
 			CORBIN="/usr/sbin/corosync-fplay"
 			if [ -x $CORBIN ]; then
