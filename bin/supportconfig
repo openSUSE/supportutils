@@ -61,6 +61,7 @@ OPTION_ENV=1
 OPTION_ETC=1
 OPTION_EVMS=1
 OPTION_HA=1
+OPTION_HAPROXY=1
 OPTION_IB=1
 OPTION_IMAN=1
 OPTION_ISCSI=1
@@ -4655,6 +4656,27 @@ drbd_info() {
 	fi
 }
 
+haproxy_info() {
+	printlog "HAPROXY..."
+	test $OPTION_HAPROXY -eq 0 && { echolog Excluded; return 1; }
+	OF=haproxy.txt
+	addHeaderFile $OF
+	if [[ -s /etc/haproxy/haproxy.cfg ]]
+	then
+		rpm_verify $OF haproxy
+		check_service $OF haproxy
+		log_cmd $OF "egrep \"haproxy\" $RPMPATH"
+		log_write $OF
+		log_cmd $OF "ps aux | grep haproxy | grep -v grep"
+		conf_files $OF "/etc/haproxy/haproxy.cfg"
+		FILES="/var/log/messages"
+		test $ADD_OPTION_LOGS -gt 0 && grep_log_files haproxy $OF 0 $FILES || grep_log_files haproxy $OF $VAR_OPTION_LINE_COUNT $FILES
+		echolog Done
+	else
+		echolog Skipped
+	fi
+}
+
 memory_info() {
 	printlog "Memory Details..."
 	test $OPTION_MEM -eq 0 && { echolog Excluded; return 1; }
@@ -6586,6 +6608,7 @@ if [ "$USE_SAVED_LOGS_ONLY" != "1" ]; then
 	ha_info
 	ocfs2_info
 	drbd_info
+	haproxy_info
 	pam_info
 	ldap_info
 	(( SLES_VER >= 110 )) && sssd_info
