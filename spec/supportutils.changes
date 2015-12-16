@@ -1,4 +1,10 @@
 -------------------------------------------------------------------
+Wed Dec 16 17:50:33 UTC 2015 - jrecord@suse.com
+
+- Added OPTION_HAPROXY for haproxy.txt (bsc#959252)
+- supportconfig: 3.0-72
+
+-------------------------------------------------------------------
 Wed Nov 18 19:16:28 UTC 2015 - jrecord@suse.com
 
 - Fixed mount option for bsc#951218
