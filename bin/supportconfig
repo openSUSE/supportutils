@@ -2732,7 +2732,8 @@ docker_info() {
 		log_cmd $OF "systemctl status docker.service"
 		log_cmd $OF 'docker info'
 		log_cmd $OF 'docker images'
-		log_cmd $OF 'docker ps'
+		log_cmd $OF 'docker ps --latest'
+		log_cmd $OF 'docker ps --all'
 		FILES='/etc/sysconfig/docker'
 		conf_files $OF $FILES
 		if rpm_verify $OF ruby2.1-rubygem-sle2docker
@@ -2740,6 +2741,17 @@ docker_info() {
 			log_cmd $OF 'sle2docker version'
 			log_cmd $OF 'sle2docker list'
 		fi
+		for i in $(docker ps | grep -v "COMMAND" | cut -c 1-12);
+		do
+			log_cmd $OF "docker top $i"
+		done
+		for i in $(docker ps | grep -v "COMMAND" | cut -c 1-12);
+		do
+			log_cmd $OF "docker logs $i"
+			log_cmd $OF "docker inspect $i"
+		done
+		log_cmd $OF 'ls -lah /var/lib/docker/containers'
+		log_cmd $OF 'ls -lahR /sys/fs/cgroup/*/system.slice/docker*'
 		log_cmd $OF 'journalctl -u docker'
 	fi
 	echolog Done
