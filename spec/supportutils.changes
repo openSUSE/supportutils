@@ -1,4 +1,15 @@
 -------------------------------------------------------------------
+Tue Jan 26 14:00:00 MDT 2016 - chamilton@suse.com
+
+- Adjusted docker ps to include --all in docker.txt
+- Added docker top to docker.txt
+- Added docker logs to docker.txt
+- Added docker inspect to docker.txt
+- Added listings of /var/lib/docker/containers to docker.txt
+- Added docker related listings of /sys/fs/cgroup to docker.txt
+- supportconfig: 3.0-73
+
+-------------------------------------------------------------------
 Wed Dec 16 17:50:33 UTC 2015 - jrecord@suse.com
 
 - Added OPTION_HAPROXY for haproxy.txt (bsc#959252)
