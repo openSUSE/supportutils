@@ -2733,6 +2733,7 @@ docker_info() {
 		log_cmd $OF 'docker info'
 		log_cmd $OF 'docker images'
 		log_cmd $OF 'docker ps --all'
+		log_cmd $OF 'zypper --non-interactive --no-gpg-checks repos'
 		FILES='/etc/sysconfig/docker'
 		conf_files $OF $FILES
 		if rpm_verify $OF ruby2.1-rubygem-sle2docker
@@ -2740,7 +2741,7 @@ docker_info() {
 			log_cmd $OF 'sle2docker version'
 			log_cmd $OF 'sle2docker list'
 		fi
-		for i in $(docker ps -a | grep -v "COMMAND" | cut -c 1-12);
+		for i in $(docker ps -a | grep -v "COMMAND" | awk '{print $1}');
 		do
 			log_cmd $OF "docker top $i"
 			log_cmd $OF "docker logs $i"
