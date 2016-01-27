@@ -1,5 +1,5 @@
 -------------------------------------------------------------------
-Tue Jan 26 14:00:00 MDT 2016 - chamilton@suse.com
+Wed Jan 27 18:17:57 UTC 2016 - jrecord@suse.com
 
 - Adjusted docker ps to include --all in docker.txt
 - Added a zypper command to check for repos needed by docker in docker.txt

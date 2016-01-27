@@ -1,11 +1,11 @@
 #!/bin/bash
 
-SVER='3.0-72'
-SDATE='2015 12 16'
+SVER='3.0-73'
+SDATE='2016 01 27'
 
 ##############################################################################
 #  supportconfig - Gathers system troubleshooting information for NTS.
-#  Copyright (C) 2001-2015 SUSE LLC
+#  Copyright (C) 2001-2016 SUSE LLC
 #
 #  Creates a tar ball to attach to the SR or send to support. Collects
 #  comprehensive system information for troubleshooting and reducing resolution
