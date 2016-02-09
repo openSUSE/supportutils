@@ -1,7 +1,7 @@
 #!/bin/bash
 
-SVER='3.0-73'
-SDATE='2016 01 27'
+SVER='3.0-73.dev1'
+SDATE='2016 02 09'
 
 ##############################################################################
 #  supportconfig - Gathers system troubleshooting information for NTS.
@@ -1706,8 +1706,9 @@ novell_ncp_info() {
 	test $OPTION_NCP -eq 0 && { echolog Excluded; return 1; }
 	OF=novell-ncp.txt
 	addHeaderFile $OF
-	if rpm_verify $OF novell-ncpserv
+	if rpm_verify $OF yast2-novell-ncpserver
 	then
+		log_cmd $OF "egrep \"novell-ncp\" $RPMPATH"
 		log_cmd $OF '/etc/init.d/ncp2nss status'
 		conf_files $OF /etc/opt/novell/ncpserv.conf
 		if timed_log_cmd $OF 'ncpcon version'; then

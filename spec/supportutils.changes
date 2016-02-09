@@ -1,4 +1,9 @@
 -------------------------------------------------------------------
+Tue Feb  9 15:27:04 UTC 2016 - jrecord@suse.com
+
+- Changed rpm to check with NCP server (bsc#965682)
+
+-------------------------------------------------------------------
 Wed Jan 27 18:17:57 UTC 2016 - jrecord@suse.com
 
 - Adjusted docker ps to include --all in docker.txt
