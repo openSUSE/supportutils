@@ -1,11 +1,11 @@
 #!/bin/bash
 
-SVER='2.25-443'
-SDATE="2015 11 18"
+SVER='2.25-443.ptf1'
+SDATE="2016 02 09"
 
 ##############################################################################
 #  supportconfig - Gathers system troubleshooting information for NTS.
-#  Copyright (C) 2001-2015 SUSE LLC
+#  Copyright (C) 2001-2016 SUSE LLC
 #
 #  Creates a tar ball to attach to the SR or send to support. Collects
 #  comprehensive information for SLE10/SLE11/SLE12, OES2/OES11 for SLES.
@@ -1620,8 +1620,9 @@ novell_ncp_info() {
 	test $OPTION_NCP -eq 0 && { echolog Excluded; return 1; }
 	OF=novell-ncp.txt
 	addHeaderFile $OF
-	if rpm_verify $OF novell-ncpserv
+	if rpm_verify $OF yast2-novell-ncpserver
 	then
+		log_cmd $OF "egrep \"novell-ncp\" $RPMPATH"
 		log_cmd $OF '/etc/init.d/ncp2nss status'
 		conf_files $OF /etc/opt/novell/ncpserv.conf
 		if timed_log_cmd $OF 'ncpcon version'; then

@@ -1,4 +1,9 @@
 -------------------------------------------------------------------
+Tue Feb  9 15:30:15 UTC 2016 - jrecord@suse.com
+
+- Changed rpm to check for novell_ncp_info (bnc#965692)
+
+-------------------------------------------------------------------
 Wed Nov 18 18:48:11 UTC 2015 - jrecord@suse.com
 
 - Using crm configure for clarity bnc#875831
