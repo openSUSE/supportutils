@@ -1,6 +1,6 @@
 #!/bin/bash
 
-SVER='3.0-73.dev.8'
+SVER='3.0-73.dev.10'
 SDATE='2016 02 10'
 
 ##############################################################################
@@ -5001,12 +5001,12 @@ proc_info() {
 		NS_NET_DEFAULT="$(readlink /proc/1/ns/net | sed 's/\[/\\[/;s/\]/\\]/')"
 		NS_PID_DEFAULT="$(readlink /proc/1/ns/pid | sed 's/\[/\\[/;s/\]/\\]/')"
 		NS_UTS_DEFAULT="$(readlink /proc/1/ns/uts | sed 's/\[/\\[/;s/\]/\\]/')"
-		wait_trace_on "Checking processes in $NS_TAG name space"
 		for PID_PATH in /proc/[0-9]*
 		do
+			wait_trace_on "Compare $PID_PATH name space with the default"
 			if [[ -e ${PID_PATH} ]]
 			then
-				CMD_LINE=$(cat ${PID_PATH}/cmdline 2>/dev/null)
+				CMD_LINE=$(cat ${PID_PATH}/cmdline 2>/dev/null | tr '\0' ' ')
 				STATE=$(sed -n 's/^State:[[:blank:]]\+\([^[:blank:]]\)[[:blank:]]\+.*/\1/p' 2>/dev/null < ${PID_PATH}/status)
 				PID=$(basename $PID_PATH)
 				NS_IPC="$(readlink ${PID_PATH}/ns/ipc 2>/dev/null | sed 's/\[/\\[/;s/\]/\\]/')"
@@ -5018,14 +5018,14 @@ proc_info() {
 					if [[ -n "$CMD_LINE" ]]
 					then
 						[[ "$NS_IPC_DEFAULT" != "$NS_IPC" ]] && log_write $OF "ipc : $PID : $CMD_LINE"
-						[[ "$NS_NET_DEFAULT" != "$NS_NET" ]] && log_write $OF "ipc : $PID : $CMD_LINE"
-						[[ "$NS_PID_DEFAULT" != "$NS_PID" ]] && log_write $OF "ipc : $PID : $CMD_LINE"
-						[[ "$NS_UTS_DEFAULT" != "$NS_UTS" ]] && log_write $OF "ipc : $PID : $CMD_LINE"
+						[[ "$NS_NET_DEFAULT" != "$NS_NET" ]] && log_write $OF "net : $PID : $CMD_LINE"
+						[[ "$NS_PID_DEFAULT" != "$NS_PID" ]] && log_write $OF "pid : $PID : $CMD_LINE"
+						[[ "$NS_UTS_DEFAULT" != "$NS_UTS" ]] && log_write $OF "uts : $PID : $CMD_LINE"
 					fi
 				fi
 			fi
+			wait_trace_off
 		done
-		wait_trace_off
 		log_write $OF
 	fi	
 
