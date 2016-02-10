@@ -1,6 +1,7 @@
 -------------------------------------------------------------------
-Tue Feb  9 15:27:04 UTC 2016 - jrecord@suse.com
+Wed Feb 10 17:48:43 UTC 2016 - jrecord@suse.com
 
+- Fixed name space errors (bsc#961318)
 - Changed rpm to check with NCP server (bsc#965682)
 
 -------------------------------------------------------------------
