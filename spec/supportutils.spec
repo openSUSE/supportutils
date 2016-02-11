@@ -1,7 +1,7 @@
 #
 # spec file for package supportutils
 #
-# Copyright (c) 2014 SUSE LINUX Products GmbH, Nuernberg, Germany.
+# Copyright (c) 2016 SUSE LINUX Products GmbH, Nuernberg, Germany.
 #
 # All modifications and additions to the file contributed by third parties
 # remain the property of their copyright owners, unless otherwise agreed
@@ -11,14 +11,12 @@
 # case the license is the MIT License). An "Open Source License" is a
 # license that conforms to the Open Source Definition (Version 1.9)
 # published by the Open Source Initiative.
-
-# Please submit bugfixes or comments via http://bugs.opensuse.org/
 #
 
 
 Name:           supportutils
 Version:        3.0
-Release:        76_160210.2
+Release:        76_PTF160210.7
 Summary:        Support Troubleshooting Tools
 License:        GPL-2.0
 Group:          System/Monitoring
@@ -26,6 +24,12 @@ Url:            https://github.com/g23guy/supportutils
 Source:         %{name}-%{version}.tar.gz
 Requires:       sysfsutils
 Requires:       tar
+Requires:       which
+Requires:       /usr/bin/logger
+Requires:       /bin/hostname
+Requires:       /usr/bin/clear
+Requires:       /usr/bin/lsmod
+Requires:       /bin/ip
 Provides:       supportconfig-plugin-resource
 Provides:       supportconfig-plugin-tag
 Provides:       supportconfig-plugin-icommand
