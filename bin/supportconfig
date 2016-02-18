@@ -1,7 +1,7 @@
 #!/bin/bash
 
-SVER='3.0-73.dev1'
-SDATE='2016 02 09'
+SVER='3.0-73.dev.10'
+SDATE='2016 02 10'
 
 ##############################################################################
 #  supportconfig - Gathers system troubleshooting information for NTS.
@@ -3318,7 +3318,7 @@ net_info() {
 	test -d /etc/sysconfig/network && FILES=$(find -L /etc/sysconfig/network/ -maxdepth 1 -type f) || FILES=""
 	conf_files $OF /etc/sysconfig/proxy $FILES 
 	sed -i -e 's/.*_PASSWORD[[:space:]]*=.*/*REMOVED BY SUPPORTCONFIG*/g' $LOG/$OF
-	(( SLES_VER >= 120 )) && FILES=$(find /etc/wicked -type f | grep '\.xml$') || FILES=''
+	(( SLES_VER >= 120 )) && FILES=$(find /etc/wicked -type f 2>/dev/null | grep '\.xml$') || FILES=''
 	conf_files $OF $FILES
 	if [ -d /proc/net/bonding ]; then
 		FILES=$(find /proc/net/bonding/ -type f)
@@ -4995,25 +4995,34 @@ proc_info() {
 
 	if (( SLES_VER >= 120 )); then
 		# Check process name space against the default name space
-		log_write $OF "#==[ Processes with Different Default Name Space ]==#"
-		log_write $OF "# name_space: process_id: process_cmdline"
-		for NS_TAG in ipc net pid uts
+		log_write $OF "#==[ Processes with a Different Default Name Space ]==#"
+		log_write $OF "# name_space : process_id : command"
+		NS_IPC_DEFAULT="$(readlink /proc/1/ns/ipc | sed 's/\[/\\[/;s/\]/\\]/')"
+		NS_NET_DEFAULT="$(readlink /proc/1/ns/net | sed 's/\[/\\[/;s/\]/\\]/')"
+		NS_PID_DEFAULT="$(readlink /proc/1/ns/pid | sed 's/\[/\\[/;s/\]/\\]/')"
+		NS_UTS_DEFAULT="$(readlink /proc/1/ns/uts | sed 's/\[/\\[/;s/\]/\\]/')"
+		for PID_PATH in /proc/[0-9]*
 		do
-			wait_trace_on "Checking processes in $NS_TAG name space"
-			DEFAULT_NS="$(readlink /proc/1/ns/$NS_TAG | sed 's/\[/\\[/;s/\]/\\]/')"
-			INTERESTING_PIDS="$(find /proc/[0-9]*/ns -name "$NS_TAG" \! -lname "$DEFAULT_NS" 2>/dev/null | sed 's@/proc/\([0-9]\+\)/ns/.*@\1@' )"
-
-			unset PIDS
-			for pid in $INTERESTING_PIDS; do
-				if ! [ "$(sed -n 's/^State:[[:blank:]]\+\([^[:blank:]]\)[[:blank:]]\+.*/\1/p' < /proc/"$pid"/status)" = Z ]; then
-					PIDS[$((${#PIDS[@]} + 1))]="$pid"
+			wait_trace_on "Compare $PID_PATH name space with the default"
+			if [[ -e ${PID_PATH} ]]
+			then
+				CMD_LINE=$(cat ${PID_PATH}/cmdline 2>/dev/null | tr '\0' ' ')
+				STATE=$(sed -n 's/^State:[[:blank:]]\+\([^[:blank:]]\)[[:blank:]]\+.*/\1/p' 2>/dev/null < ${PID_PATH}/status)
+				PID=$(basename $PID_PATH)
+				NS_IPC="$(readlink ${PID_PATH}/ns/ipc 2>/dev/null | sed 's/\[/\\[/;s/\]/\\]/')"
+				NS_NET="$(readlink ${PID_PATH}/ns/net 2>/dev/null | sed 's/\[/\\[/;s/\]/\\]/')"
+				NS_PID="$(readlink ${PID_PATH}/ns/pid 2>/dev/null | sed 's/\[/\\[/;s/\]/\\]/')"
+				NS_UTS="$(readlink ${PID_PATH}/ns/uts 2>/dev/null | sed 's/\[/\\[/;s/\]/\\]/')"
+				if [[ "$STATE" != "Z" || "$STATE" != "D" ]]
+				then
+					if [[ -n "$CMD_LINE" ]]
+					then
+						[[ "$NS_IPC_DEFAULT" != "$NS_IPC" ]] && log_write $OF "ipc : $PID : $CMD_LINE"
+						[[ "$NS_NET_DEFAULT" != "$NS_NET" ]] && log_write $OF "net : $PID : $CMD_LINE"
+						[[ "$NS_PID_DEFAULT" != "$NS_PID" ]] && log_write $OF "pid : $PID : $CMD_LINE"
+						[[ "$NS_UTS_DEFAULT" != "$NS_UTS" ]] && log_write $OF "uts : $PID : $CMD_LINE"
+					fi
 				fi
-			done
-    
-			if [ ${#PIDS[@]} -ne 0 ]; then
-				for pid in "${PIDS[@]}"; do
-					log_write $OF "${NS_TAG}: $pid: $(tr '\0' ' ' < /proc/"$pid"/cmdline)"
-				done
 			fi
 			wait_trace_off
 		done
