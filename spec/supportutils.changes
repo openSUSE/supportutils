@@ -1,8 +1,10 @@
 -------------------------------------------------------------------
-Wed Feb 10 17:55:29 UTC 2016 - jrecord@suse.com
+Fri Feb 19 17:05:56 UTC 2016 - jrecord@suse.com
 
+- Captures the correct pacemaker logs (bsc#958403)
 - Fixed name space errors (bsc#961318)
 - Changed rpm to check with NCP server (bsc#965682)
+- supportconfig: 3.0-75
 
 -------------------------------------------------------------------
 Wed Jan 27 18:17:57 UTC 2016 - chamilton@suse.com

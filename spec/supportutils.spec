@@ -16,7 +16,7 @@
 
 Name:           supportutils
 Version:        3.0
-Release:        76_PTF160210.7
+Release:        79
 Summary:        Support Troubleshooting Tools
 License:        GPL-2.0
 Group:          System/Monitoring
@@ -25,11 +25,12 @@ Source:         %{name}-%{version}.tar.gz
 Requires:       sysfsutils
 Requires:       tar
 Requires:       which
-Requires:       /usr/bin/logger
-Requires:       /bin/hostname
-Requires:       /usr/bin/clear
-Requires:       /usr/bin/lsmod
-Requires:       /bin/ip
+Requires:       util-linux-systemd
+Requires:       net-tools
+Requires:       ncurses-utils
+Requires:       kmod-compat
+Requires:       iproute2
+Requires:       binutils
 Provides:       supportconfig-plugin-resource
 Provides:       supportconfig-plugin-tag
 Provides:       supportconfig-plugin-icommand
