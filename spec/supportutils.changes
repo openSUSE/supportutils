@@ -1,4 +1,9 @@
 -------------------------------------------------------------------
+Mon Feb 22 20:19:11 UTC 2016 - jrecord@suse.com
+
+- Removed Requires: binutils from spec
+
+-------------------------------------------------------------------
 Fri Feb 19 17:05:56 UTC 2016 - jrecord@suse.com
 
 - Captures the correct pacemaker logs (bsc#958403)

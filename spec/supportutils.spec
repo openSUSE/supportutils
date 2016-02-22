@@ -16,7 +16,7 @@
 
 Name:           supportutils
 Version:        3.0
-Release:        79
+Release:        80
 Summary:        Support Troubleshooting Tools
 License:        GPL-2.0
 Group:          System/Monitoring
@@ -30,7 +30,6 @@ Requires:       net-tools
 Requires:       ncurses-utils
 Requires:       kmod-compat
 Requires:       iproute2
-Requires:       binutils
 Provides:       supportconfig-plugin-resource
 Provides:       supportconfig-plugin-tag
 Provides:       supportconfig-plugin-icommand
