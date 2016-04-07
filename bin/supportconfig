@@ -268,13 +268,13 @@ show_help() {
 	echo "-----------------------------------------------------------------------------"
 	echo "  NOTE:"
 	echo "  This tool will create a tar ball in the /var/log directory. Please attach"
-	echo "  the log file tar ball to your open Service.  Request at the following URL:"
-	echo "  https://secure-support.novell.com/eService_enu"
+	echo "  the log file tar ball to your open Service Request at the following URL:"
+	echo "  https://scc.suse.com/support/requests"
 	echo 
 	echo "  If you cannot attach the tar ball to the SR, then email it to the engineer."
 	echo
 	echo "  Please submit bug fixes or comments via:"
-	echo "  http://en.opensuse.org/Supportutils#Reporting_Bugs"
+	echo "  https://www.suse.com/support/report-a-bug/"
 	echo
 	title
 }
