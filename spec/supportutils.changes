@@ -1,4 +1,10 @@
 -------------------------------------------------------------------
+Thu Apr  7 21:07:09 UTC 2016 - jrecord@suse.com
+
+- Removed 11 digit SR limit (bsc#973803)
+- supportconfig: 3.0-76
+
+-------------------------------------------------------------------
 Mon Feb 22 20:19:11 UTC 2016 - jrecord@suse.com
 
 - Removed Requires: binutils from spec
