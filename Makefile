@@ -63,6 +63,10 @@ obs: dist
 	@cp spec/* home:jrecord:branches:SUSE:SLE-11-SP3:Update:Test/$(OBSPACKAGE)
 	@cp src/$(SRCFILE).gz home:jrecord:branches:SUSE:SLE-11-SP3:Update:Test/$(OBSPACKAGE)
 
+obnew: obsetup obs
+	@echo [obnew]: Committing changes into OBS Novell:NTS:Unstable/$(OBSPACKAGE)
+	@osc -A 'https://api.opensuse.org/' ci -m "New Patterns" Novell:NTS:Unstable/$(OBSPACKAGE)
+
 commit: build
 	@echo [commit]: Committing changes to GIT
 	@git commit -a -m "Committing Source: $(OBSPACKAGE)-$(VERSION)-$(RELEASE)"
