@@ -1,4 +1,10 @@
 -------------------------------------------------------------------
+Thu Apr  7 21:25:40 UTC 2016 - jrecord@suse.com
+
+- Fixed service request number length (bsc#973803)
+- supportconfig: 2.25-450
+
+-------------------------------------------------------------------
 Tue Feb  9 15:30:15 UTC 2016 - jrecord@suse.com
 
 - Changed rpm to check for novell_ncp_info (bnc#965692)
