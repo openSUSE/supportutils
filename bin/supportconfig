@@ -1,7 +1,7 @@
 #!/bin/bash
 
-SVER='3.0-76'
-SDATE='2016 04 07'
+SVER='3.0-78'
+SDATE='2016 05 17'
 
 ##############################################################################
 #  supportconfig - Gathers system troubleshooting information for NTS.
@@ -919,6 +919,9 @@ basic_healthcheck() {
 		test $((TAINT & 2048))       -ne 0 && TAINT_STRING="${TAINT_STRING}I" || TAINT_STRING="${TAINT_STRING} "
 		test $((TAINT & 4096))       -ne 0 && TAINT_STRING="${TAINT_STRING}O" || TAINT_STRING="${TAINT_STRING} "
 		test $((TAINT & 8192))       -ne 0 && TAINT_STRING="${TAINT_STRING}E" || TAINT_STRING="${TAINT_STRING} "
+		test $((TAINT & 16384))      -ne 0 && TAINT_STRING="${TAINT_STRING}L" || TAINT_STRING="${TAINT_STRING} "
+		test $((TAINT & 32768))      -ne 0 && TAINT_STRING="${TAINT_STRING}K" || TAINT_STRING="${TAINT_STRING} "
+		test $((TAINT & 65536))      -ne 0 && TAINT_STRING="${TAINT_STRING}H" || TAINT_STRING="${TAINT_STRING} "
 		test $((TAINT & 1073741824)) -ne 0 && TAINT_STRING="${TAINT_STRING}N" || TAINT_STRING="${TAINT_STRING} "
 		test $((TAINT & 2147483648)) -ne 0 && TAINT_STRING="${TAINT_STRING}X" || TAINT_STRING="${TAINT_STRING} "
 		;;
@@ -962,6 +965,9 @@ basic_healthcheck() {
 		test $((TAINT & 2048))       -ne 0 && log_write $OF "  TAINT: (I) Working around severe firmware bug"
 		test $((TAINT & 4096))       -ne 0 && log_write $OF "  TAINT: (O) Out-of-tree module has been loaded"
 		test $((TAINT & 8192))       -ne 0 && log_write $OF "  TAINT: (E) Unsigned module has been loaded"
+		test $((TAINT & 16384))      -ne 0 && log_write $OF "  TAINT: (L) A soft lockup has previously occurred"
+		test $((TAINT & 32768))      -ne 0 && log_write $OF "  TAINT: (K) Kernel has been live patched"
+		test $((TAINT & 65536))      -ne 0 && log_write $OF "  TAINT: (H) System restored from unsafe hibernate snapshot image"
 		test $((TAINT & 1073741824)) -ne 0 && log_write $OF "  TAINT: (N) Unsupported modules loaded"
 		test $((TAINT & 2147483648)) -ne 0 && log_write $OF "  TAINT: (X) Modules with external support loaded"
 		;;
@@ -3561,19 +3567,16 @@ nfs_info() {
 				check_service $OF nfsserver
 				NFS_STATUS=$?
 			fi
-			if (( NFS_STATUS ))
+			log_cmd $OF 'exportfs -v'
+			log_cmd $OF 'nfsstat'
+			if log_cmd $OF 'showmount'
 			then
-				log_cmd $OF 'exportfs -v'
-				log_cmd $OF 'nfsstat'
-				if log_cmd $OF 'showmount'
-				then
-					log_cmd $OF 'showmount -e'
-					log_cmd $OF 'showmount -a'
-				fi
+				log_cmd $OF 'showmount -e'
+				log_cmd $OF 'showmount -a'
 			fi
 			conf_files $OF /etc/exports /etc/sysconfig/nfs
 			log_cmd $OF "grep '[[:space:]]nfs[[:space:]]' /etc/fstab"
-			IPADDRS=$(grep '[[:space:]]nfs[[:space:]]' /etc/fstab | egrep -v '^#|^;' | cut -d\: -f1 | sort | uniq)
+			IPADDRS=$(egrep '[[:space:]]nfs[[:space:]]|[[:space:]]nfs4[[:space:]]' /etc/fstab | egrep -v '^#|^;' | cut -d\: -f1 | sort | uniq)
 			for IPADDR in $IPADDRS
 			do
 				ping_addr $OF 'NFS Server' $IPADDR
@@ -3592,15 +3595,13 @@ nfs_info() {
 			check_service $OF portmap
 			check_service $OF nfslock
 			check_service $OF nfs
-			if check_service $OF nfsserver
+			check_service $OF nfsserver
+			log_cmd $OF 'exportfs -v'
+			log_cmd $OF 'nfsstat'
+			if log_cmd $OF 'showmount'
 			then
-				log_cmd $OF 'exportfs -v'
-				log_cmd $OF 'nfsstat'
-				if log_cmd $OF 'showmount'
-				then
-					log_cmd $OF 'showmount -e'
-					log_cmd $OF 'showmount -a'
-				fi
+				log_cmd $OF 'showmount -e'
+				log_cmd $OF 'showmount -a'
 			fi
 			conf_files $OF /etc/exports /etc/sysconfig/nfs
 			echolog Done

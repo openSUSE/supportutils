@@ -1,4 +1,11 @@
 -------------------------------------------------------------------
+Tue May 17 16:13:43 UTC 2016 - jrecord@suse.com
+
+- Added new SLE12 SP2 kernel taint flags (bsc#976358)
+- Fixed NFS service detection
+- supportconfig: 3.0-78
+
+-------------------------------------------------------------------
 Thu Apr  7 21:07:09 UTC 2016 - jrecord@suse.com
 
 - Removed 11 digit SR limit (bsc#973803)
