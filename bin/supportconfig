@@ -1,7 +1,7 @@
 #!/bin/bash
 
-SVER='3.0-78'
-SDATE='2016 05 17'
+SVER='3.0-80'
+SDATE='2016 06 01'
 
 ##############################################################################
 #  supportconfig - Gathers system troubleshooting information for NTS.
@@ -4393,7 +4393,7 @@ ha_info() {
 			CURRENT_PATH=$(pwd)
 			for HBRDIR in $VAR_OPTION_HBREPORT_DIRS
 			do
-				HBRS=$(ls -1 $HBRDIR | egrep "^hb[_,-]*report" | grep \.tar\.bz2$)
+				HBRS=$(ls -1 $HBRDIR | egrep "^hb[_,-]?report[0-9a-zA-Z._-]*\.tar\.bz2$")
 				if [ -n "$HBRS" ]; then
 					cd $LOG
 					for HBR in $HBRS

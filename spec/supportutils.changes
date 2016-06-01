@@ -1,4 +1,10 @@
 -------------------------------------------------------------------
+Wed Jun  1 19:52:42 UTC 2016 - jrecord@suse.com
+
+- Fixed code injection and privilege escalation bsc#980670 (CVE-2016-1602)
+- supportconfig: 3.0-80
+
+-------------------------------------------------------------------
 Tue May 17 16:13:43 UTC 2016 - jrecord@suse.com
 
 - Added new SLE12 SP2 kernel taint flags (bsc#976358)
