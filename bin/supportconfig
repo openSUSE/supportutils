@@ -4394,7 +4394,7 @@ ha_info() {
 			cd $LOG
 			for HBRDIR in $VAR_OPTION_HBREPORT_DIRS
 			do
-				HBRS=$(find $HBRDIR -maxdepth 1 -type f | egrep "/hb[_-]?report[0-9a-zA-Z._-]*\.tar\.bz2$")
+				HBRS=$(find $HBRDIR -maxdepth 1 -type f 2>/dev/null | egrep "/hb[_-]?report[0-9a-zA-Z._-]*\.tar\.bz2$")
 				if [ -n "$HBRS" ]; then
 					for HBR_PATH in $HBRS
 					do
