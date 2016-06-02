@@ -1,7 +1,7 @@
 #!/bin/bash
 
 SVER='3.0-80'
-SDATE='2016 06 01'
+SDATE='2016 06 02'
 
 ##############################################################################
 #  supportconfig - Gathers system troubleshooting information for NTS.
@@ -4391,14 +4391,15 @@ ha_info() {
 				conf_files $OF /etc/csync2/csync2.cfg /etc/xinetd.d/csync2
 			fi
 			CURRENT_PATH=$(pwd)
+			cd $LOG
 			for HBRDIR in $VAR_OPTION_HBREPORT_DIRS
 			do
-				HBRS=$(ls -1 $HBRDIR | egrep "^hb[_,-]?report[0-9a-zA-Z._-]*\.tar\.bz2$")
+				HBRS=$(find $HBRDIR -maxdepth 1 -type f | egrep "/hb[_-]?report[0-9a-zA-Z._-]*\.tar\.bz2$")
 				if [ -n "$HBRS" ]; then
-					cd $LOG
-					for HBR in $HBRS
+					for HBR_PATH in $HBRS
 					do
-						log_cmd $OF "tar jxf ${HBRDIR}/${HBR}"
+						HBR=$(basename $HBR_PATH)
+						log_cmd $OF "tar jxf ${HBR_PATH}"
 						conf_files $OF "$LOG/${HBR%%.tar.bz2}/analysis.txt"
 					done
 				fi

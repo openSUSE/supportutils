@@ -1,6 +1,7 @@
 -------------------------------------------------------------------
-Wed Jun  1 19:52:42 UTC 2016 - jrecord@suse.com
+Thu Jun  2 17:46:35 UTC 2016 - jrecord@suse.com
 
+- Improved HA report selection
 - Fixed code injection and privilege escalation bsc#980670 (CVE-2016-1602)
 - supportconfig: 3.0-80
 
