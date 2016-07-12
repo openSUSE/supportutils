@@ -1,4 +1,10 @@
 -------------------------------------------------------------------
+Tue Jul 12 21:53:52 UTC 2016 - jason.record@suse.com
+
+- Fixed crash basename extra operand (bsc#987627)
+- supportconfig: 3.0-81
+
+-------------------------------------------------------------------
 Thu Jun  2 17:46:35 UTC 2016 - jrecord@suse.com
 
 - Improved HA report selection

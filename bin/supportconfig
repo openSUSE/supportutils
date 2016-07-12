@@ -1,7 +1,7 @@
 #!/bin/bash
 
-SVER='3.0-80'
-SDATE='2016 06 02'
+SVER='3.0-81'
+SDATE='2016 07 12'
 
 ##############################################################################
 #  supportconfig - Gathers system troubleshooting information for NTS.
@@ -3828,7 +3828,11 @@ crash_info() {
 	COREFILE=""
 	log_write $OF "#==[ Application Core Files ]==========================#"
 	# Search core_pattern
-	if echo $CORE | grep '/' &>/dev/null; then
+	if echo $CORE | grep '/systemd-coredump' &>/dev/null; then
+		log_write $OF "# Core Files Found in lsof-cwd, \$PATH, ld.so.conf, skipping ($CORE)"
+		COREDIR=''
+		COREFILE='core'
+	elif echo $CORE | grep '/' &>/dev/null; then
 		log_write $OF '# Core Files Found in core_pattern, lsof-cwd, $PATH, ld.so.conf'
 		COREDIR=$(dirname $CORE)
 		COREFILE=$(basename $CORE | sed -e 's/\%./\*/g')
