@@ -1,7 +1,7 @@
 #!/bin/bash
 
-SVER='3.0-81'
-SDATE='2016 07 12'
+SVER='3.0-81.ptf2'
+SDATE='2016 07 15'
 
 ##############################################################################
 #  supportconfig - Gathers system troubleshooting information for NTS.
@@ -3823,7 +3823,7 @@ crash_info() {
 	log_cmd $OF "sysctl kernel.core_pattern"
 	conf_files $OF "/etc/sysconfig/ulimit /etc/security/limits.conf"
 	log_cmd $OF "grep -n 'ulimit -c' /etc/init.d/* 2>/dev/null"
-	CORE=$(cat /proc/sys/kernel/core_pattern)
+	CORE=$(cat /proc/sys/kernel/core_pattern 2>/dev/null)
 	SEARCH_LIST=$(mktemp $LOG/crash.search.list.XXXXXXXX)
 	COREFILE=""
 	log_write $OF "#==[ Application Core Files ]==========================#"
@@ -3834,8 +3834,9 @@ crash_info() {
 		COREFILE='core'
 	elif echo $CORE | grep '/' &>/dev/null; then
 		log_write $OF '# Core Files Found in core_pattern, lsof-cwd, $PATH, ld.so.conf'
-		COREDIR=$(dirname $CORE)
-		COREFILE=$(basename $CORE | sed -e 's/\%./\*/g')
+		COREDIR=$(dirname "$CORE" 2>/dev/null)
+		COREFILE=$(basename "$CORE" 2>/dev/null | sed -e 's/\%./\*/g')
+		[[ -z $COREFILE ]] && COREFILE='core'
 		ls -l --time-style=long-iso ${COREDIR}/${COREFILE} ${COREDIR}/${COREFILE}\.* ${COREDIR}/core ${COREDIR}/core\.* >> $SEARCH_LIST 2>/dev/null
 	else
 		log_write $OF '# Core File List in lsof-cwd, $PATH, ld.so.conf'
