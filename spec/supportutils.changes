@@ -1,9 +1,10 @@
 -------------------------------------------------------------------
-Fri Jul 15 19:09:57 UTC 2016 - jason.record@suse.com
+Fri Jul 15 22:15:30 UTC 2016 - jason.record@suse.com
 
+- Support for iSCSI LIO Targets (bsc#968269)
 - Fixed docker error (bsc#971778)
 - Fixed crash basename extra operand (bsc#968073, bsc#987627)
-- supportconfig: 3.0-82
+- supportconfig: 3.0-84
 
 -------------------------------------------------------------------
 Thu Jun  2 17:46:35 UTC 2016 - jrecord@suse.com

@@ -1,6 +1,6 @@
 #!/bin/bash
 
-SVER='3.0-82'
+SVER='3.0-84'
 SDATE='2016 07 15'
 
 ##############################################################################
@@ -3496,7 +3496,47 @@ iscsi_info() {
 		log_write $OF "#___________________________________________________________#"
 		log_write $OF "#____[ iSCSI Target Information ]___________________________#"
 		log_write $OF
-		if rpm_verify $OF iscsitarget
+		if rpm_verify $OF lio-utils
+		then
+			log_cmd $OF 'systemctl status target.service'
+			log_cmd $OF 'lsmod | grep target_'
+			log_cmd $OF 'lio_node --version'
+			log_cmd $OF 'lio_node --listendpoints'
+			OUTPUT=$(lio_node --listendpoints 2>/dev/null)
+			TARGET_IQN=''
+			TGPT=''
+			if [[ -n $OUTPUT ]]
+			then
+				IN_STATE=0
+				SAVE_IFS=$IFS
+				IFS=$'\n'
+				for i in $(echo "$OUTPUT")
+				do
+					if (( IN_STATE ))
+					then
+						if echo $i | egrep -i targetalias &>/dev/null
+						then
+							TGPT=$(echo $i | awk '{print $2}' | cut -d_ -f2)
+							IN_STATE=0
+							log_entry $OF note "Five Commands for Target IQN: $TARGET_IQN"
+							for LIO_NODE_OPTION in listlunacls listnodeacls listnps listtpgattr listtpgparam
+						  do
+								log_cmd $OF "lio_node --$LIO_NODE_OPTION $TARGET_IQN $TGPT"
+							done
+					fi
+					elif echo $i | egrep '^\\' &>/dev/null
+					then
+						TARGET_IQN=$(echo $i | awk '{print $2}')
+						IN_STATE=1
+					fi
+				done
+			fi
+			IFS=$SAVE_IFS
+			log_cmd $OF 'tcm_node --version'
+			log_cmd $OF 'tcm_node --listhbas'
+			log_cmd $OF 'tcm_node --listlugps'
+			FILES="/etc/target/*"
+		elif rpm_verify $OF iscsitarget
 		then
 			if (( SLES_VER >= 120 )); then
 				log_cmd $OF 'systemctl status iscsitarget.service'
@@ -3506,8 +3546,8 @@ iscsi_info() {
 				log_cmd $OF 'ietadm --op show'
 				FILES='/etc/ietd.conf /proc/net/iet/volume /proc/net/iet/session'
 			fi
-			conf_files $OF $FILES
 		fi
+		conf_files $OF $FILES
 		log_write $OF "#___________________________________________________________#"
 		log_write $OF "#____[ iSCSI Initiator Information ]________________________#"
 		log_write $OF
