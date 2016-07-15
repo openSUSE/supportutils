@@ -1,6 +1,6 @@
 #!/bin/bash
 
-SVER='3.0-81.ptf2'
+SVER='3.0-82'
 SDATE='2016 07 15'
 
 ##############################################################################
@@ -2746,7 +2746,7 @@ docker_info() {
 			log_cmd $OF 'sle2docker version'
 			log_cmd $OF 'sle2docker list'
 		fi
-		for i in $(docker ps -a | grep -v "COMMAND" | awk '{print $1}');
+		for i in $(docker ps -a 2>/dev/null | grep -v "COMMAND" | awk '{print $1}');
 		do
 			log_cmd $OF "docker top $i"
 			log_cmd $OF "docker logs $i"
