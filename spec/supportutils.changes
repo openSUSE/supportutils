@@ -1,4 +1,10 @@
 -------------------------------------------------------------------
+Wed Aug 24 15:04:36 UTC 2016 - jason.record@suse.com
+
+- Restored missing vgs and lvs commands to lvm.txt (bsc#995387)
+- supportconfig: 3.0-85
+
+-------------------------------------------------------------------
 Fri Jul 15 22:15:30 UTC 2016 - jason.record@suse.com
 
 - Support for iSCSI LIO Targets (bsc#968269)
