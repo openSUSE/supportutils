@@ -1,7 +1,7 @@
 #!/bin/bash
 
-SVER='2.25-451'
-SDATE="2016 06 02"
+SVER='2.25-452'
+SDATE="2016 08 24"
 
 ##############################################################################
 #  supportconfig - Gathers system troubleshooting information for NTS.
@@ -2694,8 +2694,8 @@ lvm_info() {
 		log_cmd $OF 'lvdisplay -vv'
 		log_cmd $OF 'pvs -vvvv'
 		log_cmd $OF 'pvscan -vvv'
-		log_cmd $OF "$VGBIN -vvvv"
-		log_cmd $OF "$LVBIN -vvvv"
+		log_cmd $OF "vgs -vvvv"
+		log_cmd $OF "lvs -vvvv"
 		echolog Done
 	else
 		echolog Skipped

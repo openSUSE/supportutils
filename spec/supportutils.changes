@@ -1,4 +1,10 @@
 -------------------------------------------------------------------
+Wed Aug 24 16:35:14 UTC 2016 - jason.record@suse.com
+
+- Restored vgs and lvs to lvm.txt (bsc#995387)
+- supportconfig: 2.25-452
+
+-------------------------------------------------------------------
 Thu Jun  2 17:50:36 UTC 2016 - jrecord@suse.com
 
 - Fixed code injection and privilege escalation bsc#980670 (CVE-2016-1602)
