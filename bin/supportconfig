@@ -3379,6 +3379,7 @@ net_info_namespace() {
 			FILES=$(find /proc/net/bonding/ -type f)
 			conf_files $OF $FILES 
 		fi
+		conf_files $OF /etc/services
 		FILES=$(grep logfile /etc/nscd.conf 2> /dev/null | grep -v ^# | awk '{print $2}' | tail -1)
 		test -n "$FILES" || FILES="/var/log/nscd.log"
 		FILES="$FILES /var/log/NetworkManager"
