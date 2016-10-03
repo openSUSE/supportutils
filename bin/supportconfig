@@ -251,6 +251,7 @@ show_help() {
 	echo "  -i <keyword list>"
 	echo "     Include keywords. A comma separated list of feature keywords that specify"
 	echo "     which features to include. Use -F to see a list of valid keywords."
+	echo "  -k disable all commands that do automatic kernel module loading."
 	echo "  -l Gathers additional rotated logs"
 	echo "  -m Only gather a minimum amount of info: basic env, basic health, hardware,"
 	echo "     rpm, messages, y2logs"
@@ -670,7 +671,7 @@ ping_addr() {
 	ADDR_STRING="$2"
 	ADDR_PING=$3
 	if [ -n "$ADDR_PING" ]; then
-		if log_cmd $OF "ping -n -c1 -W1 $ADDR_PING"; then
+		if log_cmd $OF "${4}ping -n -c1 -W1 $ADDR_PING"; then
 			log_write $OF "# Connectivity Test, $ADDR_STRING $ADDR_PING: Success"
 		else
 			log_write $OF "# Connectivity Test, $ADDR_STRING $ADDR_PING: Failure"
@@ -3209,65 +3210,113 @@ hardware_info() {
 net_info() {
 	printlog "Networking..."
 	test $OPTION_NET -eq 0 && { echolog Excluded; return 1; }
-	OF=network.txt
+	NAMESPACES=$(ip netns list)
+	if [ -n "${NAMESPACES}" ] ; then
+		net_info_namespace "network.txt" 
+		ip netns list | while read NAMESPACE rest; do
+			net_info_namespace "network-${NAMESPACE}.txt" "${NAMESPACE}"
+		done
+	else
+		net_info_namespace "network.txt" 
+	fi
+	echolog Done
+}
+
+net_info_namespace() {
+	OF=$1
 	addHeaderFile $OF
-	rpm_verify $OF sysconfig
-	if (( SLES_VER >= 120 ))
-	then
-		rpm_verify $OF wicked
-		log_cmd $OF "systemctl status network.service"
-		log_cmd $OF "systemctl status nscd.service"
-		log_cmd $OF "wicked ifstatus --verbose all"
-		log_cmd $OF "wicked show-config"
-	else
-		check_service $OF network
-		check_service $OF nscd
+	if [ -z "${2}" ] ; then
+		NS=""
+	else 
+		NS="ip netns exec $2 "
+		log_write $OF "#==[ Network namespace ${2} ]======================#"
 	fi
-	log_cmd $OF 'ifconfig -a'
-	log_cmd $OF "ip addr"
-	log_cmd $OF "ip route"
-	log_cmd $OF "ip -s link"
-	if [ $MIN_OPTION_AUTOMOD -ne 0 ]; then
-		log_cmd $OF 'hwinfo --netcard'
+	if [ -z "${NS}" ] ; then
+		rpm_verify $OF sysconfig
+		if (( SLES_VER >= 120 )) ; then
+			rpm_verify $OF wicked
+			log_cmd $OF "systemctl status network.service"
+			log_cmd $OF "systemctl status nscd.service"
+			log_cmd $OF "wicked ifstatus --verbose all"
+			log_cmd $OF "wicked show-config"
+		else
+			check_service $OF network
+			check_service $OF nscd
+		fi
 	fi
-	conf_files $OF /proc/sys/net/ipv4/ip_forward /etc/HOSTNAME /etc/services
-	log_cmd $OF 'hostname'
-	# s390 specific
-	if grep vmcp /proc/modules &>/dev/null; then
-		log_cmd $OF 'vmcp query nic details'
-		log_cmd $OF 'vmcp query lan details'
-		log_cmd $OF 'vmcp query vswitch detail'
-	else
-		case $(uname -i) in
-		s390x) 
-			log_write $OF "#==[ s390x Hardware Detected ]======================#"
-			log_write $OF "# Consider loading vmcp for more info: modprobe vmcp"
-			log_write $OF
-			;;
-		esac
+	log_cmd $OF "${NS}ifconfig -a"
+	log_cmd $OF "${NS}ip addr"
+	log_cmd $OF "${NS}ip route"
+	log_cmd $OF "${NS}ip -s link"
+	if [ -z "${NS}" ] ; then
+		if [ $MIN_OPTION_AUTOMOD -ne 0 ]; then
+			log_cmd $OF 'hwinfo --netcard'
+		fi
+		conf_files $OF /proc/sys/net/ipv4/ip_forward /etc/HOSTNAME
+		log_cmd $OF "${NS}hostname"
+		# s390 specific
+		if grep vmcp /proc/modules &>/dev/null; then
+			log_cmd $OF "vmcp query nic details"
+			log_cmd $OF "vmcp query lan details"
+			log_cmd $OF "mcp query vswitch detail"
+		else
+			case $(uname -i) in
+			s390x) 
+				log_write $OF "#==[ s390x Hardware Detected ]======================#"
+				log_write $OF "# Consider loading vmcp for more info: modprobe vmcp"
+				log_write $OF
+				;;
+			esac
+		fi
 	fi
-	IPADDRS=$(ip addr | grep 'inet ' | awk '{print $2}' | cut -d/ -f1)
+	IPADDRS=$(${NS}ip addr | grep 'inet ' | awk '{print $2}' | cut -d/ -f1)
 	for IPADDR in $IPADDRS
 	do
-		ping_addr $OF 'Local Interface' $IPADDR
+		ping_addr $OF 'Local Interface' $IPADDR "${NS}"
 	done
 
-	IPADDR=$(route -n | awk '$1 == "0.0.0.0" {print $2}')
-	ping_addr $OF 'Default Route' $IPADDR
+	IPADDR=$(${NS}route -n | awk '$1 == "0.0.0.0" {print $2}')
+	ping_addr $OF 'Default Route' $IPADDR "${NS}"
 
-	test -e /etc/resolv.conf && IPADDRS=$(grep ^nameserver /etc/resolv.conf | cut -d' ' -f2) || IPADDRS=""
-	for IPADDR in $IPADDRS
+	if [ -z "${NS}" ] ; then
+		test -e /etc/resolv.conf && IPADDRS=$(grep ^nameserver /etc/resolv.conf | cut -d' ' -f2) || IPADDRS=""
+		for IPADDR in $IPADDRS
+		do
+			ping_addr $OF 'DNS Server' $IPADDR "${NS}"
+		done
+	fi
+
+	${NS}ip rule show | while read skip skip skip skip table rest
 	do
-		ping_addr $OF 'DNS Server' $IPADDR
+		log_cmd $OF "${NS}ip route show table $table"
 	done
+	log_cmd $OF "${NS}ip route show table cache"
+	log_cmd $OF "${NS}ip rule show"
+	NICS=$(IFS="@: ";${NS}ip -o l | while read number nic dummy ; do echo $nic ; done)
+	for NIC in ${NICS}
+	do
+		log_cmd $OF "${NS}tc -s -d qdisc show dev ${NIC}"
+		log_cmd $OF "${NS}tc -s -d class show dev ${NIC}"
+		log_cmd $OF "${NS}tc -s -d filter show dev ${NIC}"
+	done
+	log_cmd $OF "${NS}netstat -as"
+	log_cmd $OF "${NS}netstat -nlp"
+	log_cmd $OF "${NS}netstat -nr"
+	log_cmd $OF "${NS}netstat -i"
+	log_cmd $OF "${NS}arp -v"
+	log_cmd $OF "${NS}ip ntable show"
+	if [ $MIN_OPTION_AUTOMOD -eq 0 ]; then
+                log_write $OF "#==[ Warning ]======================================#"
+                log_write $OF "# Autoloading kernel modules disabled. Don't use -k."
+                log_write $OF "# Excluding IPsec command: xfrm"
+                log_write $OF
+        else
+		log_cmd $OF "${NS}ip xfrm state list"
+		log_cmd $OF "${NS}ip xfrm policy list"
+	fi
+	log_cmd $OF "${NS}ip maddr show"
+	log_cmd $OF "${NS}ip mroute show"
 
-	log_cmd $OF 'route'
-	log_cmd $OF 'route -n'
-	log_cmd $OF 'netstat -as'
-	log_cmd $OF 'netstat -nlp'
-	log_cmd $OF 'netstat -nr'
-	log_cmd $OF 'netstat -i'
-	log_cmd $OF 'arp -v'
 	if [ $MIN_OPTION_AUTOMOD -eq 0 ]; then
 		log_write $OF "#==[ Warning ]======================================#"
 		log_write $OF "# Autoloading kernel modules disabled. Don't use -k."
@@ -3275,34 +3324,33 @@ net_info() {
 		log_write $OF
 	else
 		if [ -x /sbin/brctl ]; then
-			log_cmd $OF 'brctl show'
-			for BRIDGE in `brctl show | sed 1d | awk '{print$1}'` 
+			log_cmd $OF "${NS}brctl show"
+			for BRIDGE in `${NS}brctl show | sed 1d | awk '{print$1}'` 
 			do 
-				log_cmd $OF "brctl showmacs $BRIDGE"
+				log_cmd $OF "${NS}brctl showmacs $BRIDGE"
 			done
 		fi
 	fi
-	for NIC in /sys/class/net/*
+	NICS=$(IFS="@: ";${NS}ip -o l | while read number nic dummy ; do echo $nic ; done)
+	for NIC in ${NICS}
 	do
-		if [[ -e ${NIC}/type ]]; then
-			[[ "`cat ${NIC}/type`" = 772 ]] && continue
-			NIC="${NIC##*/}"
-			log_cmd $OF "ethtool $NIC"
-			log_cmd $OF "ethtool -k $NIC"
-			log_cmd $OF "ethtool -i $NIC"
-			log_cmd $OF "ethtool -S $NIC"
-			log_cmd $OF "mii-tool -v $NIC"
-		fi
+		log_cmd $OF "${NS}ethtool ${NIC}"
+		log_cmd $OF "${NS}ethtool -k ${NIC}"
+		log_cmd $OF "${NS}ethtool -i ${NIC}"
+		log_cmd $OF "${NS}ethtool -S ${NIC}"
+		log_cmd $OF "${NS}mii-tool -v ${NIC}"
 	done
-	log_cmd $OF "nscd -g"
-	conf_files $OF /etc/hosts /etc/host.conf /etc/resolv.conf /etc/nsswitch.conf /etc/nscd.conf /etc/hosts.allow /etc/hosts.deny
-	conf_files $OF /etc/sysconfig/SuSEfirewall2 /etc/sysconfig/personal-firewall
+	if [ -z "${NS}" ] ; then
+		log_cmd $OF "nscd -g"
+		conf_files $OF /etc/hosts /etc/host.conf /etc/resolv.conf /etc/nsswitch.conf /etc/nscd.conf /etc/hosts.allow /etc/hosts.deny
+		conf_files $OF /etc/sysconfig/SuSEfirewall2 /etc/sysconfig/personal-firewall
+	fi
 	for TABLE in filter nat mangle raw
 	do
 		if grep iptable_$TABLE /proc/modules &>/dev/null
 		then
-			log_cmd $OF "iptables -t $TABLE -nvL"
-			log_cmd $OF "iptables-save -t $TABLE"
+			log_cmd $OF "${NS}iptables -t $TABLE -nvL"
+			log_cmd $OF "${NS}iptables-save -t $TABLE"
 		else
 			log_entry $OF command "iptables"
 			log_write $OF "# NOTE: The iptable_$TABLE module is not loaded, skipping check"
@@ -3313,28 +3361,30 @@ net_info() {
 	do
 		if grep ip6table_$TABLE /proc/modules &>/dev/null
 		then
-			log_cmd $OF "ip6tables -t $TABLE -nvL"
-			log_cmd $OF "ip6tables-save -t $TABLE"
+			log_cmd $OF "${NS}ip6tables -t $TABLE -nvL"
+			log_cmd $OF "${NS}ip6tables-save -t $TABLE"
 		else
 			log_entry $OF command "ip6tables"
 			log_write $OF "# NOTE: The ip6table_$TABLE module is not loaded, skipping check"
 			log_write $OF
 		fi
 	done
-	test -d /etc/sysconfig/network && FILES=$(find -L /etc/sysconfig/network/ -maxdepth 1 -type f) || FILES=""
-	conf_files $OF /etc/sysconfig/proxy $FILES 
-	sed -i -e 's/.*_PASSWORD[[:space:]]*=.*/*REMOVED BY SUPPORTCONFIG*/g' $LOG/$OF
-	(( SLES_VER >= 120 )) && FILES=$(find /etc/wicked -type f 2>/dev/null | grep '\.xml$') || FILES=''
-	conf_files $OF $FILES
-	if [ -d /proc/net/bonding ]; then
-		FILES=$(find /proc/net/bonding/ -type f)
-		conf_files $OF $FILES 
+	if [ -z "${NS}" ] ; then
+		test -d /etc/sysconfig/network && FILES=$(find -L /etc/sysconfig/network/ -maxdepth 1 -type f) || FILES=""
+		conf_files $OF /etc/sysconfig/proxy $FILES 
+		sed -i -e 's/.*_PASSWORD[[:space:]]*=.*/*REMOVED BY SUPPORTCONFIG*/g' $LOG/$OF
+		(( SLES_VER >= 120 )) && FILES=$(find /etc/wicked -type f 2>/dev/null | grep '\.xml$') || FILES=''
+		conf_files $OF $FILES
+		if [ -d /proc/net/bonding ]; then
+			FILES=$(find /proc/net/bonding/ -type f)
+			conf_files $OF $FILES 
+		fi
+		conf_files $OF /etc/services
+		FILES=$(grep logfile /etc/nscd.conf 2> /dev/null | grep -v ^# | awk '{print $2}' | tail -1)
+		test -n "$FILES" || FILES="/var/log/nscd.log"
+		FILES="$FILES /var/log/NetworkManager"
+		test $ADD_OPTION_LOGS -gt 0 && log_files $OF 0 $FILES || log_files $OF $VAR_OPTION_LINE_COUNT $FILES
 	fi
-	FILES=$(grep logfile /etc/nscd.conf 2> /dev/null | grep -v ^# | awk '{print $2}' | tail -1)
-	test -n "$FILES" || FILES="/var/log/nscd.log"
-	FILES="$FILES /var/log/NetworkManager"
-	test $ADD_OPTION_LOGS -gt 0 && log_files $OF 0 $FILES || log_files $OF $VAR_OPTION_LINE_COUNT $FILES
-	echolog Done
 }
 
 disk_info() {
