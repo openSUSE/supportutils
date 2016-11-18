@@ -1,4 +1,9 @@
 -------------------------------------------------------------------
+Fri Nov 18 23:05:18 UTC 2016 - jrecord@suse.com
+
+- Added limits to journalctl to speed up data collection (bsc#997615)
+
+-------------------------------------------------------------------
 Wed Aug 24 15:04:36 UTC 2016 - jason.record@suse.com
 
 - Restored missing vgs and lvs commands to lvm.txt (bsc#995387)

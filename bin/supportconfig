@@ -142,6 +142,7 @@ VAR_OPTION_HEADER_FILE='/usr/lib/supportconfig/header.txt'
 VAR_OPTION_UPLOAD_ALT='https://secure-www.novell.com/upload?appname=supportconfig&file={tarball}'
 VAR_OPTION_UPLOAD_TARGET='ftp://anonymous@ftp.novell.com/incoming'
 VAR_OPTION_WAIT_TRACE=0
+VAR_OPTION_JOURNALCTL_LINE_COUNT=10000
 
 LANG=C
 PATH="/sbin:/usr/sbin:/bin:/usr/bin:$PATH"
@@ -1333,7 +1334,17 @@ boot_info() {
 		done
 	fi
 	(( SLES_VER >= 120 )) && log_cmd $OF "lsinitrd -k $(uname -r)"
-	(( SLES_VER >= 120 )) && { log_cmd $OF 'journalctl --no-pager --disk-usage'; log_cmd $OF 'journalctl --no-pager'; } || conf_files $OF /var/log/boot.msg /var/log/boot.omsg
+	if (( SLES_VER >= 120 )); then
+		log_cmd $OF 'journalctl --no-pager --disk-usage'
+		test $ADD_OPTION_LOGS -gt 0 && log_files $OF 0 $FILES || log_files $OF $VAR_OPTION_LINE_COUNT $FILES
+		if (( $ADD_OPTION_LOGS > 0 )); then
+			log_cmd $OF 'journalctl --no-pager'
+		else
+			log_cmd $OF "journalctl --no-pager --boot | head -n ${VAR_OPTION_JOURNALCTL_LINE_COUNT}"
+		fi
+	else
+		conf_files $OF /var/log/boot.msg /var/log/boot.omsg
+	fi
 	log_cmd $OF 'dmesg'
 	echolog Done
 }
