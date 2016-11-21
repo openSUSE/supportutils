@@ -62,7 +62,7 @@ OPTION_ETC=1
 OPTION_EVMS=1
 OPTION_HA=1
 OPTION_HAPROXY=1
-OPTION_HISTORY=1
+OPTION_HISTORY=0
 OPTION_IB=1
 OPTION_IMAN=1
 OPTION_ISCSI=1
@@ -4820,10 +4820,11 @@ haproxy_info() {
 }
 
 root_shell_history_info() {
-	printlog "root User Shell History..."
-	OF=history.txt
+	printlog "Command History..."
+	test $OPTION_HISTORY -eq 0 && { echolog Excluded; return 1; }
+	OF=shell_history.txt
 	addHeaderFile $OF
-	log_files $OF 0 /root/.bash_history
+	log_icmd $OF "history"
 	echolog Done
 }
 
