@@ -1,7 +1,7 @@
 #!/bin/bash
 
-SVER='3.0-85'
-SDATE='2016 08 24'
+SVER='3.0-90'
+SDATE='2016 11 21'
 
 ##############################################################################
 #  supportconfig - Gathers system troubleshooting information for NTS.
@@ -128,6 +128,8 @@ VAR_OPTION_DMESG=0
 VAR_OPTION_GPG_UID=""
 VAR_OPTION_HBREPORT_DIRS='/tmp /root /var/log'
 # reports must have the format hb_report.*\.tar\.bz2 in each directory
+VAR_OPTION_JOURNALCTL_LINE_COUNT=10000
+VAR_OPTION_JOURNALCTL_MAX_BOOTS=10
 VAR_OPTION_LOG_DIRS='/var/log /tmp'
 VAR_OPTION_LINE_COUNT=500
 VAR_OPTION_MSG_MAXSIZE=26214400
@@ -142,7 +144,6 @@ VAR_OPTION_HEADER_FILE='/usr/lib/supportconfig/header.txt'
 VAR_OPTION_UPLOAD_ALT='https://secure-www.novell.com/upload?appname=supportconfig&file={tarball}'
 VAR_OPTION_UPLOAD_TARGET='ftp://anonymous@ftp.novell.com/incoming'
 VAR_OPTION_WAIT_TRACE=0
-VAR_OPTION_JOURNALCTL_LINE_COUNT=10000
 
 LANG=C
 PATH="/sbin:/usr/sbin:/bin:/usr/bin:$PATH"
@@ -1335,12 +1336,34 @@ boot_info() {
 	fi
 	(( SLES_VER >= 120 )) && log_cmd $OF "lsinitrd -k $(uname -r)"
 	if (( SLES_VER >= 120 )); then
-		log_cmd $OF 'journalctl --no-pager --disk-usage'
 		test $ADD_OPTION_LOGS -gt 0 && log_files $OF 0 $FILES || log_files $OF $VAR_OPTION_LINE_COUNT $FILES
+		log_cmd $OF 'journalctl --no-pager --disk-usage'
 		if (( $ADD_OPTION_LOGS > 0 )); then
-			log_cmd $OF 'journalctl --no-pager'
+			log_cmd $OF 'journalctl --no-pager --list-boot'
+			LIST_BOOTS=$(journalctl --no-pager --list-boot | wc -l)
+			((LIST_BOOTS--))
+			if (( LIST_BOOTS > 0 )); then
+				BOOT_COUNT=1
+				if (( VAR_OPTION_JOURNALCTL_MAX_BOOTS > 0 )); then
+					JOURNALCTL_MAX_BOOTS=$VAR_OPTION_JOURNALCTL_MAX_BOOTS
+				else
+					#VAR_OPTION_JOURNALCTL_MAX_BOOTS of 0 means get all boots
+					JOURNALCTL_MAX_BOOTS=$LIST_BOOTS
+				fi
+				for THIS_BOOT in $(seq 0 $LIST_BOOTS)
+				do
+					log_cmd $OF "journalctl --no-pager --boot $THIS_BOOT"
+					((BOOT_COUNT < JOURNALCTL_MAX_BOOTS)) && ((BOOT_COUNT++)) || break
+				done
+			else
+				log_cmd $OF "journalctl --no-pager --boot 0"
+			fi
 		else
-			log_cmd $OF "journalctl --no-pager --boot | head -n ${VAR_OPTION_JOURNALCTL_LINE_COUNT}"
+			if (( VAR_OPTION_JOURNALCTL_LINE_COUNT > 0 )); then
+				log_cmd $OF "journalctl --no-pager --boot 0 | head -n ${VAR_OPTION_JOURNALCTL_LINE_COUNT}"
+			else
+				log_cmd $OF "journalctl --no-pager --boot 0"
+			fi
 		fi
 	else
 		conf_files $OF /var/log/boot.msg /var/log/boot.omsg

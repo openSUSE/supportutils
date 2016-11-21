@@ -1,5 +1,13 @@
 -------------------------------------------------------------------
-Fri Nov 18 23:05:18 UTC 2016 - jrecord@suse.com
+Mon Nov 21 20:02:54 UTC 2016 - jason.record@suse.com
+
+- Added network name space
+- Added VAR_OPTION_JOURNALCTL_MAX_BOOTS for bsc#997615
+- Updated supportconfig.conf.5 with VAR_OPTION_JOURNALCTL_*
+- supportconfig: 3.0-90
+
+-------------------------------------------------------------------
+Fri Nov 18 23:05:18 UTC 2016 - jason.record@suse.com
 
 - Added limits to journalctl to speed up data collection (bsc#997615)
 

@@ -1,4 +1,4 @@
-.TH SUPPORTCONFIG.CONF 5 "16 Dec 2015" "supportutils" "Support Utilities Manual"
+.TH SUPPORTCONFIG.CONF 5 "21 Nov 2016" "supportutils" "Support Utilities Manual"
 .SH NAME
 supportconfig.conf \- 
 .BR supportconfig (1)
@@ -325,14 +325,20 @@ The default supportconfig file format \fBnts_%B\fR or \fBnts_%s_%d_%t\fR yields 
 \fBsupportconfig \-B "%r bad" -r 12345678901\fR yields "nts_SR12345678901_bad.tbz"
 .RE
 .TP
+VAR_OPTION_GPG_UID
+The GPG recipient's user ID used to encrypt the supportconfig tar ball for more secure uploads. \fB\-G\fR (Not Set)
+.TP
 VAR_OPTION_HBREPORT_DIRS
 The directories in which to look for hb_report tar balls with filenames that begin with hb_report, hb-report or hbreport and end in .tar.bz2. \fBNone\fR ("/tmp /root /var/log")
 .TP
 VAR_OPTION_HEADER_FILE
 If VAR_OPTION_HEADER_FILE exists, it will be prepended to each supportconfig text file. Useful for including legal or instructional statements at the beginning of each file. \fBNone\fR (/usr/lib/supportconfig/header.txt)
 .TP
-VAR_OPTION_GPG_UID
-The GPG recipient's user ID used to encrypt the supportconfig tar ball for more secure uploads. \fB\-G\fR (Not Set)
+VAR_OPTION_JOURNALCTL_LINE_COUNT
+Sets the number of log lines to get for the current boot from journald. If the value is set to 0, all lines of the current boot log are retrieved. \fBNone\fR (10000)
+.TP
+VAR_OPTION_JOURNALCTL_MAX_BOOTS
+When ADD_OPTION_LOGS is set, this value determines the maximum number of journald boot log entries to include in boot.txt. If the value is set to 0, all boot logs from the journal will be retrieved. \fBNone\fR (10)
 .TP
 VAR_OPTION_LINE_COUNT
 The number of lines to include when getting a log file. Zero means get the entire file. \fB\-I\fR (500)
@@ -375,7 +381,7 @@ Please submit bug fixes or comments via:
 .B
 http://en.opensuse.org/Supportutils#Reporting_Bugs
 .SH AUTHOR
-Jason Record <jrecord@suse.com>
+Jason Record <jason.record@suse.com>
 .SH SEE ALSO
 .BR supportconfig (8)
 .BR scplugin.rc (3)
