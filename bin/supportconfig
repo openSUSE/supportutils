@@ -62,6 +62,7 @@ OPTION_ETC=1
 OPTION_EVMS=1
 OPTION_HA=1
 OPTION_HAPROXY=1
+OPTION_HISTORY=1
 OPTION_IB=1
 OPTION_IMAN=1
 OPTION_ISCSI=1
@@ -4818,6 +4819,14 @@ haproxy_info() {
 	fi
 }
 
+root_shell_history_info() {
+	printlog "root User Shell History..."
+	OF=history.txt
+	addHeaderFile $OF
+	log_files $OF 0 /root/.bash_history
+	echolog Done
+}
+
 memory_info() {
 	printlog "Memory Details..."
 	test $OPTION_MEM -eq 0 && { echolog Excluded; return 1; }
@@ -6763,6 +6772,7 @@ if [ "$USE_SAVED_LOGS_ONLY" != "1" ]; then
 	cimom_info
 	open_files
 	environment_info
+	root_shell_history_info
 	etc_info
 	sysconfig_info
 	sysfs_info
