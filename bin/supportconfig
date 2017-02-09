@@ -3235,6 +3235,13 @@ hardware_info() {
 			cp -r /proc/device-tree/* $SAVE_DIR 2>/dev/null
 		fi
 
+                if [[ -d /sys/fs/pstore/ ]]; then
+                        SAVE_DIR="${PPC_DIR}/pstore"
+                        mkdir -p $SAVE_DIR
+                        log_entry $OF command "cp -r /sys/fs/pstore/* $SAVE_DIR"
+                        cp -r /sys/fs/pstore/* $SAVE_DIR 2>/dev/null
+                fi
+
 		if [[ -d /var/log/dump ]]; then
 			log_cmd $OF "ls -l /var/log/dump"
 		fi
