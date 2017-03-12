@@ -3202,16 +3202,17 @@ hardware_info() {
 			fi
 		fi
 
+		if rpm -q ppc64-diag &>/dev/null; then
+			rpm_verify $OF ppc64-diag
+			log_cmd $OF "usysattn"
+			log_cmd $OF "usysident"
+		fi
+
 		if [ $platform == "pSeries" ]; then
 			if rpm -q servicelog &>/dev/null; then
 				rpm_verify $OF servicelog
 				log_cmd $OF "servicelog --dump"
 				log_cmd $OF "servicelog_notify --list"
-			fi
-			if rpm -q ppc64-diag &>/dev/null; then
-				rpm_verify $OF ppc64-diag
-				log_cmd $OF "usysattn"
-				log_cmd $OF "usysident"
 			fi
 		fi
 
