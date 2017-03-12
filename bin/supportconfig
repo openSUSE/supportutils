@@ -3206,6 +3206,7 @@ hardware_info() {
 			rpm_verify $OF ppc64-diag
 			log_cmd $OF "usysattn"
 			log_cmd $OF "usysident"
+			log_cmd $OF "diag_encl -v"
 		fi
 
 		if [ $platform == "pSeries" ]; then
