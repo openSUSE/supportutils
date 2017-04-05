@@ -1,4 +1,10 @@
 -------------------------------------------------------------------
+Wed Apr  5 16:32:26 UTC 2017 - jason.record@suse.com
+
+- Fixed detailed unit information on sle12sp2 (bsc#1023308)
+- supportconfig: 3.0-92
+
+-------------------------------------------------------------------
 Mon Nov 21 20:02:54 UTC 2016 - jason.record@suse.com
 
 - Added network name space

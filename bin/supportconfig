@@ -1,11 +1,11 @@
 #!/bin/bash
 
-SVER='3.0-90'
-SDATE='2016 11 21'
+SVER='3.0-92'
+SDATE='2017 04 05'
 
 ##############################################################################
 #  supportconfig - Gathers system troubleshooting information for NTS.
-#  Copyright (C) 2001-2016 SUSE LLC
+#  Copyright (C) 2001-2017 SUSE LLC
 #
 #  Creates a tar ball to attach to the SR or send to support. Collects
 #  comprehensive system information for troubleshooting and reducing resolution
@@ -2748,7 +2748,8 @@ systemd_info() {
 	log_cmd $OF 'systemctl --no-pager --all list-units'
 	log_cmd $OF 'systemctl --no-pager --all list-sockets'
 	log_cmd $OF 'systemctl --no-pager list-unit-files'
-	for i in $(systemctl --no-pager --all list-units | egrep -v '^UNIT |^LOAD |^ACTIVE |^SUB |^To |^[[:digit:]]* ' | awk '{print $1}')
+	SYSTEMD_UNITS=$(systemctl --no-pager --all list-unit-files | egrep -v '^UNIT |^[[:digit:]]* ' | awk '{print $1}')
+	for i in $SYSTEMD_UNITS
 	do
 		if [[ -z "$i" ]]
 		then
