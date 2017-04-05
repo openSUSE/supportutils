@@ -1443,7 +1443,7 @@ update_info() {
 	TIMEOUT=0
 	if [ $SLES_VER -ge 110 ] && rpm_verify $OF zypper; then
 		log_cmd $OF 'date'
-		for CMDOPT in services repos patch-check patches list-patches products '--xml products'
+		for CMDOPT in services 'repos -u' patch-check patches list-patches products '--xml products'
 		do
 			if [ $TIMEOUT -ge 10 ]; then
 				log_write $OF "#==[ Command ]======================================#"
