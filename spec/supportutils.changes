@@ -1,7 +1,8 @@
 -------------------------------------------------------------------
-Wed Apr  5 16:32:26 UTC 2017 - jason.record@suse.com
+Wed Apr  5 16:50:25 UTC 2017 - jason.record@suse.com
 
 - Fixed detailed unit information on sle12sp2 (bsc#1023308)
+- Added PPC commands and logs (bsc#1030657)
 - supportconfig: 3.0-92
 
 -------------------------------------------------------------------
