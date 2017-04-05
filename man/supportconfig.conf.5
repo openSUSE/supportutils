@@ -1,4 +1,4 @@
-.TH SUPPORTCONFIG.CONF 5 "21 Nov 2016" "supportutils" "Support Utilities Manual"
+.TH SUPPORTCONFIG.CONF 5 "05 Apr 2017" "supportutils" "Support Utilities Manual"
 .SH NAME
 supportconfig.conf \- 
 .BR supportconfig (1)
@@ -229,6 +229,9 @@ A full file list using find from the root of the filesytem. \fB\-L\fR, \fBfs-fil
 .TP
 ADD_OPTION_LOGS
 Includes the entire log file, including comments, instead of just VAR_OPTION_LINE_COUNT lines of it. Additional rotated logs are included if available. \fB\-l\fR (0)
+.TP
+ADD_OPTION_LOCAL_ONLY
+Disables curl checks to SUSE update servers. By default external SUSE update servers are checked. \fB\-c\fR (0)
 .TP
 ADD_OPTION_MINDISK
 Minimizes the amount of disk information and detailed scanning. \fB\-d\fR (0)

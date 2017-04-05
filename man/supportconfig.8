@@ -1,4 +1,4 @@
-.TH SUPPORTCONFIG 8 "04 Apr 2016" "supportutils" "Support Utilities Manual"
+.TH SUPPORTCONFIG 8 "05 Apr 2017" "supportutils" "Support Utilities Manual"
 .SH NAME
 supportconfig - Gathers system troubleshooting information
 .SH SYNOPSIS
@@ -120,6 +120,9 @@ Upload the tar ball to the specified alternate target VAR_OPTION_UPLOAD_ALT
 .TP
 \fB\-b\fR 
 Switch to screen buffer mode. This mode echos the current action, but not a status. Useful for third party applications running supportconfig.
+.TP
+\fB\-c\fR 
+Disables curl checks to SUSE update servers. Helpful for local servers. If the server is registered to SMT or SUSE Manager, they are still checked and would be checked instead of SUSE servers.
 .TP
 \fB\-d\fR 
 Exclude detailed disk information and scans. Disks are still scanned, but this switch attempts to minimize the disk scans.

@@ -1,6 +1,6 @@
 #!/bin/bash
 
-SVER='3.0-92'
+SVER='3.0-93'
 SDATE='2017 04 05'
 
 ##############################################################################
@@ -116,6 +116,7 @@ ADD_OPTION_MINDISK=0
 ADD_OPTION_MAXYAST=0
 ADD_OPTION_RPMV=0
 ADD_OPTION_SLP=0
+ADD_OPTION_LOCAL_ONLY=0
 
 VAR_OPTION_BIN_TIMEOUT_SEC=300
 VAR_OPTION_CONTACT_COMPANY=""
@@ -1465,8 +1466,6 @@ update_info() {
 			log_cmd $OF "SUSEConnect --status"
 			FILES=$(find /etc/zypp/credentials.d/ -type f 2>/dev/null)
 			conf_files $OF /etc/SUSEConnect $FILES
-			timed_log_cmd $OF "curl --verbose --capath /etc/ssl/certs/ --digest --remote-time --fail https://updates.suse.com/"
-			timed_log_cmd $OF "curl --verbose --capath /etc/ssl/certs/ --digest --remote-time --fail https://scc.suse.com/"
 		fi
 	fi
 
@@ -1501,6 +1500,42 @@ update_info() {
 	fi
 
 	if rpm -q curl &>/dev/null; then
+		# Test update server
+		UPDATE_TEST_URL=''
+		if [[ -s /etc/sysconfig/rhn/up2date ]]; then # get SUMA update URL
+			UPDATE_TEST_URL=$( cat /etc/sysconfig/rhn/up2date | grep -i "^serverURL=" | cut -d= -f2)
+		elif [[ -s /etc/SUSEConnect ]]; then # get SLE12 update URL
+			UPDATE_TEST_URL=$( cat /etc/SUSEConnect | grep -i "^url: " | awk '{print $2}')
+		elif [[ -s /etc/suseRegister.conf ]]; then # get SLE11 update URL
+			UPDATE_TEST_URL=$( cat /etc/suseRegister.conf | grep -i "^url=" | cut -d= -f2)
+		fi
+
+		if [[ -n $UPDATE_TEST_URL ]]; then # a local update server URL was found
+			if echo $UPDATE_TEST_URL | egrep -i "^http.*//" &>/dev/null; then
+				LOCAL_TEST_PROTOCOL=$(echo $UPDATE_TEST_URL | awk -F/ '{print $1}')
+				LOCAL_TEST_HOST=$(echo $UPDATE_TEST_URL | awk -F/ '{print $3}')
+			else
+				LOCAL_TEST_PROTOCOL=''
+				LOCAL_TEST_HOST=$(echo $UPDATE_TEST_URL | awk -F/ '{print $1}')
+			fi
+			if [[ -n LOCAL_TEST_PROTOCOL ]]; then
+				LOCAL_TEST_URL="${LOCAL_TEST_PROTOCOL}//${LOCAL_TEST_HOST}/"
+			else
+				LOCAL_TEST_URL="${UPDATE_TEST_HOST}"
+			fi
+			log_cmd $OF "curl --connect-timeout 10 --trace-ascii ${LOG}/updates-curl-trace_${LOCAL_TEST_HOST}.txt --digest --remote-time --fail ${LOCAL_TEST_URL}"
+		else # no local update server URL found
+			if (( ADD_OPTION_LOCAL_ONLY )); then
+				log_entry $OF note "curl -- aborted: ADD_OPTION_LOCAL_ONLY set, no local update URLs found"
+			else
+				for SUSE_TEST_URL in 'https://secure-www.novell.com/center/regsvc/' 'https://updates.suse.com/' 'https://scc.suse.com/'
+				do
+					SUSE_TEST_HOST=$(echo $SUSE_TEST_URL | awk -F/ '{print $3}')
+					log_cmd $OF "curl --connect-timeout 10 --trace-ascii ${LOG}/updates-curl-trace_${SUSE_TEST_HOST}.txt --digest --remote-time --fail $SUSE_TEST_URL"
+				done
+			fi
+		fi
+
 		if [ -s /etc/zmd/deviceid -a -s /etc/zmd/secret ]; then
 			NCCUSER=$(cat /etc/zmd/deviceid)
 			NCCPASS=$(cat /etc/zmd/secret)
@@ -1512,6 +1547,7 @@ update_info() {
 		fi
 		if [ -n "$NCCUSER" ]; then
 			DOWNURL="https://nu.novell.com/repo/repoindex.xml"
+			TMPHOST='nu.novell.com'
 			if [ -s /etc/suseRegister.conf ]; then
 				TMPURL=$(grep -i ^url /etc/suseRegister.conf | tail -1 | awk -F= '{print $2}' | grep -v "secure-www\.novell\.com" | sed -e 's/^[[:space:]]*//' )
 				if [ -n "$TMPURL" ]; then
@@ -1520,12 +1556,13 @@ update_info() {
 					DOWNURL="${TMPROTO}//${TMPHOST}/repo/repoindex.xml"
 				fi
 			fi
-			timed_log_cmd $OF "curl --verbose --capath /etc/ssl/certs/ --digest --remote-time --fail -u $NCCUSER:$NCCPASS -O \"$DOWNURL\" 2>curlnu.log"
-			timed_log_cmd $OF "curl --verbose https://secure-www.novell.com/home/ 2>curlsecure.log"
-			FILES="repoindex.xml curlnu.log curlsecure.log"
+			log_cmd $OF "curl --connect-timeout 10 --trace-ascii ${LOG}/updates-curl-trace_${TMPHOST}.txt --digest --remote-time --fail -u $NCCUSER:$NCCPASS -O \"$DOWNURL\""
+			FILES="repoindex.xml"
 			log_files $OF 0 $FILES
 			rm -f $FILES
 		fi
+	else
+		log_entry $OF note "curl -- not installed, aborted"
 	fi
 
 #rug
@@ -6564,7 +6601,7 @@ init_plugins on
 get_sles_ver
 NSA_CHECK=0
 ALL_ARGS="$@"
-while getopts :\#AB:CDE:FG:H:I:LM:N:O:P:QR:S:T:U:W:X:abdef:ghi:klmo:pqr:st:uvwx:y TMPOPT
+while getopts :\#AB:CDE:FG:H:I:LM:N:O:P:QR:S:T:U:W:X:abcdef:ghi:klmo:pqr:st:uvwx:y TMPOPT
 do
 	case $TMPOPT in
 	\:)	clear; title
@@ -6583,25 +6620,26 @@ do
 	B) VAR_OPTION_CUSTOM_ARCH="$OPTARG" ;;
 	C) clear; title; echo "Overwriting $SC_CONF with default options."; gen_sysconfig; exit_code 0 ;;
 	D) set_to_default ;;
+	E) VAR_OPTION_CONTACT_EMAIL="$OPTARG" ;;
 	F) get_features; exit_code 0 ;;
 	G) VAR_OPTION_GPG_UID="$OPTARG" ;;
+	H) VAR_OPTION_PENGINE_FILES_LIMIT=$OPTARG ;;
+	I) VAR_OPTION_LINE_COUNT=$OPTARG ;;
 	L) ADD_OPTION_FSLIST=1 ;;
 	Q) VAR_OPTION_SILENT=1 ;;
 	T) VAR_OPTION_BIN_TIMEOUT_SEC=$OPTARG ;;
 	O) VAR_OPTION_CONTACT_COMPANY="$OPTARG" ;;
-	E) VAR_OPTION_CONTACT_EMAIL="$OPTARG" ;;
 	M) VAR_OPTION_CONTACT_TERMINALID="$OPTARG" ;;
 	N) VAR_OPTION_CONTACT_NAME="$OPTARG" ;;
 	P) VAR_OPTION_CONTACT_PHONE="$OPTARG" ;;
 	R) VAR_OPTION_LOG_DIRS="$OPTARG" ;;
-	I) VAR_OPTION_LINE_COUNT=$OPTARG ;;
 	X) VAR_OPTION_MSG_MAXSIZE=$OPTARG ;;
-	H) VAR_OPTION_PENGINE_FILES_LIMIT=$OPTARG ;;
 	S) VAR_OPTION_SAR_FILES_LIMIT=$OPTARG ;;
 	U) VAR_OPTION_UPLOAD_TARGET="$OPTARG" && UPLOAD_TARBALL=1 ;;
 	W) VAR_OPTION_CONTACT_STOREID="$OPTARG" ;;
 	a) UPLOAD_TARBALL=1; VAR_OPTION_UPLOAD_TARGET=$VAR_OPTION_UPLOAD_ALT ;;
 	b) VAR_OPTION_SBM=1 ;;
+	c) ADD_OPTION_LOCAL_ONLY=1 ;;
 	d) ADD_OPTION_MINDISK=1 ;;
 	e) ADD_OPTION_EDIR=1 ;;
 	g) COMPRESS="tgz"; COMPRESS_OPT="zcf" ;;
