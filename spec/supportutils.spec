@@ -16,7 +16,7 @@
 
 Name:           supportutils
 Version:        3.0
-Release:        92
+Release:        93
 Summary:        Support Troubleshooting Tools
 License:        GPL-2.0
 Group:          System/Monitoring

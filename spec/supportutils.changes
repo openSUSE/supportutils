@@ -1,4 +1,10 @@
 -------------------------------------------------------------------
+Tue Apr 11 19:28:05 UTC 2017 - jason.record@suse.com
+
+- Fixed LVM detailed commands (bsc#1008468)
+- supportconfig: 3.0-94
+
+-------------------------------------------------------------------
 Wed Apr  5 23:08:25 UTC 2017 - jason.record@suse.com
 
 - Added URI to zypper repos list (bsc#995625)
