@@ -1,11 +1,5 @@
 -------------------------------------------------------------------
-Tue Apr 11 19:28:05 UTC 2017 - jason.record@suse.com
-
-- Fixed LVM detailed commands (bsc#1008468)
-- supportconfig: 3.0-94
-
--------------------------------------------------------------------
-Wed Apr  5 23:08:25 UTC 2017 - jason.record@suse.com
+Wed Apr 26 16:21:09 UTC 2017 - jason.record@suse.com
 
 - Added URI to zypper repos list (bsc#995625)
 - Added curl timeout for shorter access times (bsc#1014481)
@@ -13,7 +7,7 @@ Wed Apr  5 23:08:25 UTC 2017 - jason.record@suse.com
   Updated supportconfig(8) and supportconfig.conf(5) with ADD_OPTION_LOCAL_ONLY
 - Fixed detailed unit information on sle12sp2 (bsc#1023308)
 - Added PPC commands and logs (bsc#1030657)
-- supportconfig: 3.0-93
+- supportconfig: 3.0-94
 
 -------------------------------------------------------------------
 Mon Nov 21 20:02:54 UTC 2016 - jason.record@suse.com
