@@ -1,5 +1,5 @@
 -------------------------------------------------------------------
-Wed Apr 26 16:21:09 UTC 2017 - jason.record@suse.com
+Tue May  2 16:55:32 UTC 2017 - jason.record@suse.com
 
 - Added URI to zypper repos list (bsc#995625)
 - Added curl timeout for shorter access times (bsc#1014481)
