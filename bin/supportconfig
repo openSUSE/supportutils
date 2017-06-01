@@ -1,7 +1,7 @@
 #!/bin/bash
 
-SVER='3.0-94'
-SDATE='2017 04 11'
+SVER='3.0-94.01'
+SDATE='2017 06 01'
 
 ##############################################################################
 #  supportconfig - Gathers system troubleshooting information for NTS.
@@ -4735,9 +4735,14 @@ ocfs2_info() {
 	printlog "OCFS2..."
 	test $OPTION_OCFS2 -eq 0 && { echolog Excluded; return 1; }
 	OF=ocfs2.txt
+	OCFS2_MODULES=0
 	addHeaderFile $OF
 	if rpm_verify $OF ocfs2-tools
 	then
+		if lsmod | grep ocfs2_stack_user[[:space:]] &>/dev/null && lsmod | grep ocfs2[[:space:]] &>/dev/null
+		then
+			OCFS2_MODULES=1
+		fi
 		case $SLES_VER in
 		8*|9*|10*)
 			check_service $OF o2cb
@@ -4749,8 +4754,8 @@ ocfs2_info() {
 			;;
 		11*|12*)
 			[[ -x /usr/bin/findmnt ]] && log_cmd $OF "findmnt" || log_cmd $OF "mount"
-			timed_log_cmd $OF "mounted.ocfs2 -d"
-			timed_log_cmd $OF "mounted.ocfs2 -f"
+			(( OCFS2_MODULES )) && timed_log_cmd $OF "mounted.ocfs2 -d"
+			(( OCFS2_MODULES )) && timed_log_cmd $OF "mounted.ocfs2 -f"
 			log_cmd $OF "ps aux | grep ocfs2 | grep -v grep"
 			log_cmd $OF "lsmod | grep ocfs2"
 			;;
@@ -4765,11 +4770,11 @@ ocfs2_info() {
 			FILES=$(find -L ${CHECKDIR}/ -type f)
 			conf_files $OF $FILES
 		fi
-		DEVICES=$(/sbin/mounted.ocfs2 -d | grep ^/ | awk '{ print $1}')
+		(( OCFS2_MODULES )) && DEVICES=$(/sbin/mounted.ocfs2 -d | grep ^/ | awk '{ print $1}') || DEVICES=''
 		log_entry $OF x "OCFS2 Devices"
 		log_write $OF $DEVICES
 		log_write $OF
-		if [ -n "$DEVICES" ]; then
+		if [[ -n "$DEVICES" ]]; then
 			O2C=$(mktemp $LOG/ocfs2_commands.XXXXXXXX)
 			for DEVICE in $DEVICES
 			do

@@ -1,4 +1,9 @@
 -------------------------------------------------------------------
+Thu Jun  1 14:34:34 UTC 2017 - jason.record@suse.com
+
+- Fixed ocfs2 processing when not configured (bsc#1035683)
+
+-------------------------------------------------------------------
 Tue May  2 16:55:32 UTC 2017 - jason.record@suse.com
 
 - Added URI to zypper repos list (bsc#995625)
