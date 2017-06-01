@@ -1,6 +1,7 @@
 -------------------------------------------------------------------
-Thu Jun  1 15:40:39 UTC 2017 - jason.record@suse.com
+Thu Jun  1 21:01:03 UTC 2017 - jason.record@suse.com
 
+- Fixed IFS in iscsi_info (bsc#1030448)
 - Added -T to dmesg for readability (bsc#1013119)
 - Removed kpagecgroup in proc.txt (bsc#1026175)
 - Fixed ocfs2 processing when not configured (bsc#1035683)

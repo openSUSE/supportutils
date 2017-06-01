@@ -1,6 +1,6 @@
 #!/bin/bash
 
-SVER='3.0-94.03'
+SVER='3.0-94.04'
 SDATE='2017 06 01'
 
 ##############################################################################
@@ -3664,8 +3664,8 @@ iscsi_info() {
 						IN_STATE=1
 					fi
 				done
+				IFS=$SAVE_IFS
 			fi
-			IFS=$SAVE_IFS
 			log_cmd $OF 'tcm_node --version'
 			log_cmd $OF 'tcm_node --listhbas'
 			log_cmd $OF 'tcm_node --listlugps'
