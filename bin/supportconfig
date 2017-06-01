@@ -1,6 +1,6 @@
 #!/bin/bash
 
-SVER='3.0-94.01'
+SVER='3.0-94.02'
 SDATE='2017 06 01'
 
 ##############################################################################
@@ -5222,7 +5222,7 @@ proc_info() {
 		log_write $OF
 	fi	
 
-	FILES=$(find /proc/ -maxdepth 1 -type f 2>/dev/null | egrep -iv "kcore$|kpagecount$|kpageflags$|vmcore$|config.gz$|kmsg$|sysrq-trigger$|kallsyms$|mm$|ssstm" | sort -f)
+	FILES=$(find /proc/ -maxdepth 1 -type f 2>/dev/null | egrep -iv "kcore$|kpagecount$|kpageflags$|kpagecgroup$|vmcore$|config.gz$|kmsg$|sysrq-trigger$|kallsyms$|mm$|ssstm" | sort -f)
 	conf_files $OF $FILES
 	conf_files $OF /proc/mounts /proc/zoneinfo
 	ADDPROCS="/proc/sys/kernel/ /proc/scsi/ /proc/net/ /proc/dasd/"
