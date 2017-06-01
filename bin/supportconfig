@@ -1,6 +1,6 @@
 #!/bin/bash
 
-SVER='3.0-94.02.1'
+SVER='3.0-94.03'
 SDATE='2017 06 01'
 
 ##############################################################################
@@ -1370,7 +1370,7 @@ boot_info() {
 	else
 		conf_files $OF /var/log/boot.msg /var/log/boot.omsg
 	fi
-	log_cmd $OF 'dmesg'
+	log_cmd $OF 'dmesg -T'
 	echolog Done
 }
 
@@ -5256,7 +5256,7 @@ drm_sub_info() {
 	log_cmd $OF "cat $i/status $i/enabled "
 	log_cmd $OF 'hexdump -e '"'16/1 "'"%2.2x ""  "'"' -e '16/1 "'"%_p""\n"'"' $i/edid"
     done
-    log_cmd $OF 'dmesg | grep drm'
+    log_cmd $OF 'dmesg -T | grep drm'
     if grep -v 'drm.debug=' /proc/cmdline &>/dev/null; then
 	log_write $OF "Warning, enable drm.debug=0xe on boot options line"
     fi
