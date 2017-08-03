@@ -1,7 +1,7 @@
 #!/bin/bash
 
-SVER='3.0-98'
-SDATE='2017 06 01'
+SVER='3.0-100'
+SDATE='2017 06 05'
 
 ##############################################################################
 #  supportconfig - Gathers system troubleshooting information for NTS.
@@ -33,7 +33,7 @@ SDATE='2017 06 01'
 #  along with this program; if not, see <http://www.gnu.org/licenses/>.
 #
 #  Authors/Contributors:
-#     Jason Record (jrecord@suse.com)
+#     Jason Record (jason.record@suse.com)
 #
 ##############################################################################
 # Default Options
@@ -5780,20 +5780,40 @@ ib_info() {
 	test $OPTION_IB -eq 0 && { echolog Excluded; return 1; }
 	OF=ib.txt
 	addHeaderFile $OF
-	if rpm_verify $OF ofed; then
-		check_service $OF openibd
-		conf_files $OF /etc/infiniband/openib.conf
-		log_cmd $OF 'lspci -b'
-		log_cmd $OF 'lspci -nn'
-		log_cmd $OF 'lsmod'
-		log_cmd $OF 'ibv_devinfo -v'
-		log_cmd $OF 'ibdiagnet'
-		FILES=$(find -L /tmp/ -type f | grep ibdiagnet)
-		test $ADD_OPTION_LOGS -gt 0 && log_files $OF 0 $FILES || log_files $OF $VAR_OPTION_LINE_COUNT $FILES
-		echolog Done
-	else
-		echolog Skipped
-	fi
+	case $SLES_VER in
+	10*|11*)
+		if rpm_verify $OF ofed; then
+			check_service $OF openibd
+			conf_files $OF /etc/infiniband/openib.conf
+			log_cmd $OF 'lspci -b'
+			log_cmd $OF 'lspci -nn'
+			log_cmd $OF 'lsmod'
+			log_cmd $OF 'ibv_devinfo -v'
+			log_cmd $OF 'ibdiagnet'
+			FILES=$(find -L /tmp/ -type f | grep ibdiagnet)
+			test $ADD_OPTION_LOGS -gt 0 && log_files $OF 0 $FILES || log_files $OF $VAR_OPTION_LINE_COUNT $FILES
+			echolog Done
+		else
+			echolog Skipped
+		fi
+		;;
+	12*)
+		if rpm_verify $OF rdma; then
+			log_cmd $OF "systemctl status rdma.service"
+			conf_files $OF "/etc/rdma/* /etc/infiniband/*"
+			log_cmd $OF 'lspci -b'
+			log_cmd $OF 'lspci -nn'
+			log_cmd $OF 'lsmod'
+			log_cmd $OF 'ibv_devinfo -v'
+			log_cmd $OF 'ibdiagnet'
+			FILES=$(find -L /tmp/ -type f | grep ibdiagnet)
+			test $ADD_OPTION_LOGS -gt 0 && log_files $OF 0 $FILES || log_files $OF $VAR_OPTION_LINE_COUNT $FILES
+			echolog Done
+		else
+			echolog Skipped
+		fi
+		;;
+	esac
 }
 
 web_info() {

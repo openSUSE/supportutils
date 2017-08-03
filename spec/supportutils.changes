@@ -1,4 +1,9 @@
 -------------------------------------------------------------------
+Mon Jun  5 16:22:55 UTC 2017 - jason.record@suse.com
+
+- Fixed Infiniband detection in SLE12 (bsc#1001224)
+
+-------------------------------------------------------------------
 Thu Jun  1 21:05:11 UTC 2017 - jason.record@suse.com
 
 - Fixed IFS in iscsi_info (bsc#1030448)
