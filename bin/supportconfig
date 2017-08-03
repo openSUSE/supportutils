@@ -1,7 +1,7 @@
 #!/bin/bash
 
 SVER='3.0-100'
-SDATE='2017 06 05'
+SDATE='2017 08 03'
 
 ##############################################################################
 #  supportconfig - Gathers system troubleshooting information for NTS.
