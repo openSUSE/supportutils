@@ -1,4 +1,9 @@
 -------------------------------------------------------------------
+Mon Oct  9 16:42:40 UTC 2017 - jason.record@suse.com
+
+- Include NCP for OES2015 (bnc#965682)
+
+-------------------------------------------------------------------
 Wed Aug 24 16:35:14 UTC 2016 - jason.record@suse.com
 
 - Restored vgs and lvs to lvm.txt (bsc#995387)

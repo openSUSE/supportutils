@@ -1,11 +1,11 @@
 #!/bin/bash
 
-SVER='2.25-452'
-SDATE="2016 08 24"
+SVER='2.25-453'
+SDATE="2017 10 09"
 
 ##############################################################################
 #  supportconfig - Gathers system troubleshooting information for NTS.
-#  Copyright (C) 2001-2016 SUSE LLC
+#  Copyright (C) 2001-2017 SUSE LLC
 #
 #  Creates a tar ball to attach to the SR or send to support. Collects
 #  comprehensive information for SLE10/SLE11/SLE12, OES2/OES11 for SLES.
