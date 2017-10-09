@@ -1,4 +1,10 @@
 -------------------------------------------------------------------
+Mon Oct  9 22:22:03 UTC 2017 - jason.record@suse.com
+
+- Fixed core_pattern corruption (bsc#1061282)
+- supportconfig: 3.0-102
+
+-------------------------------------------------------------------
 Thu Aug  3 19:26:15 UTC 2017 - jason.record@suse.com
 
 - Added Infiniband for SLE12 SP3 (bsc#1051237)

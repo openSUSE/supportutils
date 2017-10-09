@@ -1,7 +1,7 @@
 #!/bin/bash
 
-SVER='3.0-100'
-SDATE='2017 08 03'
+SVER='3.0-102'
+SDATE='2017 10 09'
 
 ##############################################################################
 #  supportconfig - Gathers system troubleshooting information for NTS.
@@ -3997,25 +3997,42 @@ crash_info() {
 	log_cmd $OF "sysctl kernel.core_pattern"
 	conf_files $OF "/etc/sysconfig/ulimit /etc/security/limits.conf"
 	log_cmd $OF "grep -n 'ulimit -c' /etc/init.d/* 2>/dev/null"
+
+	if [[ -x /usr/bin/coredumpctl ]]; then
+		log_cmd $OF "/usr/bin/coredumpctl list"
+		if coredumpctl list 2>/dev/null | grep PID &>/dev/null; then
+			PIDLIST=$(coredumpctl list | grep -v PID | awk '{print $5}')
+			for COREPID in $PIDLIST
+			do
+				log_cmd $OF "coredumpctl info $COREPID"
+			done
+		fi
+	elif [[ -x /usr/bin/systemd-coredumpctl ]]; then
+		log_cmd $OF "/usr/bin/systemd-coredumpctl list"
+	fi
 	CORE=$(cat /proc/sys/kernel/core_pattern 2>/dev/null)
 	SEARCH_LIST=$(mktemp $LOG/crash.search.list.XXXXXXXX)
 	COREFILE=""
 	log_write $OF "#==[ Application Core Files ]==========================#"
 	# Search core_pattern
-	if echo $CORE | grep '/systemd-coredump' &>/dev/null; then
-		log_write $OF "# Core Files Found in lsof-cwd, \$PATH, ld.so.conf, skipping ($CORE)"
+	if [[ -d "$CORE" ]]; then
+		log_write $OF "# Core Files Found in lsof-cwd, \$PATH, ld.so.conf: skipping invalid core_pattern: $CORE"
 		COREDIR=''
 		COREFILE='core'
-	elif echo $CORE | grep '/' &>/dev/null; then
-		log_write $OF '# Core Files Found in core_pattern, lsof-cwd, $PATH, ld.so.conf'
-		COREDIR=$(dirname "$CORE" 2>/dev/null)
-		COREFILE=$(basename "$CORE" 2>/dev/null | sed -e 's/\%./\*/g')
-		[[ -z $COREFILE ]] && COREFILE='core'
+	elif echo "$CORE" | grep '|' &>/dev/null; then
+		log_write $OF "# Core Files Found in lsof-cwd, \$PATH, ld.so.conf: skipping pipped core_pattern: $CORE"
+		COREDIR=''
+		COREFILE='core'
+	elif echo "$CORE" | grep '/' &>/dev/null; then
+		log_write $OF "# Core Files Found in $CORE, lsof-cwd, \$PATH, ld.so.conf"
+		COREDIR=$(dirname "$CORE")
+		COREFILE=$(basename "$CORE" | sed -e 's/\%./\*/g')
 		ls -l --time-style=long-iso ${COREDIR}/${COREFILE} ${COREDIR}/${COREFILE}\.* ${COREDIR}/core ${COREDIR}/core\.* >> $SEARCH_LIST 2>/dev/null
 	else
 		log_write $OF '# Core File List in lsof-cwd, $PATH, ld.so.conf'
 		COREFILE=$(echo $CORE | sed -e 's/\%./\*/g')
 	fi
+
 	# Search CWD per lsof
 	SEARCH="$(lsof -b +M -n -l 2>/dev/null | grep '[[:space:]]cwd[[:space:]]' | awk '{print $9}' | sort | uniq)"
 	for i in $SEARCH
@@ -4054,7 +4071,7 @@ crash_info() {
 	cat $SEARCH_LIST | sort -k 9 | uniq | sed -e 's|//|/|g' > ${SEARCH_LIST}_U
 	cat ${SEARCH_LIST}_U >> $LOG/$OF
 	if [ -s ${SEARCH_LIST}_U ]; then
-		FILES=$(cat ${SEARCH_LIST}_U | awk '{print $9}')
+		FILES=$(cat ${SEARCH_LIST}_U | awk '{print $NF}')
 	else
 		FILES=""
 	fi
