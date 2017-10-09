@@ -1,7 +1,9 @@
 -------------------------------------------------------------------
-Mon Oct  9 16:42:40 UTC 2017 - jason.record@suse.com
+Mon Oct  9 20:03:34 UTC 2017 - jason.record@suse.com
 
+- Fixed core_pattern pipe corruption (bsc#1061282)
 - Include NCP for OES2015 (bnc#965682)
+- supportconfig: 2.25-460
 
 -------------------------------------------------------------------
 Wed Aug 24 16:35:14 UTC 2016 - jason.record@suse.com

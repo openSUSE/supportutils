@@ -1,6 +1,6 @@
 #!/bin/bash
 
-SVER='2.25-453'
+SVER='2.25-460'
 SDATE="2017 10 09"
 
 ##############################################################################
@@ -3512,16 +3512,24 @@ crash_info() {
 	log_cmd $OF "grep -n 'ulimit -c' /etc/init.d/* 2>/dev/null"
 	CORE=$(cat /proc/sys/kernel/core_pattern)
 	SEARCH_LIST=$(mktemp $LOG/crash.search.list.XXXXXXXX)
-	COREFILE=""
+	COREFILE=''
 	log_write $OF "#==[ Application Core Files ]==========================#"
 	# Search core_pattern
-	if echo $CORE | grep '/' &>/dev/null; then
-		log_write $OF '# Core Files Found in core_pattern, lsof-cwd, $PATH, ld.so.conf'
-		COREDIR=$(dirname $CORE)
-		COREFILE=$(basename $CORE | sed -e 's/\%./\*/g')
+	if [[ -d "$CORE" ]]; then
+		log_write $OF "# Core Files Found in lsof-cwd, \$PATH, ld.so.conf: skipping invalid core_pattern: $CORE"
+		COREDIR=''
+		COREFILE='core'
+	elif echo "$CORE" | grep '|' &>/dev/null; then
+		log_write $OF "# Core Files Found in lsof-cwd, \$PATH, ld.so.conf: skipping pipped core_pattern: $CORE"
+		COREDIR=''
+		COREFILE='core'
+	elif echo "$CORE" | grep '/' &>/dev/null; then
+		log_write $OF "# Core Files Found in lsof-cwd, \$PATH, ld.so.conf: core_pattern: $CORE"
+		COREDIR=$(dirname "$CORE")
+		COREFILE=$(basename "$CORE" | sed -e 's/\%./\*/g')
 		ls -l --time-style=long-iso ${COREDIR}/${COREFILE} ${COREDIR}/${COREFILE}\.* ${COREDIR}/core ${COREDIR}/core\.* >> $SEARCH_LIST 2>/dev/null
 	else
-		log_write $OF '# Core File List in lsof-cwd, $PATH, ld.so.conf'
+		log_write $OF "# Core Files Found in lsof-cwd, \$PATH, ld.so.conf: core_pattern: $CORE"
 		COREFILE=$(echo $CORE | sed -e 's/\%./\*/g')
 	fi
 	# Search CWD per lsof
@@ -3562,12 +3570,13 @@ crash_info() {
 	cat $SEARCH_LIST | sort -k 9 | uniq | sed -e 's|//|/|g' > ${SEARCH_LIST}_U
 	cat ${SEARCH_LIST}_U >> $LOG/$OF
 	if [ -s ${SEARCH_LIST}_U ]; then
-		FILES=$(cat ${SEARCH_LIST}_U | awk '{print $9}')
+		FILES=$(cat ${SEARCH_LIST}_U | awk '{print $NF}')
 	else
 		FILES=""
 	fi
 	rm -f $SEARCH_LIST ${SEARCH_LIST}_U
 	log_write $OF
+
 	# determine the which app generated the core files found
 	if [ -n "$FILES" ]; then
 		log_cmd $OF "file $FILES"
