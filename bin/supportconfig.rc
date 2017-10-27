@@ -1,0 +1,1348 @@
+#!/bin/bash
+##############################################################################
+# Supportconfig Supporting Functions
+##############################################################################
+
+##############################################################################
+# Default Options
+##############################################################################
+OPTION_APPARMOR=1
+OPTION_AUDIT=1
+OPTION_AUTOFS=1
+OPTION_BOOT=1
+OPTION_BTRFS=1
+OPTION_DAEMONS=1
+OPTION_CIMOM=1
+OPTION_CRASH=1
+OPTION_CRON=1
+OPTION_DHCP=1
+OPTION_DISK=1
+OPTION_DNS=1
+OPTION_DOCKER=1
+OPTION_DRBD=1
+OPTION_ENV=1
+OPTION_ETC=1
+OPTION_HA=1
+OPTION_HAPROXY=1
+OPTION_HISTORY=0
+OPTION_IB=1
+OPTION_ISCSI=1
+OPTION_LDAP=1
+OPTION_LVM=1
+OPTION_MEM=1
+OPTION_MOD=1
+OPTION_MPIO=1
+OPTION_NET=1
+OPTION_NFS=1
+OPTION_NTP=1
+OPTION_OCFS2=1
+OPTION_OES=0
+OPTION_OFILES=1
+OPTION_PAM=1
+OPTION_PRINT=1
+OPTION_PROC=1
+OPTION_SAM=1
+OPTION_SAR=1
+OPTION_SLERT=1
+OPTION_SLP=1
+OPTION_SMT=1
+OPTION_SMART=0
+OPTION_SMB=1
+OPTION_SRAID=1
+OPTION_SSH=1
+OPTION_SSSD=1
+OPTION_SYSCONFIG=1
+OPTION_SYSFS=1
+OPTION_UDEV=1
+OPTION_UFILES=1
+OPTION_UP=1
+OPTION_UPD=1
+OPTION_WEB=1
+OPTION_X=1
+
+ADD_OPTION_FSLIST=0
+ADD_OPTION_LOGS=0
+ADD_OPTION_MINDISK=0
+ADD_OPTION_MAXYAST=0
+ADD_OPTION_RPMV=0
+ADD_OPTION_SLP=0
+ADD_OPTION_LOCAL_ONLY=0
+
+VAR_OPTION_BIN_TIMEOUT_SEC=300
+VAR_OPTION_CONTACT_COMPANY=""
+VAR_OPTION_CONTACT_EMAIL=""
+VAR_OPTION_CONTACT_NAME=""
+VAR_OPTION_CONTACT_PHONE=""
+VAR_OPTION_CONTACT_STOREID=""
+VAR_OPTION_CONTACT_TERMINALID=""
+VAR_OPTION_CUSTOM_ARCH=""
+VAR_OPTION_DMESG=0
+VAR_OPTION_GPG_UID=""
+VAR_OPTION_HBREPORT_DIRS='/tmp /root /var/log'
+# reports must have the format hb_report.*\.tar\.bz2 in each directory
+VAR_OPTION_JOURNALCTL_LINE_COUNT=10000
+VAR_OPTION_JOURNALCTL_MAX_BOOTS=10
+VAR_OPTION_LOG_DIRS='/var/log /tmp'
+VAR_OPTION_LINE_COUNT=500
+VAR_OPTION_MSG_MAXSIZE=26214400
+VAR_OPTION_MSG_LINE_COUNT=200000
+VAR_OPTION_PENGINE_FILES_LIMIT=250
+: ${VAR_OPTION_RM_LOCAL_FILE:=0}
+VAR_OPTION_SAR_FILES_LIMIT=30
+VAR_OPTION_SILENT=0
+VAR_OPTION_SBM=0
+VAR_OPTION_UNIQUE_FILE=0
+VAR_OPTION_HEADER_FILE='/usr/lib/supportconfig/header.txt'
+VAR_OPTION_UPLOAD_ALT='https://secure-www.novell.com/upload?appname=supportconfig&file={tarball}'
+VAR_OPTION_UPLOAD_TARGET='ftp://anonymous@ftp.novell.com/incoming'
+VAR_OPTION_WAIT_TRACE=0
+
+LANG=C
+PATH="/sbin:/usr/sbin:/bin:/usr/bin:$PATH"
+PATH_ORIG=$PATH
+export PATH LANG
+LIB_DIR='/usr/lib/supportconfig'
+SC_RESOURCE_FILE="${LIB_DIR}/resources/supportconfig.rc"
+XPLUGIN_DIR="${LIB_DIR}/plugins"
+CURRENT_SCRIPT=$(basename $0)
+unset CONTACT_SRNUM
+UPLOAD_TARBALL=0
+CSFILE=${CURRENT_SCRIPT}.txt
+RPMFILE=rpm.txt
+FSLIST_FILE=fs-files.txt
+FSLIST_ADD_FILE="${LIB_DIR}/additional-files.list"
+RPM_QA_FILE=rpm_qa.txt
+RPM_DIST_FILE=rpm_dist.txt
+BASIC_ENVF=basic-environment.txt
+XML_FILE=summary.xml
+COMPRESS="tbz"
+COMPRESS_OPT="jcf"
+SC_SRV=$(hostname) # %s
+test "$SC_SRV" = "" && SC_SRV=novell
+SC_DATE=$(date +"%y%m%d") # %d
+SC_TIME=$(date +"%H%M") # %t
+test -x /usr/bin/uuidgen && SC_UID="$(uuidgen 2>/dev/null)" || SC_UID="$(mktemp -u XXXXXXXXXXXXXXXXXXXXXXXXXXXXXX)" # %u
+BASE="nts_%B"
+ARCH=$(uname -i)
+SAVE_LOGS_ONLY=0
+USE_SAVED_LOGS_ONLY=0
+ENCRYPTED_TARBALL=0
+# Set bootloader type from sysconfig
+eval $(cat /etc/sysconfig/bootloader | grep LOADER_TYPE)
+# If environment is systemd, /sbin/init should be a symlink to systemd
+file /sbin/init | grep "systemd" &>/dev/null && SYSTEMD=1 || SYSTEMD=0
+
+# These are minimum options and should never be unset.
+MIN_OPTION_RPM=1
+MIN_OPTION_ENV=1
+MIN_OPTION_HC=1
+MIN_OPTION_HARDWARE=1
+MIN_OPTION_YAST=1
+MIN_OPTION_SYSLOGS=1
+MIN_OPTION_AUTOMOD=1
+
+trap "{ echolog TERMINATED BY USER; echo; exit 5; }" SIGINT
+trap "{ echolog SKIPPED BY USER; return 4; }" SIGQUIT
+
+unalias -a &>/dev/null
+
+##############################################################################
+# General Function Definitions
+##############################################################################
+
+log2sys() {
+	MSG="$@"
+	if (( $VAR_OPTION_DMESG )); then
+		echo "supportconfig: [$(date +%y%m%d:%H:%M:%S)] $MSG" > /dev/kmsg
+	else
+		logger -t supportconfig "$MSG"
+	fi
+}
+
+wait_trace_on() {
+	if (( $VAR_OPTION_WAIT_TRACE )); then
+		OPT=$1
+		case $OPT in
+		-t) TEE=0; shift ;;
+		*) TEE=1 ;;
+		esac
+		LOGGING="$@"
+		WT_START=$(date +%T:%N)
+		log2sys "<$WT_START> $LOGGING"
+		if (( $TEE )); then
+			printf "%s" "    <$WT_START> $LOGGING  " | tee -a ${LOG}/${CSFILE}
+		else
+			printf "%s" "    <$WT_START> $LOGGING  "
+		fi
+	fi
+}
+
+wait_trace_off() {
+	if (( $VAR_OPTION_WAIT_TRACE )); then
+		OPT=$1
+		case $OPT in
+		-t) TEE=0 ;;
+		*) TEE=1 ;;
+		esac
+		WT_END=$(date +%T:%N)
+		if (( $TEE )); then
+			echo "<$WT_END>" | tee -a ${LOG}/${CSFILE}
+		else
+			echo "<$WT_END>"
+		fi
+	fi
+}
+
+# Input: logfilename logfiles...
+conf_text_files() {
+	LOGFILE=$LOG/$1
+	shift
+	for CONF in $@
+	do
+		echo "#==[ Configuration File ]===========================#" >> $LOGFILE
+		if [ -f $CONF ]; then
+			echo "# $CONF" >> $LOGFILE
+			TEXTFILE=$(file -L $CONF | egrep -i "text|empty|XML")
+			if [ -z "$TEXTFILE" ]; then
+				echo "file $(file -L $CONF)" >> $LOGFILE
+				echo "ERROR: Not a normal text file, excluding it." >> $LOGFILE
+			else
+				wait_trace_on "$CONF"
+				if (( ADD_OPTION_LOGS )); then
+					cat $CONF 2>> $LOG/$CSFILE | sed -e 's/\r//g' >> $LOGFILE 2>> $LOG/$CSFILE
+				else
+					cat $CONF 2>> $LOG/$CSFILE | sed -e '/^[[:space:]]*#/d' -e '/^[[:space:]]*;/d' -e '/^[[:space:]]*\/\//d' -e 's/\r//g' -e '/^$/d' >> $LOGFILE 2>> $LOG/$CSFILE
+				fi
+				wait_trace_off
+			fi
+			echo >> $LOGFILE
+		else
+			echo "# $CONF - File not found" >> $LOGFILE
+		fi
+		echo >> $LOGFILE
+	done
+}
+
+# Input: logfilename logfiles...
+conf_files() {
+	LOGFILE=$LOG/$1
+	shift
+	for CONF in $@
+	do
+		echo "#==[ Configuration File ]===========================#" >> $LOGFILE
+		if [ -f $CONF ]; then
+			echo "# $CONF" >> $LOGFILE
+			wait_trace_on "$CONF"
+			if (( ADD_OPTION_LOGS )); then
+				cat $CONF 2>> $LOG/$CSFILE | sed -e 's/\r//g' >> $LOGFILE 2>> $LOG/$CSFILE
+			else
+				cat $CONF 2>> $LOG/$CSFILE | sed -e '/^[[:space:]]*#/d;/^[[:space:]]*;/d;s/\r//g;/^[[:space:]]*$/d' >> $LOGFILE 2>> $LOG/$CSFILE
+			fi
+			echo >> $LOGFILE
+			wait_trace_off
+		else
+			echo "# $CONF - File not found" >> $LOGFILE
+		fi
+		echo >> $LOGFILE
+	done
+}
+
+# Input: logfilename lines logfiles...
+# If lines = 0, includes the entire log file
+log_files() {
+	LOGFILE=$LOG/$1
+	shift
+	LOGLINES=$1
+	shift
+	for CONF in $@
+	do
+		BAD_FILE=$(echo "$CONF" | egrep "\.tbz$|\.bz2$|\.gz$|\.zip$|\.xz$")
+		if [ -n "$BAD_FILE" ]; then
+			continue
+		fi
+		echo "#==[ Log File ]=====================================#" >> $LOGFILE
+		CONF=$(echo $CONF | sed -e "s/%7B%20%7D%7B%20%7D/ /g")
+		if [ -f "$CONF" ]; then
+			wait_trace_on "$CONF"
+			if [ $LOGLINES -eq 0 ]; then
+				echo "# $CONF" >> $LOGFILE
+				sed -e 's/\r//g' "$CONF" >> $LOGFILE
+			else
+				echo "# $CONF - Last $LOGLINES Lines" >> $LOGFILE
+				tail -$LOGLINES "$CONF" | sed -e 's/\r//g' >> $LOGFILE
+			fi
+			echo >> $LOGFILE
+			wait_trace_off
+		else
+			echo "# $CONF - File not found" >> $LOGFILE
+		fi
+		echo >> $LOGFILE
+	done
+}
+
+grep_log_files() {
+	SKEY=$1
+	shift
+	LOGFILE=$LOG/$1
+	shift
+	LOGLINES=$1
+	shift
+	for CONF in $@
+	do
+		echo "#==[ Log File ]=====================================#" >> $LOGFILE
+		if [ -f $CONF ]; then
+			wait_trace_on "$CONF"
+			if [ $LOGLINES -eq 0 ]; then
+				echo "# grep -i $SKEY $CONF" >> $LOGFILE
+				grep -i $SKEY $CONF | grep -v 'supportconfig:' | sed -e 's/\r//g' >> $LOGFILE
+			else
+				echo "# grep -i $SKEY $CONF - Last $LOGLINES Lines" >> $LOGFILE
+				grep -i $SKEY $CONF | grep -v 'supportconfig:' | tail -$LOGLINES | sed -e 's/\r//g' >> $LOGFILE
+			fi
+			echo >> $LOGFILE
+			wait_trace_off
+		else
+			echo "# $CONF - File not found" >> $LOGFILE
+		fi
+		echo >> $LOGFILE
+	done
+}
+
+# log_entry file type label
+log_entry() {
+	LOGFILE=$LOG/$1
+	shift
+	ENTRY_TYPE=$1
+	shift
+	ENTRY_LABEL="$@"
+	case $ENTRY_TYPE in
+	command) ENTRY_HEADER="#==[ Command ]======================================#" ;;
+	conf) ENTRY_HEADER="#==[ Configuration File ]===========================#";;
+	log) ENTRY_HEADER="#==[ Log File ]=====================================#" ;;
+	note) ENTRY_HEADER="#==[ Note ]=========================================#" ;;
+	summary) ENTRY_HEADER="#==[ Summary ]======================================#" ;;
+	*) ENTRY_HEADER="#==[ Entry ]========================================#";;
+	esac
+	echo "$ENTRY_HEADER" >> $LOGFILE
+	echo "# $ENTRY_LABEL" >> $LOGFILE
+	echo >> $LOGFILE
+}
+
+# Input: logfilename "text"
+log_write() {
+	LOGFILE=$LOG/$1
+	shift
+	echo "$@" >> $LOGFILE
+}
+
+xml_write() {
+	if [ -n "$2" ]; then
+		echo "  <$1>$2</$1>" >> $LOG/$XML_FILE
+	else
+		echo "  <$1 />" >> $LOG/$XML_FILE
+	fi
+}
+
+echolog() {
+	CSLOGFILE=$LOG/${CSFILE}
+	if (( $VAR_OPTION_DMESG )); then
+		echo "supportconfig: [$(date +%y%m%d:%H:%M:%S)]  $@" > /dev/kmsg
+	fi
+	if (( $VAR_OPTION_SILENT )); then
+		echo "$@" >> $CSLOGFILE
+	else
+		if (( ! $VAR_OPTION_SBM )); then
+			echo "$@" | tee -a $CSLOGFILE
+		fi
+	fi
+}
+
+echonlog() {
+	CSLOGFILE=$LOG/${CSFILE}
+	if (( $VAR_OPTION_SILENT )); then
+		printf "%s " "$@" >> $CSLOGFILE
+	else
+		if (( ! $VAR_OPTION_SBM )); then
+			printf "%s " "$@" | tee -a $CSLOGFILE
+		fi
+	fi
+}
+
+timed_progress() {
+	CSLOGFILE=$LOG/${CSFILE}
+	if (( $VAR_OPTION_SILENT )); then
+		printf "." >> $CSLOGFILE
+	else
+		if (( $VAR_OPTION_SBM )); then
+			printf "." >> $CSLOGFILE
+		else
+			printf "." | tee -a $CSLOGFILE
+		fi
+	fi
+}
+
+printlog() {
+	CSLOGFILE=$LOG/${CSFILE}
+	SMB_OVERIDE=0
+	if [ "$1" = "-b" ]; then
+		SMB_OVERIDE=1
+		shift
+	fi
+	log2sys "$@"
+	if (( $VAR_OPTION_SILENT )); then
+		printf "  %-45s" "$@" >> $CSLOGFILE
+	else
+		if (( $VAR_OPTION_SBM )) || (( $SMB_OVERIDE )); then
+			echo "$@" | tee -a $CSLOGFILE
+		else
+			printf "  %-45s" "$@" | tee -a $CSLOGFILE
+		fi
+	fi
+}
+
+printvrpmlog() {
+	CSLOGFILE=$LOG/${CSFILE}
+	test $VAR_OPTION_SILENT -gt 0 && printf "  %-40s %12s ... " "$1" "$2" >> $CSLOGFILE || printf "  %-40s %12s ... " "$1" "$2" | tee -a $CSLOGFILE
+}
+
+# Input: logfilename command
+log_cmd() {
+	EXIT_STATUS=0
+	LOGFILE=$LOG/$1
+	shift
+	CMDLINE_ORIG="$@"
+	CMDBIN=$(echo $CMDLINE_ORIG | awk '{print $1}')
+	CMD=$(\which $CMDBIN 2>/dev/null | awk '{print $1}')
+	echo "#==[ Command ]======================================#" >> $LOGFILE
+	if [ -x "$CMD" ]; then
+		CMDLINE=$(echo $CMDLINE_ORIG | sed -e "s!${CMDBIN}!${CMD}!")
+		echo "# $CMDLINE" >> $LOGFILE
+		wait_trace_on "$CMDLINE"
+		echo "$CMDLINE" | bash  >> $LOGFILE 2>&1
+		EXIT_STATUS=$?
+		wait_trace_off
+	else
+		echo "# $CMDLINE_ORIG" >> $LOGFILE
+		echo "ERROR: Command not found or not executible" >> $LOGFILE
+		EXIT_STATUS=1
+	fi
+	echo >> $LOGFILE
+	return $EXIT_STATUS
+}
+
+# Input: logfilename command
+# Returns: 1 - command not found or not executable
+#          2 - command returned an error
+#         10 - command timed out
+timed_log_cmd() {
+	EXIT_STATUS=0
+	TIMEOUT_PROGRESS=30
+	LOGFILE=$LOG/$1
+	shift
+	CMDLINE_ORIG="$@"
+	CMDBIN=$(echo $CMDLINE_ORIG | awk '{print $1}')
+	SEMAPHORE_FILE="${LOGFILE}.$(basename ${CMDBIN}).$(date --utc +%s).SEMAPHORE"
+	SEMAPHORE_BIN=${SEMAPHORE_FILE}.sh
+	SEMAPHORE_LOG=${SEMAPHORE_FILE}.out
+	SEMAPHORE_ERR=${SEMAPHORE_FILE}.returncode
+	SEMAPHORE_PID=${SEMAPHORE_FILE}.pid
+	export SEMAPHORE_LOG
+	CMD=$(\which $CMDBIN 2>/dev/null | awk '{print $1}')
+	echo "#==[ Command ]======================================#" >> $LOGFILE
+	if [ -x "$CMD" ]; then
+		export CMDLINE=$(echo $CMDLINE_ORIG | sed -e "s!${CMDBIN}!${CMD}!")
+		echo "# $CMDLINE" >> $LOGFILE
+		wait_trace_on "$CMDLINE"
+		echo "$SEMAPHORE_LOG" >> $LOGFILE
+		LNUM=$(wc -l $LOGFILE | cut -d' ' -f1)
+		# Create the temporary script that runs the app
+cat << TEOF > $SEMAPHORE_BIN
+echo \$\$ > $SEMAPHORE_PID
+$CMDLINE >> $SEMAPHORE_LOG 2>&1
+echo \$? > $SEMAPHORE_ERR
+if [ -e $LOGFILE ]; then
+ sed -i -e "\$(grep -n $SEMAPHORE_LOG $LOGFILE | cut -d: -f1)r $SEMAPHORE_LOG" $LOGFILE 2>/dev/null
+ sed -i -e "/\$(basename $SEMAPHORE_LOG)/d" $LOGFILE 2>/dev/null
+ rm -f $SEMAPHORE_LOG
+fi
+rm -f $SEMAPHORE_FILE 
+TEOF
+		TIME_CURRENT=0
+		TIME_RCODE=0
+		TIME_OUT=10
+		touch $SEMAPHORE_FILE
+		# Background the temporary script, it will delete the semaphore file when complete
+		bash $SEMAPHORE_BIN &>/dev/null &
+		while [ $TIME_CURRENT -lt $VAR_OPTION_BIN_TIMEOUT_SEC ]
+		do
+			if [ -e $SEMAPHORE_FILE ]; then
+				# Still waiting on backgrounded binary
+				sleep 1
+				((TIME_CURRENT++))
+				if [ $(( TIME_CURRENT % TIMEOUT_PROGRESS )) -eq 0 ]; then
+					timed_progress
+				fi
+			else
+				# Backgrounded binary completed
+				TIME_CURRENT=$(( VAR_OPTION_BIN_TIMEOUT_SEC + 1 ))
+				TIME_OUT=0
+				rm -f $SEMAPHORE_BIN
+				rm -f $SEMAPHORE_PID
+				if [ -e $SEMAPHORE_ERR ]; then
+					TIME_RCODE=$(< $SEMAPHORE_ERR)
+					rm -f $SEMAPHORE_ERR
+				fi
+			fi
+		done
+		if (( TIME_RCODE )); then
+			TIME_RCODE=2
+		fi
+		if (( TIME_OUT )); then
+			echonlog "$CMDLINE_ORIG - Timed Out,"
+			echo >> $LOGFILE
+			echo "# ERROR: Command did not complete within the timeout period." >> $LOGFILE
+			ps -eaf | grep $(cat $SEMAPHORE_PID) | grep -v grep >> $LOGFILE
+			echo >> $LOGFILE
+		fi
+		wait_trace_off
+	else
+		echo "# $CMDLINE_ORIG" >> $LOGFILE
+		echo "ERROR: Command not found or not executible" >> $LOGFILE
+		EXIT_STATUS=1
+	fi
+	echo >> $LOGFILE
+	EXIT_STATUS=$(( EXIT_STATUS + TIME_OUT + TIME_RCODE ))
+	return $EXIT_STATUS
+}
+
+# Input: logfilename command
+log_icmd() {
+	LOGFILE=$LOG/$1
+	shift
+	CMDLINE="$@"
+	echo "#==[ Command ]======================================#" >> $LOGFILE
+	echo "# $CMDLINE" >> $LOGFILE
+	wait_trace_on "$CMDLINE"
+	$CMDLINE >> $LOGFILE 2>&1
+	wait_trace_off
+	echo >> $LOGFILE
+}
+
+ping_addr() {
+	OF=$1
+	ADDR_STRING="$2"
+	ADDR_PING=$3
+	if [ -n "$ADDR_PING" ]; then
+		if log_cmd $OF "${4}ping -n -c1 -W1 $ADDR_PING"; then
+			log_write $OF "# Connectivity Test, $ADDR_STRING $ADDR_PING: Success"
+		else
+			log_write $OF "# Connectivity Test, $ADDR_STRING $ADDR_PING: Failure"
+		fi
+	else
+		log_write $OF "# Connectivity Test, $ADDR_STRING: Missing"
+	fi
+	log_write $OF
+}
+
+# Input: logfilename rpm
+# Assumes the rpm is installed and $LOG/$RPMFILE has been created
+rpm_verify() {
+	RPMPATH=$LOG/$RPMFILE
+	LOGFILE=$LOG/$1
+	INPUT_RPM=$2
+	echo "#==[ Verification ]=================================#" >> $LOGFILE
+	if rpm -q $INPUT_RPM &>/dev/null
+	then
+		for RPM in $(rpm -q $INPUT_RPM)
+		do
+			echo "# rpm -V $RPM" >> $LOGFILE
+			wait_trace_on "rpm -V $RPM"
+			rpm -V $RPM >> $LOGFILE 2>&1
+			ERR=$?
+			wait_trace_off
+			if [ $ERR -gt 0 ]; then
+				echo "# Verification Status: Differences Found" >> $LOGFILE
+			else
+				echo "# Verification Status: Passed" >> $LOGFILE
+			fi
+			echo >> $LOGFILE
+		done
+		#cat $RPMPATH | grep "^$INPUT_RPM " >> $LOGFILE
+		#echo >> $LOGFILE
+		return 0
+	else
+		echo "# RPM Not Installed: $INPUT_RPM" >> $LOGFILE
+		echo >> $LOGFILE
+		return 1
+	fi
+}
+
+gen_sysconfig() {
+	log2sys "Overwriting $SC_CONF with default options."
+	echo "####################################" > $SC_CONF
+	echo "# Default Options" >> $SC_CONF
+	echo "####################################" >> $SC_CONF
+	for i in OPTION ADD_OPTION VAR_OPTION
+	do
+		grep "^${i}_" $SC_RESOURCE_FILE | sort >> $SC_CONF
+		echo >> $SC_CONF
+	done
+	echo
+	return 0
+}
+
+log_options() {
+	LOGFILE=$LOG/${CSFILE}
+	conf_files ${CSFILE} $SC_CONF
+	echo >> $LOGFILE
+	echo "####################################" >> $LOGFILE
+	echo "# Options Used" >> $LOGFILE
+	echo "####################################" >> $LOGFILE
+	for SRCH in OPTION_ ADD_OPTION_
+	do
+		for i in $(grep ^$SRCH $SC_RESOURCE_FILE | cut -d= -f1 | sort)
+		do
+			printf "%-25s = %s\n" "$i" "$((i))" >> $LOGFILE
+			continue
+
+			if [ $((i)) -eq 0 ]; then
+				printf "%-25s = \n" "$i" >> $LOGFILE
+			else
+				printf "%-25s = %s\n" "$i" "$((i))" >> $LOGFILE
+			fi
+		done
+		echo >> $LOGFILE
+	done
+	# TODO
+	# add VAR_OPTION_ parameters
+}
+
+check_service() {
+	LOGFILE=$LOG/$1
+	BASEFILE=$1
+	SERVICE_NAME=$2
+	SYSTEMD_DIR=/usr/lib/systemd/system
+	if [ $SYSTEMD == 1 ] && [ -f $SYSTEMD_DIR/${SERVICE_NAME}.service ]; then
+		log_cmd $BASEFILE "systemctl status $SERVICE_NAME"
+		log_cmd $BASEFILE "systemctl is-enabled $SERVICE_NAME"
+	else
+		log_cmd $BASEFILE "chkconfig $SERVICE_NAME --list"
+		log_cmd $BASEFILE "/etc/init.d/$SERVICE_NAME status"
+	fi
+	return $?
+}
+
+get_customer_info() {
+	INFOLOG=$1
+	LINE_ADDED=0
+	test -n "$VAR_OPTION_CONTACT_COMPANY" && 		{ log_write $INFOLOG "Company:     $VAR_OPTION_CONTACT_COMPANY"; ((LINE_ADDED++)); }
+	test -n "$VAR_OPTION_CONTACT_STOREID" && 		{ log_write $INFOLOG "Store ID:    $VAR_OPTION_CONTACT_STOREID"; ((LINE_ADDED++)); }
+	test -n "$VAR_OPTION_CONTACT_TERMINALID" && 	{ log_write $INFOLOG "Terminal ID: $VAR_OPTION_CONTACT_TERMINALID"; ((LINE_ADDED++)); }
+	test -n "$VAR_OPTION_CONTACT_NAME" && 			{ log_write $INFOLOG "Name:        $VAR_OPTION_CONTACT_NAME"; ((LINE_ADDED++)); }
+	test -n "$VAR_OPTION_CONTACT_PHONE" && 		{ log_write $INFOLOG "Phone:       $VAR_OPTION_CONTACT_PHONE"; ((LINE_ADDED++)); }
+	test -n "$VAR_OPTION_CONTACT_EMAIL" && 		{ log_write $INFOLOG "Email:       $VAR_OPTION_CONTACT_EMAIL"; ((LINE_ADDED++)); }
+	test -n "$CONTACT_SRNUM" && 						{ log_write $INFOLOG "SR#:         $CONTACT_SRNUM"; ((LINE_ADDED++)); }
+	if ((LINE_ADDED)); then log_write $INFOLOG; fi
+}
+
+addHeaderFile() {
+	OPEN=$1
+	if [ -s $VAR_OPTION_HEADER_FILE ]; then
+		wait_trace_on "cat $VAR_OPTION_HEADER_FILE"
+		log_entry $OPEN note $VAR_OPTION_HEADER_FILE
+		cat $VAR_OPTION_HEADER_FILE >> $LOG/$OPEN
+		log_write $OPEN
+		wait_trace_off
+	fi
+}
+
+timed_cmd_cleanup() {
+	TIMEOUT_PIDS=$(\ls -A1 $LOG/*SEMAPHORE.pid 2>/dev/null)
+	if [ -n "$TIMEOUT_PIDS" ]; then
+		test $VAR_OPTION_SILENT -eq 0 && { echo; }
+		if (( $VAR_OPTION_SBM )); then
+			printlog -b "Command Clean Up..."
+		else
+			printlog -b "Command Clean Up"
+		fi
+		for TIMEOUT_PID_FILE in $TIMEOUT_PIDS
+		do
+			echolog " -> $(basename $TIMEOUT_PID_FILE) ($(cat $TIMEOUT_PID_FILE))"
+			PIDS2KILL=$(ps -eaf | grep `cat $TIMEOUT_PID_FILE` 2>/dev/null | grep -v grep | awk '{print $2}')
+			wait_trace_on "kill $PIDS2KILL"
+			kill $PIDS2KILL &>/dev/null
+			sleep 1
+			PIDS2KILL=$(ps -eaf | grep `cat $TIMEOUT_PID_FILE` 2>/dev/null | grep -v grep | awk '{print $2}')
+			if [ -z "$PIDS2KILL" ]; then
+				rm -f $TIMEOUT_PID_FILE &>/dev/null
+			fi
+			wait_trace_off
+		done
+	fi
+}
+
+ascii_plugin() {
+	FOUND=$(file $PLUGIN_BIN | grep -i elf 2>/dev/null)
+	if [[ -n "$FOUND" ]]; then
+		return 1
+	else
+		return 0
+	fi
+}
+
+bad_plugin_dir() {
+	if [ -d $XPLUGIN_DIR ]; then
+		XPLUGIN_DIR_OWNER=$(stat -c %u $XPLUGIN_DIR)
+		XPLUGIN_DIR_GRP=$(stat -c %g $XPLUGIN_DIR)
+		XPLUGIN_DIR_MODE=$(stat -c %a $XPLUGIN_DIR)
+
+		test $XPLUGIN_DIR_OWNER -eq 0 && OWNER_DENIED=0 || OWNER_DENIED=1
+		case $XPLUGIN_DIR_GRP in
+		0) GROUP_DENIED=0 ;;
+		*)	if [ ${#XPLUGIN_DIR_MODE} -eq 3 ]; then
+				case ${XPLUGIN_DIR_MODE:1:1} in
+				0|1|4|5) GROUP_DENIED=0 ;;
+				*) GROUP_DENIED=1 ;;
+				esac
+			else
+				# Don't allow suid, guid, or sticky bits to be set
+				GROUP_DENIED=1
+			fi
+		esac
+		if [ ${#XPLUGIN_DIR_MODE} -eq 3 ]; then
+			case ${XPLUGIN_DIR_MODE:2:1} in
+			0|1|4|5) OTHER_DENIED=0 ;;
+			*) OTHER_DENIED=1 ;;
+			esac
+		else
+			# Don't allow suid, guid, or sticky bits to be set
+			OTHER_DENIED=1
+		fi
+
+		BAD_DIR=0
+		test $OWNER_DENIED -gt 0 && ((BAD_DIR++))
+		test $GROUP_DENIED -gt 0 && ((BAD_DIR++))
+		test $OTHER_DENIED -gt 0 && ((BAD_DIR++))
+		test $BAD_DIR -gt 0 && return 0 || return 1
+	else
+		# good plugin directory
+		return 1
+	fi
+}
+
+exec_plugins() {
+	if [ -d $XPLUGIN_DIR ]; then
+		printlog "Supportconfig Plugins:"
+		if bad_plugin_dir; then
+			echolog Skipped
+			return 5
+		fi
+		echolog $PLUGIN_CNT
+		for PLUGIN_FEATURE in $PLUGIN_FEATURES
+		do
+			PLUGIN=${PLUGIN_FEATURE/p/}
+			printlog "  Plugin: ${PLUGIN}..."
+			test $((PLUGIN_OPTION_${PLUGIN})) -eq 0 && { echolog Excluded; continue; }
+			PLUGIN_ERROR=0
+			PLUGIN_SKIP=0
+			PLUGIN_LOG_FILE="plugin-${PLUGIN}.txt"
+			PLUGIN_LOG="${LOG}/${PLUGIN_LOG_FILE}"
+			PLUGIN_BIN="${XPLUGIN_DIR}/${PLUGIN}"
+			addHeaderFile $PLUGIN_LOG_FILE
+
+			log_write $PLUGIN_LOG_FILE "#==[ Plugin ]=======================================#"			
+			log_write $PLUGIN_LOG_FILE "# Output: $PLUGIN_BIN"
+			log_write $PLUGIN_LOG_FILE
+
+			if [ -x $PLUGIN_BIN ]; then
+				log_cmd $PLUGIN_LOG_FILE "$PLUGIN_BIN"
+				PLUGIN_RC=$?
+				if [ $PLUGIN_RC -ne 0 ]; then
+					if [ $PLUGIN_RC -eq 111 ]; then
+						((PLUGIN_SKIP++))
+					else
+						((PLUGIN_ERROR++))
+					fi
+				fi
+			else
+				log_write $PLUGIN_LOG_FILE "ERROR: Missing or non-executible plugin"
+				((PLUGIN_ERROR++))
+			fi
+			log_write $PLUGIN_LOG_FILE
+
+			log_write $PLUGIN_LOG_FILE "#==[ Plugin ]=======================================#"			
+			log_write $PLUGIN_LOG_FILE "# File: cat -n $PLUGIN_BIN"
+			log_write $PLUGIN_LOG_FILE
+
+			if ascii_plugin; then
+				cat -n $PLUGIN_BIN >> $PLUGIN_LOG 2>&1
+			else
+				log_write $PLUGIN_LOG_FILE "Excluding non ASCII file"
+			fi
+			log_write $PLUGIN_LOG_FILE
+
+			if ((PLUGIN_ERROR)); then
+				echolog Error
+			elif ((PLUGIN_SKIP)); then
+				echolog Skipped
+			else
+				echolog Done
+			fi
+		done
+	fi
+}
+
+set_to_min() {
+	init_plugins off
+	for SRCH in OPTION_ ADD_OPTION_
+	do
+		for i in $(grep ^$SRCH $SC_RESOURCE_FILE | cut -d= -f1 | sort)
+		do
+			(( $i=0 ))
+		done
+	done
+	for SRCH in MIN_OPTION_ ADD_OPTION_MIN_
+	do
+		for i in $(grep ^$SRCH $SC_RESOURCE_FILE | cut -d= -f1 | sort)
+		do
+			(( $i=1 ))
+		done
+	done
+}
+
+set_to_all() {
+	init_plugins on
+	for SRCH in OPTION_ ADD_OPTION_ MIN_OPTION_
+	do
+		for i in $(grep ^$SRCH $SC_RESOURCE_FILE | cut -d= -f1 | sort)
+		do
+			(( $i=1 ))
+		done
+	done
+	for SRCH in ADD_OPTION_MIN_
+	do
+		for i in $(grep ^$SRCH $SC_RESOURCE_FILE | cut -d= -f1 | sort)
+		do
+			(( $i=0 ))
+		done
+	done
+}
+
+set_to_default() {
+	log2sys "Set Default Features"
+	init_plugins on
+	DEF_FILE=$(mktemp /tmp/supportconfig-defoption.XXXXXXXXXXXXXX)
+	for SRCH in OPTION_ ADD_OPTION_ MIN_OPTION_ VAR_OPTION_
+	do
+		for i in $(grep ^$SRCH $SC_RESOURCE_FILE | sort)
+		do
+			echo "$i" >> $DEF_FILE
+		done
+	done
+	grep ^VAR_OPTION_ $SC_RESOURCE_FILE | sort >> $DEF_FILE
+	. $DEF_FILE
+	rm -f $DEF_FILE
+}
+
+valid_srnum() {
+	log2sys "Validate SR Number"
+	if echo $CONTACT_SRNUM | grep "^[[:digit:]]*$" &>/dev/null; then
+		return 0
+	else
+		return 1
+	fi
+}
+
+check_log_dir() {
+	# if supportconfig repeats execution too fast, make sure the directory is unique so files are not overwritten
+	ORIGBASE=$BASE
+	if [ -d ${LOG}/${BASE} -o -f ${LOG}/${BASE}.${COMPRESS} ]; then
+		BASE="${ORIGBASE}_%u"
+		normalize_base
+	fi
+}
+
+get_features() {
+	log2sys "Display Feature Set"
+	FEATURES=$(grep ^OPTION_ $SC_RESOURCE_FILE | cut -d= -f1 | sed -e 's/OPTION_//g')
+	ADDITIONAL_FEATURES=$(grep ^ADD_OPTION_ $SC_RESOURCE_FILE | cut -d= -f1 | sed -e 's/ADD_OPTION_/a/g')
+	echo $FEATURES $ADDITIONAL_FEATURES $PLUGIN_FEATURES
+}
+
+# Default state is "on", unless "off" is specified as a parameter
+init_plugins() {
+	PLUGIN_FEATURES=""
+	PLUGIN_CNT=0
+	case $1 in
+	off) FEATURE_STATE=0; log2sys "Plugins: OFF" ;;
+	*) FEATURE_STATE=1; log2sys "Plugins: ON" ;;
+	esac
+	if [ -d $XPLUGIN_DIR ]; then
+		for FILE in $(\ls -A1 $XPLUGIN_DIR)
+		do
+			if [ -x ${XPLUGIN_DIR}/${FILE} ]; then
+				PLUGIN_FEATURES="p${FILE} $PLUGIN_FEATURES"
+				((PLUGIN_CNT++))
+			fi
+		done
+	fi
+	for PLUGIN_FEATURE in $PLUGIN_FEATURES
+	do
+		eval PLUGIN_OPTION_${PLUGIN_FEATURE/p/}=$FEATURE_STATE
+	done
+}
+
+# Requires one parameter with value "on" or "off"
+selected_features() {
+	INVALID_KEYWORDS=0
+	case $1 in
+	on) FEATURE_STATE=1 ;;
+	off) FEATURE_STATE=0 ;;
+	*) echo "ERROR: selected_features: Invalid FEATURE_STATE, $1"; exit_10 ;;
+	esac
+	FEATURE_LIST="$(get_features)"
+	for FEATURE in $(echo $SELECTED_FEATURE_LIST | sed -e 's/,/ /g')
+	do
+		if echo $FEATURE_LIST | grep $FEATURE &>/dev/null; then
+			case ${FEATURE:0:1} in
+			a) eval ADD_OPTION_${FEATURE/a/}=${FEATURE_STATE} ;;
+			p) eval PLUGIN_OPTION_${FEATURE/p/}=${FEATURE_STATE} ;;
+			*) eval OPTION_${FEATURE}=${FEATURE_STATE} ;;
+			esac
+		else
+			echo "ERROR: Invalid Feature Keyword: $FEATURE"
+			((INVALID_KEYWORDS++))
+		fi
+	done
+	if (( INVALID_KEYWORDS )); then
+		echo
+		echo "Valid keywords listed below. They are case sensitive."
+		echo
+		get_features
+		echo
+		exit_code 11
+	fi
+}
+
+toggle_features() {
+	INVALID_KEYWORDS=0
+	FEATURE_LIST="$(get_features)"
+	for FEATURE in $(echo $SELECTED_FEATURE_LIST | sed -e 's/,/ /g')
+	do
+		if echo $FEATURE_LIST | grep $FEATURE &>/dev/null; then
+			case ${FEATURE:0:1} in
+			a) [ $(( ADD_OPTION_${FEATURE/a/} )) -eq 0 ] && eval ADD_OPTION_${FEATURE/a/}=1 || eval ADD_OPTION_${FEATURE/a/}=0 ;;
+			p) [ $(( PLUGIN_OPTION_${FEATURE/p/} )) -eq 0 ] && eval PLUGIN_OPTION_${FEATURE/p/}=1 || eval PLUGIN_OPTION_${FEATURE/p/}=0 ;;
+			*) [ $(( OPTION_${FEATURE} )) -eq 0 ] && eval OPTION_${FEATURE}=1 || eval OPTION_${FEATURE}=0 ;;
+			esac
+		else
+			echo "ERROR: Invalid Feature Keyword: $FEATURE"
+			((INVALID_KEYWORDS++))
+		fi
+	done
+	if (( INVALID_KEYWORDS )); then
+		echo "Use -F for a list of valid feature keywords. Keywords are case sensitive."
+		echo
+		exit_11
+	fi
+}
+
+ehr() {
+	echo "-----------------------------------------------------------------------------"
+}
+
+encrypt_tarball() {
+	log2sys "Encrypt Tar Ball"
+	FOUND_KEY=$(gpg --list-keys 2>/dev/null | grep "$VAR_OPTION_GPG_UID" 2>/dev/null)
+	if [ -z "$FOUND_KEY" ]; then
+		echo "ERROR: GPG key not found: $VAR_OPTION_GPG_UID"
+		echo "       File encryption failed, aborting"
+		echo
+		gpg --list-keys
+		exit_13
+	fi
+	if (( VAR_OPTION_SILENT )); then
+		gpg --batch --yes --trust-model always --encrypt --recipient "$VAR_OPTION_GPG_UID" $TARBALL &> /dev/null
+		ERR=$?
+		if [ $ERR -ne 0 ]; then
+			echo "ERROR: gpg failed, RC=$ERR, aborting"
+			echo
+			exit_13
+		fi
+	else
+		if (( $VAR_OPTION_SBM )); then
+			echo "Encrypting Tar Ball..."
+		else
+			echo "Encrypting Tar Ball"
+			ehr
+		fi
+		echo
+		echo "Using GPG Key:  $VAR_OPTION_GPG_UID"
+		echo "Command:        gpg --batch --yes --trust-model always --encrypt --recipient \"$VAR_OPTION_GPG_UID\" $TARBALL"
+		wait_trace_on "gpg --batch --yes --trust-model always --encrypt --recipient "$VAR_OPTION_GPG_UID" $TARBALL"
+		gpg --batch --yes --trust-model always --encrypt --recipient "$VAR_OPTION_GPG_UID" $TARBALL
+		ERR=$?
+		wait_trace_off
+		if [ $ERR -ne 0 ]; then
+			echo "ERROR: gpg failed, RC=$ERR, aborting"
+			echo
+			exit_13
+		fi
+		ENCRYPTED_TARBALL=1
+		echo "Encrypted File: ${TARBALL}.gpg"
+		echo
+	fi
+}
+
+upload_tarball() {
+	if (( UPLOAD_TARBALL )); then
+		log2sys "Uploading Tar Ball"
+		TARBALL_FILE=$(basename $TARBALL)
+		UPLOAD_SERVICE=$(echo ${VAR_OPTION_UPLOAD_TARGET} | cut -d: -f1)
+		if (( VAR_OPTION_SILENT )); then
+			case $UPLOAD_SERVICE in
+			ftp)
+				UPLOAD_URL=${VAR_OPTION_UPLOAD_TARGET}
+				if (( ENCRYPTED_TARBALL )); then
+					curl -sT "${TARBALL}.md5" "${UPLOAD_URL}/${TARBALL_FILE}.md5" &>/dev/null
+					curl -sT "${TARBALL}.gpg" "${UPLOAD_URL}/${TARBALL_FILE}.gpg" &>/dev/null
+				else
+					curl -sT "${TARBALL}.md5" "${UPLOAD_URL}/${TARBALL_FILE}.md5" &>/dev/null
+					curl -sT "${TARBALL}" "${UPLOAD_URL}/${TARBALL_FILE}" &>/dev/null
+				fi
+				;;
+			scp)
+				UPLOAD_URL=$(echo ${VAR_OPTION_UPLOAD_TARGET} | sed -e 's!scp://!!g;s!/!:/!')
+				if (( ENCRYPTED_TARBALL )); then
+					scp -qp "${TARBALL}.md5" "${UPLOAD_URL}/${TARBALL_FILE}.md5" &>/dev/null
+					scp -qp "${TARBALL}.gpg" "${UPLOAD_URL}/${TARBALL_FILE}.gpg" &>/dev/null
+				else
+					scp -qp "${TARBALL}.md5" "${UPLOAD_URL}/${TARBALL_FILE}.md5" &>/dev/null
+					scp -qp "${TARBALL}" "${UPLOAD_URL}/${TARBALL_FILE}" &>/dev/null
+				fi
+				;;
+			http|https)
+				if (( ENCRYPTED_TARBALL )); then
+					UPLOAD_URL=$(echo $VAR_OPTION_UPLOAD_TARGET | sed -e "s/{[Tt][Aa][Rr][Bb][Aa][Ll][Ll]}/${TARBALL_FILE}.md5/g")
+					curl -s -L -A SupportConfig -T "${TARBALL}.md5" "${UPLOAD_URL}" &>/dev/null
+					UPLOAD_URL=$(echo $VAR_OPTION_UPLOAD_TARGET | sed -e "s/{[Tt][Aa][Rr][Bb][Aa][Ll][Ll]}/${TARBALL_FILE}.gpg/g")
+					curl -s -L -A SupportConfig -T "${TARBALL}.gpg" "${UPLOAD_URL}" &>/dev/null
+				else
+					UPLOAD_URL=$(echo $VAR_OPTION_UPLOAD_TARGET | sed -e "s/{[Tt][Aa][Rr][Bb][Aa][Ll][Ll]}/${TARBALL_FILE}.md5/g")
+					curl -s -L -A SupportConfig -T "${TARBALL}.md5" "${UPLOAD_URL}" &>/dev/null
+					UPLOAD_URL=$(echo $VAR_OPTION_UPLOAD_TARGET | sed -e "s/{[Tt][Aa][Rr][Bb][Aa][Ll][Ll]}/${TARBALL_FILE}/g")
+					curl -s -L -A SupportConfig -T "${TARBALL}" "${UPLOAD_URL}" &>/dev/null
+				fi
+				;;
+			*)
+				exit 7
+				;;
+			esac
+		else
+			if (( $VAR_OPTION_SBM )); then
+				echo "Uploading Tar Ball..."
+			else
+				echo "Uploading Tar Ball"
+				ehr
+			fi
+			echo
+			case $UPLOAD_SERVICE in
+			ftp)
+				UPLOAD_URL=${VAR_OPTION_UPLOAD_TARGET}
+				if (( VAR_OPTION_SBM )); then
+					wait_trace_on -t "curl -sT \"${TARBALL}.md5\" \"${UPLOAD_URL}/${TARBALL_FILE}.md5\""
+					curl -sT "${TARBALL}.md5" "${UPLOAD_URL}/${TARBALL_FILE}.md5" &>/dev/null
+					wait_trace_off -t
+					if (( ENCRYPTED_TARBALL )); then
+						wait_trace_on -t "curl -sT \"${TARBALL}.gpg\" \"${UPLOAD_URL}/${TARBALL_FILE}.gpg\""
+						curl -sT "${TARBALL}.gpg" "${UPLOAD_URL}/${TARBALL_FILE}.gpg" &>/dev/null
+						wait_trace_off -t
+					else
+						wait_trace_on -t "curl -sT \"${TARBALL}\" \"${UPLOAD_URL}/${TARBALL_FILE}\""
+						curl -sT "${TARBALL}" "${UPLOAD_URL}/${TARBALL_FILE}" &>/dev/null
+						wait_trace_off -t
+					fi
+				else
+					echo "curl -#T \"${TARBALL}.md5\" \"${UPLOAD_URL}/${TARBALL_FILE}.md5\""
+					echo
+					curl -#T "${TARBALL}.md5" "${UPLOAD_URL}/${TARBALL_FILE}.md5"
+					echo
+					if (( ENCRYPTED_TARBALL )); then
+						echo "curl -#T \"${TARBALL}.gpg\" \"${UPLOAD_URL}/${TARBALL_FILE}.gpg\""
+						echo
+						curl -#T "${TARBALL}.gpg" "${UPLOAD_URL}/${TARBALL_FILE}.gpg"
+					else
+						echo "curl -#T \"${TARBALL}\" \"${UPLOAD_URL}/${TARBALL_FILE}\""
+						echo
+						curl -#T "${TARBALL}" "${UPLOAD_URL}/${TARBALL_FILE}"
+					fi
+				fi
+				;;
+			scp)
+				UPLOAD_URL=$(echo ${VAR_OPTION_UPLOAD_TARGET} | sed -e 's!scp://!!g;s!/!:/!')
+				if (( VAR_OPTION_SBM )); then
+					wait_trace_on -t "scp -qp \"${TARBALL}.md5\" \"${UPLOAD_URL}/${TARBALL_FILE}.md5\""
+					scp -qp "${TARBALL}.md5" "${UPLOAD_URL}/${TARBALL_FILE}.md5" &>/dev/null
+					wait_trace_off -t
+					if (( ENCRYPTED_TARBALL )); then
+						wait_trace_on -t "scp -qp \"${TARBALL}.gpg\" \"${UPLOAD_URL}/${TARBALL_FILE}.gpg\""
+						scp -qp "${TARBALL}.gpg" "${UPLOAD_URL}/${TARBALL_FILE}.gpg" &>/dev/null
+						wait_trace_off -t
+					else
+						wait_trace_on -t "scp -qp \"${TARBALL}\" \"${UPLOAD_URL}/${TARBALL_FILE}\""
+						scp -qp "${TARBALL}" "${UPLOAD_URL}/${TARBALL_FILE}" &>/dev/null
+						wait_trace_off -t
+					fi
+				else
+					echo "scp -p \"${TARBALL}.md5\" \"${UPLOAD_URL}/${TARBALL_FILE}.md5\""
+					echo
+					scp -p "${TARBALL}.md5" "${UPLOAD_URL}/${TARBALL_FILE}.md5"
+					echo
+					if (( ENCRYPTED_TARBALL )); then
+						echo "scp -p \"${TARBALL}.gpg\" \"${UPLOAD_URL}/${TARBALL_FILE}.gpg\""
+						echo
+						scp -p "${TARBALL}.gpg" "${UPLOAD_URL}/${TARBALL_FILE}.gpg"
+					else
+						echo "scp -p \"${TARBALL}\" \"${UPLOAD_URL}/${TARBALL_FILE}\""
+						echo
+						scp -p "${TARBALL}" "${UPLOAD_URL}/${TARBALL_FILE}"
+					fi
+				fi
+				;;
+			http|https)
+				if (( VAR_OPTION_SBM )); then
+					UPLOAD_URL=$(echo $VAR_OPTION_UPLOAD_TARGET | sed -e "s/{[Tt][Aa][Rr][Bb][Aa][Ll][Ll]}/${TARBALL_FILE}.md5/g")
+					wait_trace_on -t "curl -s -L -A SupportConfig -T \"${TARBALL}.md5\" \"${UPLOAD_URL}\""
+					curl -s -L -A SupportConfig -T "${TARBALL}.md5" "${UPLOAD_URL}" &>/dev/null
+					wait_trace_off -t
+					if (( ENCRYPTED_TARBALL )); then
+						UPLOAD_URL=$(echo $VAR_OPTION_UPLOAD_TARGET | sed -e "s/{[Tt][Aa][Rr][Bb][Aa][Ll][Ll]}/${TARBALL_FILE}.gpg/g")
+						wait_trace_on -t "curl -s -L -A SupportConfig -T \"${TARBALL}.gpg\" \"${UPLOAD_URL}\""
+						curl -s -L -A SupportConfig -T "${TARBALL}.gpg" "${UPLOAD_URL}" &>/dev/null
+						wait_trace_off -t
+					else
+						UPLOAD_URL=$(echo $VAR_OPTION_UPLOAD_TARGET | sed -e "s/{[Tt][Aa][Rr][Bb][Aa][Ll][Ll]}/${TARBALL_FILE}/g")
+						wait_trace_on -t "curl -s -L -A SupportConfig -T \"${TARBALL}\" \"${UPLOAD_URL}\""
+						curl -s -L -A SupportConfig -T "${TARBALL}" "${UPLOAD_URL}" &>/dev/null
+						wait_trace_off -t
+					fi
+				else
+					UPLOAD_URL=$(echo $VAR_OPTION_UPLOAD_TARGET | sed -e "s/{[Tt][Aa][Rr][Bb][Aa][Ll][Ll]}/${TARBALL_FILE}.md5/g")
+					echo "curl -v -L -A SupportConfig -T \"${TARBALL}.md5\" \"${UPLOAD_URL}\""
+					echo
+					curl -v -L -A SupportConfig -T "${TARBALL}.md5" "${UPLOAD_URL}"
+					echo
+					if (( ENCRYPTED_TARBALL )); then
+						UPLOAD_URL=$(echo $VAR_OPTION_UPLOAD_TARGET | sed -e "s/{[Tt][Aa][Rr][Bb][Aa][Ll][Ll]}/${TARBALL_FILE}.gpg/g")
+						echo "curl -v -L -A SupportConfig -T \"${TARBALL}.gpg\" \"${UPLOAD_URL}\""
+						echo
+						curl -v -L -A SupportConfig -T "${TARBALL}.gpg" "${UPLOAD_URL}"
+					else
+						UPLOAD_URL=$(echo $VAR_OPTION_UPLOAD_TARGET | sed -e "s/{[Tt][Aa][Rr][Bb][Aa][Ll][Ll]}/${TARBALL_FILE}/g")
+						echo "curl -v -L -A SupportConfig -T \"${TARBALL}\" \"${UPLOAD_URL}\""
+						echo
+						curl -v -L -A SupportConfig -T "${TARBALL}" "${UPLOAD_URL}"
+					fi
+				fi
+				;;
+			*)
+				echo "ERROR: Unsupported upload service type: ${UPLOAD_SERVICE}"
+				echo
+				echo "  Supported service types: ftp, scp"
+				echo "  Example URI: ftp://ftp.novell.com/incoming"
+				echo
+				echo "  VAR_OPTION_UPLOAD_TARGET=\"${VAR_OPTION_UPLOAD_TARGET}\""
+				;;
+			esac
+			echo
+		fi
+	fi
+}
+
+post_lsmod_list() {
+	OF=modules.txt
+	log_write $OF "#==[ Command ]======================================#"
+	log_write $OF "# lsmod - Post run module list"
+	MOD_FIRST=$(mktemp $LOG/mod-first-XXXXXXXXXXXXXXX)
+	MOD_LAST=$(mktemp $LOG/mod-last-XXXXXXXXXXXXXXX)
+
+	# Get module list before running supportconfig commands
+	wait_trace_on "grep -n '#==\[ Command \]' $LOG/$OF"
+	LN_INIT=$(grep -n '#==\[ Command \]' $LOG/$OF | head -1 | cut -d: -f1)
+	LN_FIN=$(grep -n '#==\[ Command \]' $LOG/$OF | head -2 | tail -1 | cut -d: -f1)
+	LN_TOTAL=$((LN_FIN - LN_INIT))
+	head -$LN_TOTAL $LOG/$OF | sed -e '/^#/d;/Module.*Size.*Used/d;/^$/d' | cut -d' ' -f1 | sort > $MOD_FIRST
+	MOD_CNT_BEFORE=$(cat $MOD_FIRST | wc -l)
+	log_write $OF "Modules Loaded Before Suportconfig:       $MOD_CNT_BEFORE"
+	wait_trace_off
+
+	# Get module list after running supportconfig commands
+	wait_trace_on "lsmod | sed -e '1d' | cut -d' ' -f1 | sort"
+	lsmod | sed -e '1d' | cut -d' ' -f1 | sort > $MOD_LAST
+	MOD_CNT_AFTER=$(cat $MOD_LAST | wc -l)
+	log_write $OF "Modules Loaded After Suportconfig:        $MOD_CNT_AFTER"
+	wait_trace_off
+
+	# Show the module list difference
+	MOD_CNT_ADDED=$((MOD_CNT_AFTER - MOD_CNT_BEFORE))
+	log_write $OF "Modules Loaded Incident to Supportconfig: $MOD_CNT_ADDED"
+	if [ $MOD_CNT_ADDED -gt 0 ]; then
+		log_write $OF
+		diff $MOD_FIRST $MOD_LAST | grep '>' >> $LOG/$OF
+		log_write $OF
+		log_write $OF "Use -k to prevent supportconfig from loading modules"
+		log_write $OF "needed for system analysis. Using -k is not recommended."
+		log_write $OF "See supportconfig(8)."
+	fi
+	log_write $OF
+	log_write $OF
+
+	# clean up
+	rm -f $MOD_FIRST $MOD_LAST
+}
+
+remove_local_tarball() {
+	if [ $VAR_OPTION_RM_LOCAL_FILE -gt 0 ]; then
+		log2sys "Deleting $TARBALL"
+		echo "Deleting local supportconfig file: $TARBALL"
+		rm -f $TARBALL ${TARBALL}.md5
+		echo
+	else
+		log2sys "Saved Tar Ball: $TARBALL"
+	fi
+}
+
+exit_code() {
+	XC=$1
+	shift
+	MSG="$@"
+	[ -n "$MSG" ] && log2sys "$MSG"
+	log2sys "END"
+	exit $XC
+}
+
+normalize_base() {
+	# Valid identifiers for tar ball filename
+	# %r - SR number if provided
+	# %s - Server's hostname
+	# %d - Supportconfig run date
+	# %t - Supportconfig run time
+	# %u - Unique ID, UUID (prefered) or Seconds since 1970
+	# %B - Base filename options = %s_%d_%t
+	test -n "$CONTACT_SRNUM" && BASE=$(echo $BASE | sed -e "s/%r/SR${CONTACT_SRNUM}/g") || BASE=$(echo $BASE | sed -e "s/%r//g") 
+	BASE=$(echo $BASE | sed -e "s/%s/${SC_SRV}/g")
+	BASE=$(echo $BASE | sed -e "s/%d/${SC_DATE}/g")
+	BASE=$(echo $BASE | sed -e "s/%t/${SC_TIME}/g")
+	BASE=$(echo $BASE | sed -e "s/%u/${SC_UID}/g")
+	BASE=$(echo $BASE | sed -e "s/%B/${SC_SRV}_${SC_DATE}_${SC_TIME}/g")
+}
+
+write_xml_file() {
+	wait_trace_on "write_xml_file supportconfig"
+	echo \<\?xml\ version=\"1.0\"\?\> >> $LOG/$XML_FILE
+	if [ -s $VAR_OPTION_HEADER_FILE ]; then
+		echo '<note>' >> $LOG/$XML_FILE
+		cat $VAR_OPTION_HEADER_FILE >> $LOG/$XML_FILE
+		echo '</note>' >> $LOG/$XML_FILE
+	fi
+	echo '<summary>' >> $LOG/$XML_FILE
+	xml_write 'scriptversion' "${SVER}"
+	xml_write 'scriptdate' "${SDATE}"
+	xml_write 'rundate' "${SC_DATE}"
+	xml_write 'runtime' "${SC_TIME}"
+	xml_write 'logdir' "${LOG}"
+	HOSTOUT=$(hostname --long 2>/dev/null)
+	if [ -n "$HOSTOUT" ]; then
+		xml_write 'hostname' "$HOSTOUT"
+	else
+		xml_write 'hostname' "$(hostname 2>/dev/null)"
+	fi
+	xml_write 'arch' "$(uname -i)"
+	xml_write 'kernel' "$(uname -r)"
+	if [ -s /etc/SuSE-release ]; then
+		if rpm -q 'SUSE_SLES_SAP-release' &>/dev/null; then
+			xml_write 'sle_type' 'SUSE Linux Enterprise Server for SAP Applications'
+		elif rpm -q 'SLES-for-VMware-release' &>/dev/null; then
+			xml_write 'sle_type' 'SUSE Linux Enterprise Server for VMware'
+		elif grep -i 'enterprise server' /etc/SuSE-release &>/dev/null; then
+			xml_write 'sle_type' 'SUSE Linux Enterprise Server'
+		elif grep -i 'enterprise desktop' /etc/SuSE-release &>/dev/null; then
+			xml_write 'sle_type' 'SUSE Linux Enterprise Desktop'
+		else
+			xml_write 'sle_type' ''
+		fi
+		xml_write 'sle_version' "$(sed -ne 's/VERSION = //p' /etc/SuSE-release)"
+		xml_write 'sle_patchlevel' "$(sed -ne 's/PATCHLEVEL = //p' /etc/SuSE-release)"
+	else
+		xml_write 'sle_type' ''
+		xml_write 'sle_version' ''
+		xml_write 'sle_patchlevel' ''
+	fi
+
+	if [ -f /etc/novell-release ]; then
+		if grep -i open /etc/novell-release &>/dev/null; then
+			xml_write 'oes_version' "$(sed -ne 's/VERSION = //p' /etc/novell-release)"
+			xml_write 'oes_patchlevel' "$(sed -ne 's/PATCHLEVEL = //p' /etc/novell-release)"
+		fi
+	fi
+	echo '</summary>' >> $LOG/$XML_FILE
+	echo '<customer>' >> $LOG/$XML_FILE
+	test -n "$VAR_OPTION_CONTACT_COMPANY" && 		{ xml_write 'company' "$VAR_OPTION_CONTACT_COMPANY"; }
+	test -n "$VAR_OPTION_CONTACT_STOREID" && 		{ xml_write 'storeid' "$VAR_OPTION_CONTACT_STOREID"; }
+	test -n "$VAR_OPTION_CONTACT_TERMINALID" && 	{ xml_write 'terminalid' "$VAR_OPTION_CONTACT_TERMINALID"; }
+	test -n "$VAR_OPTION_CONTACT_NAME" && 			{ xml_write 'contact' "$VAR_OPTION_CONTACT_NAME"; }
+	test -n "$VAR_OPTION_CONTACT_PHONE" && 		{ xml_write 'phone' "$VAR_OPTION_CONTACT_PHONE"; }
+	test -n "$VAR_OPTION_CONTACT_EMAIL" && 		{ xml_write 'email' "$VAR_OPTION_CONTACT_EMAIL"; }
+	xml_write 'srnum' "$CONTACT_SRNUM"
+	echo '</customer>' >> $LOG/$XML_FILE
+	wait_trace_off
+
+	if [ -d /etc/products.d ]; then
+		echo '<products>' >> $LOG/$XML_FILE
+		for i in $(find -L /etc/products.d/ -type f)
+		do
+			if file $i | grep XML &>/dev/null; then
+				wait_trace_on "write_xml_file $i"
+				sed -e 1d $i >> $LOG/$XML_FILE
+				wait_trace_off
+			fi			
+		done
+		echo '</products>' >> $LOG/$XML_FILE
+	fi
+	sed -i -e '/^[[:space:]]*$/d' $LOG/$XML_FILE
+}
+
+get_sles_ver() {
+	KERNMAJ=$(uname -r | cut -d- -f1)
+	KERNREL=$(uname -r | cut -d- -f2)
+	KERNCNT=$(echo $KERNMAJ | sed -e 's/\./ /g' | wc -w)
+	test $KERNCNT -lt 4 && KERNMAJ="${KERNMAJ}.0"
+	KERNCNT=$(echo $KERNREL | sed -e 's/\./ /g' | wc -w)
+	if [ $KERNCNT -eq 2 ]; then
+		KERNREL="${KERNREL}.0"
+	elif [ $KERNCNT -eq 1 ]; then
+		KERNREL="${KERNREL}.0.0"
+	fi
+	KERNBASE="${KERNMAJ}.${KERNREL}"
+	KERNVER=$(echo $KERNBASE | awk -F\. '{printf "%g%02g%03g%02g%03g%03g%03g\n", $1, $2, $3, $4, $5, $6, $7}')
+	if   [ $KERNVER -ge 31200900001000000 ]; then SLES_VER=120;
+#	elif [ $KERNVER -ge 30010100054002000 ]; then SLES_VER=114;
+	elif [ $KERNVER -ge 30007600000011000 ]; then SLES_VER=113;
+	elif [ $KERNVER -ge 30001300000027000 ]; then SLES_VER=112;
+	elif [ $KERNVER -ge 20603212000007000 ]; then SLES_VER=111;
+	elif [ $KERNVER -ge 20602719005000000 ]; then SLES_VER=110;
+	elif [ $KERNVER -ge 20601660000085001 ]; then SLES_VER=104;
+	elif [ $KERNVER -ge 20601660000054005 ]; then SLES_VER=103;
+	elif [ $KERNVER -ge 20601660000021000 ]; then SLES_VER=102;
+	elif [ $KERNVER -ge 20601646000012000 ]; then SLES_VER=101;
+	elif [ $KERNVER -ge 20601621000008000 ]; then SLES_VER=100;
+	elif [ $KERNVER -ge 20600500007097000 ]; then SLES_VER=90;
+	elif [ $KERNVER -ge 20401900120000000 ]; then SLES_VER=80;
+	else SLES_VER=90;
+	fi
+	grep -i "open enterprise server" /etc/*release* &>/dev/null
+	OESFOUND=$?
+	(( OESFOUND < 1 )) && OPTION_OES=1
+}
+
+

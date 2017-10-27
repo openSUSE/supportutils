@@ -1,7 +1,7 @@
 #
 # spec file for package supportutils
 #
-# Copyright (c) 2016 SUSE LINUX Products GmbH, Nuernberg, Germany.
+# Copyright (c) 2017 SUSE LINUX Products GmbH, Nuernberg, Germany.
 #
 # All modifications and additions to the file contributed by third parties
 # remain the property of their copyright owners, unless otherwise agreed
@@ -15,8 +15,8 @@
 
 
 Name:           supportutils
-Version:        3.0
-Release:        100
+Version:        3.1
+Release:        1_171027.dev8
 Summary:        Support Troubleshooting Tools
 License:        GPL-2.0
 Group:          System/Monitoring
@@ -56,6 +56,7 @@ install -d %{buildroot}%{_mandir}/man3
 install -d %{buildroot}%{_mandir}/man5
 install -d %{buildroot}%{_mandir}/man8
 install -d %{buildroot}%{_libexecdir}/supportconfig/resources
+install -d %{buildroot}%{_libexecdir}/supportconfig/plugins
 install -d %{buildroot}%{_docdir}/%{name}
 install -m 444 man/COPYING.GPLv2 %{buildroot}%{_docdir}/%{name}
 install -m 544 bin/supportconfig %{buildroot}/sbin
@@ -63,6 +64,9 @@ install -m 544 bin/chkbin %{buildroot}/sbin
 install -m 544 bin/getappcore %{buildroot}/sbin
 install -m 544 bin/analyzevmcore %{buildroot}/sbin
 install -m 444 bin/scplugin.rc %{buildroot}%{_libexecdir}/supportconfig/resources
+install -m 444 bin/supportconfig.rc %{buildroot}%{_libexecdir}/supportconfig/resources
+install -m 544 bin/virt_* %{buildroot}%{_libexecdir}/supportconfig/plugins
+install -m 544 bin/novell_* %{buildroot}%{_libexecdir}/supportconfig/plugins
 install -m 644 man/*.3.gz %{buildroot}%{_mandir}/man3
 install -m 644 man/*.5.gz %{buildroot}%{_mandir}/man5
 install -m 644 man/*.8.gz %{buildroot}%{_mandir}/man8
@@ -72,9 +76,11 @@ install -m 644 man/*.8.gz %{buildroot}%{_mandir}/man8
 /sbin/*
 %dir %{_libexecdir}/supportconfig
 %dir %{_libexecdir}/supportconfig/resources
+%dir %{_libexecdir}/supportconfig/plugins
 %dir %{_docdir}/%{name}
 %doc %{_docdir}/%{name}/*
 %{_libexecdir}/supportconfig/resources/*
+%{_libexecdir}/supportconfig/plugins/*
 %doc %{_mandir}/man5/*
 %doc %{_mandir}/man3/*
 %doc %{_mandir}/man8/*
