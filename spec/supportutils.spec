@@ -16,7 +16,7 @@
 
 Name:           supportutils
 Version:        3.1
-Release:        1_171027.dev8
+Release:        1_171027.dev9
 Summary:        Support Troubleshooting Tools
 License:        GPL-2.0
 Group:          System/Monitoring
