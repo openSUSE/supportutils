@@ -2220,6 +2220,187 @@ udev_info() {
 	fi
 }
 
+is_vmcore_found() {
+	crashed_date=`date --date="$kernel_crashed_time" +%s`
+	vmcore_creation_date=`date --date="$1" +%s`
+	let "tdiff=$vmcore_creation_date-$crashed_date"
+	if [ $tdiff -ge 0 ];
+	then
+		return 0
+	else
+		return 1
+	fi
+}
+
+get_vmlinux_path() {
+	for filename in $dbg_vmlinux_stnd_path; do
+		if [[ "$filename" =~ "vmlinux" ]] && [[ "$filename" =~ "$1" ]];
+		then
+			vmlinux_file_path=$filename
+			break
+		fi
+	done
+}
+
+get_vmcore_path() {
+	all_vmcore_file=$(find "$vmcore_stnd_path" -maxdepth 2 -type f -ls | grep "vmcore")
+	while IFS= read -r line; do
+		local arr=(${line})
+		for((i=0;i<${#arr[@]};i++)) do
+			:
+		done
+		file_path="${arr[$i-1]}"
+		vmcore_creation_time="${arr[$i-4]} ${arr[$i-3]} ${arr[$i-2]}"
+		is_vmcore_found "$vmcore_creation_time"
+		ret=$?
+		if [ $ret = 0 ]; then
+			vmcore_file_path=$file_path
+			break
+		fi
+	done <<< "echo $all_vmcore_file"
+}
+
+validate_month_index() {
+	month_str=("Jan" "Feb" "Mar" "Apr" "May" "Jun" "Jul" "Aug" "Sep" "Oct" "Nov" "Dec")
+	line=$1
+	arr=(${line})
+	# sample example of line containing crash collected from last command.
+	#root     pts/0        10.0.2.2         Sat Aug 26 01:35 - crash  (00:09)
+	#root     hvc0                          Sat Aug 26 01:34 - crash  (00:10)
+	for((i=0;i<${#month_str[@]};i++))
+	do
+		if [ "${month_str[$i]}" = "${arr[4]}" ]; then
+			return 4
+		elif [ "${month_str[$i]}" = "${arr[3]}" ]; then
+			return 3
+		fi
+	done
+	return 0
+}
+
+crash_report_info() {
+	printlog "Kernel crash Report..."
+	test $OPTION_CRASH_REPORT -eq 0 && { echolog Excluded; return 1; }
+
+	crash_found=false
+	# Complete absolute path of vmcore/vmlinux file
+	vmcore_file_path=""
+	vmlinux_file_path=""
+	# Name of crashed kernel (e.g :4.4.59-1-default)
+	crash_kernel_name=""
+	line_contain_crash=""
+	# Final command list which needs to be passed to crash command
+	crash_script=""
+	# Standard path of vmlinux/vmcore
+	vmcore_stnd_path="/var/crash"
+	dbg_vmlinux_stnd_path="/boot/*"
+
+	# Output file name
+	OUTPUT="$LOG/crash_report.txt"
+	addHeaderFile $OUTPUT
+	SKIP=0
+
+	# Any new command can be added in the list here
+	declare -a crash_cmd_list=("sys" "SYSTEM INFORMATION:" \
+		"help -m" "STACK LOCATION INFO:" \
+		"bt" "STACK TRACE OF CURRENT CONTEXT:" \
+		"bt -a" "STACK TRACES OF ACTIVE TASKS:" \
+		"kmem -i" "MEMORY USAGE:" \
+		"kmem -s" "KMALLOC SLAB DATA:" \
+		"mod" "MODULES:" \
+		"ps" "PROCESS STATUS:" \
+		"log" "SYSTEM MESSAGE BUFFER:" \
+		"files" "OPEN FILES OF CURRENT CONTEXT:" \
+		"dev -p" "PCI DEVICE DATA:" \
+		"runq" "RUN QUEUE TASK:" \
+		"mach -o" "OPALMSG LOG:" \
+		"irq -s" "DUMP KERNEL IRQ STATE:");
+
+	# Preparing crash command which needs to be passed to crash
+	for i in $(seq 0 2 $(( ${#crash_cmd_list[@]} - 1 )) );
+	do
+		crash_script+="!echo ${crash_cmd_list[$i+1]} >>$OUTPUT\n"
+		crash_script+="!echo >> $OUTPUT\n"
+		crash_script+="${crash_cmd_list[$i]} >> $OUTPUT\n"
+		crash_script+="!echo >> $OUTPUT\n"
+		crash_script+="!echo >> $OUTPUT\n"
+	done
+	crash_script+="quit\n"
+	crash_script+="!echo >> $OUTPUT\n"
+	crash_script+="!echo >> $OUTPUT\n"
+
+	#collect last command output
+	LAST_CMD=$(last)
+	if [ $? -ne 0 ] ; then
+		log_write $OF "last command failed."
+		return 1;
+	fi
+
+	#Below loop iterate and find:
+	# 1. line containing crash to get crash time
+	# 2. If <P1> succeeds then find crashing kernel
+	# sample of last command needs to be iterated
+	# root     hvc0                          Fri Aug  4 01:21 - crash (2+05:40)
+	# reboot   system boot  4.4.59-1-default Fri Aug  4 01:21 - 07:05 (4+05:44)
+	while IFS= read -r line; do
+		if [ "$crash_found" = true ] ; then
+			arr=(${line})
+			system_reboot_str="${arr[0]} ""${arr[1]} ""${arr[2]}"
+			if [ "$system_reboot_str" == "reboot system boot" ] ; then
+				crash_kernel_name="${arr[3]}"
+				break
+			fi
+		elif echo "$line" | grep -q "crash"; then
+			crash_found=true
+			line_contain_crash="$line"
+		fi
+	done <<< "echo $LAST_CMD"
+
+	if [ "$crash_kernel_name" = "" ] || [ "$crash_found" == false ]; then
+		log_write $OF "Unable to find crash log from last cmd output"
+		return 1;
+	fi
+
+	# Validate crash time (collected from last command)
+	validate_month_index "$line_contain_crash"
+	res=$?
+	if [ "$res" -lt 3 ] || [ "$res" -gt 4 ] ;then
+		log_write $OF "Unable to find crash time from last command output"
+		return 1;
+	fi
+
+	# Find crashing kernel time
+	arr=(${line_contain_crash})
+	kernel_crashed_time="${arr[$res]}"
+	kernel_crashed_time="$kernel_crashed_time ${arr[$res+1]} ${arr[$res+2]}"
+
+	# Collect vmlinux path
+	get_vmlinux_path "$crash_kernel_name"
+	if [[ -z  $vmlinux_file_path  ]];
+	then
+		log_write $OF "unable to find vmlinux file"
+		return 1;
+	fi
+	# Collect vmcore path
+	get_vmcore_path
+	if [[ -z  $vmcore_file_path  ]];
+	then
+		log_write $OF "unable to find vmcore file for corresponding crash"
+		return 1;
+	fi
+	# Check whether crash command installed or not
+	if ! rpm -q crash &>/dev/null; then
+		log_write $OF "crash command not found."
+		return 1;
+	fi
+	echo -e "$crash_script" | "crash" "-s" "$vmlinux_file_path" "$vmcore_file_path" 2>&1 >/dev/null
+	if [ $? -ne 0 ] ; then
+		log_write $OF "crash command failed."
+		return 1;
+	fi
+echolog Done
+}
+
 crash_info() {
 	printlog "Crash Info..."
 	# Call fslist_info first to search for core files
@@ -4179,6 +4360,7 @@ if [ "$USE_SAVED_LOGS_ONLY" != "1" ]; then
 	yast_files			#Minimum Requirement
 	fslist_info
 	audit_info
+	crash_report_info
 	crash_info
 	ntp_info
 	proc_info
