@@ -11,12 +11,10 @@
 # case the license is the MIT License). An "Open Source License" is a
 # license that conforms to the Open Source Definition (Version 1.9)
 # published by the Open Source Initiative.
-#
-
 
 Name:           supportutils
 Version:        3.1
-Release:        1_171027.dev9
+Release:        0
 Summary:        Support Troubleshooting Tools
 License:        GPL-2.0
 Group:          System/Monitoring
@@ -33,7 +31,6 @@ Requires:       iproute2
 Provides:       supportconfig-plugin-resource
 Provides:       supportconfig-plugin-tag
 Provides:       supportconfig-plugin-icommand
-BuildRoot:      %{_tmppath}/%{name}-%{version}-build
 BuildArch:      noarch
 
 %description
