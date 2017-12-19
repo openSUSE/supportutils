@@ -2341,7 +2341,7 @@ crash_info() {
 		COREDIR=''
 		COREFILE='core'
 	elif echo "$CORE" | grep '|' &>/dev/null; then
-		log_write $OF "# Core Files Found in lsof-cwd, \$PATH, ld.so.conf: skipping pipped core_pattern: $CORE"
+		log_write $OF "# Core Files Found in lsof-cwd, \$PATH, ld.so.conf: skipping piped core_pattern: $CORE"
 		COREDIR=''
 		COREFILE='core'
 	elif echo "$CORE" | grep '/' &>/dev/null; then
