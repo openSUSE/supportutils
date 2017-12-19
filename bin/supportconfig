@@ -1,10 +1,10 @@
 #!/bin/bash
 
-SVER='3.1-1.dev8'
-SDATE='2017 10 26'
+SVER='3.1-2'
+SDATE='2017 12 19'
 
 ##############################################################################
-#  supportconfig - Gathers system troubleshooting information for NTS.
+#  supportconfig - Gathers system troubleshooting information for SUSE Support
 #  Copyright (C) 2001-2017 SUSE LLC
 #
 #  Creates a tar ball to attach to the SR or send to support. Collects
@@ -53,7 +53,7 @@ title() {
 	echo " please prune private data from the log files. Several startup options"
 	echo " are available to exclude more sensitive information. Supportconfig data is"
 	echo " used only for diagnostic purposes and is considered confidential information."
-	echo " See http://www.novell.com/company/legal/privacy/"
+	echo " See http://www.suse.com/company/policies/privacy/"
 	echo "============================================================================="
 	echo
 }
@@ -4141,7 +4141,7 @@ if [ "$USE_SAVED_LOGS_ONLY" != "1" ]; then
 	log_write $CSFILE "please prune private data from the log files. Several startup options"
 	log_write $CSFILE "are available to exclude more sensitive information. Supportconfig data is"
 	log_write $CSFILE "used only for diagnostic purposes and is considered confidential information."
-	log_write $CSFILE "See http://www.novell.com/company/legal/privacy/"
+	log_write $CSFILE "See http://www.suse.com/company/policies/privacy/"
 	log_write $CSFILE
 	rpm_verify ${CSFILE} supportutils
 
