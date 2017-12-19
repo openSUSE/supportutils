@@ -12,6 +12,8 @@
 # license that conforms to the Open Source Definition (Version 1.9)
 # published by the Open Source Initiative.
 
+%define support_libdir /usr/lib/supportconfig
+
 Name:           supportutils
 Version:        3.1
 Release:        0
@@ -52,32 +54,32 @@ install -d %{buildroot}/etc
 install -d %{buildroot}%{_mandir}/man3
 install -d %{buildroot}%{_mandir}/man5
 install -d %{buildroot}%{_mandir}/man8
-install -d %{buildroot}%{_libexecdir}/supportconfig/resources
-install -d %{buildroot}%{_libexecdir}/supportconfig/plugins
+install -d %{buildroot}%{support_libdir}/resources
+install -d %{buildroot}%{support_libdir}/plugins
 install -d %{buildroot}%{_docdir}/%{name}
 install -m 444 man/COPYING.GPLv2 %{buildroot}%{_docdir}/%{name}
 install -m 544 bin/supportconfig %{buildroot}/sbin
 install -m 544 bin/chkbin %{buildroot}/sbin
 install -m 544 bin/getappcore %{buildroot}/sbin
 install -m 544 bin/analyzevmcore %{buildroot}/sbin
-install -m 444 bin/scplugin.rc %{buildroot}%{_libexecdir}/supportconfig/resources
-install -m 444 bin/supportconfig.rc %{buildroot}%{_libexecdir}/supportconfig/resources
-install -m 544 bin/virt_* %{buildroot}%{_libexecdir}/supportconfig/plugins
-install -m 544 bin/novell_* %{buildroot}%{_libexecdir}/supportconfig/plugins
+install -m 444 bin/scplugin.rc %{buildroot}%{support_libdir}/resources
+install -m 444 bin/supportconfig.rc %{buildroot}%{support_libdir}/resources
 install -m 644 man/*.3.gz %{buildroot}%{_mandir}/man3
 install -m 644 man/*.5.gz %{buildroot}%{_mandir}/man5
 install -m 644 man/*.8.gz %{buildroot}%{_mandir}/man8
 
 %files
 %defattr(-,root,root)
-/sbin/*
-%dir %{_libexecdir}/supportconfig
-%dir %{_libexecdir}/supportconfig/resources
-%dir %{_libexecdir}/supportconfig/plugins
+/sbin/supportconfig
+/sbin/chkbin
+/sbin/getappcore
+/sbin/analyzevmcore
+%dir %{support_libdir}
+%dir %{support_libdir}/resources
+%dir %{support_libdir}/plugins
 %dir %{_docdir}/%{name}
 %doc %{_docdir}/%{name}/*
-%{_libexecdir}/supportconfig/resources/*
-%{_libexecdir}/supportconfig/plugins/*
+%{support_libdir}/resources/*
 %doc %{_mandir}/man5/*
 %doc %{_mandir}/man3/*
 %doc %{_mandir}/man8/*
