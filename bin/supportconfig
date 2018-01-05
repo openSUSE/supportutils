@@ -3357,7 +3357,7 @@ net_info_namespace() {
 		ping_addr $OF 'Local Interface' $IPADDR "${NS}"
 	done
 
-	IPADDR=$(${NS}route -n | awk '$1 == "0.0.0.0" {print $2}')
+	IPADDR=$(${NS}ip route list | awk '$1 == "default" {print $3}')
 	ping_addr $OF 'Default Route' $IPADDR "${NS}"
 
 	if [ -z "${NS}" ] ; then
@@ -4287,7 +4287,7 @@ xen_info() {
 		test -d /var/lib/xend/domains && FILES=$(find -L /var/lib/xend/domains/ -type f | grep config.sxp) || FILES=""
 		conf_text_files $OF $FILES
 
-		log_cmd $OF 'route -n'
+		log_cmd $OF 'ip route list'
 		log_cmd $OF 'arp -v'
 		unset NETCMD
 		unset XSCRIPTS
@@ -4408,7 +4408,7 @@ kvm_info() {
 		test -d /etc/libvirt/qemu/ && FILES=$(find -L /etc/libvirt/qemu/ -type f | sort) || FILES=""
 		conf_text_files $OF $FILES
 
-		log_cmd $OF 'route -n'
+		log_cmd $OF 'ip route list'
 		log_cmd $OF 'arp -v'
 
 		if [ $MIN_OPTION_AUTOMOD -eq 0 ]; then

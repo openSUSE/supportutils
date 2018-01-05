@@ -1,7 +1,9 @@
 -------------------------------------------------------------------
-Fri Jan  5 20:14:46 UTC 2018 - jason.record@suse.com
+Fri Jan  5 20:41:16 UTC 2018 - jason.record@suse.com
 
 - Infinibad looks for rdma-core now (bsc#1051237)
+- route replaced with ip route list (bsc#1074866)
+- supportconfig: 3.0-105
 
 -------------------------------------------------------------------
 Mon Oct  9 22:22:03 UTC 2017 - jason.record@suse.com
