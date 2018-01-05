@@ -1,11 +1,11 @@
 #!/bin/bash
 
-SVER='3.0-102'
-SDATE='2017 10 09'
+SVER='3.0-105'
+SDATE='2018 01 05'
 
 ##############################################################################
 #  supportconfig - Gathers system troubleshooting information for NTS.
-#  Copyright (C) 2001-2017 SUSE LLC
+#  Copyright (C) 2001-2018 SUSE LLC
 #
 #  Creates a tar ball to attach to the SR or send to support. Collects
 #  comprehensive system information for troubleshooting and reducing resolution
@@ -5815,7 +5815,7 @@ ib_info() {
 		fi
 		;;
 	12*)
-		if rpm_verify $OF rdma; then
+		if rpm_verify $OF rdma-core; then
 			log_cmd $OF "systemctl status rdma.service"
 			conf_files $OF "/etc/rdma/* /etc/infiniband/*"
 			log_cmd $OF 'lspci -b'

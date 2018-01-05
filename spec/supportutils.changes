@@ -1,4 +1,9 @@
 -------------------------------------------------------------------
+Fri Jan  5 20:14:46 UTC 2018 - jason.record@suse.com
+
+- Infinibad looks for rdma-core now (bsc#1051237)
+
+-------------------------------------------------------------------
 Mon Oct  9 22:22:03 UTC 2017 - jason.record@suse.com
 
 - Fixed core_pattern corruption (bsc#1061282)
