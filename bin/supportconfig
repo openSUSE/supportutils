@@ -1,11 +1,11 @@
 #!/bin/bash
 
-SVER='3.1-2'
-SDATE='2017 12 19'
+SVER='3.1-2.dev1'
+SDATE='2018 01 05'
 
 ##############################################################################
 #  supportconfig - Gathers system troubleshooting information for SUSE Support
-#  Copyright (C) 2001-2017 SUSE LLC
+#  Copyright (C) 2001-2018 SUSE LLC
 #
 #  Creates a tar ball to attach to the SR or send to support. Collects
 #  comprehensive system information for troubleshooting and reducing resolution
@@ -1678,7 +1678,7 @@ net_info_namespace() {
 		ping_addr $OF 'Local Interface' $IPADDR "${NS}"
 	done
 
-	IPADDR=$(${NS}route -n | awk '$1 == "0.0.0.0" {print $2}')
+	IPADDR=$(${NS}ip route list | awk '$1 == "default" {print $3}')
 	ping_addr $OF 'Default Route' $IPADDR "${NS}"
 
 	if [ -z "${NS}" ] ; then
