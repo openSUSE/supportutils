@@ -3815,7 +3815,7 @@ ib_info() {
 		fi
 		;;
 	12*)
-		if rpm_verify $OF rdma; then
+		if rpm_verify $OF rdma-core; then
 			log_cmd $OF "systemctl status rdma.service"
 			conf_files $OF "/etc/rdma/* /etc/infiniband/*"
 			log_cmd $OF 'lspci -b'
