@@ -1,8 +1,9 @@
 -------------------------------------------------------------------
-Fri Jan  5 19:29:54 UTC 2018 - jason.record@suse.com
+Fri Jan  5 19:50:36 UTC 2018 - jason.record@suse.com
 
 - Replaced route with ip route (bsc#1070379)
 - Added systemd-delta to systemd.txt (bsc#1071924)
+- Changed repos -u to repos -d (bsc#1071926)
 
 -------------------------------------------------------------------
 Tue Dec 19 18:19:56 UTC 2017 - jason.record@suse.com

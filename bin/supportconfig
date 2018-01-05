@@ -779,7 +779,7 @@ update_info() {
 	TIMEOUT=0
 	if [ $SLES_VER -ge 110 ] && rpm_verify $OF zypper; then
 		log_cmd $OF 'date'
-		for CMDOPT in services 'repos -u' patch-check patches list-patches products '--xml products'
+		for CMDOPT in services 'repos -d' patch-check patches list-patches products '--xml products'
 		do
 			if [ $TIMEOUT -ge 10 ]; then
 				log_write $OF "#==[ Command ]======================================#"
@@ -1178,7 +1178,7 @@ docker_info() {
 		log_cmd $OF 'docker info'
 		log_cmd $OF 'docker images'
 		log_cmd $OF 'docker ps --all'
-		log_cmd $OF 'zypper --non-interactive --no-gpg-checks repos'
+		log_cmd $OF 'zypper --non-interactive --no-gpg-checks repos -d'
 		FILES='/etc/sysconfig/docker'
 		conf_files $OF $FILES
 		if rpm_verify $OF ruby2.1-rubygem-sle2docker
