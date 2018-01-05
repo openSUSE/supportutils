@@ -2778,6 +2778,7 @@ systemd_info() {
 	log_cmd $OF 'systemd-analyze --no-pager blame'
 	log_cmd $OF 'systemd-cgtop --batch --iterations=1'
 	log_cmd $OF 'systemd-cgls --no-pager --all --full'
+	log_cmd $OF 'systemd-delta --no-pager'
 	FILES=''
 	[[ -d /etc/systemd ]] && FILES=$(find -L /etc/systemd -maxdepth 1 -type f)
 	log_cmd $OF 'systemctl --no-pager show'
