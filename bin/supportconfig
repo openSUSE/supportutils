@@ -1,7 +1,7 @@
 #!/bin/bash
 
-SVER='3.1-3'
-SDATE='2018 01 05'
+SVER='3.1-3.1'
+SDATE='2018 01 19'
 
 ##############################################################################
 #  supportconfig - Gathers system troubleshooting information for SUSE Support
@@ -1171,7 +1171,8 @@ docker_info() {
 	test $OPTION_DOCKER -eq 0 && { echolog Excluded; return 1; }
 	OF=docker.txt
 	addHeaderFile $OF
-	[ -e /usr/bin/docker ] && DOCKER_PKG=`rpm -q --whatprovides /usr/bin/docker`
+	[[ -e /usr/bin/docker ]] && DOCKER_PKG=`rpm -q --whatprovides /usr/bin/docker 2>/dev/null`
+	[[ -z $DOCKER_PKG ]] && DOCKER_PKG='docker'
 	if rpm_verify $OF $DOCKER_PKG
 	then
 		log_cmd $OF 'docker version'
