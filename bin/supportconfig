@@ -1171,7 +1171,8 @@ docker_info() {
 	test $OPTION_DOCKER -eq 0 && { echolog Excluded; return 1; }
 	OF=docker.txt
 	addHeaderFile $OF
-	if rpm_verify $OF docker
+	[ -e /usr/bin/docker ] && DOCKER_PKG=`rpm -q --whatprovides /usr/bin/docker`
+	if rpm_verify $OF $DOCKER_PKG
 	then
 		log_cmd $OF 'docker version'
 		log_cmd $OF "systemctl status docker.service"
