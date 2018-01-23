@@ -3961,6 +3961,25 @@ sam_info() {
 	fi
 }
 
+transactional_info() {
+	printlog "transactional-update..."
+	test $OPTION_TRANSACTIONAL -eq 0 && { echolog Excluded; return 1; }
+	OF=transactional-update.txt
+	addHeaderFile $OF
+	if rpm_verify $OF transactional-update; then
+		conf_files $OF /etc/transactional-update.conf
+		conf_files $OF /var/lib/misc/transactional-update.state
+		FILES="/var/log/transactional-update.log"
+		test $ADD_OPTION_LOGS -gt 0 && log_files $OF 0 $FILES || log_files $OF $VAR_OPTION_LINE_COUNT $FILES
+		log_cmd $OF "systemctl status transactional-update.service"
+		log_cmd $OF "systemctl status transactional-update.timer"
+		log_cmd $OF "systemctl list-timers"
+		echolog Done
+	else
+		echolog Skipped
+	fi
+}
+
 
 ##############################################################################
 #  main 
@@ -4179,6 +4198,7 @@ if [ "$USE_SAVED_LOGS_ONLY" != "1" ]; then
 	memory_info
 	disk_info
 	(( SLES_VER >= 110 )) && btrfs_info
+	(( SLES_VER >= 120 )) && transactional_info
 	yast_files			#Minimum Requirement
 	fslist_info
 	audit_info
