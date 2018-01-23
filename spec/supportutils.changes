@@ -1,4 +1,10 @@
 -------------------------------------------------------------------
+Tue Jan 23 16:33:53 UTC 2018 - jason.record@suse.com
+
+- Added transactional update with OPTION_TRANSACTIONAL=1
+- Updated supportconfig.conf.5 with OPTION_TRANSACTIONAL
+
+-------------------------------------------------------------------
 Fri Jan 19 18:46:58 UTC 2018 - jason.record@suse.com
 
 - Fixed docker package detection (bsc#1069457)

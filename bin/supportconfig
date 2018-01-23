@@ -1,7 +1,7 @@
 #!/bin/bash
 
-SVER='3.1-3.1'
-SDATE='2018 01 19'
+SVER='3.1-4.0'
+SDATE='2018 01 23'
 
 ##############################################################################
 #  supportconfig - Gathers system troubleshooting information for SUSE Support
@@ -3770,6 +3770,7 @@ cimom_info() {
 					case $SLES_VER in
 					90*) log_cmd $OF "readlink -fv $OWSSLCHECK" ;;
 					10*|11*|12*) log_cmd $OF "readlink -ev $OWSSLCHECK" ;;
+w do tty work
 					esac
 				fi
 			fi
@@ -3962,18 +3963,18 @@ sam_info() {
 }
 
 transactional_info() {
-	printlog "transactional-update..."
+	printlog "Transactional Update..."
 	test $OPTION_TRANSACTIONAL -eq 0 && { echolog Excluded; return 1; }
 	OF=transactional-update.txt
 	addHeaderFile $OF
 	if rpm_verify $OF transactional-update; then
+		log_cmd $OF "systemctl status transactional-update.service"
+		log_cmd $OF "systemctl status transactional-update.timer"
+		log_cmd $OF "systemctl list-timers --all"
 		conf_files $OF /etc/transactional-update.conf
 		conf_files $OF /var/lib/misc/transactional-update.state
 		FILES="/var/log/transactional-update.log"
 		test $ADD_OPTION_LOGS -gt 0 && log_files $OF 0 $FILES || log_files $OF $VAR_OPTION_LINE_COUNT $FILES
-		log_cmd $OF "systemctl status transactional-update.service"
-		log_cmd $OF "systemctl status transactional-update.timer"
-		log_cmd $OF "systemctl list-timers"
 		echolog Done
 	else
 		echolog Skipped
