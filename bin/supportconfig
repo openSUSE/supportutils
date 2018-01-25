@@ -1,7 +1,7 @@
 #!/bin/bash
 
-SVER='3.1-4.0'
-SDATE='2018 01 23'
+SVER='3.1-4.1'
+SDATE='2018 01 25'
 
 ##############################################################################
 #  supportconfig - Gathers system troubleshooting information for SUSE Support
@@ -3770,7 +3770,6 @@ cimom_info() {
 					case $SLES_VER in
 					90*) log_cmd $OF "readlink -fv $OWSSLCHECK" ;;
 					10*|11*|12*) log_cmd $OF "readlink -ev $OWSSLCHECK" ;;
-w do tty work
 					esac
 				fi
 			fi

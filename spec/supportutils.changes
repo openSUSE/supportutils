@@ -1,4 +1,9 @@
 -------------------------------------------------------------------
+Thu Jan 25 21:42:28 UTC 2018 - jason.record@suse.com
+
+- Removed invalid string tty string (bsc#1077681)
+
+-------------------------------------------------------------------
 Tue Jan 23 16:33:53 UTC 2018 - jason.record@suse.com
 
 - Added transactional update with OPTION_TRANSACTIONAL=1
