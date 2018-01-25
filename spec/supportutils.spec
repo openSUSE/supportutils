@@ -1,7 +1,7 @@
 #
 # spec file for package supportutils
 #
-# Copyright (c) 2017 SUSE LINUX Products GmbH, Nuernberg, Germany.
+# Copyright (c) 2018 SUSE LINUX GmbH, Nuernberg, Germany.
 #
 # All modifications and additions to the file contributed by third parties
 # remain the property of their copyright owners, unless otherwise agreed
@@ -11,6 +11,10 @@
 # case the license is the MIT License). An "Open Source License" is a
 # license that conforms to the Open Source Definition (Version 1.9)
 # published by the Open Source Initiative.
+
+# Please submit bugfixes or comments via http://bugs.opensuse.org/
+#
+
 
 %define support_libdir /usr/lib/supportconfig
 
@@ -22,17 +26,17 @@ License:        GPL-2.0
 Group:          System/Monitoring
 Url:            https://github.com/g23guy/supportutils
 Source:         %{name}-%{version}.tar.gz
+Requires:       iproute2
+Requires:       kmod-compat
+Requires:       ncurses-utils
+Requires:       net-tools
 Requires:       sysfsutils
 Requires:       tar
-Requires:       which
 Requires:       util-linux-systemd
-Requires:       net-tools
-Requires:       ncurses-utils
-Requires:       kmod-compat
-Requires:       iproute2
+Requires:       which
+Provides:       supportconfig-plugin-icommand
 Provides:       supportconfig-plugin-resource
 Provides:       supportconfig-plugin-tag
-Provides:       supportconfig-plugin-icommand
 BuildArch:      noarch
 
 %description
