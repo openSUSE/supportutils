@@ -117,10 +117,10 @@ ALL_BINS="$AWK_BIN $BASENAME_BIN $CAT_BIN $CHKBIN_BIN $CHMOD_BIN $CUT_BIN $DATE_
 show_title() {
 	echo "####################################################################" | $TEE_BIN $GETAPPCORE_LOG 
 	echo "Get Application Core Tool, v$SVER"                                    | $TEE_BIN -a $GETAPPCORE_LOG
-	echo "Date:   $($DATE_BIN +'%D, %T')"                                       | $TEE_BIN -a $GETAPPCORE_LOG
-	echo "Server: $SERVER_NAME"                                                 | $TEE_BIN -a $GETAPPCORE_LOG
-	echo "OS: $OS_VERSION - $OS_PATCHLEVEL"	                                    | $TEE_BIN -a $GETAPPCORE_LOG
-	echo "Kernel: $($UNAME_BIN -r)  ($($UNAME_BIN -i))"                         | $TEE_BIN -a $GETAPPCORE_LOG
+	echo "Date:     $($DATE_BIN +'%D, %T')"                                     | $TEE_BIN -a $GETAPPCORE_LOG
+	echo "Server:   $SERVER_NAME"                                               | $TEE_BIN -a $GETAPPCORE_LOG
+	echo "OS:       $OS_VERSION $OS_PATCHLEVEL"	                            | $TEE_BIN -a $GETAPPCORE_LOG
+	echo "Kernel:   $($UNAME_BIN -r) ($($UNAME_BIN -i))"                        | $TEE_BIN -a $GETAPPCORE_LOG
 	echo "Corefile: $COREFILE"                                                  | $TEE_BIN -a $GETAPPCORE_LOG
 	echo "####################################################################" | $TEE_BIN -a $GETAPPCORE_LOG
 	echo
@@ -176,12 +176,15 @@ verbose() {
 # --------------------------------------------------------- #
 get_server_release() {
 	if [[ -s $OS_RELEASE ]]; then
+		PRETTY_NAME=$(grep PRETTY_NAME $OS_RELEASE 2>/dev/null | cut -d= -f2)
 		VERSION_ID=$(grep VERSION_ID $OS_RELEASE 2>/dev/null | cut -d= -f2)
+		PRETTY_NAME=${PRETTY_NAME//\"/}
 		VERSION_ID=${VERSION_ID//\"/}
-		OS_VERSION=${VERSION_ID//.*/}
-		OS_PATCHLEVEL=${VERSION_ID//*./}
-		[[ $OS_VERSION == $OS_PATCHLEVEL ]] && OS_PATCHLEVEL=0
-		OS_PATCHLEVEL="SP${OS_PATCHLEVEL}"
+		OS_VERSION=${PRETTY_NAME// SP*/}
+		VER=${VERSION_ID//.*/}
+		REL=${VERSION_ID//*./}
+		[[ $VER == $REL ]] && REL=0
+		OS_PATCHLEVEL="SP${REL}"
 	else
 		OS_VERSION=$($HEAD_BIN -1 $SUSE_RELEASE)
 		OS_VERSION=${OS_VERSION%(*)}

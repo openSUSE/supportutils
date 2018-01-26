@@ -1307,12 +1307,12 @@ write_xml_file() {
 	fi
 	echo '</summary>' >> $LOG/$XML_FILE
 	echo '<customer>' >> $LOG/$XML_FILE
-	test -n "$VAR_OPTION_CONTACT_COMPANY" && 		{ xml_write 'company' "$VAR_OPTION_CONTACT_COMPANY"; }
-	test -n "$VAR_OPTION_CONTACT_STOREID" && 		{ xml_write 'storeid' "$VAR_OPTION_CONTACT_STOREID"; }
-	test -n "$VAR_OPTION_CONTACT_TERMINALID" && 	{ xml_write 'terminalid' "$VAR_OPTION_CONTACT_TERMINALID"; }
-	test -n "$VAR_OPTION_CONTACT_NAME" && 			{ xml_write 'contact' "$VAR_OPTION_CONTACT_NAME"; }
-	test -n "$VAR_OPTION_CONTACT_PHONE" && 		{ xml_write 'phone' "$VAR_OPTION_CONTACT_PHONE"; }
-	test -n "$VAR_OPTION_CONTACT_EMAIL" && 		{ xml_write 'email' "$VAR_OPTION_CONTACT_EMAIL"; }
+	test -n "$VAR_OPTION_CONTACT_COMPANY" && { xml_write 'company' "$VAR_OPTION_CONTACT_COMPANY"; }
+	test -n "$VAR_OPTION_CONTACT_STOREID" && { xml_write 'storeid' "$VAR_OPTION_CONTACT_STOREID"; }
+	test -n "$VAR_OPTION_CONTACT_TERMINALID" && { xml_write 'terminalid' "$VAR_OPTION_CONTACT_TERMINALID"; }
+	test -n "$VAR_OPTION_CONTACT_NAME" && { xml_write 'contact' "$VAR_OPTION_CONTACT_NAME"; }
+	test -n "$VAR_OPTION_CONTACT_PHONE" && { xml_write 'phone' "$VAR_OPTION_CONTACT_PHONE"; }
+	test -n "$VAR_OPTION_CONTACT_EMAIL" && { xml_write 'email' "$VAR_OPTION_CONTACT_EMAIL"; }
 	xml_write 'srnum' "$CONTACT_SRNUM"
 	echo '</customer>' >> $LOG/$XML_FILE
 	wait_trace_off
