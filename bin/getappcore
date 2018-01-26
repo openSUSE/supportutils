@@ -1,7 +1,7 @@
 #!/bin/bash
 
-SVER=1.28
-SDATE="2013 07 02"
+SVER=1.30
+SDATE="2018 01 26"
 SNAME=$(basename $0)
 
 # --------------------------------------------------------------------- #
@@ -12,7 +12,7 @@ SNAME=$(basename $0)
 #  Please submit bug fixes or comments via:                             #
 #    http://en.opensuse.org/Supportutils#Reporting_Bugs                 #
 #                                                                       #
-#  Copyright (C) 2007,2008 Novell, Inc.                                 #
+#  Copyright (C) 2007,2008-2018 SUSE LINUX GmbH, Nuernberg, Germany     #
 #                                                                       #
 # --------------------------------------------------------------------- #
 #                                                                       #
@@ -30,7 +30,7 @@ SNAME=$(basename $0)
 #                                                                       #
 #  Authors/Contributors:                                                #
 #     Mike Latimer (mlatimer@suse.com)                                  #
-#     Jason Record (jrecord@suse.com)                                   #
+#     Jason Record (jason.record@suse.com)                              #
 #                                                                       #
 #  Additional credit to Paul Hardwick (phardwick@novell.com) for his    #
 #  novell-getcore, which was inspiration for this (more generic) script #
@@ -50,6 +50,8 @@ SNAME=$(basename $0)
 # --------------------------------------------------------------------- #
 # Changes:                                                              #
 #                                                                       #
+# 1.30 Release                                                          #
+#    - Added /etc/os-release processing                                 #
 # 1.28 Release                                                          #
 #    - Changed upload process to use curl instead of ftp                #
 # 1.27 Release                                                          #
@@ -66,7 +68,8 @@ TMP_DIR=$(/bin/mktemp -d /tmp/getappcore_tmp_XXXXXXXX)
 GETAPPCORE_LOG=$TMP_DIR/getappcore.log
 GDBLIBS_CMD=$TMP_DIR/.gdblibs.cmd
 SERVER_NAME=$(/bin/uname -n)
-SERVER_RELEASE=/etc/SuSE-release
+SUSE_RELEASE="/etc/SuSE-release"
+OS_RELEASE="/etc/os-release"
 UPLOAD=0
 UPLOAD_URL="ftp://ftp.novell.com/incoming"
 VERBOSE=0
@@ -172,9 +175,18 @@ verbose() {
 # Determine the server versio and patch level               #
 # --------------------------------------------------------- #
 get_server_release() {
-	OS_VERSION=$($HEAD_BIN -1 $SERVER_RELEASE)
-	OS_VERSION=${OS_VERSION%(*)}
-	OS_PATCHLEVEL=SP$($CAT_BIN $SERVER_RELEASE | $GREP_BIN PATCHLEVEL | $AWK_BIN '{print $3}')
+	if [[ -s $OS_RELEASE ]]; then
+		VERSION_ID=$(grep VERSION_ID $OS_RELEASE 2>/dev/null | cut -d= -f2)
+		VERSION_ID=${VERSION_ID//\"/}
+		OS_VERSION=${VERSION_ID//.*/}
+		OS_PATCHLEVEL=${VERSION_ID//*./}
+		[[ $OS_VERSION == $OS_PATCHLEVEL ]] && OS_PATCHLEVEL=0
+		OS_PATCHLEVEL="SP${OS_PATCHLEVEL}"
+	else
+		OS_VERSION=$($HEAD_BIN -1 $SUSE_RELEASE)
+		OS_VERSION=${OS_VERSION%(*)}
+		OS_PATCHLEVEL=SP$($CAT_BIN $SUSE_RELEASE | $GREP_BIN PATCHLEVEL | $AWK_BIN '{print $3}')
+	fi
 }
 
 # --------------------------------------------------------- #

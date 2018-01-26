@@ -1,6 +1,7 @@
 -------------------------------------------------------------------
-Fri Jan 26 14:52:10 UTC 2018 - jason.record@suse.com
+Fri Jan 26 16:19:37 UTC 2018 - jason.record@suse.com
 
+- Added os-release processing (bsc#1077758)
 - Removed invalid string tty string (bsc#1077681)
 - Added SLE15 taint values (bsc#1077683)
 
