@@ -3846,16 +3846,21 @@ ib_info() {
 			echolog Skipped
 		fi
 		;;
-	12*)
+	12*|15*)
 		if rpm_verify $OF rdma-core; then
 			log_cmd $OF "systemctl status rdma.service"
-			conf_files $OF "/etc/rdma/* /etc/infiniband/*"
+			for IB_DIR in /etc/rdma /etc/infiniband-diags
+			do
+				[[ -d ${IB_DIR} ]] && conf_files $OF $(find -L ${IB_DIR}/ -type f)
+			done
+			log_cmd $OF 'ibdiagnet'
+			log_cmd $OF 'ibaddr'
+			log_cmd $OF 'ibstatus'
 			log_cmd $OF 'lspci -b'
 			log_cmd $OF 'lspci -nn'
 			log_cmd $OF 'lsmod'
-			log_cmd $OF 'ibv_devinfo -v'
-			log_cmd $OF 'ibdiagnet'
 			FILES=$(find -L /tmp/ -type f | grep ibdiagnet)
+			[[ -d /var/log/ibacm.log ]] && FILES="/var/log/ibacm.log $FILES"
 			test $ADD_OPTION_LOGS -gt 0 && log_files $OF 0 $FILES || log_files $OF $VAR_OPTION_LINE_COUNT $FILES
 			echolog Done
 		else
