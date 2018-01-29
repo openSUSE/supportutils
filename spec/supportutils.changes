@@ -1,4 +1,9 @@
 -------------------------------------------------------------------
+Mon Jan 29 18:04:33 UTC 2018 - jason.record@suse.com
+
+- Using chrony for NTP (bsc#1077818)
+
+-------------------------------------------------------------------
 Fri Jan 26 17:25:50 UTC 2018 - jason.record@suse.com
 
 - Added os-release processing (bsc#1077758)
