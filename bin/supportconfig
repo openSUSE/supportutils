@@ -1,6 +1,6 @@
 #!/bin/bash
 
-SVER='3.1-4.5'
+SVER='3.1-4.5_dev1'
 SDATE='2018 01 29'
 
 ##############################################################################
@@ -1390,7 +1390,7 @@ mpio_info() {
 		case $SLES_VER in
 		80|90) log_cmd $OF "udevinfo -d" ;;
 		10*) log_cmd $OF "udevinfo -e" ;;
-		11*|12*) log_cmd $OF "udevadm info -e" ;;
+		11*|12*|15*) log_cmd $OF "udevadm info -e" ;;
 		esac 
 		test -d /proc/scsi && SCSI_DIRS=$(find /proc/scsi/ -type d) || SCSI_DIRS=""
 		for SDIR in $SCSI_DIRS
@@ -1980,7 +1980,7 @@ iscsi_info() {
 			log_cmd $OF 'sfdisk -l'
 		fi
 		;;
-	10*|11*|12*)
+	10*|11*|12*|15*)
 		log_write $OF "#___________________________________________________________#"
 		log_write $OF "#____[ iSCSI Target Information ]___________________________#"
 		log_write $OF
@@ -2289,7 +2289,7 @@ udev_info() {
 		case $SLES_VER in
 		80|90) log_cmd $OF "udevinfo -d" ;;
 		10*) log_cmd $OF "udevinfo -e" ;;
-		11*|12*) log_cmd $OF "udevadm info -e" ;;
+		11*|12*|15*) log_cmd $OF "udevadm info -e" ;;
 		esac 
 		if [[ -f $UDEV_CONF ]]; then
 			. $UDEV_CONF
@@ -2856,7 +2856,7 @@ ocfs2_info() {
 			timed_log_cmd $OF "mounted.ocfs2 -f"
 			conf_files $OF "/etc/ocfs2/cluster.conf /etc/sysconfig/o2cb"
 			;;
-		11*|12*)
+		11*|12*|15*)
 			[[ -x /usr/bin/findmnt ]] && log_cmd $OF "findmnt" || log_cmd $OF "mount"
 			(( OCFS2_MODULES )) && timed_log_cmd $OF "mounted.ocfs2 -d"
 			(( OCFS2_MODULES )) && timed_log_cmd $OF "mounted.ocfs2 -f"
@@ -3854,7 +3854,7 @@ cimom_info() {
 				if [ -L $OWSSLCHECK ]; then
 					case $SLES_VER in
 					90*) log_cmd $OF "readlink -fv $OWSSLCHECK" ;;
-					10*|11*|12*) log_cmd $OF "readlink -ev $OWSSLCHECK" ;;
+					10*|11*|12*|15*) log_cmd $OF "readlink -ev $OWSSLCHECK" ;;
 					esac
 				fi
 			fi
@@ -4108,34 +4108,6 @@ sysfs_info() {
 		fi
 	done
 	echolog Done
-}
-
-sam_info() {
-	printlog "Supportability Analysis..."
-	test $OPTION_SAM -eq 0 && { echolog Excluded; return 1; }
-	OF=sam.txt
-	addHeaderFile $OF
-	cd $LOG
-	test $ADD_OPTION_RPMV -gt 0 && RPMVER="--orphan-search" || RPMVER="--no-rpm-verify"
-	if rpm_verify $OF suse-sam; then
-		echonlog "Please Wait..."
-		wait_trace_on "sam -vvv --no-log-timestamp $RPMVER"
-		sam -vvv --no-log-timestamp $RPMVER &>/dev/null
-		wait_trace_off
-		conf_files $OF sam.log
-		rm -f sam.log sam.report sam.xml
-		if [ -s sam.html -a -s $VAR_OPTION_HEADER_FILE ]; then
-			mv sam.html sam.html.tmp
-			echo '<!--' > sam.html
-			cat $VAR_OPTION_HEADER_FILE >> sam.html
-			echo '-->' >> sam.html
-			cat sam.html.tmp >> sam.html
-			rm -f sam.html.tmp
-		fi
-		echolog Done
-	else
-		echolog Skipped
-	fi
 }
 
 transactional_info() {
@@ -4426,7 +4398,6 @@ if [ "$USE_SAVED_LOGS_ONLY" != "1" ]; then
 	smartmon_info
 	[ -s ${FSLIST_ADD_FILE} ] && fslist_ufiles_info
 	hardware_info		#Minimum Requirement
-	(( SLES_VER >= 110 )) && sam_info
 	rpm_full_verify
 	exec_plugins
 	(( OPTION_MOD > 0 )) && post_lsmod_list
