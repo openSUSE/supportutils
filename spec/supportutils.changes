@@ -1,6 +1,7 @@
 -------------------------------------------------------------------
-Mon Jan 29 18:04:33 UTC 2018 - jason.record@suse.com
+Mon Jan 29 22:37:29 UTC 2018 - jason.record@suse.com
 
+- Fixes for Infiniband (bsc#1071294)
 - Using chrony for NTP (bsc#1077818)
 
 -------------------------------------------------------------------
