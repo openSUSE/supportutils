@@ -1,6 +1,6 @@
 #!/bin/bash
 
-SVER='3.1-4.4'
+SVER='3.1-4.5'
 SDATE='2018 01 29'
 
 ##############################################################################
@@ -3466,7 +3466,7 @@ x_info() {
 		    echolog Skipped
 		fi
 	;;
-	12*)
+	12*|15*)
 		MESA="Mesa Mesa-32bit Mesa-demo-x Mesa-libEGL1 Mesa-libEGL1-32bit Mesa-libGL1 \
 		Mesa-libGL1-32bit Mesa-libGLESv2-2 Mesa-libGLESv2-2-32bit Mesa-libglapi0 \
                 Mesa-libglapi0-32bit"
