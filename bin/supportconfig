@@ -1,6 +1,6 @@
 #!/bin/bash
 
-SVER='3.1-4.3'
+SVER='3.1-4.4'
 SDATE='2018 01 29'
 
 ##############################################################################
@@ -3901,21 +3901,108 @@ ib_info() {
 			echolog Skipped
 		fi
 		;;
-	12*|15*)
-		if rpm_verify $OF rdma-core; then
+	12*)
+		CHK_UTILS=0
+		CHK_SRP=0
+		CHK_DIAG=0
+		CHK_ACM=0
+		CHK_OPENSM=0
+		IBRPM='rdma'
+		(( SLES_VER >= 123 )) && IBRPM='rdma-core'
+		if rpm_verify $OF $IBRPM; then
+			rpm_verify $OF ibutils && CHK_UTILS=1
+			rpm_verify $OF srp_daemon && CHK_SRP=1
+			rpm_verify $OF infiniband-diags && CHK_DIAG=1
+			rpm_verify $OF opensm && CHK_OPENSM=1
+			rpm_verify $OF ibacm && CHK_ACM=1
+
 			log_cmd $OF "systemctl status rdma.service"
-			for IB_DIR in /etc/rdma /etc/infiniband-diags
-			do
-				[[ -d ${IB_DIR} ]] && conf_files $OF $(find -L ${IB_DIR}/ -type f)
-			done
-			log_cmd $OF 'ibdiagnet'
-			log_cmd $OF 'ibaddr'
-			log_cmd $OF 'ibstatus'
+			(( CHK_SRP )) && log_cmd $OF "systemctl status srp_daemon.service"
+			(( CHK_OPENSM )) && check_service $OF opensmd
+			if (( CHK_ACM )); then
+				(( SLES_VER >= 123 )) && log_cmd $OF "systemctl status ibacm.service"
+			fi
+
+			# Get configuration files
+			FILES=$(find -L /etc/rdma/ -type f)
+			[[ -d /etc/infiniband ]] && FILES="$FILES $(find -L /etc/infiniband/ -type f)"
+			(( CHK_SRP )) && FILES="$FILES /etc/srp_daemon.conf"
+			(( CHK_DIAG )) && FILES="$FILES $(find -L /etc/infiniband-diags/ -type f)"
+			(( CHK_OPENSM )) && FILES="$FILES /etc/opensm.conf /etc/sysconfig/opensm"
+			conf_files $OF $FILES
+
+			if (( CHK_UTILS )); then
+				log_cmd $OF 'ibdiagnet'
+				log_cmd $OF 'ibdmchk'
+			fi
+			if (( CHK_DIAG )); then
+				log_cmd $OF 'ibaddr'
+				log_cmd $OF 'ibstat'
+			fi
+			if (( CHK_ACM )); then
+				log_cmd $OF 'ib_acme -e'
+			fi
 			log_cmd $OF 'lspci -b'
 			log_cmd $OF 'lspci -nn'
 			log_cmd $OF 'lsmod'
-			FILES=$(find -L /tmp/ -type f | grep ibdiagnet)
-			[[ -d /var/log/ibacm.log ]] && FILES="/var/log/ibacm.log $FILES"
+
+			FILES=''
+			(( CHK_DIAG )) && FILES="$FILES $(find -L /tmp/ -type f | grep ibdiagnet)"
+			(( CHK_OPENSM )) && FILES="$FILES /var/log/osm.log"
+			(( CHK_ACM )) && FILES="$FILES /var/log/ibacm.log"
+			test $ADD_OPTION_LOGS -gt 0 && log_files $OF 0 $FILES || log_files $OF $VAR_OPTION_LINE_COUNT $FILES
+			echolog Done
+		else
+			echolog Skipped
+		fi
+		;;
+	15*)
+		CHK_UTILS=0
+		CHK_SRP=0
+		CHK_DIAG=0
+		CHK_ACM=0
+		CHK_OPENSM=0
+		IBRPM='rdma-core'
+		if rpm_verify $OF $IBRPM; then
+			rpm_verify $OF ibutils && CHK_UTILS=1
+			rpm_verify $OF srp_daemon && CHK_SRP=1
+			rpm_verify $OF infiniband-diags && CHK_DIAG=1
+			rpm_verify $OF opensm && CHK_OPENSM=1
+			rpm_verify $OF ibacm && CHK_ACM=1
+
+			log_cmd $OF "systemctl status rdma-hw.target"
+			log_cmd $OF "systemctl status rdma-sriov.service"
+			(( CHK_SRP )) && log_cmd $OF "systemctl status srp_daemon.service"
+			(( CHK_OPENSM )) && log_cmd $OF "systemctl status opensm.service"
+			(( CHK_ACM )) && log_cmd $OF "systemctl status ibacm.service"
+
+			# Get configuration files
+			FILES=$(find -L /etc/rdma/ -type f)
+			[[ -d /etc/infiniband ]] && FILES="$FILES $(find -L /etc/infiniband/ -type f)"
+			(( CHK_SRP )) && FILES="$FILES /etc/srp_daemon.conf"
+			(( CHK_DIAG )) && FILES="$FILES $(find -L /etc/infiniband-diags/ -type f)"
+			(( CHK_OPENSM )) && FILES="$FILES /etc/opensm.conf /etc/sysconfig/opensm"
+			conf_files $OF $FILES
+
+			if (( CHK_UTILS )); then
+				log_cmd $OF 'ibdiagnet'
+				log_cmd $OF 'ibdmchk'
+			fi
+			if (( CHK_DIAG )); then
+				log_cmd $OF 'ibaddr'
+				log_cmd $OF 'ibstat'
+			fi
+			if (( CHK_ACM )); then
+				log_cmd $OF 'ib_acme -e'
+			fi
+			log_cmd $OF 'lspci -b'
+			log_cmd $OF 'lspci -nn'
+			log_cmd $OF 'lsmod'
+
+			FILES=''
+			(( CHK_DIAG )) && FILES="$FILES $(find -L /tmp/ -type f | grep ibdiagnet)"
+			(( CHK_OPENSM )) && FILES="$FILES /var/log/opensm.log"
+			(( CHK_ACM )) && FILES="$FILES /var/log/ibacm.log"
 			test $ADD_OPTION_LOGS -gt 0 && log_files $OF 0 $FILES || log_files $OF $VAR_OPTION_LINE_COUNT $FILES
 			echolog Done
 		else
