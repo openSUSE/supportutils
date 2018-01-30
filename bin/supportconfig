@@ -1,6 +1,6 @@
 #!/bin/bash
 
-SVER='3.1-4.5_dev3'
+SVER='3.1-4.5_dev5'
 SDATE='2018 01 30'
 
 ##############################################################################
@@ -424,6 +424,7 @@ basic_healthcheck() {
 			log_write $AARTMP "$(systemctl status apparmor.service)"
 		else
 			log_write $AARTMP "$(chkconfig -l boot.apparmor)"
+			log_write $AARTMP "$(/etc/init.d/boot.apparmor status)"
 		fi
 		APP_AUDIT_LOG="/var/log/audit/audit.log"
 		test -f $APP_AUDIT_LOG && AAREJECT=$(egrep 'REJECTING|DENIED' $APP_AUDIT_LOG | wc -l) || AAREJECT=0
@@ -2604,7 +2605,6 @@ apparmor_info() {
 			rpm_verify $OF subdomain-utils
 			rpm_verify $OF subdomain-profiles
 			test -f $AARPTMP && cat $AARPTMP >> $LOG/$OF
-			check_service $OF boot.subdomain
 			log_cmd $OF 'unconfined'
 	else
 		((SKIP++))
@@ -2615,7 +2615,11 @@ apparmor_info() {
 		rpm_verify $OF apparmor-utils
 		rpm_verify $OF apparmor-profiles
 		test -f $AARPTMP && cat $AARPTMP >> $LOG/$OF
-		log_cmd $OF "/etc/init.d/boot.apparmor status"
+		if [[ -x /etc/init.d/boot.apparmor ]]; then
+			log_cmd $OF "/etc/init.d/boot.apparmor status"
+		else
+			log_cmd $OF "systemctl status apparmor.service"
+		fi
 		log_cmd $OF 'unconfined'
 		log_files $OF 0 /var/log/audit/audit.log
 		test -d /etc/apparmor && FILES=$(find -L /etc/apparmor/ | grep conf) || FILES=""
@@ -2979,6 +2983,7 @@ root_shell_history_info() {
 	OF=shell_history.txt
 	addHeaderFile $OF
 	log_icmd $OF "history"
+	conf_files $OF /root/.bash_history
 	echolog Done
 }
 
@@ -3720,6 +3725,7 @@ sar_info() {
 					cp $SARDIR/sa* $SARSCDIR &>/dev/null
 				else
 					log_write $OF "# NOTE: Only the newest $VAR_OPTION_SAR_FILES_LIMIT files are copied"
+					log_write $OF "# Use sar -f filename to read included sar files"
 					for i in $(\ls -A1 $SARDIR/sa* 2>/dev/null | tail -$VAR_OPTION_SAR_FILES_LIMIT)
 					do
 						cp $i $SARSCDIR &>/dev/null

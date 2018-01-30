@@ -1,6 +1,9 @@
 -------------------------------------------------------------------
-Tue Jan 30 15:15:26 UTC 2018 - jason.record@suse.com
+Tue Jan 30 16:56:36 UTC 2018 - jason.record@suse.com
 
+- Removed OPTION_SAM from man pages and resource file
+- Validated missing commands
+- Updated apparmor with systemctl service
 - Replaced deprecated networking commands (bsc#1078318)
 
 -------------------------------------------------------------------
