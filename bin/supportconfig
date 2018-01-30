@@ -1,7 +1,7 @@
 #!/bin/bash
 
-SVER='3.1-4.5_dev1'
-SDATE='2018 01 29'
+SVER='3.1-4.5_dev3'
+SDATE='2018 01 30'
 
 ##############################################################################
 #  supportconfig - Gathers system troubleshooting information for SUSE Support
@@ -1680,7 +1680,6 @@ net_info_namespace() {
 			check_service $OF nscd
 		fi
 	fi
-	log_cmd $OF "${NS}ifconfig -a"
 	log_cmd $OF "${NS}ip addr"
 	log_cmd $OF "${NS}ip route"
 	log_cmd $OF "${NS}ip -s link"
@@ -1735,11 +1734,10 @@ net_info_namespace() {
 		log_cmd $OF "${NS}tc -s -d class show dev ${NIC}"
 		log_cmd $OF "${NS}tc -s -d filter show dev ${NIC}"
 	done
-	log_cmd $OF "${NS}netstat -as"
-	log_cmd $OF "${NS}netstat -nlp"
-	log_cmd $OF "${NS}netstat -nr"
-	log_cmd $OF "${NS}netstat -i"
-	log_cmd $OF "${NS}arp -v"
+	log_cmd $OF "${NS}ss -nlp"
+	log_cmd $OF "${NS}ip route list"
+	log_cmd $OF "${NS}ip -stats link"
+	log_cmd $OF "${NS}ip -stats neighbor"
 	log_cmd $OF "${NS}ip ntable show"
 	if [ $MIN_OPTION_AUTOMOD -eq 0 ]; then
                 log_write $OF "#==[ Warning ]======================================#"
@@ -2652,10 +2650,10 @@ ha_info() {
 				(( SLES_VER < 120 )) && log_cmd $OF 'chkconfig -l csync2'
 				if [ -s /etc/xinetd.d/csync2 ]; then
 					TMPORT=$(grep -i port /etc/xinetd.d/csync2 | awk '{print $3}')
-					log_cmd $OF "netstat -nlp | grep $TMPORT"
+					log_cmd $OF "ss -nlp | grep $TMPORT"
 				fi
 			fi
-			log_cmd $OF 'ntpq -p'
+			log_cmd $OF 'chronyc sources -v'
 			log_cmd $OF 'crm_mon -r -1'
 			log_cmd $OF 'crm_mon -r -n -1'
 			log_cmd $OF 'corosync-cfgtool -s'
@@ -3232,7 +3230,7 @@ ldap_info() {
 			SLAPD_SCHEMAS=$(grep ^include $SLAPD_CONF | awk '{print $2}')
 		fi
 		check_service $OF ldap
-		log_cmd $OF "netstat -nlp | grep slapd"
+		log_cmd $OF "ss -nlp | grep slapd"
 		log_cmd $OF "ls -al /etc/openldap/schema"
 		conf_files $OF $SLAPD_CONF /etc/sysconfig/openldap
 		if [ -d $SLAPD_DIR ]; then
@@ -3591,7 +3589,7 @@ ssh_info() {
 			check_service $OF sshd
 		fi
 		conf_files $OF /etc/ssh/sshd_config /etc/ssh/ssh_config /etc/pam.d/sshd
-		log_cmd $OF 'netstat -nlp | grep sshd'
+		log_cmd $OF 'ss -nlp | grep sshd'
 		echolog Done
 	else
 		echolog Skipped
@@ -3667,7 +3665,7 @@ print_info() {
 		else
 			check_service $OF cups
 		fi
-		log_cmd $OF 'netstat -nlp | grep cupsd'
+		log_cmd $OF 'ss -nlp | grep cupsd'
 		BEP=$(ls -1 /usr/lib*/cups/backend/parallel 2>/dev/null | head -n1)
 		if [ $SLES_VER -ge 110 ]; then
 			if [ $MIN_OPTION_AUTOMOD -eq 0 ]; then
@@ -3748,7 +3746,7 @@ dns_info() {
 	log_write $OF "#-----[ Novell DNS ]--------------------------------#"
 	if rpm_verify $OF novell-bind; then
 		check_service $OF novell-named
-		log_cmd $OF 'netstat -nlp | grep named'
+		log_cmd $OF 'ss -nlp | grep named'
 		FILES=/etc/sysconfig/novell/NvlDns*
 		SYSNOVLDNS=$(ls -1 /etc/sysconfig/novell/NvlDns* | sort | tail -1)
 		conf_text_files $OF $FILES
@@ -3774,7 +3772,7 @@ dns_info() {
 	log_write $OF "#-----[ System DNS ]--------------------------------#"
 	if rpm_verify $OF bind; then
 		check_service $OF named
-		[ $SKIP -gt 0 ] && log_cmd $OF 'netstat -nlp | grep named'
+		[ $SKIP -gt 0 ] && log_cmd $OF 'ss -nlp | grep named'
 		FILES=$(grep ^include /etc/named.conf | cut -d';' -f1 | sed -e 's/"//g'  | awk '{print $2}')
 		conf_files $OF /etc/named.conf $FILES /etc/sysconfig/named
 		ZDIR=$(grep ^[[:space:]]*directory /etc/named.conf | cut -d';' -f1 | sed -e 's/"//g'  | awk '{print $2}')
@@ -3805,7 +3803,7 @@ dhcp_info() {
 	SKIP=0
 	if rpm_verify $OF dhcp-server; then
 		check_service $OF dhcpd
-		log_cmd $OF 'netstat -nlp | grep dhcp'
+		log_cmd $OF 'ss -nlp | grep dhcp'
 		conf_files $OF /etc/sysconfig/dhcpd
 		conf_files $OF /etc/dhcpd.conf /var/lib/dhcp/db/dhcpd.leases
 	else
@@ -3869,7 +3867,7 @@ cimom_info() {
 	if rpm_verify $OF sblim-sfcb; then
 		log_cmd $OF "egrep -i \"cim|provider\" $RPMPATH"
 		check_service $OF sfcb
-		log_cmd $OF "netstat -nlp | grep sfcb"
+		log_cmd $OF "ss -nlp | grep sfcb"
 		conf_files $OF /etc/sfcb/sfcb.cfg
 		log_cmd $OF "ls -lR --time-style=long-iso /etc/sfcb/"
 	else
@@ -4061,7 +4059,7 @@ web_info() {
 	if rpm -q novell-nrm &>/dev/null; then
 		check_service $OF novell-httpstkd
 		conf_files $OF /etc/opt/novell/httpstkd.conf
-		log_cmd $OF 'netstat -nlp | grep -i http'
+		log_cmd $OF 'ss -nlp | grep -i http'
 		log_cmd $OF 'ps -eaf | grep httpstkd'
 		[ -d /etc/opt/novell/httpstkd ] && log_cmd $OF 'ls -lR --time-style=long-iso /etc/opt/novell/httpstkd'
 	else

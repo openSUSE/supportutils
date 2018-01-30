@@ -1,4 +1,9 @@
 -------------------------------------------------------------------
+Tue Jan 30 15:15:26 UTC 2018 - jason.record@suse.com
+
+- Replaced deprecated networking commands (bsc#1078318)
+
+-------------------------------------------------------------------
 Mon Jan 29 23:06:21 UTC 2018 - jason.record@suse.com
 
 - Removed sam_info since suse_sam is no longer available
