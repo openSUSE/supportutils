@@ -1,4 +1,9 @@
 -------------------------------------------------------------------
+Wed Jan 31 22:31:36 UTC 2018 - jason.record@suse.com
+
+- Fixed no disk device with sfdisk (bsc#1078638)
+
+-------------------------------------------------------------------
 Tue Jan 30 16:56:36 UTC 2018 - jason.record@suse.com
 
 - Removed OPTION_SAM from man pages and resource file

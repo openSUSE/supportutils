@@ -1,7 +1,7 @@
 #!/bin/bash
 
-SVER='3.1-4.5_dev5'
-SDATE='2018 01 30'
+SVER='3.1-4.6'
+SDATE='2018 01 31'
 
 ##############################################################################
 #  supportconfig - Gathers system troubleshooting information for SUSE Support
@@ -1919,7 +1919,13 @@ disk_info() {
 			FILES=$(find /proc/driver/cciss/ -maxdepth 1 -type f 2>/dev/null)
 			conf_files $OF $FILES
 		fi
-		log_cmd $OF 'sfdisk -d'
+		DISKS=$(sfdisk -l 2>/dev/null | grep -i 'disk /' | awk '{print $2}' | sed -e 's/://g')
+		if [[ -n $DISKS ]]; then
+			for DISK in $DISKS
+			do
+				log_cmd $OF "sfdisk -d $DISK"
+			done
+		fi
 	fi
 	echolog Done
 }
