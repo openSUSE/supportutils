@@ -1,6 +1,6 @@
 #!/bin/bash
 
-SVER='3.0-107'
+SVER='3.0-109'
 SDATE='2018 02 01'
 
 ##############################################################################
@@ -101,6 +101,7 @@ OPTION_SSH=1
 OPTION_SSSD=1
 OPTION_SYSCONFIG=1
 OPTION_SYSFS=1
+OPTION_TUNED=1
 OPTION_UDEV=1
 OPTION_UFILES=1
 OPTION_UP=1
@@ -2799,6 +2800,26 @@ systemd_info() {
 	log_cmd $OF 'ls -alR /etc/systemd/'
 	log_cmd $OF 'ls -alR /usr/lib/systemd/'
 	echolog Done
+}
+
+tuned_info() {
+	printlog "Tuned..."
+	test $OPTION_TUNED -eq 0 && { echolog Excluded; return 1; }
+	OF=tuned.txt
+	addHeaderFile $OF
+	if rpm_verify $OF tuned; then
+		log_cmd $OF "systemctl status tuned.service"
+		log_cmd $OF "tuned-adm active"
+		FILES=$(find -L /etc/tuned/ -type f 2>/dev/null)
+		conf_files $OF $FILES
+		FILES=$(find -L /usr/lib/tuned/ -type f 2>/dev/null | grep "\.conf$")
+		conf_files $OF $FILES
+    FILES="/var/log/tuned/tuned.log"
+    test $ADD_OPTION_LOGS -gt 0 && log_files $OF 0 $FILES || log_files $OF $VAR_OPTION_LINE_COUNT $FILES
+		echolog Done
+	else
+		echolog Skipped
+	fi
 }
 
 docker_info() {
@@ -6837,6 +6858,7 @@ if [ "$USE_SAVED_LOGS_ONLY" != "1" ]; then
 	memory_info
 	disk_info
 	(( SLES_VER >= 110 )) && btrfs_info
+	(( SLES_VER >= 120 )) && tuned_info
 	yast_files			#Minimum Requirement
 	fslist_info
 	audit_info
