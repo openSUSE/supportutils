@@ -3855,10 +3855,12 @@ tuned_info() {
 		log_cmd $OF "systemctl status tuned.service"
 		log_cmd $OF "tuned-adm active"
 		log_cmd $OF "tuned-adm profile_info"
-		FILES=$(find -L /etc/tuned -type f 2>/dev/null)
+		FILES=$(find -L /etc/tuned/ -type f 2>/dev/null)
 		conf_files $OF $FILES
-    FILES="/var/log/tuned/tuned.log"
-    test $ADD_OPTION_LOGS -gt 0 && log_files $OF 0 $FILES || log_files $OF $VAR_OPTION_LINE_COUNT $FILES
+		FILES=$(find -L /usr/lib/tuned/ -type f 2>/dev/null | grep '\.conf$')
+		conf_files $OF $FILES
+		FILES="/var/log/tuned/tuned.log"
+		test $ADD_OPTION_LOGS -gt 0 && log_files $OF 0 $FILES || log_files $OF $VAR_OPTION_LINE_COUNT $FILES
 		echolog Done
 	else
 		echolog Skipped
