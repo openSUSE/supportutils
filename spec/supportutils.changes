@@ -1,6 +1,7 @@
 -------------------------------------------------------------------
-Wed Jan 31 22:37:46 UTC 2018 - jason.record@suse.com
+Thu Feb  1 04:43:06 UTC 2018 - jason.record@suse.com
 
+- Fixed udev service reference (bsc#1051797)
 - Fixed device error with sfdisk (bsc#1043311)
 
 -------------------------------------------------------------------
