@@ -1,6 +1,7 @@
 -------------------------------------------------------------------
-Wed Jan 31 22:31:36 UTC 2018 - jason.record@suse.com
+Thu Feb  1 04:41:28 UTC 2018 - jason.record@suse.com
 
+- Fixed udev service
 - Fixed no disk device with sfdisk (bsc#1078638)
 
 -------------------------------------------------------------------

@@ -1,6 +1,6 @@
 #!/bin/bash
 
-SVER='3.1-4.6'
+SVER='3.1-4.6_dev1'
 SDATE='2018 01 31'
 
 ##############################################################################
@@ -2286,7 +2286,8 @@ udev_info() {
 	then
 		UDEV_CONF=/etc/udev/udev.conf
 		if (( SLES_VER >= 120 )); then
-			log_cmd $OF 'systemctl status udev.service'
+			log_cmd $OF 'systemctl status systemd-udevd.service'
+			log_cmd $OF 'systemctl status systemd-udev-trigger.service'
 		else
 			log_cmd $OF 'chkconfig boot.udev'
 		fi
