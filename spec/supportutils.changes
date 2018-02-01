@@ -1,6 +1,7 @@
 -------------------------------------------------------------------
-Thu Feb  1 04:41:28 UTC 2018 - jason.record@suse.com
+Thu Feb  1 05:32:43 UTC 2018 - jason.record@suse.com
 
+- Added tuned feature OPTION_TUNED tuned.txt (bsc#1071545)
 - Fixed udev service
 - Fixed no disk device with sfdisk (bsc#1078638)
 

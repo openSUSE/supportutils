@@ -1,7 +1,7 @@
 #!/bin/bash
 
-SVER='3.1-4.6_dev1'
-SDATE='2018 01 31'
+SVER='3.1-4.6_dev2'
+SDATE='2018 02 01'
 
 ##############################################################################
 #  supportconfig - Gathers system troubleshooting information for SUSE Support
@@ -3846,6 +3846,25 @@ dhcp_info() {
 	fi
 }
 
+tuned_info() {
+	printlog "Tuned..."
+	test $OPTION_TUNED -eq 0 && { echolog Excluded; return 1; }
+	OF=tuned.txt
+	addHeaderFile $OF
+	if rpm_verify $OF tuned; then
+		log_cmd $OF "systemctl status tuned.service"
+		log_cmd $OF "tuned-adm active"
+		log_cmd $OF "tuned-adm profile_info"
+		FILES=$(find -L /etc/tuned -type f 2>/dev/null)
+		conf_files $OF $FILES
+    FILES="/var/log/tuned/tuned.log"
+    test $ADD_OPTION_LOGS -gt 0 && log_files $OF 0 $FILES || log_files $OF $VAR_OPTION_LINE_COUNT $FILES
+		echolog Done
+	else
+		echolog Skipped
+	fi
+}
+
 cimom_info() {
 	printlog "CIMOM..."
 	test $OPTION_CIMOM -eq 0 && { echolog Excluded; return 1; }
@@ -4359,6 +4378,7 @@ if [ "$USE_SAVED_LOGS_ONLY" != "1" ]; then
 	disk_info
 	(( SLES_VER >= 110 )) && btrfs_info
 	(( SLES_VER >= 120 )) && transactional_info
+	(( SLES_VER >= 120 )) && tuned_info
 	yast_files			#Minimum Requirement
 	fslist_info
 	audit_info
