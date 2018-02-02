@@ -2582,33 +2582,24 @@ ha_info() {
 	test $OPTION_HA -eq 0 && { echolog Excluded; return 1; }
 	OF=ha.txt
 	addHeaderFile $OF
-	if (( SLES_VER >= 110 )); then
+	case $SLES_VER in
+	12*)
 		if rpm_verify $OF pacemaker
 		then
 			log_cmd $OF "rpm -qa | egrep 'ais|resource-agents|cluster-glue|corosync|csync2|pacemaker|heartbeat'"
-			if (( SLES_VER >= 120 ))
-			then
-				log_cmd $OF "systemctl status pacemaker.service"
-				CONF_FILES="/etc/corosync/corosync.conf /etc/sysconfig/ctdb /etc/sysconfig/sbd"
-			else
-				rpm_verify $OF openais
-				check_service $OF openais
-				CONF_FILES="/etc/ais/openais.conf /etc/corosync/corosync.conf /etc/ais/amf.conf /etc/sysconfig/ctdb /etc/sysconfig/sbd"
+			log_cmd $OF "systemctl status pacemaker.service"
+			CONF_FILES="/etc/corosync/corosync.conf /etc/sysconfig/ctdb /etc/sysconfig/sbd"
+			if [[ -s /etc/xinetd.d/csync2 ]]; then
+				TMPORT=$(grep -i port /etc/xinetd.d/csync2 | awk '{print $3}')
+				log_cmd $OF "ss -nlp | grep $TMPORT"
 			fi
-			if (( $SLES_VER >= 111 )); then
-				(( SLES_VER < 120 )) && log_cmd $OF 'chkconfig -l csync2'
-				if [ -s /etc/xinetd.d/csync2 ]; then
-					TMPORT=$(grep -i port /etc/xinetd.d/csync2 | awk '{print $3}')
-					log_cmd $OF "ss -nlp | grep $TMPORT"
-				fi
-			fi
-			log_cmd $OF 'chronyc sources -v'
+			log_cmd $OF 'ntpq -p'
 			log_cmd $OF 'crm_mon -r -1'
 			log_cmd $OF 'crm_mon -r -n -1'
 			log_cmd $OF 'corosync-cfgtool -s'
 			log_cmd $OF 'crm configure show'
 			conf_files $OF $CONF_FILES
-			if [ -s /etc/sysconfig/sbd ]; then
+			if [[ -s /etc/sysconfig/sbd ]]; then
 				. /etc/sysconfig/sbd
 				for SBD in $(echo $SBD_DEVICE | sed -e 's/;/ /g')
 				do
@@ -2616,16 +2607,14 @@ ha_info() {
 					log_cmd $OF "sbd -d $SBD dump"
 				done
 			fi
-			if (( SLES_VER >= 111 )); then
-				log_cmd $OF 'ls -lR --time-style=long-iso /etc/csync2'
-				conf_files $OF /etc/csync2/csync2.cfg /etc/xinetd.d/csync2
-			fi
+			log_cmd $OF 'ls -lR --time-style=long-iso /etc/csync2'
+			conf_files $OF /etc/csync2/csync2.cfg /etc/xinetd.d/csync2
 			CURRENT_PATH=$(pwd)
 			cd $LOG
 			for HBRDIR in $VAR_OPTION_HBREPORT_DIRS
 			do
 				HBRS=$(find $HBRDIR -maxdepth 1 -type f 2>/dev/null | egrep "/hb[_-]?report[0-9a-zA-Z._-]*\.tar\.bz2$")
-				if [ -n "$HBRS" ]; then
+				if [[ -n "$HBRS" ]]; then
 					for HBR_PATH in $HBRS
 					do
 						HBR=$(basename $HBR_PATH)
@@ -2655,7 +2644,7 @@ ha_info() {
 			FILES="/var/log/ha-log /var/log/pacemaker.log /var/log/ctdb/log.ctdb"
 			test $ADD_OPTION_LOGS -gt 0 && log_files $OF 0 $FILES || log_files $OF $VAR_OPTION_LINE_COUNT $FILES
 			CORBIN="/usr/sbin/corosync-fplay"
-			if [ -x $CORBIN ]; then
+			if [[ -x $CORBIN ]]; then
 				CLN=$($CORBIN 2>/dev/null | wc -l)
 				if [ $CLN -gt 1000 ]; then
 					log_cmd $OF 'corosync-fplay | head -500'
@@ -2668,59 +2657,84 @@ ha_info() {
 		else
 			echolog Skipped
 		fi
-	else
-		if rpm_verify $OF heartbeat
+		;;
+	15*)
+		if rpm_verify $OF pacemaker
 		then
-			check_service $OF heartbeat
-			log_cmd $OF 'cl_status hbstatus'
-			conf_files $OF /etc/ha.d/ha.cf /etc/ha.d/haresources
-			log_cmd $OF 'ls -l --time-style=long-iso /etc/ha.d/authkeys/'
-			log_cmd $OF 'ntpq -p'
-			CHECKDIR="/var/lib/heartbeat/pengine"
-			HALOG="$LOG/ha-pengine"
-			if [ -d $CHECKDIR ]; then
-				FOUND=$(find -L ${CHECKDIR}/ -type f)
-				if [ -n "$FOUND" ]; then
-					mkdir -p $HALOG
-					log_write $OF "#==[ Command ]======================================#"
-					if [ $ADD_OPTION_LOGS -gt 0 ]; then
-						log_write $OF "# cp -a $CHECKDIR $HALOG"
-						cp -a $CHECKDIR/* $HALOG &>/dev/null
-					else
-						log_write $OF "# cp $CHECKDIR $HALOG"
-						log_write $OF "# NOTE: Only the newest $VAR_OPTION_PENGINE_FILES_LIMIT files are copied"
-						for i in $(\ls -rA1t $CHECKDIR | tail -${VAR_OPTION_PENGINE_FILES_LIMIT})
-						do
-							cp ${CHECKDIR}/${i} $HALOG &>/dev/null
-						done
-					fi
-					log_write $OF
-				fi
+			log_cmd $OF "rpm -qa | egrep 'ais|resource-agents|cluster-glue|corosync|csync2|pacemaker'"
+			log_cmd $OF "systemctl status pacemaker.service"
+			CONF_FILES="/etc/corosync/corosync.conf /etc/sysconfig/ctdb /etc/sysconfig/sbd"
+			if [[ -s /etc/xinetd.d/csync2 ]]; then
+				TMPORT=$(grep -i port /etc/xinetd.d/csync2 | awk '{print $3}')
+				log_cmd $OF "ss -nlp | grep $TMPORT"
 			fi
-			if cl_status hbstatus &>/dev/null
-			then
-				test $SLES_VER -ge 100 && log_cmd $OF 'crm_mon -r -1'
-				log_cmd $OF 'cl_status listnodes'
-				log_cmd $OF 'cl_status rscstatus'
-				for HBNODE in $(cl_status listnodes 2>/dev/null)
+			log_cmd $OF 'chronyc sources -v'
+			log_cmd $OF 'crm_mon -r -1'
+			log_cmd $OF 'crm_mon -r -n -1'
+			log_cmd $OF 'corosync-cfgtool -s'
+			log_cmd $OF 'crm configure show'
+			conf_files $OF $CONF_FILES
+			if [[ -s /etc/sysconfig/sbd ]]; then
+				. /etc/sysconfig/sbd
+				for SBD in $(echo $SBD_DEVICE | sed -e 's/;/ /g')
 				do
-					log_cmd $OF "cl_status listhblinks $HBNODE"
-					for HBLINK in $(cl_status listhblinks $HBNODE 2>/dev/null)
-					do
-						log_cmd $OF "cl_status hblinkstatus $HBNODE $HBLINK"
-					done
+					log_cmd $OF "sbd -d $SBD list"
+					log_cmd $OF "sbd -d $SBD dump"
 				done
 			fi
-			test -d /var/lib/heartbeat && FILES=$(find -L /var/lib/heartbeat/ -type f | egrep -v "cores|pengine|hb_uuid") || FILES=""
-			conf_files $OF /etc/ha_logd.cf $FILES
-			test $SLES_VER -ge 100 && log_cmd $OF 'cibadmin -Q'
-			FILES="/var/log/ha-log"
+			log_cmd $OF 'ls -lR --time-style=long-iso /etc/csync2'
+			conf_files $OF /etc/csync2/csync2.cfg /etc/xinetd.d/csync2
+			CURRENT_PATH=$(pwd)
+			cd $LOG
+			for HBRDIR in $VAR_OPTION_HBREPORT_DIRS
+			do
+				HBRS=$(find $HBRDIR -maxdepth 1 -type f 2>/dev/null | egrep "/hb[_-]?report[0-9a-zA-Z._-]*\.tar\.bz2$")
+				if [[ -n "$HBRS" ]]; then
+					for HBR_PATH in $HBRS
+					do
+						HBR=$(basename $HBR_PATH)
+						log_cmd $OF "tar jxf ${HBR_PATH}"
+						conf_files $OF "$LOG/${HBR%%.tar.bz2}/analysis.txt"
+					done
+				fi
+			done
+			cd $CURRENT_PATH
+			CURRENT_CIB=''
+			FILES=''
+			if [[ -d /var/lib/heartbeat/ ]]; then
+				FILES=$(find -L /var/lib/heartbeat/ -type f | egrep -v "cores|pengine|hb_uuid|cib\.xml")
+				[[ -e /var/lib/heartbeat/crm/cib.xml ]] && CURRENT_CIB='/var/lib/heartbeat/crm/cib.xml'
+				for i in $(find -L /var/lib/heartbeat/cores -type f)
+				do
+					log_cmd $OF "file $i"
+				done
+			fi
+			if [[ -d /var/lib/pacemaker/ ]]; then
+				TFILES=$(find -L /var/lib/pacemaker/ -type f | egrep -v "cores|pengine|hb_uuid|cib\.xml")
+				FILES="$FILES $TFILES"
+				[[ -e /var/lib/pacemaker/cib/cib.xml ]] && CURRENT_CIB='/var/lib/pacemaker/cib/cib.xml'
+			fi
+			log_cmd $OF 'cibadmin -Q'
+			conf_files $OF $CURRENT_CIB $FILES
+			FILES="/var/log/ha-log /var/log/pacemaker.log /var/log/ctdb/log.ctdb"
 			test $ADD_OPTION_LOGS -gt 0 && log_files $OF 0 $FILES || log_files $OF $VAR_OPTION_LINE_COUNT $FILES
+			CORBIN="/usr/sbin/corosync-fplay"
+			if [[ -x $CORBIN ]]; then
+				CLN=$($CORBIN 2>/dev/null | wc -l)
+				if [ $CLN -gt 1000 ]; then
+					log_cmd $OF 'corosync-fplay | head -500'
+					log_cmd $OF 'corosync-fplay | tail -500'
+				else
+					log_cmd $OF 'corosync-fplay'
+				fi
+			fi
 			echolog Done
 		else
 			echolog Skipped
 		fi
-	fi
+		;;
+	*) echolog Error ;;
+	esac
 }
 
 slp_info() {
