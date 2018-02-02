@@ -1,6 +1,6 @@
 #!/bin/bash
 
-SVER='3.1-4.6_dev3'
+SVER='3.1-4.7'
 SDATE='2018 02 02'
 
 ##############################################################################
@@ -155,44 +155,78 @@ basic_environment() {
 			log_cmd $BASIC_ENVF 'oes-SPident -vv'
 		fi
 		cat $LOG/$RPM_DIST_FILE >> $LOG/$BASIC_ENVF
-		if rpm_verify $BASIC_ENVF SuSEfirewall2
-		then
-			log_write $BASIC_ENVF "#==[ Firewall Services ]============================#"
-			log_write $BASIC_ENVF "# Service state"
-			if (( SLES_VER >= 120 )); then
-				wait_trace_on "systemctl status SuSEfirewall2.service"
-				log_write $BASIC_ENVF "$(systemctl status SuSEfirewall2.service)"
+		case $SLES_VER in
+		15*)
+			if rpm_verify $BASIC_ENVF firewalld
+			then
+				log_write $BASIC_ENVF "#==[ Firewall Services ]============================#"
+				log_write $BASIC_ENVF "# Service state"
+				wait_trace_on "systemctl status firewalld.service"
+				log_write $BASIC_ENVF "$(systemctl status firewalld.service)"
 				wait_trace_off
-				wait_trace_on "systemctl status SuSEfirewall2_init.service"
-				log_write $BASIC_ENVF "$(systemctl status SuSEfirewall2_init.service)"
+				wait_trace_on "systemctl status firewalld.service"
+				log_write $BASIC_ENVF "$(systemctl status firewalld.service)"
 				wait_trace_off
-			else
-				for i in $(rpm -ql SuSEfirewall2 | grep init.d)
-				do
-					FSRV=$(basename $i)
-					wait_trace_on "chkconfig $FSRV --list"
-					log_write $BASIC_ENVF "$(chkconfig $FSRV --list)"
+				IPBIN="/usr/sbin/iptables"
+				if [[ -x $IPBIN ]]; then
+					TOTAL_FIREWALL_RULES=0
+					for TABLE in filter nat mangle raw security
+					do
+						if grep iptable_$TABLE /proc/modules &>/dev/null
+						then
+							wait_trace_on "$IPBIN -t $TABLE -nL | sed -e '/^$/d' -e '/^Chain/d' -e '/^target/d' | wc -l"
+							FIREWALL_RULES=$($IPBIN -t $TABLE -nL | sed -e '/^$/d' -e '/^Chain/d' -e '/^target/d' | wc -l)
+							TOTAL_FIREWALL_RULES=$(( TOTAL_FIREWALL_RULES + FIREWALL_RULES ))
+							wait_trace_off
+						fi
+					done
+					log_write $BASIC_ENVF
+					log_write $BASIC_ENVF "$TOTAL_FIREWALL_RULES Active Firewall Rules"
+					log_write $BASIC_ENVF
+				fi
+			fi
+			;;
+		11*|12*)
+			if rpm_verify $BASIC_ENVF SuSEfirewall2
+			then
+				log_write $BASIC_ENVF "#==[ Firewall Services ]============================#"
+				log_write $BASIC_ENVF "# Service state"
+				if (( SLES_VER >= 120 )); then
+					wait_trace_on "systemctl status SuSEfirewall2.service"
+					log_write $BASIC_ENVF "$(systemctl status SuSEfirewall2.service)"
 					wait_trace_off
-				done
-			fi
-			IPBIN="/usr/sbin/iptables"
-			if [ -x $IPBIN ]; then
-				TOTAL_FIREWALL_RULES=0
-				for TABLE in filter nat mangle raw
-				do
-					if grep iptable_$TABLE /proc/modules &>/dev/null
-					then
-						wait_trace_on "$IPBIN -t $TABLE -nL | sed -e '/^$/d' -e '/^Chain/d' -e '/^target/d' | wc -l"
-						FIREWALL_RULES=$($IPBIN -t $TABLE -nL | sed -e '/^$/d' -e '/^Chain/d' -e '/^target/d' | wc -l)
-						TOTAL_FIREWALL_RULES=$(( TOTAL_FIREWALL_RULES + FIREWALL_RULES ))
+					wait_trace_on "systemctl status SuSEfirewall2_init.service"
+					log_write $BASIC_ENVF "$(systemctl status SuSEfirewall2_init.service)"
+					wait_trace_off
+				else
+					for i in $(rpm -ql SuSEfirewall2 | grep init.d)
+					do
+						FSRV=$(basename $i)
+						wait_trace_on "chkconfig $FSRV --list"
+						log_write $BASIC_ENVF "$(chkconfig $FSRV --list)"
 						wait_trace_off
-					fi
-				done
-				log_write $BASIC_ENVF
-				log_write $BASIC_ENVF "$TOTAL_FIREWALL_RULES Active Firewall Rules"
-				log_write $BASIC_ENVF
+					done
+				fi
+				IPBIN="/usr/sbin/iptables"
+				if [[ -x $IPBIN ]]; then
+					TOTAL_FIREWALL_RULES=0
+					for TABLE in filter nat mangle raw
+					do
+						if grep iptable_$TABLE /proc/modules &>/dev/null
+						then
+							wait_trace_on "$IPBIN -t $TABLE -nL | sed -e '/^$/d' -e '/^Chain/d' -e '/^target/d' | wc -l"
+							FIREWALL_RULES=$($IPBIN -t $TABLE -nL | sed -e '/^$/d' -e '/^Chain/d' -e '/^target/d' | wc -l)
+							TOTAL_FIREWALL_RULES=$(( TOTAL_FIREWALL_RULES + FIREWALL_RULES ))
+							wait_trace_off
+						fi
+					done
+					log_write $BASIC_ENVF
+					log_write $BASIC_ENVF "$TOTAL_FIREWALL_RULES Active Firewall Rules"
+					log_write $BASIC_ENVF
+				fi
 			fi
-		fi
+			;;
+		esac
 	fi
 	echolog Done
 }
@@ -331,25 +365,28 @@ basic_healthcheck() {
 		do
 			LIST_MODULE=0
 			modinfo -l $MODULE &>/dev/null
-			if [ $? -gt 0 ]; then
+			MOD_ERR=$?
+			if (( MOD_ERR )); then
 				log_write $OF "$(printf "%-25s %-25s %-25s" module=$MODULE ERROR "Module info unavailable")"
 			else
 				wait_trace_on "modinfo -l $MODULE"
 				LIC=$(modinfo -l $MODULE | head -1)
 				SUP=$(modinfo -F supported $MODULE | head -1)
-				test -z "$LIC" && LIC=None
-				test -z "$SUP" && SUP=no
+				[[ -z $LIC ]] && LIC=None
+				[[ -z $SUP ]] && SUP=no
 				GPLTEST=$(echo $LIC | grep GPL)
-				test -z "$GPLTEST" && ((LIST_MODULE++))
-				test "$SUP" != "yes" && ((LIST_MODULE++))
-				test $LIST_MODULE -gt 0 && log_write $OF "$(printf "%-25s %-25s %-25s" "module=$MODULE" "license=$LIC" "supported=$SUP")"
+				[[ -z $GPLTEST ]] && ((LIST_MODULE++))
+				[[ "$SUP" != "yes" ]] && ((LIST_MODULE++))
+				(( LIST_MODULE > 0 )) && log_write $OF "$(printf "%-25s %-25s %-25s" "module=$MODULE" "license=$LIC" "supported=$SUP")"
 				LIST_MODULES_ANY=$((LIST_MODULES_ANY + LIST_MODULE))
 				wait_trace_off
 			fi
 		done
-		if [ $LIST_MODULES_ANY -eq 0 ]; then
+		if [[ $LIST_MODULES_ANY -eq 0 ]]; then
 			log_write $OF "Module List Unknown"
+			log_write $OF
 		fi
+		log_cmd $OF "dmesg -T | grep taint"
 	else
 		log_write $OF "Kernel Status -- Not Tainted"
 	fi
@@ -1628,7 +1665,7 @@ net_info() {
 	printlog "Networking..."
 	test $OPTION_NET -eq 0 && { echolog Excluded; return 1; }
 	NAMESPACES=$(ip netns list)
-	if [ -n "${NAMESPACES}" ] ; then
+	if [[ -n "${NAMESPACES}" ]] ; then
 		net_info_namespace "network.txt" 
 		ip netns list | while read NAMESPACE rest; do
 			net_info_namespace "network-${NAMESPACE}.txt" "${NAMESPACE}"
@@ -1642,16 +1679,17 @@ net_info() {
 net_info_namespace() {
 	OF=$1
 	addHeaderFile $OF
-	if [ -z "${2}" ] ; then
+	if [[ -z "${2}" ]] ; then
 		NS=""
 	else 
 		NS="ip netns exec $2 "
 		log_write $OF "#==[ Network namespace ${2} ]======================#"
 	fi
-	if [ -z "${NS}" ] ; then
+	if [[ -z "${NS}" ]] ; then
 		rpm_verify $OF sysconfig
 		if (( SLES_VER >= 120 )) ; then
 			rpm_verify $OF wicked
+			rpm_verify $OF iproute2
 			log_cmd $OF "systemctl status network.service"
 			log_cmd $OF "systemctl status nscd.service"
 			log_cmd $OF "wicked ifstatus --verbose all"
@@ -1665,7 +1703,7 @@ net_info_namespace() {
 	log_cmd $OF "${NS}ip route"
 	log_cmd $OF "${NS}ip -s link"
 	if [ -z "${NS}" ] ; then
-		if [ $MIN_OPTION_AUTOMOD -ne 0 ]; then
+		if [[ $MIN_OPTION_AUTOMOD -ne 0 ]]; then
 			log_cmd $OF 'hwinfo --netcard'
 		fi
 		conf_files $OF /proc/sys/net/ipv4/ip_forward /etc/HOSTNAME
@@ -1694,7 +1732,7 @@ net_info_namespace() {
 	IPADDR=$(${NS}ip route list | awk '$1 == "default" {print $3}')
 	ping_addr $OF 'Default Route' $IPADDR "${NS}"
 
-	if [ -z "${NS}" ] ; then
+	if [[ -z "${NS}" ]] ; then
 		test -e /etc/resolv.conf && IPADDRS=$(grep ^nameserver /etc/resolv.conf | cut -d' ' -f2) || IPADDRS=""
 		for IPADDR in $IPADDRS
 		do
@@ -1720,25 +1758,25 @@ net_info_namespace() {
 	log_cmd $OF "${NS}ip -stats link"
 	log_cmd $OF "${NS}ip -stats neighbor"
 	log_cmd $OF "${NS}ip ntable show"
-	if [ $MIN_OPTION_AUTOMOD -eq 0 ]; then
-                log_write $OF "#==[ Warning ]======================================#"
-                log_write $OF "# Autoloading kernel modules disabled. Don't use -k."
-                log_write $OF "# Excluding IPsec command: xfrm"
-                log_write $OF
-        else
+	if [[ $MIN_OPTION_AUTOMOD -eq 0 ]]; then
+		log_write $OF "#==[ Warning ]======================================#"
+		log_write $OF "# Autoloading kernel modules disabled. Don't use -k."
+		log_write $OF "# Excluding IPsec command: xfrm"
+		log_write $OF
+	else
 		log_cmd $OF "${NS}ip xfrm state list"
 		log_cmd $OF "${NS}ip xfrm policy list"
 	fi
 	log_cmd $OF "${NS}ip maddr show"
 	log_cmd $OF "${NS}ip mroute show"
 
-	if [ $MIN_OPTION_AUTOMOD -eq 0 ]; then
+	if [[ $MIN_OPTION_AUTOMOD -eq 0 ]]; then
 		log_write $OF "#==[ Warning ]======================================#"
 		log_write $OF "# Autoloading kernel modules disabled. Don't use -k."
 		log_write $OF "# Excluding Bridge command: brctl"
 		log_write $OF
 	else
-		if [ -x /sbin/brctl ]; then
+		if [[ -x /sbin/brctl ]]; then
 			log_cmd $OF "${NS}brctl show"
 			for BRIDGE in `${NS}brctl show | sed 1d | awk '{print$1}'` 
 			do 
@@ -1746,18 +1784,29 @@ net_info_namespace() {
 			done
 		fi
 	fi
-	NICS=$(IFS="@: ";${NS}ip -o l | while read number nic dummy ; do echo $nic ; done)
-	for NIC in ${NICS}
-	do
-		log_cmd $OF "${NS}ethtool ${NIC}"
-		log_cmd $OF "${NS}ethtool -k ${NIC}"
-		log_cmd $OF "${NS}ethtool -i ${NIC}"
-		log_cmd $OF "${NS}ethtool -S ${NIC}"
-	done
-	if [ -z "${NS}" ] ; then
+	ETHTOOL_BIN=$(which ethtool 2>/dev/null)
+	if [[ -n $ETHTOOL_BIN ]]; then
+		NICS=$(IFS="@: ";${NS}ip -o l | while read number nic dummy ; do echo $nic ; done)
+		for NIC in ${NICS}
+		do
+			log_cmd $OF "${NS}${ETHTOOL_BIN} ${NIC}"
+			log_cmd $OF "${NS}${ETHTOOL_BIN} -k ${NIC}"
+			log_cmd $OF "${NS}${ETHTOOL_BIN} -i ${NIC}"
+			log_cmd $OF "${NS}${ETHTOOL_BIN} -S ${NIC}"
+		done
+	fi
+	if [[ -z "${NS}" ]] ; then
 		log_cmd $OF "nscd -g"
 		conf_files $OF /etc/hosts /etc/host.conf /etc/resolv.conf /etc/nsswitch.conf /etc/nscd.conf /etc/hosts.allow /etc/hosts.deny
-		conf_files $OF /etc/sysconfig/SuSEfirewall2 /etc/sysconfig/personal-firewall
+		case $SLES_VER in
+		15*)
+			FILES="/etc/sysconfig/firewalld"
+			;;
+		11*|12*)
+			FILES="/etc/sysconfig/SuSEfirewall2 /etc/sysconfig/personal-firewall"
+			;;
+		esac
+		conf_files $OF $FILES
 	fi
 	for TABLE in filter nat mangle raw
 	do
@@ -1783,7 +1832,7 @@ net_info_namespace() {
 			log_write $OF
 		fi
 	done
-	if [ -z "${NS}" ] ; then
+	if [[ -z "${NS}" ]] ; then
 		test -d /etc/sysconfig/network && FILES=$(find -L /etc/sysconfig/network/ -maxdepth 1 -type f) || FILES=""
 		conf_files $OF /etc/sysconfig/proxy $FILES 
 		sed -i -e 's/.*_PASSWORD[[:space:]]*=.*/*REMOVED BY SUPPORTCONFIG*/g' $LOG/$OF
