@@ -1,6 +1,6 @@
 #!/bin/bash
 
-SVER='3.1-4.6_dev2'
+SVER='3.1-4.6_dev3'
 SDATE='2018 02 02'
 
 ##############################################################################
@@ -1753,7 +1753,6 @@ net_info_namespace() {
 		log_cmd $OF "${NS}ethtool -k ${NIC}"
 		log_cmd $OF "${NS}ethtool -i ${NIC}"
 		log_cmd $OF "${NS}ethtool -S ${NIC}"
-		log_cmd $OF "${NS}mii-tool -v ${NIC}"
 	done
 	if [ -z "${NS}" ] ; then
 		log_cmd $OF "nscd -g"

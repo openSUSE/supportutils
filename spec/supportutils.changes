@@ -1,6 +1,7 @@
 -------------------------------------------------------------------
-Fri Feb  2 17:41:38 UTC 2018 - jason.record@suse.com
+Fri Feb  2 18:48:41 UTC 2018 - jason.record@suse.com
 
+- Removed mii-tool from networking
 - Updated HA to use chrony
 - Added kdumptool calibrate to crash.txt
 - Removed SLES_VER case for sles8,9 and 10
