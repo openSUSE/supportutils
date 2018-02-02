@@ -1,4 +1,10 @@
 -------------------------------------------------------------------
+Fri Feb  2 16:15:37 UTC 2018 - jason.record@suse.com
+
+- Added kdumptool calibrate to crash.txt
+- Removed SLES_VER case for sles8,9 and 10
+
+-------------------------------------------------------------------
 Thu Feb  1 22:29:11 UTC 2018 - jason.record@suse.com
 
 - Added tuned feature OPTION_TUNED tuned.txt (bsc#1071545)
