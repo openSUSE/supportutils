@@ -1,4 +1,10 @@
 -------------------------------------------------------------------
+Fri Jun 15 15:05:00 UTC 2018 - jason.record@suse.com
+
+- Blacklisted sched_domain from proc.txt (bsc#1046681)
+- supportconfig: 3.0-110
+
+-------------------------------------------------------------------
 Fri Feb  2 16:12:21 UTC 2018 - jason.record@suse.com
 
 - Added kdumptool calibrate to crash.txt
