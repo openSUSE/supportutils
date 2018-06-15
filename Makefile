@@ -63,9 +63,10 @@ obs: dist
 	@cp spec/* Novell:NTS:Unstable/$(OBSPACKAGE)
 	@cp src/$(SRCFILE).gz Novell:NTS:Unstable/$(OBSPACKAGE)
 
-obnew: obsetup obs
-	@echo [obnew]: Committing changes into OBS Novell:NTS:Unstable/$(OBSPACKAGE)
-	@osc -A 'https://api.opensuse.org/' ci -m "Supportutils Updates" Novell:NTS:Unstable/$(OBSPACKAGE)
+# Only put sle15 updates to Unstable
+#obnew: obsetup obs
+	#@echo [obnew]: Committing changes into OBS Novell:NTS:Unstable/$(OBSPACKAGE)
+	#@osc -A 'https://api.opensuse.org/' ci -m "Supportutils Updates" Novell:NTS:Unstable/$(OBSPACKAGE)
 
 obreplace: dist
 	@echo [obreplace]: Committing changes to OBS Novell:NTS:Unstable/$(OBSPACKAGE)
