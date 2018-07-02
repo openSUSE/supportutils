@@ -1,4 +1,10 @@
 -------------------------------------------------------------------
+Mon Jul  2 22:26:53 UTC 2018 - jason.record@suse.com
+
+- Added missed sched_domain to blacklist
+- supportconfig: 3.0.112
+
+-------------------------------------------------------------------
 Fri Jun 15 15:05:00 UTC 2018 - jason.record@suse.com
 
 - Blacklisted sched_domain from proc.txt (bsc#1046681)

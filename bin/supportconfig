@@ -1,7 +1,7 @@
 #!/bin/bash
 
-SVER='3.0-110'
-SDATE='2018 06 15'
+SVER='3.0-112'
+SDATE='2018 07 02'
 
 ##############################################################################
 #  supportconfig - Gathers system troubleshooting information for NTS.
@@ -5281,7 +5281,7 @@ proc_info() {
 		conf_files $OF $FILES
 	done
 	FULLPROCS="/proc/irq/ /proc/sys/"
-	FILTER="fs/binfmt_misc/register|net/ipv4/route/flush|net/ipv6/route/flush|vm/compact_memory|base_reachable_time|scan_unevictable_pages"
+	FILTER="fs/binfmt_misc/register|net/ipv4/route/flush|net/ipv6/route/flush|vm/compact_memory|base_reachable_time|scan_unevictable_pages|/sched_domain/"
 	for PROCDIR in $FULLPROCS
 	do
 		FILES=$(find $PROCDIR -type f 2>/dev/null | egrep -iv "$FILTER" | sort -f)
