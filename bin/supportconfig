@@ -128,7 +128,7 @@ show_help() {
 	echo "  If you cannot attach the tar ball to the SR, then email it to the engineer."
 	echo
 	echo "  Please submit bug fixes or comments via:"
-	echo "  https://www.suse.com/support/report-a-bug/"
+	echo "  https://en.opensuse.org/openSUSE:Submitting_bug_reports"
 	echo
 	title
 }
