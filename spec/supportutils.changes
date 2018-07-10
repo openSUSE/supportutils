@@ -1,4 +1,9 @@
 -------------------------------------------------------------------
+Tue Jul 10 22:09:06 UTC 2018 - jason.record@suse.com
+
+- Added only sched_domain from cpu0
+
+-------------------------------------------------------------------
 Fri Jun 15 15:02:01 UTC 2018 - jason.record@suse.com
 
 - Blacklist sched_domain from proc.txt (bsc#1046681)
