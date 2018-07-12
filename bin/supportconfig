@@ -500,6 +500,9 @@ rpm_info() {
 		rpm -qa --queryformat "%-35{NAME} %-35{DISTRIBUTION} %{VERSION}-%{RELEASE}\n" | sort -k 1,2 -t " " -i >> $LOGFILE 2>&1
 		log_write $RPMFILE
 		log_cmd $RPMFILE "rpm -qa --last"
+		# Jul 12, 2018 ; Added by Ahmad AL Zayed to get a list of RPM DB Backups 
+		RETURN=$(grep RPMDB_BACKUP_DIR /etc/sysconfig/backup | grep -v "^#" | cut -d= -f2 | tr -d "\"") 
+		[[ -d $RETURN ]] && { log_cmd $RPMFILE "ls -ltr $RETURN" ;} 
 	fi
 	echolog Done
 }
