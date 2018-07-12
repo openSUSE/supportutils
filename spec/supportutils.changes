@@ -1,4 +1,10 @@
 -------------------------------------------------------------------
+Thu Jul 12 14:43:36 UTC 2018 - jason.record@suse.com
+
+- Added backup rpm database directory
+- Updated URLs in documentation
+
+-------------------------------------------------------------------
 Tue Jul 10 22:09:06 UTC 2018 - jason.record@suse.com
 
 - Added only sched_domain from cpu0
