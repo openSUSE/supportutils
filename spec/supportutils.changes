@@ -1,4 +1,9 @@
 -------------------------------------------------------------------
+Thu Aug 23 22:37:29 UTC 2018 - jason.record@suse.com
+
+- Added vulnerabilities check (bsc#1105849)
+
+-------------------------------------------------------------------
 Mon Oct  9 20:03:34 UTC 2017 - jason.record@suse.com
 
 - Fixed core_pattern pipe corruption (bsc#1061282)

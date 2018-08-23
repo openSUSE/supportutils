@@ -1,11 +1,11 @@
 #!/bin/bash
 
-SVER='2.25-460'
-SDATE="2017 10 09"
+SVER='2.25-461'
+SDATE="2018 08 23"
 
 ##############################################################################
 #  supportconfig - Gathers system troubleshooting information for NTS.
-#  Copyright (C) 2001-2017 SUSE LLC
+#  Copyright (C) 2001-2018 SUSE LLC
 #
 #  Creates a tar ball to attach to the SR or send to support. Collects
 #  comprehensive information for SLE10/SLE11/SLE12, OES2/OES11 for SLES.
@@ -841,6 +841,7 @@ basic_healthcheck() {
 	OF=basic-health-check.txt
 	addHeaderFile $OF
 	log_cmd $OF 'uptime'
+	log_cmd $OF 'grep -H . /sys/devices/system/cpu/vulnerabilities/*'
 	log_cmd $OF 'vmstat 1 4'
 	test -x /usr/bin/mpstat && log_cmd $OF 'mpstat -P ALL 1 3'
 	log_cmd $OF 'free -k'
