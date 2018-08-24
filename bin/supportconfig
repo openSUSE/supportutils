@@ -4539,6 +4539,12 @@ proc_info() {
 		FILES=$(find $PROCDIR -type f 2>/dev/null | egrep -iv "$FILTER" | sort -f)
 		conf_files $OF $FILES
 	done
+	# only include cpu0 sched_domain information, all others are excluded
+	SCHED_DOMAIN='/proc/sys/kernel/sched_domain/cpu0'
+	if [[ -d ${SCHED_DOMAIN} ]]; then
+		FILES=$(find ${SCHED_DOMAIN} -type f 2>/dev/null | sort -f)
+		conf_files $OF $FILES
+	fi
 	echolog Done
 }
 
