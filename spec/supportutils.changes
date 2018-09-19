@@ -20,6 +20,11 @@ Fri Jun 15 15:02:01 UTC 2018 - jason.record@suse.com
 - Blacklist sched_domain from proc.txt (bsc#1046681)
 
 -------------------------------------------------------------------
+Mon Mar 26 17:03:43 CEST 2018 - kukuk@suse.de
+
+- Use %license instead of %doc [bsc#1082318]
+
+-------------------------------------------------------------------
 Fri Feb  2 20:40:39 UTC 2018 - jason.record@suse.com
 
 - Accounts for firewalld now (bsc#1079137)
