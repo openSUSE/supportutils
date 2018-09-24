@@ -81,7 +81,6 @@ install -m 644 man/*.8.gz %{buildroot}%{_mandir}/man8
 %dir %{support_libdir}
 %dir %{support_libdir}/resources
 %dir %{support_libdir}/plugins
-%license man/COPYING.GPLv2
 %dir %{_docdir}/%{name}
 %doc %{_docdir}/%{name}/*
 %{support_libdir}/resources/*
