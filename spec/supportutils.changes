@@ -1,4 +1,11 @@
 -------------------------------------------------------------------
+Thu Oct 11 15:07:50 UTC 2018 - jason.record@suse.com
+
+- udev service and journal content (bsc#1051797)
+- supportconfig collects tuned profile settings (bsc#1071545)
+- sfdisk -d no disk device specified (bsc#1043311)
+
+-------------------------------------------------------------------
 Thu Aug 23 22:30:41 UTC 2018 - jason.record@suse.com
 
 - Added vulnerabilites check in basic-health.txt (bsc#1105849)
