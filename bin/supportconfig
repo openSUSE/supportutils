@@ -1200,7 +1200,7 @@ systemd_info() {
 	log_cmd $OF 'systemd-delta --no-pager'
 	FILES=''
 	[[ -d /etc/systemd ]] && FILES=$(find -L /etc/systemd -maxdepth 1 -type f)
-	log_cmd $OF 'systemctl --no-pager show'
+	log_cmd $OF 'systemctl --no-pager show | sort'
 	conf_files $OF $FILES
 	log_cmd $OF 'systemctl --no-pager --all list-units'
 	log_cmd $OF 'systemctl --no-pager --all list-sockets'
@@ -1212,7 +1212,7 @@ systemd_info() {
 		then
 			break
 		else
-			log_cmd $OF "systemctl show '$i'"
+			log_cmd $OF "systemctl show '$i' | sort"
 		fi
 	done
 	log_cmd $OF 'ls -alR /etc/systemd/'
