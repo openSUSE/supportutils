@@ -1,7 +1,7 @@
 #!/bin/bash
 
-SVER='3.1-4.10'
-SDATE='2018 08 23'
+SVER='3.1-4.11'
+SDATE='2018 10 17'
 
 ##############################################################################
 #  supportconfig - Gathers system troubleshooting information for SUSE Support
@@ -1028,7 +1028,7 @@ update_d_info() {
 
 pam_info() {
 	printlog "PAM..."
-	test $OPTION_PAM -eq 0 && { echolog Excluded; return 1; }
+	test $FORCE_OPTION_PAM -eq 0 && { echolog Excluded; return 1; }
 	OF=pam.txt
 	addHeaderFile $OF
 	rpm_verify $OF pam
@@ -4324,6 +4324,7 @@ if [ "$USE_SAVED_LOGS_ONLY" != "1" ]; then
 	fi
 	log_write ${CSFILE} "  Environment Value: $SLES_VER ($KERNVER)"
 	log_write ${CSFILE} "  Command with Args: $0 $ALL_ARGS"
+	log_write ${CSFILE} "  FORCE_OPTION_PAM:  $FORCE_OPTION_PAM"
 	log2sys "Supportconfig Args: $ALL_ARGS"
 
 	test -s $SC_CONF && log_write ${CSFILE} "  Using Options:     $SC_CONF"

@@ -38,7 +38,6 @@ OPTION_NTP=1
 OPTION_OCFS2=1
 OPTION_OES=0
 OPTION_OFILES=1
-OPTION_PAM=1
 OPTION_PRINT=1
 OPTION_PROC=1
 OPTION_SAR=1
@@ -97,6 +96,8 @@ VAR_OPTION_HEADER_FILE='/usr/lib/supportconfig/header.txt'
 VAR_OPTION_UPLOAD_ALT='https://secure-www.novell.com/upload?appname=supportconfig&file={tarball}'
 VAR_OPTION_UPLOAD_TARGET='ftp://anonymous@ftp.novell.com/incoming'
 VAR_OPTION_WAIT_TRACE=0
+
+: ${FORCE_OPTION_PAM:=0}
 
 LANG=C
 PATH="/sbin:/usr/sbin:/bin:/usr/bin:$PATH"

@@ -1,4 +1,4 @@
-.TH SUPPORTCONFIG.CONF 5 "01 Feb 2018" "supportutils" "Support Utilities Manual"
+.TH SUPPORTCONFIG.CONF 5 "17 Oct 2018" "supportutils" "Support Utilities Manual"
 .SH NAME
 supportconfig.conf \- 
 .BR supportconfig (1)
@@ -115,7 +115,10 @@ OPTION_OFILES
 List of all open files using lsof. \fBopen-files.txt\fR (1)
 .TP
 OPTION_PAM
-Pluggable Authentication Module related information, including user account information. \fBpam.txt\fR (1)
+Replaced with FORCE_OPTION_PAM
+.TP
+FORCE_OPTION_PAM
+Pluggable Authentication Module related information, including user account information. This option is disabled by default per General Data Protection Regulation (GDPR) consideration and cannot be toggled on with -o. You have to set the environment variable FORCE_OPTION_PAM=1 to enable it. \fBpam.txt\fR (0)
 .TP
 OPTION_PRINT
 Printing and CUPS related information. \fBprint.txt\fR (1)

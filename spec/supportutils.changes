@@ -1,4 +1,9 @@
 -------------------------------------------------------------------
+Fri Oct 26 15:03:18 UTC 2018 - jason.record@suse.com
+
+- Exclude pam.txt per GDPR by default (bsc#1112461)
+
+-------------------------------------------------------------------
 Thu Oct 11 15:07:50 UTC 2018 - jason.record@suse.com
 
 - udev service and journal content (bsc#1051797)
