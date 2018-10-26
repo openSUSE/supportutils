@@ -1990,7 +1990,7 @@ btrfs_info() {
 				CONFIG=$(echo $PAIR | cut -d\| -f1)
 				SUB_VOL=$(echo $PAIR | cut -d\| -f2)
 				log_cmd $OF "btrfs subvolume get-default $SUB_VOL"
-				log_cmd $OF "btrfs subvolume list $SUB_VOL | grep -v '.snapshots'"
+				log_cmd $OF "btrfs subvolume list $SUB_VOL"
 				log_cmd $OF "snapper -c $CONFIG list"
 			done
 			conf_files $OF /etc/sysconfig/snapper /etc/snapper/configs/* /etc/snapper/filters/*
