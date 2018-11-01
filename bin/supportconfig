@@ -1994,9 +1994,6 @@ btrfs_info() {
 			log_cmd $OF "btrfs scrub status $DISK"
 		done
 
-		FILES="/var/log/messages"
-		test $ADD_OPTION_LOGS -gt 0 && grep_log_files btrfs $OF 0 $FILES || grep_log_files btrfs $OF $VAR_OPTION_LINE_COUNT $FILES
-
 		if rpm_verify $OF snapper; then
 			log_cmd $OF "snapper list-configs"
 			CONFIGS=$(snapper --table-style 0 list-configs | sed -e 's/[[:space:]]*//g;1,2d')
@@ -2010,6 +2007,9 @@ btrfs_info() {
 			done
 			conf_files $OF /etc/sysconfig/snapper /etc/snapper/configs/* /etc/snapper/filters/*
 		fi
+                FILES="/var/log/messages"
+                test $ADD_OPTION_LOGS -gt 0 && grep_log_files btrfs $OF 0 $FILES || grep_log_files btrfs $OF $VAR_OPTION_LINE_COUNT $FILES
+
 		FILES="/var/log/snapper.log"
 		test $ADD_OPTION_LOGS -gt 0 && log_files $OF 0 $FILES || log_files $OF $VAR_OPTION_LINE_COUNT $FILES
 		echolog Done
