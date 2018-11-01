@@ -1905,6 +1905,7 @@ disk_info() {
 
 	log_cmd $OF 'ls -lR --time-style=long-iso /dev/disk/'
 	log_cmd $OF 'ls -l --time-style=long-iso /sys/block/'
+	log_cmd $OF 'lslocks'
 
 	if [ $ADD_OPTION_MINDISK -eq 0 ]; then
 		log_cmd $OF 'iostat -x 1 4'
