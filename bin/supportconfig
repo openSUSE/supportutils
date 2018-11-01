@@ -1988,11 +1988,17 @@ btrfs_info() {
 		[[ -x /usr/bin/findmnt ]] && log_cmd $OF "findmnt" || log_cmd $OF "mount"
 		log_cmd $OF "df -h"
 		log_cmd $OF "modinfo btrfs"
-		for DISK in $(mount | grep -i btrfs | awk '{ print $3 }')
-		do
-			log_cmd $OF "btrfs filesystem df $DISK"
-			log_cmd $OF "btrfs scrub status $DISK"
-		done
+                for DEVICE in $(btrfs filesystem show | awk 'NF{ print $NF }' | grep ^/)
+                #TODO For multi-device btrfs filesysems only use one device
+                do
+                        for FILESYS in $(findmnt -S $DEVICE --types btrfs --list --output target --first-only --noheadings)
+                        do
+                                log_cmd $OF "btrfs filesystem df $FILESYS"
+                                log_cmd $OF "btrfs scrub status $FILESYS"
+                                log_cmd $OF "btrfs subvolume get-default $SUB_VOL"
+                                log_cmd $OF "btrfs subvolume list $SUB_VOL"
+                        done
+                done
 
 		if rpm_verify $OF snapper; then
 			log_cmd $OF "snapper list-configs"
@@ -2000,9 +2006,6 @@ btrfs_info() {
 			for PAIR in $CONFIGS
 			do
 				CONFIG=$(echo $PAIR | cut -d\| -f1)
-				SUB_VOL=$(echo $PAIR | cut -d\| -f2)
-				log_cmd $OF "btrfs subvolume get-default $SUB_VOL"
-				log_cmd $OF "btrfs subvolume list $SUB_VOL"
 				log_cmd $OF "snapper -c $CONFIG list"
 			done
 			conf_files $OF /etc/sysconfig/snapper /etc/snapper/configs/* /etc/snapper/filters/*
