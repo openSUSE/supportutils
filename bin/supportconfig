@@ -2667,7 +2667,11 @@ ha_info() {
 			log_cmd $OF 'ntpq -p'
 			log_cmd $OF 'crm_mon -r -1'
 			log_cmd $OF 'crm_mon -r -n -1'
+			# Display node attributes ; Nov 15, 2018 ; Added by Ahmad Al Zayed
+			log_cmd $OF 'crm_mon -A -1'
 			log_cmd $OF 'corosync-cfgtool -s'
+			# More corosync information ; Nov 15, 2018 ; Added by Ahmad Al Zayed
+			log_cmd $OF 'crm corosync show' 
 			log_cmd $OF 'crm configure show'
 			conf_files $OF $CONF_FILES
 			if [[ -s /etc/sysconfig/sbd ]]; then
@@ -2742,7 +2746,11 @@ ha_info() {
 			log_cmd $OF 'chronyc sources -v'
 			log_cmd $OF 'crm_mon -r -1'
 			log_cmd $OF 'crm_mon -r -n -1'
+			# Display node attributes ; Nov 15, 2018 ; Added by Ahmad Al Zayed
+			log_cmd $OF 'crm_mon -A -1' 
 			log_cmd $OF 'corosync-cfgtool -s'
+			# More corosync information ; Nov 15, 2018 ; Added by Ahmad Al Zayed
+			log_cmd $OF 'crm corosync show' 
 			log_cmd $OF 'crm configure show'
 			conf_files $OF $CONF_FILES
 			if [[ -s /etc/sysconfig/sbd ]]; then
