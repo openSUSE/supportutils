@@ -1699,6 +1699,12 @@ firewall_info() {
 	esac
 	conf_files $OF $FILES
 
+	if rpm_verify $OF firewalld
+	then
+		log_cmd $OF "firewall-cmd --get-default-zone"
+		log_cmd $OF "firewall-cmd --list-ports"
+	fi
+
 	echolog Done
 }
 
