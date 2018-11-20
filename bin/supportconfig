@@ -155,78 +155,6 @@ basic_environment() {
 			log_cmd $BASIC_ENVF 'oes-SPident -vv'
 		fi
 		cat $LOG/$RPM_DIST_FILE >> $LOG/$BASIC_ENVF
-		case $SLES_VER in
-		15*)
-			if rpm_verify $BASIC_ENVF firewalld
-			then
-				log_write $BASIC_ENVF "#==[ Firewall Services ]============================#"
-				log_write $BASIC_ENVF "# Service state"
-				wait_trace_on "systemctl status firewalld.service"
-				log_write $BASIC_ENVF "$(systemctl status firewalld.service)"
-				wait_trace_off
-				wait_trace_on "systemctl status firewalld.service"
-				log_write $BASIC_ENVF "$(systemctl status firewalld.service)"
-				wait_trace_off
-				IPBIN="/usr/sbin/iptables"
-				if [[ -x $IPBIN ]]; then
-					TOTAL_FIREWALL_RULES=0
-					for TABLE in filter nat mangle raw security
-					do
-						if grep iptable_$TABLE /proc/modules &>/dev/null
-						then
-							wait_trace_on "$IPBIN -t $TABLE -nL | sed -e '/^$/d' -e '/^Chain/d' -e '/^target/d' | wc -l"
-							FIREWALL_RULES=$($IPBIN -t $TABLE -nL | sed -e '/^$/d' -e '/^Chain/d' -e '/^target/d' | wc -l)
-							TOTAL_FIREWALL_RULES=$(( TOTAL_FIREWALL_RULES + FIREWALL_RULES ))
-							wait_trace_off
-						fi
-					done
-					log_write $BASIC_ENVF
-					log_write $BASIC_ENVF "$TOTAL_FIREWALL_RULES Active Firewall Rules"
-					log_write $BASIC_ENVF
-				fi
-			fi
-			;;
-		11*|12*)
-			if rpm_verify $BASIC_ENVF SuSEfirewall2
-			then
-				log_write $BASIC_ENVF "#==[ Firewall Services ]============================#"
-				log_write $BASIC_ENVF "# Service state"
-				if (( SLES_VER >= 120 )); then
-					wait_trace_on "systemctl status SuSEfirewall2.service"
-					log_write $BASIC_ENVF "$(systemctl status SuSEfirewall2.service)"
-					wait_trace_off
-					wait_trace_on "systemctl status SuSEfirewall2_init.service"
-					log_write $BASIC_ENVF "$(systemctl status SuSEfirewall2_init.service)"
-					wait_trace_off
-				else
-					for i in $(rpm -ql SuSEfirewall2 | grep init.d)
-					do
-						FSRV=$(basename $i)
-						wait_trace_on "chkconfig $FSRV --list"
-						log_write $BASIC_ENVF "$(chkconfig $FSRV --list)"
-						wait_trace_off
-					done
-				fi
-				IPBIN="/usr/sbin/iptables"
-				if [[ -x $IPBIN ]]; then
-					TOTAL_FIREWALL_RULES=0
-					for TABLE in filter nat mangle raw
-					do
-						if grep iptable_$TABLE /proc/modules &>/dev/null
-						then
-							wait_trace_on "$IPBIN -t $TABLE -nL | sed -e '/^$/d' -e '/^Chain/d' -e '/^target/d' | wc -l"
-							FIREWALL_RULES=$($IPBIN -t $TABLE -nL | sed -e '/^$/d' -e '/^Chain/d' -e '/^target/d' | wc -l)
-							TOTAL_FIREWALL_RULES=$(( TOTAL_FIREWALL_RULES + FIREWALL_RULES ))
-							wait_trace_off
-						fi
-					done
-					log_write $BASIC_ENVF
-					log_write $BASIC_ENVF "$TOTAL_FIREWALL_RULES Active Firewall Rules"
-					log_write $BASIC_ENVF
-				fi
-			fi
-			;;
-		esac
 	fi
 	echolog Done
 }
@@ -1680,6 +1608,100 @@ hardware_info() {
 	echolog Done
 }
 
+firewall_info() {
+	printlog "Firewall..."
+	test $OPTION_FIREWALL -eq 0 && { echolog Excluded; return 1; }
+	OF=firewall.txt
+	addHeaderFile $OF
+
+	if ! ((NSA_CHECK)); then
+		case $SLES_VER in
+		15*)
+			if rpm_verify $OF firewalld
+			then
+				log_write $OF "#==[ Firewall Services ]============================#"
+				log_write $OF "# Service state"
+				wait_trace_on "systemctl status firewalld.service"
+				log_write $OF "$(systemctl status firewalld.service)"
+				wait_trace_off
+				wait_trace_on "systemctl status firewalld.service"
+				log_write $OF "$(systemctl status firewalld.service)"
+				wait_trace_off
+				IPBIN="/usr/sbin/iptables"
+				if [[ -x $IPBIN ]]; then
+					TOTAL_FIREWALL_RULES=0
+					for TABLE in filter nat mangle raw security
+					do
+						if grep iptable_$TABLE /proc/modules &>/dev/null
+						then
+							wait_trace_on "$IPBIN -t $TABLE -nL | sed -e '/^$/d' -e '/^Chain/d' -e '/^target/d' | wc -l"
+							FIREWALL_RULES=$($IPBIN -t $TABLE -nL | sed -e '/^$/d' -e '/^Chain/d' -e '/^target/d' | wc -l)
+							TOTAL_FIREWALL_RULES=$(( TOTAL_FIREWALL_RULES + FIREWALL_RULES ))
+							wait_trace_off
+						fi
+					done
+					log_write $OF
+					log_write $OF "$TOTAL_FIREWALL_RULES Active Firewall Rules"
+					log_write $OF
+				fi
+			fi
+			;;
+		11*|12*)
+			if rpm_verify $OF SuSEfirewall2
+			then
+				log_write $OF "#==[ Firewall Services ]============================#"
+				log_write $OF "# Service state"
+				if (( SLES_VER >= 120 )); then
+					wait_trace_on "systemctl status SuSEfirewall2.service"
+					log_write $OF "$(systemctl status SuSEfirewall2.service)"
+					wait_trace_off
+					wait_trace_on "systemctl status SuSEfirewall2_init.service"
+					log_write $OF "$(systemctl status SuSEfirewall2_init.service)"
+					wait_trace_off
+				else
+					for i in $(rpm -ql SuSEfirewall2 | grep init.d)
+					do
+						FSRV=$(basename $i)
+						wait_trace_on "chkconfig $FSRV --list"
+						log_write $OF "$(chkconfig $FSRV --list)"
+						wait_trace_off
+					done
+				fi
+				IPBIN="/usr/sbin/iptables"
+				if [[ -x $IPBIN ]]; then
+					TOTAL_FIREWALL_RULES=0
+					for TABLE in filter nat mangle raw
+					do
+						if grep iptable_$TABLE /proc/modules &>/dev/null
+						then
+							wait_trace_on "$IPBIN -t $TABLE -nL | sed -e '/^$/d' -e '/^Chain/d' -e '/^target/d' | wc -l"
+							FIREWALL_RULES=$($IPBIN -t $TABLE -nL | sed -e '/^$/d' -e '/^Chain/d' -e '/^target/d' | wc -l)
+							TOTAL_FIREWALL_RULES=$(( TOTAL_FIREWALL_RULES + FIREWALL_RULES ))
+							wait_trace_off
+						fi
+					done
+					log_write $OF
+					log_write $OF "$TOTAL_FIREWALL_RULES Active Firewall Rules"
+					log_write $OF
+				fi
+			fi
+			;;
+		esac
+	fi
+
+	case $SLES_VER in
+	15*)
+		FILES="/etc/sysconfig/firewalld"
+		;;
+	11*|12*)
+		FILES="/etc/sysconfig/SuSEfirewall2 /etc/sysconfig/personal-firewall"
+		;;
+	esac
+	conf_files $OF $FILES
+
+	echolog Done
+}
+
 net_info() {
 	printlog "Networking..."
 	test $OPTION_NET -eq 0 && { echolog Excluded; return 1; }
@@ -1817,15 +1839,6 @@ net_info_namespace() {
 	if [[ -z "${NS}" ]] ; then
 		log_cmd $OF "nscd -g"
 		conf_files $OF /etc/hosts /etc/host.conf /etc/resolv.conf /etc/nsswitch.conf /etc/nscd.conf /etc/hosts.allow /etc/hosts.deny
-		case $SLES_VER in
-		15*)
-			FILES="/etc/sysconfig/firewalld"
-			;;
-		11*|12*)
-			FILES="/etc/sysconfig/SuSEfirewall2 /etc/sysconfig/personal-firewall"
-			;;
-		esac
-		conf_files $OF $FILES
 	fi
 	for TABLE in filter nat mangle raw
 	do
@@ -4393,6 +4406,7 @@ if [ "$USE_SAVED_LOGS_ONLY" != "1" ]; then
 	soft_raid_info
 	mpio_info
 	net_info
+	firewall_info
 	web_info
 	(( SLES_VER >= 100 )) && ib_info
 	dns_info
