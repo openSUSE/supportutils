@@ -2670,8 +2670,8 @@ ha_info() {
 			# Display node attributes ; Nov 15, 2018 ; Added by Ahmad Al Zayed
 			log_cmd $OF 'crm_mon -A -1'
 			log_cmd $OF 'corosync-cfgtool -s'
-			# More corosync information ; Nov 15, 2018 ; Added by Ahmad Al Zayed
-			log_cmd $OF 'crm corosync show' 
+			# More corosync information ; Dec 06, 2018 ; Added by Ahmad Al Zayed
+			log_cmd $OF 'crm corosync status' 
 			log_cmd $OF 'crm configure show'
 			conf_files $OF $CONF_FILES
 			if [[ -s /etc/sysconfig/sbd ]]; then
@@ -2749,8 +2749,8 @@ ha_info() {
 			# Display node attributes ; Nov 15, 2018 ; Added by Ahmad Al Zayed
 			log_cmd $OF 'crm_mon -A -1' 
 			log_cmd $OF 'corosync-cfgtool -s'
-			# More corosync information ; Nov 15, 2018 ; Added by Ahmad Al Zayed
-			log_cmd $OF 'crm corosync show' 
+			# More corosync information ; Dec 6, 2018 ; Added by Ahmad Al Zayed
+			log_cmd $OF 'crm corosync status' 
 			log_cmd $OF 'crm configure show'
 			conf_files $OF $CONF_FILES
 			if [[ -s /etc/sysconfig/sbd ]]; then
