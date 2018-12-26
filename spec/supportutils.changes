@@ -1,4 +1,9 @@
 -------------------------------------------------------------------
+Wed Dec 26 18:10:28 UTC 2018 - jason.record@suse.com
+
+- Dump find errors in ib_info
+
+-------------------------------------------------------------------
 Fri Oct 26 15:03:18 UTC 2018 - jason.record@suse.com
 
 - Exclude pam.txt per GDPR by default (bsc#1112461)

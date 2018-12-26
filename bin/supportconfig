@@ -3904,7 +3904,7 @@ ib_info() {
 			log_cmd $OF 'lsmod'
 			log_cmd $OF 'ibv_devinfo -v'
 			log_cmd $OF 'ibdiagnet'
-			FILES=$(find -L /tmp/ -type f | grep ibdiagnet)
+			FILES=$(find -L /tmp/ -type f 2>/dev/null | grep ibdiagnet)
 			test $ADD_OPTION_LOGS -gt 0 && log_files $OF 0 $FILES || log_files $OF $VAR_OPTION_LINE_COUNT $FILES
 			echolog Done
 		else
@@ -3935,9 +3935,9 @@ ib_info() {
 
 			# Get configuration files
 			FILES=$(find -L /etc/rdma/ -type f)
-			[[ -d /etc/infiniband ]] && FILES="$FILES $(find -L /etc/infiniband/ -type f)"
+			[[ -d /etc/infiniband ]] && FILES="$FILES $(find -L /etc/infiniband/ -type f 2>/dev/null)"
 			(( CHK_SRP )) && FILES="$FILES /etc/srp_daemon.conf"
-			(( CHK_DIAG )) && FILES="$FILES $(find -L /etc/infiniband-diags/ -type f)"
+			(( CHK_DIAG )) && FILES="$FILES $(find -L /etc/infiniband-diags/ -type f 2>/dev/null)"
 			(( CHK_OPENSM )) && FILES="$FILES /etc/opensm.conf /etc/sysconfig/opensm"
 			conf_files $OF $FILES
 
@@ -3957,7 +3957,7 @@ ib_info() {
 			log_cmd $OF 'lsmod'
 
 			FILES=''
-			(( CHK_DIAG )) && FILES="$FILES $(find -L /tmp/ -type f | grep ibdiagnet)"
+			(( CHK_DIAG )) && FILES="$FILES $(find -L /tmp/ -type f 2>/dev/null | grep ibdiagnet)"
 			(( CHK_OPENSM )) && FILES="$FILES /var/log/osm.log"
 			(( CHK_ACM )) && FILES="$FILES /var/log/ibacm.log"
 			test $ADD_OPTION_LOGS -gt 0 && log_files $OF 0 $FILES || log_files $OF $VAR_OPTION_LINE_COUNT $FILES
@@ -4010,7 +4010,7 @@ ib_info() {
 			log_cmd $OF 'lsmod'
 
 			FILES=''
-			(( CHK_DIAG )) && FILES="$FILES $(find -L /tmp/ -type f | grep ibdiagnet)"
+			(( CHK_DIAG )) && FILES="$FILES $(find -L /tmp/ -type f 2>/dev/null | grep ibdiagnet)"
 			(( CHK_OPENSM )) && FILES="$FILES /var/log/opensm.log"
 			(( CHK_ACM )) && FILES="$FILES /var/log/ibacm.log"
 			test $ADD_OPTION_LOGS -gt 0 && log_files $OF 0 $FILES || log_files $OF $VAR_OPTION_LINE_COUNT $FILES
