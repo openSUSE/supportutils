@@ -1,7 +1,7 @@
 #!/bin/bash
 
-SVER='3.0-114'
-SDATE='2018 08 23'
+SVER='3.0-115'
+SDATE='2018 12 26'
 
 ##############################################################################
 #  supportconfig - Gathers system troubleshooting information for NTS.
@@ -5846,7 +5846,7 @@ ib_info() {
 			log_cmd $OF 'lsmod'
 			log_cmd $OF 'ibv_devinfo -v'
 			log_cmd $OF 'ibdiagnet'
-			FILES=$(find -L /tmp/ -type f | grep ibdiagnet)
+			FILES=$(find -L /tmp/ -type f 2>/dev/null | grep ibdiagnet)
 			test $ADD_OPTION_LOGS -gt 0 && log_files $OF 0 $FILES || log_files $OF $VAR_OPTION_LINE_COUNT $FILES
 			echolog Done
 		else
@@ -5862,7 +5862,7 @@ ib_info() {
 			log_cmd $OF 'lsmod'
 			log_cmd $OF 'ibv_devinfo -v'
 			log_cmd $OF 'ibdiagnet'
-			FILES=$(find -L /tmp/ -type f | grep ibdiagnet)
+			FILES=$(find -L /tmp/ -type f 2>/dev/null | grep ibdiagnet)
 			test $ADD_OPTION_LOGS -gt 0 && log_files $OF 0 $FILES || log_files $OF $VAR_OPTION_LINE_COUNT $FILES
 			echolog Done
 		else
