@@ -1,6 +1,7 @@
 -------------------------------------------------------------------
-Wed Dec 26 18:10:28 UTC 2018 - jason.record@suse.com
+Fri Dec 28 12:50:09 UTC 2018 - jason.record@suse.com
 
+- Clarified -x functionality in supportconfig(8) (bsc#1115245)
 - Dump find errors in ib_info
 
 -------------------------------------------------------------------
