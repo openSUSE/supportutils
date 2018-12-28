@@ -1,4 +1,4 @@
-.TH SUPPORTCONFIG 8 "05 Apr 2017" "supportutils" "Support Utilities Manual"
+.TH SUPPORTCONFIG 8 "28 Dec 2018" "supportutils" "Support Utilities Manual"
 .SH NAME
 supportconfig - Gathers system troubleshooting information
 .SH SYNOPSIS
@@ -185,7 +185,7 @@ Performs an rpm -V for each installed rpm on systems prior to SLES11. For SLES11
 Enable verbose wait trace logging. Shows the start and stop times of each command supportconfig is running.
 .TP
 \fB\-x\fR \fIkeyword[,keyword]\fR
-Exclude keywords. A comma separated list of feature keywords that specify which features to exclude. 
+Only exclude keywords. A comma separated list of feature keywords that specify which features to exclude. It is the same as -A -o keyword[,keyword].
 Use -F to see a list of valid keywords. Do not use spaces and keywords are case-sensitive.
 .RS
 .B Example:
