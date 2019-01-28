@@ -1,6 +1,6 @@
 #!/bin/bash
 
-SVER='3.0-117'
+SVER='3.0-118'
 SDATE='2019 01 28'
 
 ##############################################################################
@@ -1446,6 +1446,7 @@ update_info() {
 	TIMEOUT=0
 	if [ $SLES_VER -ge 110 ] && rpm_verify $OF zypper; then
 		log_cmd $OF 'date'
+		log_cmd $OF 'ls -lA --time-style=long-iso /etc/products.d/'
 		for CMDOPT in services 'repos -d' patch-check patches list-patches products '--xml products'
 		do
 			if [ $TIMEOUT -ge 10 ]; then
