@@ -3048,7 +3048,7 @@ open_files() {
 	addHeaderFile $OF
 	if rpm_verify $OF lsof
 	then
-		log_cmd $OF "lsof -b +M -n -l"
+		log_cmd $OF "lsof -b +M -n -l 2>/dev/null"
 		echolog Done
 	else
 		echolog Skipped
