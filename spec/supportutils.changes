@@ -1,4 +1,10 @@
 -------------------------------------------------------------------
+Mon Jan 28 15:31:24 UTC 2019 - jason.record@suse.com
+
+- Added ha commands for corosync
+- supportconfig: 3.0.116
+
+-------------------------------------------------------------------
 Fri Dec 28 13:07:05 UTC 2018 - jason.record@suse.com
 
 - Clarified supportconfig(8) -x option (bsc#1115245)
