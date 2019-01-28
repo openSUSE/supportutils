@@ -1995,7 +1995,7 @@ btrfs_info() {
                 do
                         for FILESYS in $(findmnt -S $DEVICE --types btrfs --list --output target --first-only --noheadings)
                         do
-                                log_cmd $OF "btrfs filesystem df $FILESYS"
+                                log_cmd $OF "btrfs filesystem usage $FILESYS"
                                 log_cmd $OF "btrfs scrub status $FILESYS"
                                 log_cmd $OF "btrfs subvolume get-default $SUB_VOL"
                                 log_cmd $OF "btrfs subvolume list $SUB_VOL"
