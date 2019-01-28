@@ -850,7 +850,6 @@ update_info() {
 	fi
 	if (( SLES_VER >= 120 ))
 	then
-		log_cmd $OF 'ls -lA --time-style=long-iso /etc/products.d/'
 		if rpm_verify $OF SUSEConnect
 		then
 			rpm_verify $OF ruby2.1-rubygem-suse-connect
