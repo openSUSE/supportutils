@@ -1,6 +1,7 @@
 -------------------------------------------------------------------
-Mon Jan 28 15:36:37 UTC 2019 - jason.record@suse.com
+Mon Jan 28 15:53:30 UTC 2019 - jason.record@suse.com
 
+- Add ls -lA --time-style=long-iso /etc/products.d/
 - Dump lsof errors
 - Added corosync status to ha_info
 

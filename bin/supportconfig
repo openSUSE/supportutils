@@ -1,6 +1,6 @@
 #!/bin/bash
 
-SVER='3.1-4.13'
+SVER='3.1-4.14'
 SDATE='2019 01 28'
 
 ##############################################################################
@@ -833,7 +833,7 @@ update_info() {
 	TIMEOUT=0
 	if [ $SLES_VER -ge 110 ] && rpm_verify $OF zypper; then
 		log_cmd $OF 'date'
-		log_cmd $OF 'ls -lah /etc/products.d/'
+		log_cmd $OF 'ls -lA --time-style=long-iso /etc/products.d/'
 		for CMDOPT in services 'repos -d' patch-check patches list-patches products '--xml products'
 		do
 			if [ $TIMEOUT -ge 10 ]; then
@@ -850,7 +850,7 @@ update_info() {
 	fi
 	if (( SLES_VER >= 120 ))
 	then
-		log_cmd $OF 'ls -lah /etc/products.d'
+		log_cmd $OF 'ls -lA --time-style=long-iso /etc/products.d/'
 		if rpm_verify $OF SUSEConnect
 		then
 			rpm_verify $OF ruby2.1-rubygem-suse-connect
