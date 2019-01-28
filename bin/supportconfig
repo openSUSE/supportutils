@@ -1,6 +1,6 @@
 #!/bin/bash
 
-SVER='3.1-4.15'
+SVER='3.1-4.16'
 SDATE='2019 01 28'
 
 ##############################################################################
@@ -1707,11 +1707,20 @@ net_info_namespace() {
 	fi
 	if [[ -z "${NS}" ]] ; then
 		rpm_verify $OF sysconfig
-		if (( SLES_VER >= 120 )) ; then
+		if (( SLES_VER >= 150 )); then
+			rpm_verify $OF wicked
+			rpm_verify $OF iproute2
+			rpm_verify $OF firewalld && log_cmd $OF "systemctl status firewalld.service"
+			log_cmd $OF "systemctl status network.service"
+			log_cmd $OF "systemctl status nscd.service"
+			log_cmd $OF "wicked ifstatus --verbose all"
+			log_cmd $OF "wicked show-config"
+		elif (( SLES_VER >= 120 )) ; then
 			rpm_verify $OF wicked
 			rpm_verify $OF iproute2
 			log_cmd $OF "systemctl status network.service"
 			log_cmd $OF "systemctl status nscd.service"
+			rpm_verify $OF SuSEfirewall2 && log_cmd $OF "systemctl status SuSEfirewall2.service"
 			log_cmd $OF "wicked ifstatus --verbose all"
 			log_cmd $OF "wicked show-config"
 		else
@@ -1828,6 +1837,7 @@ net_info_namespace() {
 		esac
 		conf_files $OF $FILES
 	fi
+	(( $SLES_VER >= 150 )) && log_cmd $OF "${NS}firewall-cmd --list-all"
 	for TABLE in filter nat mangle raw
 	do
 		if grep iptable_$TABLE /proc/modules &>/dev/null

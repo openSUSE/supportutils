@@ -1,6 +1,7 @@
 -------------------------------------------------------------------
-Mon Jan 28 16:03:42 UTC 2019 - jason.record@suse.com
+Mon Jan 28 17:50:42 UTC 2019 - jason.record@suse.com
 
+- Added firewall-cmd info
 - btrfs filesystem usage
 - Add ls -lA --time-style=long-iso /etc/products.d/
 - Dump lsof errors
