@@ -22,7 +22,7 @@ Name:           supportutils
 Version:        3.1
 Release:        0
 Summary:        Support Troubleshooting Tools
-License:        GPL-2.0-only
+License:        GPL-2.0
 Group:          System/Monitoring
 Url:            https://github.com/g23guy/supportutils
 Source:         %{name}-%{version}.tar.gz
@@ -70,6 +70,7 @@ install -m 444 bin/supportconfig.rc %{buildroot}%{support_libdir}/resources
 install -m 644 man/*.3.gz %{buildroot}%{_mandir}/man3
 install -m 644 man/*.5.gz %{buildroot}%{_mandir}/man5
 install -m 644 man/*.8.gz %{buildroot}%{_mandir}/man8
+install -m 644 man/COPYING.GPLv2 %{buildroot}%{_docdir}/%{name}
 
 %files
 %defattr(-,root,root)
@@ -82,7 +83,13 @@ install -m 644 man/*.8.gz %{buildroot}%{_mandir}/man8
 %dir %{support_libdir}/plugins
 %dir %{_docdir}/%{name}
 %doc %{_docdir}/%{name}/*
-%license man/COPYING.GPLv2
+
+%if 0%{?suse_version} < 1500
+%doc %{_docdir}/%{name}/COPYING.GPLv2
+%else
+%license %{_docdir}/%{name}/COPYING.GPLv2
+%endif
+
 %{support_libdir}/resources/*
 %doc %{_mandir}/man5/*
 %doc %{_mandir}/man3/*
