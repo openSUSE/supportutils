@@ -1,7 +1,7 @@
 #!/bin/bash
 
-SVER='3.1-4.16'
-SDATE='2019 01 28'
+SVER='3.1-4.17'
+SDATE='2019 02 15'
 
 ##############################################################################
 #  supportconfig - Gathers system troubleshooting information for SUSE Support
@@ -150,9 +150,6 @@ basic_environment() {
 			if rpm_verify $BASIC_ENVF SPident; then
 				log_cmd $BASIC_ENVF 'SPident -vv'
 			fi
-		fi
-		if rpm -q oes-SPident &>/dev/null; then
-			log_cmd $BASIC_ENVF 'oes-SPident -vv'
 		fi
 		cat $LOG/$RPM_DIST_FILE >> $LOG/$BASIC_ENVF
 		case $SLES_VER in
@@ -992,40 +989,6 @@ update_info() {
 		(( FOUND )) && log_write $OF
 	fi
 	echolog Done
-}
-
-update_d_info() {
-	printlog "Updates Daemon..."
-	test $OPTION_UPD -eq 0 && { echolog Excluded; return 1; }
-	OF=updates-daemon.txt
-	SKIP=0
-	addHeaderFile $OF
-	if rpm_verify $OF rcd
-	then
-		RCD_HISTORY="/var/log/rcd/rcd-package-history"
-		check_service $OF rcd
-		log_cmd $OF "grep |upgrade| $RCD_HISTORY"
-
-		FILES="/var/log/rcd/rcd-messages $RCD_HISTORY"
-		test $ADD_OPTION_LOGS -gt 0 && log_files $OF 0 $FILES || log_files $OF $VAR_OPTION_LINE_COUNT $FILES
-	else
-		((SKIP++))
-	fi
-
-	if rpm_verify $OF zmd
-	then
-		check_service $OF novell-zmd
-		conf_files $OF /etc/zmd/zmd.conf /etc/zmd/deviceid /etc/zmd/secret /etc/sysconfig/zmd
-		sed -i -e 's/.*proxy-password[[:space:]]*=/*REMOVED BY SUPPORTCONFIG*/g' $LOG/$OF
-		[ $ADD_OPTION_LOGS -gt 0 ] && FILES="/var/log/zmd-messages.log*" || FILES="/var/log/zmd-messages.log"
-		[ $ADD_OPTION_LOGS -gt 0 ] && log_files $OF 0 $FILES || log_files $OF $VAR_OPTION_LINE_COUNT $FILES
-		FILES="/var/log/messages"
-		[ $ADD_OPTION_LOGS -gt 0 ] && grep_log_files 'zmd:' $OF 0 $FILES || grep_log_files 'zmd:' $OF $VAR_OPTION_LINE_COUNT $FILES
-	else
-		((SKIP++))
-	fi
-
-	test $SKIP -lt 2 && echolog Done || echolog Skipped
 }
 
 pam_info() {
@@ -3818,30 +3781,11 @@ dhcp_info() {
 		log_cmd $OF 'ss -nlp | grep dhcp'
 		conf_files $OF /etc/sysconfig/dhcpd
 		conf_files $OF /etc/dhcpd.conf /var/lib/dhcp/db/dhcpd.leases
-	else
-		((SKIP++))
-	fi
-	if rpm_verify $OF novell-oes-dhcp-conf; then
-		SYSNOVLDHCP=/etc/sysconfig/novell/NvlDhcp*
-		ACTIVEFILE=$(ls -1 /etc/sysconfig/novell/NvlDhcp* | sort | tail -1)
-		if [ -s $ACTIVEFILE ]; then
-			. $ACTIVEFILE
-			log_entry $OF entry "Using $ACTIVEFILE"
-			conf_files $OF $CONFIG_DHCPSRV_LDAP_DEBUGFILE $SYSNOVLDHCP
-			[ -n "$CONFIG_DHCPSRV_LOCATOR_CONTEXT" ] && timed_log_cmd $OF "ldapsearch -x -s one -b $CONFIG_DHCPSRV_LOCATOR_CONTEXT objectclass=dhcpLocator"
-			[ -n "$CONFIG_DHCPSRV_GROUP_CONTEXT" ] && timed_log_cmd $OF "ldapsearch -x -b cn=DHCPGroup,$CONFIG_DHCPSRV_GROUP_CONTEXT"
-		else
-			conf_files $OF $SYSNOVLDHCP
-		fi
-	else
-		((SKIP++))
-	fi
-	if [ $SKIP -eq 2 ]; then
-		echolog Skipped
-	else
 		log_cmd $OF "grep ' dhcpd' /var/log/warn"
 		log_cmd $OF "grep ' dhcpd' /var/log/messages"
 		echolog Done
+	else
+		echolog Skipped
 	fi
 }
 
@@ -4069,15 +4013,6 @@ web_info() {
 		do
 			check_service $OF $(basename $WEB_SERVICE)
 		done
-		OES_CATALINA_BASE=''
-		if [ -d /var/opt/novell ]; then
-			OES_CATALINA_BASE=$(find -L /var/opt/novell -maxdepth 1 -type d | grep tomcat | tail -1)
-		fi
-		if [ -d $OES_CATALINA_BASE ]; then
-			conf_files $OF $OES_CATALINA_BASE/conf/*xml
-			FILES="$OES_CATALINA_BASE/logs/catalina.out"
-			test $ADD_OPTION_LOGS -gt 0 && log_files $OF 0 $FILES || log_files $OF $VAR_OPTION_LINE_COUNT $FILES
-		fi
 		if [ -s /etc/sysconfig/j2ee ]; then
 			conf_files $OF /etc/sysconfig/j2ee
 			. /etc/sysconfig/j2ee
@@ -4085,19 +4020,10 @@ web_info() {
 			FILES="$CATALINA_HOME/logs/catalina.out $CATALINA_HOME/logs/localhost_log*"
 			test $ADD_OPTION_LOGS -gt 0 && log_files $OF 0 $FILES || log_files $OF $VAR_OPTION_LINE_COUNT $FILES
 		fi
+		echolog Done
 	else
-		((SKIP++))
+		echolog Skipped
 	fi
-	if rpm -q novell-nrm &>/dev/null; then
-		check_service $OF novell-httpstkd
-		conf_files $OF /etc/opt/novell/httpstkd.conf
-		log_cmd $OF 'ss -nlp | grep -i http'
-		log_cmd $OF 'ps -eaf | grep httpstkd'
-		[ -d /etc/opt/novell/httpstkd ] && log_cmd $OF 'ls -lR --time-style=long-iso /etc/opt/novell/httpstkd'
-	else
-		((SKIP++))
-	fi
-	[ $SKIP -eq 2 ] && echolog Skipped || echolog Done
 }
 
 hppsp_info() {
@@ -4274,10 +4200,9 @@ if [ -n "$TARGET_DIRECTORY" ]; then
 	VAR_OPTION_LOG_DIRS=$TARGET_DIRECTORY
 fi
 
-# Ensures files uploaded to a novell.com address have unique file names
+# Uploaded tarball filenames should be unique
 if (( UPLOAD_TARBALL )); then
-	TONOVELL=$(echo $VAR_OPTION_UPLOAD_TARGET | grep -i "novell.com")
-	[ -n "$TONOVELL" ] && VAR_OPTION_UNIQUE_FILE=1
+	VAR_OPTION_UNIQUE_FILE=1
 fi
 
 # Add custom tar ball name element
@@ -4389,7 +4314,6 @@ if [ "$USE_SAVED_LOGS_ONLY" != "1" ]; then
 	boot_info
 	slert_info
 	update_info
-	(( SLES_VER < 110 )) && update_d_info
 	smt_info
 	ha_info
 	ocfs2_info

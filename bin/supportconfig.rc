@@ -36,7 +36,6 @@ OPTION_NET=1
 OPTION_NFS=1
 OPTION_NTP=1
 OPTION_OCFS2=1
-OPTION_OES=0
 OPTION_OFILES=1
 OPTION_PRINT=1
 OPTION_PROC=1
@@ -120,7 +119,7 @@ XML_FILE=summary.xml
 COMPRESS="tbz"
 COMPRESS_OPT="jcf"
 SC_SRV=$(hostname) # %s
-test "$SC_SRV" = "" && SC_SRV=novell
+test "$SC_SRV" = "" && SC_SRV=suse
 SC_DATE=$(date +"%y%m%d") # %d
 SC_TIME=$(date +"%H%M") # %t
 test -x /usr/bin/uuidgen && SC_UID="$(uuidgen 2>/dev/null)" || SC_UID="$(mktemp -u XXXXXXXXXXXXXXXXXXXXXXXXXXXXXX)" # %u
@@ -1151,7 +1150,7 @@ upload_tarball() {
 				echo "ERROR: Unsupported upload service type: ${UPLOAD_SERVICE}"
 				echo
 				echo "  Supported service types: ftp, scp"
-				echo "  Example URI: ftp://ftp.novell.com/incoming"
+				echo "  Example URI: ftp://ftp.server.com/incoming"
 				echo
 				echo "  VAR_OPTION_UPLOAD_TARGET=\"${VAR_OPTION_UPLOAD_TARGET}\""
 				;;
@@ -1300,12 +1299,6 @@ write_xml_file() {
 		xml_write 'sle_patchlevel' ''
 	fi
 
-	if [[ -f /etc/novell-release ]]; then
-		if grep -i open /etc/novell-release &>/dev/null; then
-			xml_write 'oes_version' "$(sed -ne 's/VERSION = //p' /etc/novell-release)"
-			xml_write 'oes_patchlevel' "$(sed -ne 's/PATCHLEVEL = //p' /etc/novell-release)"
-		fi
-	fi
 	echo '</summary>' >> $LOG/$XML_FILE
 	echo '<customer>' >> $LOG/$XML_FILE
 	test -n "$VAR_OPTION_CONTACT_COMPANY" && { xml_write 'company' "$VAR_OPTION_CONTACT_COMPANY"; }
@@ -1349,9 +1342,6 @@ get_sles_ver() {
 	else
 		SLES_VER=123
 	fi
-	grep -i "open enterprise server" /etc/*release* &>/dev/null
-	OESFOUND=$?
-	(( OESFOUND < 1 )) && OPTION_OES=1
 }
 
 
