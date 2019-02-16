@@ -1,4 +1,10 @@
 -------------------------------------------------------------------
+Sat Feb 16 17:52:28 UTC 2019 - jason.record@suse.com
+
+- Static temporary filename allows overwriting of files
+  (CVE-2018-19637 bsc#1117776)
+
+-------------------------------------------------------------------
 Fri Feb 15 14:58:41 UTC 2019 - jason.record@suse.com
 
 - Included additional SUSE separation (bsc#1125609)

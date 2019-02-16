@@ -3384,7 +3384,6 @@ x_info() {
         local verify_list
 	local xserver_present=n
 	local drm_present=n
-	echo "$SLES_VER" > /tmp/supp_log
 
 	printlog "X..."
 	test $OPTION_X -eq 0 && { echolog Excluded; return 1; }
