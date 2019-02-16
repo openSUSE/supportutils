@@ -4257,6 +4257,10 @@ if [ "$USE_SAVED_LOGS_ONLY" != "1" ]; then
 		fi
 	fi
 	test $VAR_OPTION_SILENT -gt 0 && title >> $LOG/$BASIC_ENVF || title | tee -a $LOG/$BASIC_ENVF
+	RPM_QA_FILE_PATH=$(mktemp ${LOG}/rpm_qa.XXXXXXXXXX)
+	RPM_DIST_FILE_PATH=$(mktemp ${LOG}/rpm_dist.XXXXXXXXXX)
+	RPM_QA_FILE=$(basename $RPM_QA_FILE_PATH)
+	RPM_DIST_FILE=$(basename $RPM_DIST_FILE_PATH)
 
 	addHeaderFile $CSFILE
 	log_entry $CSFILE note "Privacy Statement"

@@ -112,8 +112,6 @@ CSFILE=${CURRENT_SCRIPT}.txt
 RPMFILE=rpm.txt
 FSLIST_FILE=fs-files.txt
 FSLIST_ADD_FILE="${LIB_DIR}/additional-files.list"
-RPM_QA_FILE=rpm_qa.txt
-RPM_DIST_FILE=rpm_dist.txt
 BASIC_ENVF=basic-environment.txt
 XML_FILE=summary.xml
 COMPRESS="tbz"
@@ -1329,7 +1327,7 @@ write_xml_file() {
 get_sles_ver() {
 	if [[ -s /etc/os-release ]]; then
 		VID=$(grep VERSION_ID /etc/os-release | cut -d\= -f2)
-		echo "VID=$VID"
+#		echo "VID=$VID"
 		VID=${VID//\"/}
 		SLES_VER=${VID//\./}
 		if (( ${#SLES_VER} < 3 )); then
