@@ -1,6 +1,6 @@
 #!/bin/bash
 
-SVER='3.0-120'
+SVER='3.0-123'
 SDATE='2019 02 16'
 
 ##############################################################################
@@ -161,8 +161,6 @@ CSFILE=${CURRENT_SCRIPT}.txt
 RPMFILE=rpm.txt
 FSLIST_FILE=fs-files.txt
 FSLIST_ADD_FILE="${LIB_DIR}/additional-files.list"
-RPM_QA_FILE=rpm_qa.txt
-RPM_DIST_FILE=rpm_dist.txt
 BASIC_ENVF=basic-environment.txt
 XML_FILE=summary.xml
 COMPRESS="tbz"
@@ -6824,6 +6822,10 @@ if [ "$USE_SAVED_LOGS_ONLY" != "1" ]; then
 		fi
 	fi
 	test $VAR_OPTION_SILENT -gt 0 && title >> $LOG/$BASIC_ENVF || title | tee -a $LOG/$BASIC_ENVF
+	RPM_QA_FILE_PATH=$(mktemp ${LOG}/rpm_qa.XXXXXXXXXX)
+	RPM_DIST_FILE_PATH=$(mktemp ${LOG}/rpm_dist.XXXXXXXXXX)
+	RPM_QA_FILE=$(basename $RPM_QA_FILE_PATH)
+	RPM_DIST_FILE=$(basename $RPM_DIST_FILE_PATH)
 
 	addHeaderFile $CSFILE
 	log_entry $CSFILE note "Privacy Statement"

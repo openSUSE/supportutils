@@ -1,6 +1,10 @@
 -------------------------------------------------------------------
-Sat Feb 16 15:27:51 UTC 2019 - jason.record@suse.com
+Sat Feb 16 15:51:57 UTC 2019 - jason.record@suse.com
 
+- User can overwrite arbitrary log files in support tar
+  (CVE-2018-19638 bsc#1118460)
+- Code execution if run with -v
+  (CVE-2018-19639 bsc#1118462)
 - Static temporary filename allows overwriting of files
   (CVE-2018-19637 bsc#1117776)
 - supportconfig: 3.0.120
