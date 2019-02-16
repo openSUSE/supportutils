@@ -1,4 +1,4 @@
-.TH SUPPORTCONFIG 8 "28 Dec 2018" "supportutils" "Support Utilities Manual"
+.TH SUPPORTCONFIG 8 "16 Feb 2019" "supportutils" "Support Utilities Manual"
 .SH NAME
 supportconfig - Gathers system troubleshooting information
 .SH SYNOPSIS
@@ -159,7 +159,7 @@ Toggle keywords on or off. A comma separated list of feature keywords that chang
 Disable all plugin execution
 .TP
 \fB\-q\fR
-Add a unique identifier to the supportconfig tar ball filename. You usually do not need this, as hostnames, date and times are unique enough within an organization. However, when uploading to Novell or some other central public repository, it is needed.
+Add a unique identifier to the supportconfig tar ball filename. You usually do not need this, as hostnames, date and times are unique enough within an organization. However, when uploading to SUSE or some other central public repository, it is needed.
 .TP
 \fB\-r\fR \fIsrnum\fR 
 Includes the service request number in the basic-environment.txt file and the tar ball filename. Use this option when uploading (-u) tar balls to SUSE.
@@ -188,7 +188,7 @@ Use -F to see a list of valid keywords. Do not use spaces and keywords are case-
 .B Example:
 .RE
 .RS
-.B supportconfig -x aFSLIST,aEDIR,X,SMART
+.B supportconfig -x aFSLIST,X,SMART
 .RE
 .TP
 \fB\-y\fR 
