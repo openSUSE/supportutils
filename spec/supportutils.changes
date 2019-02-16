@@ -1,6 +1,7 @@
 -------------------------------------------------------------------
-Sat Feb 16 18:15:29 UTC 2019 - jason.record@suse.com
+Sat Feb 16 18:42:47 UTC 2019 - jason.record@suse.com
 
+- Fixed invalid exit code commands (bsc#1125666)
 - CVE-2018-19640: supportutils: Users can kill arbitrary processes
   (CVE-2018-19640 bsc#1118463)
 - User can overwrite arbitrary log files in support tar
