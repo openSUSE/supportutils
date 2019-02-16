@@ -1,7 +1,7 @@
 #!/bin/bash
 
-SVER='3.0-119'
-SDATE='2019 01 28'
+SVER='3.0-120'
+SDATE='2019 02 16'
 
 ##############################################################################
 #  supportconfig - Gathers system troubleshooting information for NTS.
@@ -5325,7 +5325,6 @@ x_info() {
         local verify_list
 	local xserver_present=n
 	local drm_present=n
-	echo "$SLES_VER" > /tmp/supp_log
 
 	printlog "X..."
 	test $OPTION_X -eq 0 && { echolog Excluded; return 1; }

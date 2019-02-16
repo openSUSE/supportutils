@@ -1,4 +1,11 @@
 -------------------------------------------------------------------
+Sat Feb 16 15:27:51 UTC 2019 - jason.record@suse.com
+
+- Static temporary filename allows overwriting of files
+  (CVE-2018-19637 bsc#1117776)
+- supportconfig: 3.0.120
+
+-------------------------------------------------------------------
 Mon Jan 28 16:07:56 UTC 2019 - jason.record@suse.com
 
 - btrfs filesystem usage
