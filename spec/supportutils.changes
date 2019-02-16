@@ -1,6 +1,7 @@
 -------------------------------------------------------------------
-Sat Feb 16 16:38:41 UTC 2019 - jason.record@suse.com
+Sat Feb 16 16:47:52 UTC 2019 - jason.record@suse.com
 
+- Fixed invalid exit code commands (bsc#1125666)
 - SUSE separation in supportconfig (bsc#1125623)
 - Local root exploit via inclusion of attacker controlled shell script
   (CVE-2018-19636 bsc#1117751)
@@ -10,7 +11,7 @@ Sat Feb 16 16:38:41 UTC 2019 - jason.record@suse.com
   (CVE-2018-19639 bsc#1118462)
 - Static temporary filename allows overwriting of files
   (CVE-2018-19637 bsc#1117776)
-- supportconfig: 3.0.125
+- supportconfig: 3.0.126
 
 -------------------------------------------------------------------
 Mon Jan 28 16:07:56 UTC 2019 - jason.record@suse.com

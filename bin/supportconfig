@@ -1,6 +1,6 @@
 #!/bin/bash
 
-SVER='3.0-125'
+SVER='3.0-126'
 SDATE='2019 02 16'
 
 ##############################################################################
@@ -5144,7 +5144,7 @@ selected_features() {
 	case $1 in
 	on) FEATURE_STATE=1 ;;
 	off) FEATURE_STATE=0 ;;
-	*) echo "ERROR: selected_features: Invalid FEATURE_STATE, $1"; exit_10 ;;
+	*) exit_code 10 "ERROR: selected_features: Invalid FEATURE_STATE, $1" ;;
 	esac
 	FEATURE_LIST="$(get_features)"
 	for FEATURE in $(echo $SELECTED_FEATURE_LIST | sed -e 's/,/ /g')
@@ -5187,9 +5187,12 @@ toggle_features() {
 		fi
 	done
 	if (( INVALID_KEYWORDS )); then
-		echo "Use -F for a list of valid feature keywords. Keywords are case sensitive."
 		echo
-		exit_11
+		echo "Valid keywords listed below. They are case sensitive."
+		echo
+		get_features
+		echo
+		exit_code 11
 	fi
 }
 
@@ -5205,15 +5208,13 @@ encrypt_tarball() {
 		echo "       File encryption failed, aborting"
 		echo
 		gpg --list-keys
-		exit_13
+		exit_code 13
 	fi
 	if (( VAR_OPTION_SILENT )); then
 		gpg --batch --yes --trust-model always --encrypt --recipient "$VAR_OPTION_GPG_UID" $TARBALL &> /dev/null
 		ERR=$?
 		if [ $ERR -ne 0 ]; then
-			echo "ERROR: gpg failed, RC=$ERR, aborting"
-			echo
-			exit_13
+			exit_code 13 "ERROR: gpg failed, RC=$ERR, aborting"
 		fi
 	else
 		if (( $VAR_OPTION_SBM )); then
@@ -5230,9 +5231,7 @@ encrypt_tarball() {
 		ERR=$?
 		wait_trace_off
 		if [ $ERR -ne 0 ]; then
-			echo "ERROR: gpg failed, RC=$ERR, aborting"
-			echo
-			exit_13
+			exit_code 13 "ERROR: gpg failed, RC=$ERR, aborting"
 		fi
 		ENCRYPTED_TARBALL=1
 		echo "Encrypted File: ${TARBALL}.gpg"
