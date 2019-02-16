@@ -1,6 +1,6 @@
 #!/bin/bash
 
-SVER='3.0-126'
+SVER='3.0-127'
 SDATE='2019 02 16'
 
 ##############################################################################
@@ -565,7 +565,7 @@ timed_log_cmd() {
 	shift
 	CMDLINE_ORIG="$@"
 	CMDBIN=$(echo $CMDLINE_ORIG | awk '{print $1}')
-	SEMAPHORE_FILE="${LOGFILE}.$(basename ${CMDBIN}).$(date --utc +%s).SEMAPHORE"
+	SEMAPHORE_FILE="${LOGFILE}.$(basename ${CMDBIN}).$(date --utc +%s).SC__SEMAPHORE"
 	SEMAPHORE_BIN=${SEMAPHORE_FILE}.sh
 	SEMAPHORE_LOG=${SEMAPHORE_FILE}.out
 	SEMAPHORE_ERR=${SEMAPHORE_FILE}.returncode
@@ -4903,25 +4903,20 @@ sam_info() {
 }
 
 timed_cmd_cleanup() {
-	TIMEOUT_PIDS=$(\ls -A1 $LOG/*SEMAPHORE.pid 2>/dev/null)
-	if [ -n "$TIMEOUT_PIDS" ]; then
+	PIDS2KILL=$(\ps axwwo pid,cmd | grep SC__SEMAPHORE | grep -v grep | awk '{print $1}')
+	if [[ -n "$PIDS2KILL" ]]; then
 		test $VAR_OPTION_SILENT -eq 0 && { echo; }
 		if (( $VAR_OPTION_SBM )); then
 			printlog -b "Command Clean Up..."
 		else
 			printlog -b "Command Clean Up"
 		fi
-		for TIMEOUT_PID_FILE in $TIMEOUT_PIDS
+		while [[ -n "$PIDS2KILL" ]]
 		do
-			echolog " -> $(basename $TIMEOUT_PID_FILE) ($(cat $TIMEOUT_PID_FILE))"
-			PIDS2KILL=$(ps -eaf | grep `cat $TIMEOUT_PID_FILE` 2>/dev/null | grep -v grep | awk '{print $2}')
 			wait_trace_on "kill $PIDS2KILL"
-			kill $PIDS2KILL &>/dev/null
+			kill -9 $PIDS2KILL &>/dev/null
 			sleep 1
-			PIDS2KILL=$(ps -eaf | grep `cat $TIMEOUT_PID_FILE` 2>/dev/null | grep -v grep | awk '{print $2}')
-			if [ -z "$PIDS2KILL" ]; then
-				rm -f $TIMEOUT_PID_FILE &>/dev/null
-			fi
+			PIDS2KILL=$(\ps axwwo pid,cmd | grep SC__SEMAPHORE | grep -v grep | awk '{print $1}')
 			wait_trace_off
 		done
 	fi
