@@ -1,6 +1,6 @@
 #!/bin/bash
 
-SVER='3.0-123'
+SVER='3.0-125'
 SDATE='2019 02 16'
 
 ##############################################################################
@@ -38,25 +38,20 @@ SDATE='2019 02 16'
 ##############################################################################
 # Default Options
 ##############################################################################
-OPTION_AFP=1
 OPTION_APPARMOR=1
 OPTION_AUDIT=1
 OPTION_AUTOFS=1
 OPTION_BOOT=1
 OPTION_BTRFS=1
 OPTION_DAEMONS=1
-OPTION_CIFS=1
 OPTION_CIMOM=1
 OPTION_CRASH=1
 OPTION_CRON=1
-OPTION_DFS=1
 OPTION_DHCP=1
 OPTION_DISK=1
 OPTION_DNS=1
 OPTION_DOCKER=1
 OPTION_DRBD=1
-OPTION_DSFW=1
-OPTION_EDIR=1
 OPTION_ENV=1
 OPTION_ETC=1
 OPTION_EVMS=1
@@ -64,30 +59,22 @@ OPTION_HA=1
 OPTION_HAPROXY=1
 OPTION_HISTORY=0
 OPTION_IB=1
-OPTION_IMAN=1
 OPTION_ISCSI=1
 OPTION_KVM=1
 OPTION_LDAP=1
-OPTION_LUM=1
 OPTION_LVM=1
 OPTION_LXC=1
 OPTION_MEM=1
 OPTION_MOD=1
 OPTION_MPIO=1
-OPTION_NCP=1
-OPTION_NCS=1
 OPTION_NET=1
 OPTION_NFS=1
-OPTION_NIT=1
-OPTION_NSS=1
 OPTION_NTP=1
 OPTION_OCFS2=1
-OPTION_OES=0
 OPTION_OFILES=1
 OPTION_PAM=1
 OPTION_PRINT=1
 OPTION_PROC=1
-OPTION_PROXY=1
 OPTION_SAM=1
 OPTION_SAR=1
 OPTION_SLERT=1
@@ -95,7 +82,6 @@ OPTION_SLP=1
 OPTION_SMT=1
 OPTION_SMART=0
 OPTION_SMB=1
-OPTION_SMS=1
 OPTION_SRAID=1
 OPTION_SSH=1
 OPTION_SSSD=1
@@ -105,12 +91,10 @@ OPTION_TUNED=1
 OPTION_UDEV=1
 OPTION_UFILES=1
 OPTION_UP=1
-OPTION_UPD=1
 OPTION_WEB=1
 OPTION_X=1
 OPTION_XEN=1
 
-ADD_OPTION_EDIR=0
 ADD_OPTION_FSLIST=0
 ADD_OPTION_LOGS=0
 ADD_OPTION_MINDISK=0
@@ -166,7 +150,7 @@ XML_FILE=summary.xml
 COMPRESS="tbz"
 COMPRESS_OPT="jcf"
 SC_SRV=$(hostname) # %s
-test "$SC_SRV" = "" && SC_SRV=novell
+test "$SC_SRV" = "" && SC_SRV=suse
 SC_DATE=$(date +"%y%m%d") # %d
 SC_TIME=$(date +"%H%M") # %t
 test -x /usr/bin/uuidgen && SC_UID="$(uuidgen 2>/dev/null)" || SC_UID="$(mktemp -u XXXXXXXXXXXXXXXXXXXXXXXXXXXXXX)" # %u
@@ -210,7 +194,7 @@ title() {
 	echo " please prune private data from the log files. Several startup options"
 	echo " are available to exclude more sensitive information. Supportconfig data is"
 	echo " used only for diagnostic purposes and is considered confidential information."
-	echo " See http://www.novell.com/company/legal/privacy/"
+	echo " See http://www.suse.com/company/policies/privacy/"
 	echo "============================================================================="
 	echo
 }
@@ -247,7 +231,6 @@ show_help() {
 	echo "  -a Upload the tar ball to the specified alternate target VAR_OPTION_UPLOAD_ALT"
 	echo "  -b Screen buffer mode"
 	echo "  -d Exclude detailed disk info and scans"
-	echo "  -e Search root file system for eDirectory instances; -L implied. Be patient."
 	echo "  -f From directory. Don't collect report files, just use files in that"
 	echo "     directory."
 	echo "  -g Use gzip instead of the default bzip2 compression."
@@ -814,9 +797,6 @@ basic_environment() {
 			if rpm_verify $BASIC_ENVF SPident; then
 				log_cmd $BASIC_ENVF 'SPident -vv'
 			fi
-		fi
-		if rpm -q oes-SPident &>/dev/null; then
-			log_cmd $BASIC_ENVF 'oes-SPident -vv'
 		fi
 		cat $LOG/$RPM_DIST_FILE >> $LOG/$BASIC_ENVF
 		if rpm_verify $BASIC_ENVF SuSEfirewall2
@@ -1604,890 +1584,6 @@ update_info() {
 	echolog Done
 }
 
-update_d_info() {
-	printlog "Updates Daemon..."
-	test $OPTION_UPD -eq 0 && { echolog Excluded; return 1; }
-	OF=updates-daemon.txt
-	SKIP=0
-	addHeaderFile $OF
-	if rpm_verify $OF rcd
-	then
-		RCD_HISTORY="/var/log/rcd/rcd-package-history"
-		check_service $OF rcd
-		log_cmd $OF "grep |upgrade| $RCD_HISTORY"
-
-		FILES="/var/log/rcd/rcd-messages $RCD_HISTORY"
-		test $ADD_OPTION_LOGS -gt 0 && log_files $OF 0 $FILES || log_files $OF $VAR_OPTION_LINE_COUNT $FILES
-	else
-		((SKIP++))
-	fi
-
-	if rpm_verify $OF zmd
-	then
-		check_service $OF novell-zmd
-		conf_files $OF /etc/zmd/zmd.conf /etc/zmd/deviceid /etc/zmd/secret /etc/sysconfig/zmd
-		sed -i -e 's/.*proxy-password[[:space:]]*=/*REMOVED BY SUPPORTCONFIG*/g' $LOG/$OF
-		[ $ADD_OPTION_LOGS -gt 0 ] && FILES="/var/log/zmd-messages.log*" || FILES="/var/log/zmd-messages.log"
-		[ $ADD_OPTION_LOGS -gt 0 ] && log_files $OF 0 $FILES || log_files $OF $VAR_OPTION_LINE_COUNT $FILES
-		FILES="/var/log/messages"
-		[ $ADD_OPTION_LOGS -gt 0 ] && grep_log_files 'zmd:' $OF 0 $FILES || grep_log_files 'zmd:' $OF $VAR_OPTION_LINE_COUNT $FILES
-	else
-		((SKIP++))
-	fi
-
-	test $SKIP -lt 2 && echolog Done || echolog Skipped
-}
-
-novell_edir_info() {
-	# Call fslist_info first in case -e was selected
-	printlog "Novell eDirectory..."
-	test $OPTION_EDIR -eq 0 && { echolog Excluded; return 1; }
-	echonlog "Please Wait..."
-	OF=novell-edir.txt
-	SKIP=0
-	addHeaderFile $OF
-	if [ -x /usr/ldaptools/bin/ldapsearch ]; then
-		LDAP_BIN=/usr/ldaptools/bin/ldapsearch
-	elif [ -x /opt/novell/eDirectory/bin/ldapsearch ]; then
-		LDAP_BIN=/opt/novell/eDirectory/bin/ldapsearch
-	elif [ -x /usr/bin/ldapsearch ]; then
-		LDAP_BIN=/usr/bin/ldapsearch
-	else
-		LDAP_BIN=""
-	fi
-
-	RPM_NAME=NDSserv
-	if rpm_verify $OF $RPM_NAME
-	then
-		NDSDIR=/var/nds
-		DIBDIR=$NDSDIR/dib
-		if [ -f /opt/novell/eDirectory/sbin/ndsd ]; then
-			log_cmd $OF 'file /opt/novell/eDirectory/sbin/ndsd'
-		else
-			log_cmd $OF 'file /usr/sbin/ndsd'
-		fi
-		log_cmd $OF '/usr/sbin/ndsd --version'
-		log_cmd $OF 'ndsstat'
-		log_cmd $OF 'ndsstat -s'
-		log_cmd $OF 'ndsstat -r'
-		log_cmd $OF 'ndsrepair -T'
-		sleep 1
-		log_cmd $OF 'ndsrepair -E'
-		log_cmd $OF 'ndstrace -c modules'
-		log_cmd $OF 'ndstrace -c threads'
-		log_cmd $OF 'ndsconfig get'
-
-		# Display eDirectory certificates
-		if [ -x "$LDAP_BIN" ]; then
-			DSANAME=$($LDAP_BIN -x -b "" -s base "objectclass=*" | grep 'dsaName:' | sed -e 's/.*:[[:space:]]*//')
-			if [ -n "$DSANAME" ]; then
-				log_cmd $OF "$LDAP_BIN -x -l 15 -b \"\" -s sub '(&(objectclass=nDSPKIKeyMaterial)(hostserver=$DSANAME))' nDSPKINotAfter"
-			fi
-		fi
-
-		log_cmd $OF "ls -l --time-style=long-iso ${DIBDIR}/"
-		conf_files $OF $DIBDIR/_ndsdb.ini /etc/hosts.nds
-		test -d $NDSDIR && FILES=$(find -L ${NDSDIR}/ -type f -maxdepth 1 -name \*log) || FILES=""
-		test $ADD_OPTION_LOGS -gt 0 && log_files $OF 0 $FILES || log_files $OF $VAR_OPTION_LINE_COUNT $FILES
-	else
-		((SKIP++))
-	fi
-
-	# Search for eDirectory instances
-	NDS_INSTANCES=0
-	NDS_CONFILES=""
-	NDSPATH_BIN=/opt/novell/eDirectory/bin/ndspath
-	SRCH_FILE=$LOG/$FSLIST_FILE
-	rpm_verify $OF novell-NDSserv
-
-	INST_DIR='/etc/opt/novell/eDirectory/conf/.edir'
-	test -d $INST_DIR && NDS_DEF_INST="$(find -L ${INST_DIR}/ -type f)" || NDS_DEF_INST=""
-	if [ -f $SRCH_FILE ]; then
-		echonlog Searching
-		NDS_INST_FILES="$(grep \/instances\.[[:digit:]]*$ $SRCH_FILE | grep eDirectory)"
-		test -e $NDSPATH_BIN || NDSPATH_BIN="$(grep /ndspath$ $SRCH_FILE | tail -1)"
-	else
-		if [ -x /usr/bin/locate ]; then
-			echonlog Locating
-			NDS_INST_FILES="$(locate instances 2>/dev/null | grep \/instances\.[[:digit:]]*$ | grep eDirectory)"
-			test -e $NDSPATH_BIN || NDSPATH_BIN="$(locate /ndspath$ 2>/dev/null | tail -1)"
-		else
-			if [ -n "$NDS_DEF_INST" ]; then
-				NDS_INST_FILES=$NDS_DEF_INST
-			fi
-		fi
-	fi
-	for INST_FILE in $NDS_INST_FILES
-	do
-		NDS_CONFILES="$NDS_CONFILES $(cat $INST_FILE)"
-	done
-
-	NDS_INSTANCES=$(echo $NDS_CONFILES | wc -w)
-	test -n "$NDSPATH_BIN" -a -e "$NDSPATH_BIN" && . $NDSPATH_BIN &>/dev/null
-
-
-	if [ $NDS_INSTANCES -gt 0 ]; then
-		conf_files $OF $NDS_INST_FILES /opt/novell/eDirectory/sbin/pre_ndsd* /opt/novell/eDirectory/sbin/post_ndsd*
-		PATH_WITH_EDIR=$PATH
-		export PATH_WITH_EDIR
-		CUR_INST=0
-		INST_FOUND=$NDS_INSTANCES
-		if [ -f /opt/novell/eDirectory/sbin/ndsd ]; then
-			log_cmd $OF 'file /opt/novell/eDirectory/sbin/ndsd'
-		else
-			log_cmd $OF 'file /usr/sbin/ndsd'
-		fi
-
-		# Display eDirectory certificates from LDAP server bound to local default LDAP ports, other multi-instance LDAP ports are not supported
-		if [ -x "$LDAP_BIN" ]; then
-			DSANAME=$($LDAP_BIN -x -b "" -s base "objectclass=*" 2>/dev/null | grep 'dsaName:' | sed -e 's/.*:[[:space:]]*//')
-			if [ -n "$DSANAME" ]; then
-				log_cmd $OF "$LDAP_BIN -x -l 15 -b \"\" -s sub '(&(objectclass=nDSPKIKeyMaterial)(hostserver=$DSANAME))' nDSPKINotAfter"
-			fi
-		fi
-
-		for NDS_CONFILE in $NDS_CONFILES
-		do
-			log_write $OF "#####################################################################"
-			log_write $OF "# eDirectory Instance $((++CUR_INST)) of $NDS_INSTANCES: $NDS_CONFILE"
-			log_write $OF "#####################################################################"
-			log_write $OF
-			echonlog $((INST_FOUND--))
-			conf_files $OF $NDS_CONFILE
-			NDSDIR=$(grep n4u.server.log-file $NDS_CONFILE | cut -d= -f2)
-			NDSDIR=$(dirname $NDSDIR)
-			DIBDIR=$(grep n4u.nds.dibdir $NDS_CONFILE | cut -d= -f2)
-			log_cmd $OF "ndsd --version --config-file $NDS_CONFILE"
-			log_cmd $OF "ndsstat --config-file $NDS_CONFILE"
-			log_cmd $OF "ndsstat -s --config-file $NDS_CONFILE"
-			log_cmd $OF "ndsstat -r --config-file $NDS_CONFILE"
-			log_cmd $OF "ndsrepair -T --config-file $NDS_CONFILE"
-			sleep 1
-			log_cmd $OF "ndsrepair -E --config-file $NDS_CONFILE"
-			log_cmd $OF "ndstrace -c modules --config-file $NDS_CONFILE"
-			log_cmd $OF "ndstrace -c threads --config-file $NDS_CONFILE"
-			log_cmd $OF "ndsconfig get --config-file $NDS_CONFILE"
-			log_cmd $OF "ls -l --time-style=long-iso ${DIBDIR}/"
-			conf_files $OF $DIBDIR/_ndsdb.ini /etc/hosts.nds
-			test -d $NDSDIR && FILES=$(find -L ${NDSDIR}/ -maxdepth 1 -type f -name \*log) || FILES=""
-			test $ADD_OPTION_LOGS -gt 0 && log_files $OF 0 $FILES || log_files $OF $VAR_OPTION_LINE_COUNT $FILES
-		done
-	else
-		((SKIP++))
-	fi
-
-	test $SKIP -lt 2 && echolog Done || echolog Skipped
-}
-
-novell_ncp_info() {
-	printlog "Novell NCP..."
-	test $OPTION_NCP -eq 0 && { echolog Excluded; return 1; }
-	OF=novell-ncp.txt
-	addHeaderFile $OF
-	if rpm_verify $OF yast2-novell-ncpserver
-	then
-		log_cmd $OF "egrep \"novell-ncp\" $RPMPATH"
-		log_cmd $OF '/etc/init.d/ncp2nss status'
-		conf_files $OF /etc/opt/novell/ncpserv.conf
-		if timed_log_cmd $OF 'ncpcon version'; then
-			log_cmd $OF 'ncpcon stats'
-			log_cmd $OF 'ncpcon config'
-			log_cmd $OF 'ncpcon set'
-			log_cmd $OF 'ncpcon threads'
-			log_cmd $OF 'ncpcon connection'
-			log_cmd $OF 'ncpcon volume'
-			VOLUMES=$(ncpcon volume 2>/dev/null | sed -e '/^$/d' -e '/Mounted Volumes/d' -e '/volumes mounted/d' -e 's/^[[:space:]]*//')
-			for VOLUME in $VOLUMES
-			do
-				log_cmd $OF "ncpcon volume $VOLUME"
-			done
-		fi
-		test -d /var/opt/novell/log && FILES="/var/opt/novell/log/*ncp*log" || FILES=""
-		test $ADD_OPTION_LOGS -gt 0 && log_files $OF 0 $FILES || log_files $OF $VAR_OPTION_LINE_COUNT $FILES
-		echolog Done
-	else
-		echolog Skipped
-	fi
-}
-
-novell_nit_info() {
-	printlog "Novell NIT..."
-	test $OPTION_NIT -eq 0 && { echolog Excluded; return 1; }
-	OF=novell-nit.txt
-	addHeaderFile $OF
-	if rpm_verify $OF novell-nit
-	then
-		log_cmd $OF "egrep \"novell-nit\" $RPMPATH"
-		check_service $OF 'nitd'
-		conf_files $OF /etc/resolv.conf /etc/hosts /etc/krb5.conf /etc/opt/novell/nit/nitd.conf 
-		log_cmd $OF 'nitconfig get'
-		log_cmd $OF "lsof -p `pgrep nitd`"
-		log_cmd $OF 'ls -alR /var/opt/novell/nit/'
-		LOG_FILE_LOCATION=$(nitconfig get log-file-location | awk -F= '{print $2}')
-		if [[ -n $LOG_FILE_LOCATION ]]
-		then
-			test -d $LOG_FILE_LOCATION && FILES=${LOG_FILE_LOCATION}/* || FILES=""
-		else
-			[[ $ADD_OPTION_LOGS -gt 0 ]] && grep_log_files '\/nit\[' $OF 0 $FILES || grep_log_files '\/nit\[' $OF $VAR_OPTION_LINE_COUNT $FILES
-		fi
-		test -d /var/opt/novell/log/nit && FILES="/var/opt/novell/log/nit/*.log" || FILES=""
-		test $ADD_OPTION_LOGS -gt 0 && log_files $OF 0 $FILES || log_files $OF $VAR_OPTION_LINE_COUNT $FILES
-		echolog Done
-	else
-		echolog Skipped
-	fi
-}
-
-novell_nss_info() {
-	printlog "Novell NSS..."
-	test $OPTION_NSS -eq 0 && { echolog Excluded; return 1; }
-	OF=novell-nss.txt
-	PATH=$PATH_ORIG
-	export PATH
-	addHeaderFile $OF
-	if rpm_verify $OF novell-nss
-	then
-		LOGFILE=$LOG/$OF
-		check_service $OF 'novell-nss'
-		NLVMBIN="/sbin/nlvm"
-		if [ -x $NLVMBIN ]; then
-			for i in devices partitions pools volumes moves snaps
-			do
-				log_cmd $OF "$NLVMBIN list $i"
-			done
-			log_cmd $OF "$NLVMBIN list linux volumes"
-			log_cmd $OF "$NLVMBIN raid status"
-		fi
-		fuser /dev/nsscmd &>/dev/null
-		NSSCON=$?
-		[ $NSSCON -gt 0 ] && log_cmd $OF "echo modules > /dev/nsscmd; cat /proc/nss/console | sed -e 's/\x1b\[[^m]*m//g;s/\[[^c]//g;s/\x1b\J//g'" || { log_write $OF "#==[ Command ]======================================#"; log_write $OF "# ERROR: Exit nsscon and rerun supportconfig"; log_write $OF; }
-		log_cmd $OF 'nss /pools'
-		echo "# mount | grep -i nss" >> $LOGFILE
-		mount | grep -i nss >> $LOGFILE
-		echo >> $LOGFILE
-		[ $NSSCON -gt 0 ] && log_cmd $OF "echo volumes > /dev/nsscmd; cat /proc/nss/console | sed -e 's/\x1b\[[^m]*m//g;s/\[[^c]//g;s/\x1b\J//g'" || { log_write $OF "#==[ Command ]======================================#"; log_write $OF "# ERROR: Exit nsscon and rerun supportconfig"; log_write $OF; }
-		[ $NSSCON -gt 0 ] && log_cmd $OF "echo help > /dev/nsscmd; cat /proc/nss/console | sed -e 's/\x1b\[[^m]*m//g;s/\x1b\J//g'" || { log_write $OF "#==[ Command ]======================================#"; log_write $OF "# ERROR: Exit nsscon and rerun supportconfig"; log_write $OF; }
-		for i in /etc/opt/novell/nss/nssstart.cfg /opt/novell/nss/conf/nssstart.cfg /etc/opt/novell/nss/nlvm.conf
-		do
-			test -e $i && conf_files $OF $i
-		done
-		if [ -d /_admin/Manage_NSS ]; then
-			NSS_DIR="/_admin/Manage_NSS"
-		else
-			NSS_DIR="/admin/Manage_NSS"
-		fi
-		VOLS=$(find ${NSS_DIR}/Volume -type f | grep 'VolumeInfo.xml' | egrep -v '_IV_/|_ADMIN/')
-		FILES="$(ls -1 ${NSS_DIR}/*xml 2>/dev/null) $(ls -1 ${NSS_DIR}/Pool/*/*xml 2>/dev/null) $VOLS $(ls -1 ${NSS_DIR}/Pool/*/ZLSS/*xml 2>/dev/null) $(ls -1 ${NSS_DIR}/LSS/ZLSS/*xml 2>/dev/null) $(ls -1 ${NSS_DIR}/Module/*xml 2>/dev/null)"
-		conf_files $OF $FILES
-		FILES="/var/opt/novell/log/nss/debug/*"
-		if [[ -n "$FILES" ]]; then
-			test $ADD_OPTION_LOGS -gt 0 && log_files $OF 0 $FILES || log_files $OF $VAR_OPTION_LINE_COUNT $FILES
-		fi
-		NSSPOOLS=$(nss /pools | grep ^[0-9,a-z,A-Z] | awk '{print $1}')
-		for ACTION in rtfn vbfn
-		do
-			for NSSPOOL in $NSSPOOLS
-			do
-				log_cmd $OF "ravview $ACTION $NSSPOOL"
-			done
-		done
-		echolog Done
-	else
-		echolog Skipped
-	fi
-}
-
-novell_iman_info() {
-	printlog "Novell iManager..."
-	test $OPTION_IMAN -eq 0 && { echolog Excluded; return 1; }
-	OF=novell-iman.txt
-	addHeaderFile $OF
-	if rpm_verify $OF novell-imanager
-	then
-		
-		TRPMS=$(grep ^tomcat $LOG/$RPM_QA_FILE | cut -d- -f1)
-		for TRPM in $TRPMS
-		do
-			rpm_verify $OF $TRPM
-		done
-		check_service $OF 'apache2'
-		TCATS=$(find -L /etc/init.d -maxdepth 1 -type f | grep ^tomcat)
-		for TCAT in $TCATS
-		do
-			check_service $OF $TCAT
-		done
-		TCAT_ETC=$(find -L /etc/opt/novell -maxdepth 1 -type d | grep tomcat | tail -1)
-		conf_files $OF "/etc/opt/novell/iManager/nps-Apache.conf $TCAT_ETC/conf/*"
-		FILES=$(find -L /var/opt/novell/iManager/nps/WEB-INF/modules -type f | grep MF$)
-		conf_files $OF $FILES
-		DEBUGLOG="/var/opt/novell/iManager/nps/WEB-INF/logs/debug.html"
-		[ -s $DEBUGLOG ] && log_files $OF 0 $DEBUGLOG
-		TCAT_BASE=$(find -L /var/opt/novell -maxdepth 1 -type d | grep tomcat | tail -1)
-		FILES="$TCAT_BASE/logs/*"
-		test $ADD_OPTION_LOGS -gt 0 && log_files $OF 0 $FILES || log_files $OF $VAR_OPTION_LINE_COUNT $FILES
-		echolog Done
-	else
-		echolog Skipped
-	fi
-}
-
-novell_proxy_info() {
-	printlog "Novell Proxy Management..."
-	test $OPTION_PROXY -eq 0 && { echolog Excluded; return 1; }
-	OF=novell-proxymgmt.txt
-	addHeaderFile $OF
-	if rpm_verify $OF novell-oes-proxymgmt
-	then
-		rpm_verify $OF novell-nmas-libnmasext
-		PROXY_LIST="/var/opt/novell/log/proxymgmt/pxylist.txt"
-		PROXY_BIN="/opt/novell/proxymgmt/bin/retrieve_proxy_list.sh"
-		if [ -x $PROXY_BIN ]; then
-			if [ -s $PROXY_LIST ]; then
-				DELETE_PROXY_LIST=0
-			else
-				$PROXY_BIN &>/dev/null
-				DELETE_PROXY_LIST=1
-			fi
-		else
-			DELETE_PROXY_LIST=0
-		fi
-		conf_files $OF /etc/opt/novell/proxymgmt/proxy_users.conf /etc/sysconfig/proxy /etc/ld.so.conf.d/novell-proxyuser.conf
-		FILES=$(find -L /etc/sysconfig/novell/ -type f)
-		conf_files $OF $FILES
-		FILES="/var/opt/novell/log/proxymgmt/*"
-		test $ADD_OPTION_LOGS -gt 0 && log_files $OF 0 $FILES || log_files $OF $VAR_OPTION_LINE_COUNT $FILES
-		[ $DELETE_PROXY_LIST -gt 0 ] && rm -f $PROXY_LIST
-		echolog Done
-	else
-		echolog Skipped
-	fi
-}
-
-novell_sms_info() {
-	printlog "Novell SMS..."
-	test $OPTION_SMS -eq 0 && { echolog Excluded; return 1; }
-	OF=novell-sms.txt
-	addHeaderFile $OF
-	if rpm_verify $OF novell-sms
-	then
-		check_service $OF 'novell-smdrd'
-		log_cmd $OF '/opt/novell/sms/bin/smsconfig -t'
-		conf_files $OF '/etc/opt/novell/sms/smdrd.conf /etc/opt/novell/sms/tsafs.conf'
-		FILES="/etc/sysconfig/novell/sms*"
-		for FILE in $FILES
-		do
-			conf_files $OF $FILE
-			IPADDR=$(grep '^CONFIG_SMS_LDAP_SERVER' $FILE | cut -d= -f2 | sed -e 's/"//g')
-			[ -n "$IPADDR" ] && ping_addr $OF 'LDAP Server' $IPADDR
-		done
-		FILES="/var/log/messages"
-		test $ADD_OPTION_LOGS -gt 0 && grep_log_files smdrd $OF 0 $FILES || grep_log_files smdrd $OF $VAR_OPTION_LINE_COUNT $FILES
-		echolog Done
-	else
-		echolog Skipped
-	fi
-}
-
-novell_dfs_info() {
-	printlog "Novell DFS..."
-	test $OPTION_DFS -eq 0 && { echolog Excluded; return 1; }
-	OF=novell-dfs.txt
-	addHeaderFile $OF
-	if rpm_verify $OF novell-nss
-	then
-		log_cmd $OF 'chkconfig -l novell-dfs'
-		log_cmd $OF 'ps -eaf | egrep -i "volmnd|vldb|vlrpr|dfs|jstcpd|adminusd" | egrep -v "grep|supportconfig"'
-		log_cmd $OF 'vldb status'
-		log_cmd $OF 'vldb list'
-		log_cmd $OF 'vldb context'
-		log_cmd $OF 'volmn status'
-		log_cmd $OF 'ls -lR --time-style=long-iso /var/opt/novell/dfs/'
-		log_cmd $OF 'netstat -nlp | egrep "jstcpd|6901"'
-		FILES="$(find -L /var/opt/novell/log/dfs/ -type f 2> /dev/null)"
-		test $ADD_OPTION_LOGS -gt 0 && log_files $OF 0 $FILES || log_files $OF $VAR_OPTION_LINE_COUNT $FILES
-		log_cmd $OF 'egrep -i "volmnd[\[|:]|vldb[\[|:]|vlrpr[\[|:]|dfs[\[|:]|jstcpd[\[|:]" /var/log/messages'
-		echolog Done
-	else
-		echolog Skipped
-	fi
-}
-
-novell_dsfw_info() {
-	# Call fslist_info first in case -e was selected
-	printlog "Novell DSfW..."
-	test $OPTION_DSFW -eq 0 && { echolog Excluded; return 1; }
-	OF=novell-dsfw.txt
-	addHeaderFile $OF
-	if rpm_verify $OF novell-xad-framework
-	then
-		if [ -x /usr/bin/ldapsearch ]; then
-			LDAP_BIN=/usr/bin/ldapsearch
-		elif [ -x /opt/novell/eDirectory/bin/ldapsearch ]; then
-			LDAP_BIN=/opt/novell/eDirectory/bin/ldapsearch
-		elif [ -x /usr/ldaptools/bin/ldapsearch ]; then
-			LDAP_BIN=/usr/ldaptools/bin/ldapsearch
-		else
-			LDAP_BIN=""
-		fi
-		# Check if DSfW is installed then export ldap.conf
-		if [ -f /etc/opt/novell/xad/openldap/ldap.conf ]
-		then
-			_LIB=`/opt/novell/xad/share/dcinit/printConfigKey.pl "_Lib"`
-			LDAPCONF=/etc/opt/novell/xad/openldap/ldap.conf
-			export LDAPCONF
-			SASL_PATH=/opt/novell/xad/$_LIB/sasl2
-			export SASL_PATH
-		fi
-		#check_service $OF xadsd
-		log_cmd $OF 'xadcntrl validate | sed -r "s/\x1B\[([0-9]{1,2}(;[0-9]{1,2})?)?[m|K]//g"'
-		RPMPATH=$LOG/$RPMFILE
-		log_cmd $OF "egrep 'xad' $RPMPATH"
-		log_cmd $OF "rpm -q --queryformat \"%{DISTURL}\n\" novell-xad-framework"
-		conf_files $OF /etc/sysconfig/novell/*xad*
-		FILES=$(find /etc/opt/novell/xad/ -type f | egrep -v "gss|msds.sch" | sort)
-		conf_files $OF $FILES
-		timed_log_cmd $OF "$LDAP_BIN -xLLL -b \"\" -s base"
-		DEFAULTNAMINGCONTEXT=`/usr/bin/ldapsearch -x -b "" -s base defaultnamingcontext | grep -i 'defaultnamingcontext: ' | awk '{print $2}'`
-		timed_log_cmd $OF "$LDAP_BIN -LLLQ -Y EXTERNAL -b \"$DEFAULTNAMINGCONTEXT\" -s sub GPlink=* GPlink"		
-		timed_log_cmd $OF "$LDAP_BIN -LLLQ -Y EXTERNAL -b \"$DEFAULTNAMINGCONTEXT\" -s sub nspmPasswordPolicyDN=* nspmPasswordPolicyDN"
-		timed_log_cmd $OF "$LDAP_BIN -LLLQ -Y EXTERNAL -b \"cn=Password Policies,cn=System,$DEFAULTNAMINGCONTEXT\" -s sub objectClass=nspmPasswordPolicy"
-		timed_log_cmd $OF "rpcclient -k localhost -c dsroledominfo"
-		timed_log_cmd $OF "rpcclient -k ncalrpc: -c dsroledominfo"
-		timed_log_cmd $OF "/opt/novell/xad/libexec/xadsd -S"
-		timed_log_cmd $OF 'wbinfo -u'
-		timed_log_cmd $OF 'wbinfo -g'
-		log_cmd $OF 'wbinfo -p'
-		log_cmd $OF 'wbinfo -t'
-		log_cmd $OF 'wbinfo -n administrator'
-		log_cmd $OF 'wbinfo -i administrator'
-		log_cmd $OF 'wbinfo --check-secret'
-		log_cmd $OF 'net ads info'
-		log_cmd $OF 'net ads lookup'
-		log_cmd $OF 'net ads status'
-		log_cmd $OF 'net ads gpo listall'
-		log_cmd $OF 'net ads keytab list'
-		log_cmd $OF 'net ads testjoin'
-		log_cmd $OF '/opt/novell/xad/share/dcinit/printConfigKey.pl "IP Address"'
-		IPADDR=$(/opt/novell/xad/share/dcinit/printConfigKey.pl "IP Address" 2>/dev/null)
-		[[ -n $IPADDR ]] && ping_addr $OF "DSfW IP Address" $IPADDR
-		log_cmd $OF '/opt/novell/xad/share/dcinit/printConfigKey.pl "DNS_SERVER_IP"'
-		IPADDR=$(/opt/novell/xad/share/dcinit/printConfigKey.pl "DNS_SERVER_IP" 2>/dev/null)
-		[[ -n $IPADDR ]] && ping_addr $OF "DSfW DNS_SERVER_IP" $IPADDR
-		log_cmd $OF '/opt/novell/xad/share/dcinit/printConfigKey.pl "FORESTROOT"'
-		log_cmd $OF '/opt/novell/xad/share/dcinit/printConfigKey.pl "DOMAINNAME"'
-		log_cmd $OF '/opt/novell/xad/share/dcinit/printConfigKey.pl "XADRETAINPOLICIES"'
-		log_cmd $OF '/opt/novell/xad/share/dcinit/printConfigKey.pl "Domain GUID"'
-		log_cmd $OF '/opt/novell/xad/share/dcinit/printConfigKey.pl "DOMAINSID"'
-		log_cmd $OF '/opt/novell/xad/share/dcinit/printConfigKey.pl "NETBIOSNAME"'
-		log_cmd $OF '/opt/novell/xad/share/dcinit/printConfigKey.pl "Parent Domain"'
-		log_cmd $OF '/opt/novell/xad/share/dcinit/printConfigKey.pl "Machine GUID"'
-		log_cmd $OF '/opt/novell/xad/share/dcinit/printConfigKey.pl "DNS_LOCATOR_OBJECT"'
-		log_cmd $OF '/opt/novell/xad/share/dcinit/printConfigKey.pl "DNSDHCP_GROUP"'
-		log_cmd $OF '/opt/novell/xad/share/dcinit/printConfigKey.pl "DNS Master"'
-		log_cmd $OF '/opt/novell/xad/share/dcinit/printConfigKey.pl "DNSSERVER"'
-		log_cmd $OF '/opt/novell/xad/share/dcinit/printConfigKey.pl "DNS_NCPServer"'
-		log_cmd $OF '/opt/novell/xad/share/dcinit/printConfigKey.pl "DNSSERVER_CONTEXT"'
-		log_cmd $OF '/opt/novell/xad/share/dcinit/printConfigKey.pl "NDS_DCINIT"'
-		log_cmd $OF '/opt/novell/xad/share/dcinit/printConfigKey.pl "INSTALL_TYPE"'
-		log_cmd $OF '/opt/novell/xad/share/dcinit/printConfigKey.pl "NDSEXISTINGADMINNAME"'
-		log_cmd $OF '/opt/novell/xad/share/dcinit/printConfigKey.pl "Mapped Domain NC"'
-		log_cmd $OF '/opt/novell/xad/share/dcinit/printConfigKey.pl "NDS"'
-		log_cmd $OF '/opt/novell/xad/share/dcinit/printConfigKey.pl "Require TLS"'
-		log_cmd $OF '/opt/novell/xad/share/dcinit/printConfigKey.pl "LDAPADMINNAME"'
-		log_cmd $OF '/opt/novell/xad/share/dcinit/printConfigKey.pl "NDSDOMAINADMIN"'
-		log_cmd $OF '/opt/novell/xad/share/dcinit/printConfigKey.pl "PROVISIONED"'
-		
-		if kinit -E administrator &>/dev/null
-		then
-			timed_log_cmd $OF "klist"
-			timed_log_cmd $OF "ldapsearch -Y GSSAPI -b \"\" -s base -LLL"
-			timed_log_cmd $OF "ldapsearch -Y GSS-SPNEGO -b \"\" -s base -LLL"
-			timed_log_cmd $OF "smbclient //localhost/sysvol -k  -I $IPADDR -c showconnect|grep -v WARNING:"
-			timed_log_cmd $OF "smbclient //localhost/netlogon -k  -I $IPADDR -c showconnect|grep -v WARNING:"
-		else
-			log_entry $OF note "Invalid or missing ADM_PASSWD, skipping additional administrative commands."
-		fi
-		test -d /var/opt/novell/xad/log && FILES=$(find /var/opt/novell/xad/log/ -type f) || FILES=""
-		test $ADD_OPTION_LOGS -gt 0 && log_files $OF 0 $FILES || log_files $OF $VAR_OPTION_LINE_COUNT $FILES
-		echolog Done
-	else
-		echolog Skipped
-	fi
-}
-
-novell_afp_info() {
-	printlog "Novell AFP..."
-	test $OPTION_AFP -eq 0 && { echolog Excluded; return 1; }
-	OF=novell-afp.txt
-	addHeaderFile $OF
-	if rpm_verify $OF novell-afptcpd
-	then
-		check_service $OF novell-afptcpd
-		RPMPATH=$LOG/$RPMFILE
-		log_cmd $OF "egrep \"afp\" $RPMPATH"
-		log_cmd $OF "rpm -q --qf "%{DISTURL}\n" novell-afptcpd"
-		FILES="/etc/sysconfig/novell/afp /etc/ld.so.conf.d/novell-afptcpd.conf"
-		conf_files $OF $FILES /etc/opt/novell/afptcpd/*conf
-		test -d /var/opt/novell/log && FILES=$(find -L /var/log/afptcpd -type f | grep 'log$') || FILES=""
-		test $ADD_OPTION_LOGS -gt 0 && log_files $OF 0 $FILES || log_files $OF $VAR_OPTION_LINE_COUNT $FILES
-		timed_log_cmd $OF 'ldapsearch -x -b cn=security objectclass=nspmPasswordPolicy'
-		echolog Done
-	else
-		echolog Skipped
-	fi
-}
-
-novell_cifs_info() {
-	printlog "Novell CIFS..."
-	test $OPTION_CIFS -eq 0 && { echolog Excluded; return 1; }
-	OF=novell-cifs.txt
-	addHeaderFile $OF
-	if rpm_verify $OF novell-cifs
-	then
-		check_service $OF novell-cifs
-		RPMPATH=$LOG/$RPMFILE
-		log_cmd $OF "egrep \"cifs\" $RPMPATH"
-		log_cmd $OF "rpm -q --qf "%{DISTURL}\n" novell-cifs"
-		log_cmd $OF "novcifs -o"
-		log_cmd $OF "novcifs -sl"
-		FILES="/etc/sysconfig/novell/NvlCifs*"
-		for FILE in $FILES
-		do
-			conf_files $OF $FILE
-			IPADDR=$(grep '^CONFIG_CIFS_LDAP_SERVER' $FILE | cut -d= -f2 | sed -e 's/"//g')
-			[ -n "$IPADDR" ] && ping_addr $OF 'LDAP Server' $IPADDR
-		done
-		conf_files $OF /etc/ld.so.conf.d/novell-cifs.conf /etc/opt/novell/cifs/*conf
-		test -d /var/opt/novell/log && FILES=$(find -L /var/log/cifs -type f | grep 'log$') || FILES=""
-		test $ADD_OPTION_LOGS -gt 0 && log_files $OF 0 $FILES || log_files $OF $VAR_OPTION_LINE_COUNT $FILES
-		timed_log_cmd $OF 'ldapsearch -x -b cn=security objectclass=nspmPasswordPolicy'
-		echolog Done
-	else
-		echolog Skipped
-	fi
-}
-
-cluster_file() {
-	LOGFILE=$LOG/$1
-	shift
-	for CONF in $@
-	do
-		echo "#==[ Configuration File ]===========================#" >> $LOGFILE
-		if [ -f $CONF ]; then
-			echo "# $CONF" >> $LOGFILE
-			CLINE=$(grep -nA2 adminPw $CONF | tail -1 | cut -d- -f1)
-			sed -e "${CLINE}d" $CONF | sed -e "${CLINE}i*REMOVED BY SUPPORTCONFIG*" >> $LOGFILE
-		else
-			echo "# $CONF - File not found" >> $LOGFILE
-		fi
-		echo >> $LOGFILE
-	done
-	echo >> $LOGFILE
-}
-
-novell_ncs_info() {
-	printlog "Novell NCS..."
-	test $OPTION_NCS -eq 0 && { echolog Excluded; return 1; }
-	OF=novell-ncs.txt
-	addHeaderFile $OF
-	if rpm_verify $OF novell-cluster-services
-	then
-		NCSE_DIR="/etc/opt/novell/ncs"
-		NCSV_DIR="/var/opt/novell/ncs"
-		unset LOADSCRIPT_DIR
-		for NCS_CHK_DIR in /var/run/ncs /var/opt/novell/log/ncs $NCSE_DIR $NCSV_DIR
-		do
-			if [[ -d $NCS_CHK_DIR ]]; then
-				SCRIPTS="$SCRIPTS $(find -L ${NCS_CHK_DIR}/ -type f | egrep '\.load$|\.unload$|\.monitor$' | sort)"
-				NCSCONFS="$NCSCONFS $(find -L ${NCS_CHK_DIR}/ -type f | egrep '\.conf$' | sort)"
-				NCSXML="$NCSXML $(find -L ${NCS_CHK_DIR}/ -type f | egrep '\.xml$' | sort)"
-				RESOURCELOGS="$RESOURCELOGS $(find -L ${NCS_CHK_DIR}/ -type f | egrep '\.out$' | sort)"
-			fi
-		done
-	
-		check_service $OF novell-ncs
-		NCSTESTBIN=${LOG}/ncsldapCheck.py
-cat << NCSTEST > $NCSTESTBIN
-#!/usr/bin/python
-
-import commands
-import os
-import sys
-import ldap
-import struct
-import re
-import string
-sys.path.append( "/opt/novell/ncs/bin" )
-import clstrlibss
-
-def objectNameFromLdapDn(ldapDn):
-
-    cn = string.split(ldapDn, ",")[0]
-    return string.split(cn, "=")[1]
-
-
-ss = clstrlibss.load()
-print "ClusterDN: " + ss.clusterDn
-cluster_dn = ss.clusterDn
-
-ld = ldap.initialize( ss.ldapUrl )
-print "LDAP initialized"
-
-try: 
-    ld.simple_bind_s( ss.adminDn, ss.adminPw )
-except ldap.LDAPError, e:
-    print e
-    sys.exit( 1 )
-
-print "bound to LDAP."
-
-try: 
-    res = ld.search_s( cluster_dn, ldap.SCOPE_BASE )
-    print "Returned Cluster DN: " + res[0][0]
-except ldap.LDAPError, e:
-    print e
-    ld.unbind_s()
-    sys.exit( 2 )
-
-try:
-    guid = ld.search_s( cluster_dn, ldap.SCOPE_BASE, "cn=" + objectNameFromLdapDn( cluster_dn ), ["GUID"] )
-except ldap.LDAPError, e:
-    print e
-    ld.ubind_s()
-    sys.exit( 2 )
-
-print "Cluster GUID found."
-print guid
-
-if res[0][1].has_key("nCSGIPCConfig"):
-    nwGipcConfig = res[0][1]["nCSGIPCConfig"][0]
-    left = nwGipcConfig.find("panning")
-    right = nwGipcConfig[left:].find("\n")
-    print(nwGipcConfig[left:][:right].strip())
-else:
-    cid = struct.unpack("I", guid[0][1]["GUID"][0][0:4])
-    print("panning clusterid " + str(cid[0]))
-
-print("heartbeat rate_usecs " + str(int(res[0][1]["nCSGIPCHeartbeat"][0]) * 1000000))
-print("censustaker tolerance " + str(int(res[0][1]["nCSGIPCTolerance"][0]) * 1000000))
-print("sequencer master_watchdog " + str(int(res[0][1]["nCSGIPCMasterWatchdog"][0]) * 1000000))
-print("sequencer slave_watchdog " + str(int(res[0][1]["nCSGIPCSlaveWatchdog"][0]) * 1000000))
-print("sequencer retrans_max " + res[0][1]["nCSGIPCMaxRetransmits"][0])
-
-res = ld.search_s(cluster_dn, ldap.SCOPE_ONELEVEL, "objectClass=nCSNCPServer", ["nCSGIPCNodeNumber", "nCSNetworkAddress" ] )
-for node in res:
-    nodeNumber = node[1]["nCSGIPCNodeNumber"][0]
-    ipBytes = struct.unpack("BBBB", node[1]["nCSNetworkAddress"][0][2:])
-    ipAddress = str(ipBytes[0]) + "." + str(ipBytes[1]) + "." + str(ipBytes[2]) + "." + str(ipBytes[3])
-    print("nodeid " + ipAddress + " " + nodeNumber )
-
-ldapRes = ld.search_s(cluster_dn, ldap.SCOPE_ONELEVEL, "(|(objectClass=nCSClusterResource)(objectClass=nCSVolumeResource)(objectClass=nCSResourceTemplate))", ["cn", "objectClass", "nCSRevision" ] )
-for object in ldapRes:
-    print "Resource/template name: " + object[1]["cn"][0]
-    print "\ttype: " + object[1]["objectClass"][0]
-    print "\trevision: " + str( object[1]["nCSRevision"][0])
-
-ld.unbind_s()
-print "Connection closed."
-NCSTEST
-		chmod 500 $NCSTESTBIN
-		timed_log_cmd $OF $NCSTESTBIN
-		rm -f $NCSTESTBIN
-		log_cmd $OF '/opt/novell/ncs/install/ncs_install.py -m display'
-		log_cmd $OF 'CASAcli -l'
-		log_cmd $OF 'sfdisk -l'
-		log_cmd $OF 'ndsstat -s'
-		log_cmd $OF 'cluster stats display'
-		log_cmd $OF 'cluster view'
-		log_cmd $OF 'cluster resources'
-		log_cmd $OF 'cluster pools'
-		log_cmd $OF 'cluster info all'
-		if timed_log_cmd $OF 'sbdutil -f'; then
-			timed_log_cmd $OF 'sbdutil -v'
-		fi
-		FILES="/var/log/nts_ncsvr_*_analysis.txt"
-		log_files $OF 0 $FILES
-		test -f /etc/sysconfig/NCS && NCS_FILES="/etc/sysconfig/NCS" || NCS_FILES="/etc/sysconfig/novell/ncs*"
-		for NCS_FILE in $NCS_FILES
-		do
-			conf_files $OF $NCS_FILE
-			IPADDR=$(grep ^CONFIG_NCS_CLUSTER_IP $NCS_FILE | cut -d= -f2 | sed -e 's/"//g')
-			[ -n "$IPADDR" ] && ping_addr $OF 'Cluster IP' $IPADDR
-			IPADDR=$(grep ^CONFIG_NCS_SERVER_IP $NCS_FILE | cut -d= -f2 | sed -e 's/"//g')
-			[ -n "$IPADDR" ] && ping_addr $OF 'Server IP' $IPADDR
-			IPADDRS=$(grep ^CONFIG_NCS_LDAP_SERVERS $NCS_FILE | cut -d= -f2 | sed -e 's/"//g;s/,/ /g')
-			for IPADDR in $IPADDRS
-			do
-				[ -n "$IPADDR" ] && ping_addr $OF 'LDAP Server' $IPADDR
-			done
-		done
-		conf_files $OF /var/opt/novell/install/ncslog $NCSE_DIR/nodename
-		for i in $NCSCONFS
-		do
-			FILE_NAME=$(basename $i)
-			case $FILE_NAME in
-			clstrlib.conf*) cluster_file $OF $i ;;
-			*) conf_files $OF $i ;;
-			esac
-		done
-		FILES="$RESOURCELOGS $NCSXML $SCRIPTS"
-		conf_files $OF $FILES
-		sed -i -e 's/\r//g' $LOG/$OF
-		# Event log
-		test -s /_admin/Novell/Cluster/EventLog.xml && EVENTLOGS="/_admin/Novell/Cluster/EventLog.xml" || EVENTLOGS=""
-		test -s /admin/Novell/Cluster/EventLog.xml && EVENTLOGS="$EVENTLOGS /admin/Novell/Cluster/EventLog.xml"
-		OF_EVENTLOG=$(mktemp ${LOG}/novell-ncs-eventlog.XXXXXXXXXX)
-		for EVENTLOG in $EVENTLOGS
-		do
-			log_cmd $OF "cat $EVENTLOG | tac | sed -e 's/<[^>]*>/ /g;s/^[[:space:]]*//g;/^$/d'"
-			cat $EVENTLOG | tac | sed -e 's/<[^>]*>/ /g;s/^[[:space:]]*//g;/^$/d' >> $OF_EVENTLOG
-		done
-		log_cmd $OF "grep 'Failed $OF_EVENTLOG' | grep -v 'Failed at'"
-
-		if [[ -x /opt/novell/ncs/bin/dotoutparser.pl ]]
-		then
-			NCS_PARSER="/opt/novell/ncs/bin/dotoutparser.pl"
-		else
-			NCSOUTPARSEBIN="${LOG}/dotoutparser.pl"
-			BASEOUT="${NCSOUTPARSEBIN}.b64"
-
-# Base64 Ended dotoutparser.pl, it parses the resource .out files for errors
-cat << NCSPARSEOUT > $BASEOUT
-IyEvdXNyL2Jpbi9wZXJsCiMKIyBDb3B5cmlnaHQgKGMpIDIwMTMgTm92ZWxsLCBJbmMuCiMgQWxs
-IFJpZ2h0cyBSZXNlcnZlZC4KIyAgQXV0aG9yOiAgTm92ZWxsLCBJbmMuCiMKIyBUaGlzIHByb2dy
-YW0gaXMgZnJlZSBzb2Z0d2FyZTsgeW91IGNhbiByZWRpc3RyaWJ1dGUgaXQgYW5kL29yCiMgbW9k
-aWZ5IGl0IHVuZGVyIHRoZSB0ZXJtcyBvZiB2ZXJzaW9uIDIgb2YgdGhlIEdOVSBHZW5lcmFsIFB1
-YmxpYwojIExpY2Vuc2UgYXMgcHVibGlzaGVkIGJ5IHRoZSBGcmVlIFNvZnR3YXJlIEZvdW5kYXRp
-b24uCiMKIyBUaGlzIHByb2dyYW0gaXMgZGlzdHJpYnV0ZWQgaW4gdGhlIGhvcGUgdGhhdCBpdCB3
-aWxsIGJlIHVzZWZ1bCwKIyBidXQgV0lUSE9VVCBBTlkgV0FSUkFOVFk7IHdpdGhvdXQgZXZlbiB0
-aGUgaW1wbGllZCB3YXJyYW50eSBvZgojIE1FUkNIQU5UQUJJTElUWSBvciBGSVRORVNTIEZPUiBB
-IFBBUlRJQ1VMQVIgUFVSUE9TRS4gIFNlZSB0aGUKIyBHTlUgR2VuZXJhbCBQdWJsaWMgTGljZW5z
-ZSBmb3IgbW9yZSBkZXRhaWxzLgojCiMgWW91IHNob3VsZCBoYXZlIHJlY2VpdmVkIGEgY29weSBv
-ZiB0aGUgR05VIEdlbmVyYWwgUHVibGljIExpY2Vuc2UKIyBhbG9uZyB3aXRoIHRoaXMgcHJvZ3Jh
-bTsgaWYgbm90LCBjb250YWN0IE5vdmVsbCwgSW5jLgojCiMgVG8gY29udGFjdCBOb3ZlbGwgYWJv
-dXQgdGhpcyBmaWxlIGJ5IHBoeXNpY2FsIG9yIGVsZWN0cm9uaWMgbWFpbCwKIyB5b3UgbWF5IGZp
-bmQgY3VycmVudCBjb250YWN0IGluZm9ybWF0aW9uIGF0IHd3dy5ub3ZlbGwuY29tCiMKIyAgV29y
-a2ZpbGU6ICBkb3RvdXRwYXJzZXIucGwKIyAgQ29udGVudHM6ICBVdGlsaXR5IHRvIHBhcnNlICou
-b3V0IGZpbGVzCiMKCm15ICR2ZXJib3NlID0gMDsKbXkgJGVycm9yID0gMTsKbXkgJHByaW50TE4g
-PSAiXFxkKzogIjsKbXkgJHBDb3VudCA9IDA7CgpteSAkc2VhcmNoX2tleTEgPSAiZXhpdF9vbl9l
-cnJvciI7Cm15ICRzZWFyY2hfa2V5MiA9ICJpZ25vcmVfZXJyb3IiOwpteSBAc2VhcmNoX2tleXMg
-PSAoICRzZWFyY2hfa2V5MSwgJHNlYXJjaF9rZXkyICk7CgpzdWIgUHJvY2Vzc1JlY29yZAp7CiAg
-ICBteSAoJHJlY29yZCwgJHN0YXJ0RGF0ZSwgKCAka2V5MSwgJGtleTIgKSkgPSBAXzsKICAgIG15
-ICRwcm9jZXNzZWQ7CiAgICBteSAkZmFpbGVkID0gMDsKCiAgICAkcmVjb3JkID1+IHMvXHJcbi9c
-bi9tZzsKCiAgICBpZiggJHJlY29yZCA9fiAvXiR7cHJpbnRMTn1cKyAka2V5MSAuKiQvbSApCiAg
-ICB7CiAgICAgICAgJHByb2Nlc3NlZCA9ICRgOwogICAgfQogICAgZWxzZQogICAgewogICAgICAg
-ICRwcm9jZXNzZWQgPSAkcmVjb3JkOwogICAgfQoKICAgIHdoaWxlICgkcmVjb3JkID1+IC9eJHtw
-cmludExOfVwrICRrZXkxIC4qJC9tZyApCiAgICB7CiAgICAgICAgbXkgJGVudHJ5ID0gJCc7CiAg
-ICAgICAgbXkgJGxlZnQgPSAnJzsKCiAgICAgICAgJHByb2Nlc3NlZCAuPSAkJjsKCiAgICAgICAg
-aWYoICRlbnRyeSA9fiAvXiR7cHJpbnRMTn1cKyAka2V5MSAuKiQvbSApCiAgICAgICAgewogICAg
-ICAgICAgICAkZW50cnkgPSAkYDsKICAgICAgICB9CgogICAgICAgIGlmKCAkZW50cnkgPX4gL14k
-e3ByaW50TE59XCsgJGtleTIgLiokL20gKQogICAgICAgIHsKICAgICAgICAgICAgJGxlZnQgPSAk
-JiAuICQnOwogICAgICAgICAgICAkZW50cnkgPSAkYDsKICAgICAgICB9CgogICAgICAgIGlmKCAk
-ZW50cnkgIX4gL14ke3ByaW50TE59XCsgbG9jYWwgcmM9MFxuL20gKQogICAgICAgIHsKICAgICAg
-ICAgICAgJGZhaWxlZCA9IDE7CgogICAgICAgICAgICBpZiggJGVudHJ5ICA9fiAvXi4qXG4uKlxu
-L20gKQogICAgICAgICAgICB7CiAgICAgICAgICAgICAgICAkcHJvY2Vzc2VkIC49ICQmOwogICAg
-ICAgICAgICAgICAgJGVudHJ5ID0gJCc7CiAgICAgICAgICAgIH0KICAgICAgICAgICAgaWYoICRl
-bnRyeSA9fiAvXiR7cHJpbnRMTn1cKyBsb2NhbCByYz1cZCtcbi9tICkKICAgICAgICAgICAgewog
-ICAgICAgICAgICAgICAgJGxlZnQgPSAkJyAuICRsZWZ0OwogICAgICAgICAgICAgICAgJGVudHJ5
-ID0gJGAgLiAkJjsKICAgICAgICAgICAgfQogICAgICAgICAgICAkZW50cnkgPX4gcy9eKCR7cHJp
-bnRMTn0pKC4qKSQvXDFcKyBkb3RvdXRwYXJzZXIgXDIvbWc7CiAgICAgICAgfQoKICAgICAgICAk
-cHJvY2Vzc2VkIC49ICRlbnRyeSAuICRsZWZ0OwogICAgfQoKICAgIGlmKCAwICE9ICRlcnJvciAm
-JiAwID09ICRmYWlsZWQgKSB7IHJldHVybiB9OwoKICAgICRwQ291bnQrKzsKICAgIGlmKCAwID09
-ICR2ZXJib3NlICkKICAgIHsKICAgICAgICBteSAkZmlsdGVyZWQgPSAnJzsKCiAgICAgICAgJHBy
-b2Nlc3NlZCA9fiBzL14ke3ByaW50TE59XCtcKysgLipcbi8vbWc7CiAgICAgICAgd2hpbGUgKCAk
-cHJvY2Vzc2VkID1+IC9eJHtwcmludExOfVwrIC4qXG4vbWcgKQogICAgICAgIHsKICAgICAgICAg
-ICAkZmlsdGVyZWQgLj0gJCY7CiAgICAgICAgfQoKICAgICAgICAkZmlsdGVyZWQgPX4gcy9eJHtw
-cmludExOfVwrIGxvY2FsIHJjPVxkK1xuJHtwcmludExOfVwrIGRhdGVcbi4qXG4vL21nOwogICAg
-ICAgICRmaWx0ZXJlZCA9fiBzL14ke3ByaW50TE59XCsgZGF0ZVxuLipcbi8vbWc7CiAgICAgICAg
-JGZpbHRlcmVkID1+IHMvXiR7cHJpbnRMTn1cKyBldmFsIC4qXG4vL21nOwogICAgICAgICRmaWx0
-ZXJlZCA9fiBzL14ke3ByaW50TE59XCsgXHcrPS4qXG4vL21nOwogICAgICAgICRwcm9jZXNzZWQg
-PSAkZmlsdGVyZWQ7CiAgICB9CiAgICBlbHNpZiggMSA9PSAkdmVyYm9zZSApCiAgICB7CiAgICAg
-ICAgbXkgJGZpbHRlcmVkID0gJyc7CgogICAgICAgICRwcm9jZXNzZWQgPX4gcy9eJHtwcmludExO
-fVwrXCsrIC4qXG4vL21nOwogICAgICAgIHdoaWxlICggJHByb2Nlc3NlZCA9fiAvXiR7cHJpbnRM
-Tn1cKyAuKlxuL21nICkKICAgICAgICB7CiAgICAgICAgICAgICRmaWx0ZXJlZCAuPSAkJjsKICAg
-ICAgICB9CgogICAgICAgICRmaWx0ZXJlZCA9fiBzL14ke3ByaW50TE59XCsgbG9jYWwgcmM9XGQr
-XG4ke3ByaW50TE59XCsgZGF0ZVxuLipcbi8vbWc7CiAgICAgICAgJGZpbHRlcmVkID1+IHMvXiR7
-cHJpbnRMTn1cKyBkYXRlXG4uKlxuLy9tZzsKICAgICAgICAkZmlsdGVyZWQgPX4gcy9eJHtwcmlu
-dExOfVwrIGV2YWwgLipcbi8vbWc7CiAgICAgICAgJHByb2Nlc3NlZCA9ICRmaWx0ZXJlZDsKICAg
-IH0KICAgIGVsc2lmKCAyID09ICR2ZXJib3NlICkKICAgIHsKICAgICAgICBteSAkZmlsdGVyZWQg
-PSAnJzsKCiAgICAgICAgJHByb2Nlc3NlZCA9fiBzL14ke3ByaW50TE59XCtcK1wrKyAuKlxuLy9t
-ZzsKICAgICAgICB3aGlsZSAoICRwcm9jZXNzZWQgPX4gL14ke3ByaW50TE59XCsrIC4qXG4vbWcg
-KQogICAgICAgIHsKICAgICAgICAgICAgJGZpbHRlcmVkIC49ICQmOwogICAgICAgIH0KCiAgICAg
-ICAgJGZpbHRlcmVkID1+IHMvXiR7cHJpbnRMTn1cKyBsb2NhbCByYz1cZCtcbiR7cHJpbnRMTn1c
-KyBkYXRlXG4uKlxuLy9tZzsKICAgICAgICAkZmlsdGVyZWQgPX4gcy9eJHtwcmludExOfVwrIGRh
-dGVcbi4qXG4vL21nOwogICAgICAgICRmaWx0ZXJlZCA9fiBzL14ke3ByaW50TE59XCsgZXZhbCAu
-KlxuLy9tZzsKICAgICAgICAkcHJvY2Vzc2VkID0gJGZpbHRlcmVkOwogICAgfQogICAgZWxzaWYo
-IDMgPT0gJHZlcmJvc2UgKQogICAgewogICAgICAgIG15ICRmaWx0ZXJlZCA9ICcnOwoKICAgICAg
-ICAkcHJvY2Vzc2VkID1+IHMvXiR7cHJpbnRMTn1cK1wrXCtcKysgLipcbi8vbWc7CiAgICAgICAg
-d2hpbGUgKCAkcHJvY2Vzc2VkID1+IC9eJHtwcmludExOfVwrKyAuKlxuL21nICkKICAgICAgICB7
-CiAgICAgICAgICAgJGZpbHRlcmVkIC49ICQmOwogICAgICAgIH0KICAgICAgICAkcHJvY2Vzc2Vk
-ID0gJGZpbHRlcmVkOwogICAgfQoKICAgICRwcm9jZXNzZWQgPX4gcy9eKCR7cHJpbnRMTn0pXCsg
-ZG90b3V0cGFyc2VyIC9cMS9tZzsKICAgIHByaW50ICIkc3RhcnREYXRlICgjJHBDb3VudCk6XG4k
-cHJvY2Vzc2VkXG4iOwp9CgpzdWIgcHJpbnRfdXNhZ2UKewogICBwcmludCBTVERFUlIgIlVzYWdl
-OiAkMCBbLWFdIFstbl0gWy12fC12dnwtdnZ2fC12dnZ2XSBmaWxlX25hbWV8LVxuIjsKICAgcHJp
-bnQgU1RERVJSICIgIFstYV0gcHJpbnQgYWxsIHJlY29yZHMuXG4iOwogICBwcmludCBTVERFUlIg
-IiAgWy1uXSBkbyBub3QgYWRkIGxpbmUgbnVtYmVycy5cbiI7CiAgIHByaW50IFNUREVSUiAiICBb
-LWldIHByaW50IGlnbm9yZWQgZXJyb3JzLlxuIjsKICAgcHJpbnQgU1RERVJSICIgIFstdnwtdnZ8
-LXZ2dnwtdnZ2dl0gc3BlY2lmeSB2ZXJib3NlIGxldmVsLlxuIjsKICAgcHJpbnQgU1RERVJSICIg
-IGZpbGVfbmFtZXwtIHNwZWNpZnkgaW5wdXQgZmlsZSBvciBzdGFuZGFyZCBpbnB1dC5cbiI7Cn0K
-Cm15ICRmaWxlX25hbWUgPSAnJzsKCmZvcmVhY2ggJGFyZyAoQEFSR1YpCnsKICAgIGlmICggJy0t
-aGVscCcgZXEgJGFyZyB8fCAnLWgnIGVxICRhcmcgfHwgJy0/JyBlcSAkYXJnICkKICAgIHsKICAg
-ICAgICAmcHJpbnRfdXNhZ2UoKTsKICAgICAgICBleGl0IDA7CiAgICB9CgogICAgaWYgKCAnLWEn
-IGVxICRhcmcgKXsgJGVycm9yID0gMDsgfQogICAgZWxzaWYgKCAnLW4nIGVxICRhcmcgKXsgJHBy
-aW50TE4gPSAnJzsgfQogICAgZWxzaWYgKCAnLWknIGVxICRhcmcgKXsgQHNlYXJjaF9rZXlzID0g
-cmV2ZXJzZSBAc2VhcmNoX2tleXM7IH0KICAgIGVsc2lmICggJy0nIGVxICRhcmcgKXsgJGZpbGVf
-bmFtZSA9ICImU1RESU4iOyB9CiAgICBlbHNpZiAoICItdiIgZXEgJGFyZyl7ICR2ZXJib3NlID0g
-MTsgfQogICAgZWxzaWYgKCAiLXZ2IiBlcSAkYXJnICl7ICR2ZXJib3NlID0gMjsgfQogICAgZWxz
-aWYgKCAiLXZ2diIgZXEgJGFyZyApeyAkdmVyYm9zZSA9IDM7IH0KICAgIGVsc2lmICggIi12dnZ2
-IiBlcSAkYXJnICl7ICR2ZXJib3NlID0gNDsgfQogICAgZWxzZSB7ICRmaWxlX25hbWUgPSAkYXJn
-OyB9Cn0KCmlmICggJycgZXEgJGZpbGVfbmFtZSApCnsKICAgICZwcmludF91c2FnZSgpOwogICAg
-ZXhpdCAxOwp9CgppZiggMCA9PSBvcGVuKCBpbnB1dF9maWxlLCAiPCRmaWxlX25hbWUiICkpCnsK
-ICAgIHByaW50IFNUREVSUiAiRmFpbGVkIHRvIG9wZW4gaW5wdXQgZmlsZS5cbiI7CiAgICBleGl0
-IDI7Cn0KCm15ICRjb250ZW50ID0gJyc7Cm15ICRzdGFtcDsKCndoaWxlICggPGlucHV0X2ZpbGU+
-ICkKewogICAgaWYgKCAkXyA9fiAvXkNSTTogKC4qKSQvICkKICAgIHsKICAgICAgICAkc3RhbXAg
-PSAkKzsKICAgICAgICBpZiAoICcnIG5lICRjb250ZW50ICkKICAgICAgICB7CiAgICAgICAgICAg
-ICZQcm9jZXNzUmVjb3JkKCAkY29udGVudCwgJHN0YW1wLCBAc2VhcmNoX2tleXMgKTsKICAgICAg
-ICB9CiAgICAgICAgJGNvbnRlbnQgPSAnJzsKICAgIH0KICAgIGVsc2UKICAgIHsKICAgICAgICBp
-ZiggJycgbmUgJHByaW50TE4gKQogICAgICAgIHsKICAgICAgICAgICAgJGNvbnRlbnQgLj0gIiQu
-OiAiOwogICAgICAgIH0KICAgICAgICAkY29udGVudCAuPSAkXzsKICAgIH0KfQoKY2xvc2UoIGlu
-cHV0X2ZpbGUgKTsKCiZQcm9jZXNzUmVjb3JkKCAkY29udGVudCwgJHN0YW1wLCBAc2VhcmNoX2tl
-eXMgKTsKZXhpdCAwOwoK
-NCSPARSEOUT
-
-			base64 -d $BASEOUT > $NCSOUTPARSEBIN 2>/dev/null
-			[[ -s $NCSOUTPARSEBIN ]] && chmod 500 $NCSOUTPARSEBIN
-			NCS_PARSER=$NCSOUTPARSEBIN
-		fi
-
-		# Resource reports
-		CONF="/var/opt/novell/ncs/resource-priority.conf"
-		if [[ -s $CONF ]]
-		then
-			RESOURCE_LIST=$(cat $CONF | grep 'RESOURCE=' | grep -iv 'Master_IP_Address' | cut -d "=" -f2)
-			for RES in $RESOURCE_LIST
-			do
-				OF_RES="novell-ncs-resource-${RES}.txt"
-				addHeaderFile $OF_RES
-				conf_files $OF_RES "/var/opt/novell/ncs/$RES.load /var/opt/novell/ncs/$RES.unload /var/opt/novell/ncs/$RES.monitor"
-				log_cmd $OF_RES "grep $RES $OF_EVENTLOG"
-				log_cmd $OF_RES "$NCS_PARSER -v /var/opt/novell/log/ncs/$RES.load.out"
-				log_cmd $OF_RES "$NCS_PARSER -v /var/opt/novell/log/ncs/$RES.unload.out"
-				log_cmd $OF_RES "$NCS_PARSER -v /var/opt/novell/log/ncs/$RES.monitor.out"
-			done
-		else
-			log_entry $OF note "Error: Missing $CONF, skipping resource reports"
-		fi
-		rm -f $OF_EVENTLOG $NCSOUTPARSEBIN
-
-		# Cluster errors in system logs
-		log_cmd $OF "grep -A3 -i 'The cluster has lost' /var/log/messages"
-		log_cmd $OF "bzcat /var/log/messages*.bz2 2>/dev/null | grep -A3 'The cluster has lost' 2>/dev/null"
-		echolog Done
-	else
-		echolog Skipped
-	fi
-}
-
 pam_info() {
 	printlog "PAM..."
 	test $OPTION_PAM -eq 0 && { echolog Excluded; return 1; }
@@ -2571,126 +1667,6 @@ sssd_info() {
 		[ $ADD_OPTION_LOGS -gt 0 ] && log_files $OF 0 $FILES || log_files $OF $VAR_OPTION_LINE_COUNT $FILES
 		FILES="/var/log/messages"
 		[ $ADD_OPTION_LOGS -gt 0 ] && grep_log_files ' sssd' $OF 0 $FILES || grep_log_files ' sssd' $OF $VAR_OPTION_LINE_COUNT $FILES
-		echolog Done
-	else
-		echolog Skipped
-	fi
-}
-
-novell_lum_info() {
-	printlog "Novell LUM..."
-	test $OPTION_LUM -eq 0 && { echolog Excluded; return 1; }
-	OF=novell-lum.txt
-	addHeaderFile $OF
-	if rpm_verify $OF novell-lum
-	then
-		if [ -x /usr/ldaptools/bin/ldapsearch ]; then
-			LDAP_BIN=/usr/ldaptools/bin/ldapsearch
-		elif [ -x /opt/novell/eDirectory/bin/ldapsearch ]; then
-			LDAP_BIN=/opt/novell/eDirectory/bin/ldapsearch
-		elif [ -x /usr/bin/ldapsearch ]; then
-			LDAP_BIN=/usr/bin/ldapsearch
-		else
-			LDAP_BIN=""
-		fi
-		check_service $OF namcd
-		conf_files $OF '/etc/nsswitch.conf /etc/nam.conf'
-		if [ -s /etc/nam.conf ]; then
-			PREFERRED_SERVER=$(grep '^preferred-server' /etc/nam.conf | sed -e "s/[[:space:]]+//g;s/\'//g;s/\"//g" | cut -d= -f2)
-			ping_addr $OF 'Preferred LDAP Server' $PREFERRED_SERVER
-			IPADDRS=$(grep '^alternative-ldap-server-list' /etc/nam.conf | sed -e "s/[[:space:]]+//g;s/\'//g;s/\"//g" | cut -d= -f2 | sed -e "s/,/ /g")
-			for IPADDR in $IPADDRS
-			do
-				ping_addr $OF 'Alt LDAP Server' $IPADDR
-			done
-		fi
-		log_cmd $OF 'namconfig get'
-		log_cmd $OF 'ndsconfig get n4u.nds.server-name'
-		log_cmd $OF 'namconfig get preferred-server'
-		log_cmd $OF 'ndsconfig get'
-
-		# Find .der files for LDAPS authentication
-		DER_LIST=''
-		NAM_DIRECTORIES="/var/lib/novell-lum /var/nam"
-		for NAM_DIR in $NAM_DIRECTORIES
-		do
-			if [ -d $NAM_DIR ]; then
-				DER_LIST="$DER_LIST $(find -L ${NAM_DIR}/ -type f | grep der$)"
-				log_cmd $OF "ls -alF ${NAM_DIR}/.*der"
-			fi
-		done
-
-		LDAP_OK=0
-		if [ -n "$LDAP_BIN" ]; then
-			if [ -x /usr/bin/ndsconfig ]; then
-				EDIR_HOST=$(ndsconfig get n4u.nds.server-name | cut -d= -f2)
-			else
-				EDIR_HOST=$(hostname)
-			fi
-			if [ -n "$PREFERRED_SERVER" ]; then
-				PREFERRED_OPTIONS="-h $PREFERRED_SERVER "
-				PREFERRED_OPTIONS_SAVED="$PREFERRED_OPTIONS"
-				LDAP_PORT=$(namconfig get ldap-port | awk '{print $1}' | tr -d '[:space:]*' | cut -d= -f2)
-				if [ -n "$LDAP_PORT" ]; then
-					LDAP_OPTIONS="$PREFERRED_OPTIONS_SAVED -p $LDAP_PORT "
-					PREFERRED_OPTIONS="$LDAP_OPTIONS"
-				fi
-				log_write $OF "#===[ Checking for the LDAP's root DSE on Preferred Server: $PREFERRED_SERVER ]===#"
-				log_write $OF
-				if log_cmd $OF "$LDAP_BIN -x ${PREFERRED_OPTIONS}-b \"\" -s base \"objectclass=*\""; then
-					log_write $OF "LDAP  Connection: Success"
-					LDAP_OK=1
-				else
-					log_write $OF "LDAP  Connection: FAILED"
-				fi
-				log_write $OF
-
-				# Attempt LDAPS authentication for each .der file found
-				LDAP_PORT=$(namconfig get ldap-ssl-port | awk '{print $1}' | tr -d '[:space:]*' | cut -d= -f2)
-				if [ -n "$LDAP_PORT" ]; then
-					LDAPS_OPTIONS="$PREFERRED_OPTIONS_SAVED -p $LDAP_PORT "
-					PREFERRED_OPTIONS="$LDAPS_OPTIONS"
-				fi
-				for DER_FILE in $DER_LIST
-				do
-					if log_cmd $OF "$LDAP_BIN -e $DER_FILE ${PREFERRED_OPTIONS}-b \"\" -s base \"objectclass=*\""
-					then
-						log_write $OF "LDAPS Connection Using ${DER_FILE}: Success"
-					else
-						log_write $OF "LDAPS Connection Using ${DER_FILE}: FAILED"
-					fi
-					log_write $OF
-				done
-			else
-				PREFERRED_OPTIONS=" "
-				if log_cmd $OF "$LDAP_BIN -x ${PREFERRED_OPTIONS}-b \"\" -s base \"objectclass=*\""; then
-					log_write $OF "LDAP  Connection: Success"
-					LDAP_OK=1
-				else
-					log_write $OF "LDAP  Connection: FAILED"
-				fi
-				log_write $OF
-				log_write $OF "LDAPS Connection: Unknown"
-				log_write $OF
-			fi
-		fi
-		if [ $LDAP_OK -eq 1 ]; then
-			PREFERRED_OPTIONS="$LDAP_OPTIONS"
-			log_cmd $OF "$LDAP_BIN -x ${PREFERRED_OPTIONS}\"(cn=UNIX Config)\""
-			log_cmd $OF "$LDAP_BIN -x ${PREFERRED_OPTIONS}\"(cn=UNIX Workstation - $EDIR_HOST)\""
-		else
-			log_write $OF "ERROR: Cannot use LDAP connection"
-		fi
-		log_write $OF
-
-		if [ $OPTION_PAM -eq 0 ]; then
-			log_write $OF "WARNING: PAM info excluded by user"
-		else
-			log_cmd $OF 'cat /etc/passwd'
-			log_cmd $OF 'getent passwd'
-		fi
-		FILES="/var/log/messages"
-		test $ADD_OPTION_LOGS -gt 0 && grep_log_files namcd $OF 0 $FILES || grep_log_files namcd $OF $VAR_OPTION_LINE_COUNT $FILES
 		echolog Done
 	else
 		echolog Skipped
@@ -4223,9 +3199,6 @@ get_sles_ver() {
 	elif [ $KERNVER -ge 20401900120000000 ]; then SLES_VER=80;
 	else SLES_VER=90;
 	fi
-	grep -i "open enterprise server" /etc/*release* &>/dev/null
-	OESFOUND=$?
-	(( OESFOUND < 1 )) && OPTION_OES=1
 }
 
 rpm_full_verify() {
@@ -5697,33 +4670,6 @@ dns_info() {
 	SKIP=0
 	OF=dns.txt
 	addHeaderFile $OF
-	log_write $OF "#-----[ Novell DNS ]--------------------------------#"
-	if rpm_verify $OF novell-bind; then
-		check_service $OF novell-named
-		log_cmd $OF 'netstat -nlp | grep named'
-		FILES=/etc/sysconfig/novell/NvlDns*
-		SYSNOVLDNS=$(ls -1 /etc/sysconfig/novell/NvlDns* | sort | tail -1)
-		conf_text_files $OF $FILES
-		if [ -s $SYSNOVLDNS ]; then
-			log_write $OF "#-----[ Configuration File Used by Supportconfig ]--#"
-			log_write $OF "$SYSNOVLDNS"
-			log_write $OF
-			. $SYSNOVLDNS &>/dev/null
-			[ -n "$CONFIG_DNS_LDAP_SERVER" ] && ping_addr $OF 'LDAP Server' $CONFIG_DNS_LDAP_SERVER
-			[ -n "$CONFIG_DNS_EXISTING_DNS_IP" ] && ping_addr $OF 'Existing DNS IP' $CONFIG_DNS_EXISTING_DNS_IP
-			[ -n "$CONFIG_DNS_LOCATOR_CONTEXT" ] && timed_log_cmd $OF "ldapsearch -x -s one -b $CONFIG_DNS_LOCATOR_CONTEXT objectclass=dNIPLocator"
-			[ -n "$CONFIG_DNS_GROUP_CONTEXT" ] && timed_log_cmd $OF "ldapsearch -x -b cn=DNSDHCP-GROUP,$CONFIG_DNS_GROUP_CONTEXT"
-		fi
-		[ -d /etc/opt/novell/named ] && FILES=$(find -L /etc/opt/novell/named -type f | grep -v named.conf) || FILES=''
-		conf_text_files $OF /etc/opt/novell/named/named.conf $FILES
-		if [ -d /var/opt/novell/log/named ]; then
-			FILES=$(find -L /var/opt/novell/log/named -type f)
-			conf_text_files $OF $FILES
-		fi
-	else
-		((SKIP++))
-	fi
-	log_write $OF "#-----[ System DNS ]--------------------------------#"
 	if rpm_verify $OF bind; then
 		check_service $OF named
 		[ $SKIP -gt 0 ] && log_cmd $OF 'netstat -nlp | grep named'
@@ -5736,11 +4682,6 @@ dns_info() {
 			FILES=$(find -L ${ZDIR}/ -mount -type f 2>/dev/null | egrep -v "localtime|zone" | grep -v '/proc/') || unset FILES
 			conf_files $OF $FILES
 		fi
-	else
-		((SKIP++))
-	fi
-	if [ $SKIP -lt 2 ]; then
-		log_write $OF "#-----[ System Logs ]-------------------------------#"
 		log_cmd $OF "grep named /var/log/warn"
 		log_cmd $OF "grep named /var/log/messages"
 		echolog Done
@@ -5760,30 +4701,11 @@ dhcp_info() {
 		log_cmd $OF 'netstat -nlp | grep dhcp'
 		conf_files $OF /etc/sysconfig/dhcpd
 		conf_files $OF /etc/dhcpd.conf /var/lib/dhcp/db/dhcpd.leases
-	else
-		((SKIP++))
-	fi
-	if rpm_verify $OF novell-oes-dhcp-conf; then
-		SYSNOVLDHCP=/etc/sysconfig/novell/NvlDhcp*
-		ACTIVEFILE=$(ls -1 /etc/sysconfig/novell/NvlDhcp* | sort | tail -1)
-		if [ -s $ACTIVEFILE ]; then
-			. $ACTIVEFILE
-			log_entry $OF entry "Using $ACTIVEFILE"
-			conf_files $OF $CONFIG_DHCPSRV_LDAP_DEBUGFILE $SYSNOVLDHCP
-			[ -n "$CONFIG_DHCPSRV_LOCATOR_CONTEXT" ] && timed_log_cmd $OF "ldapsearch -x -s one -b $CONFIG_DHCPSRV_LOCATOR_CONTEXT objectclass=dhcpLocator"
-			[ -n "$CONFIG_DHCPSRV_GROUP_CONTEXT" ] && timed_log_cmd $OF "ldapsearch -x -b cn=DHCPGroup,$CONFIG_DHCPSRV_GROUP_CONTEXT"
-		else
-			conf_files $OF $SYSNOVLDHCP
-		fi
-	else
-		((SKIP++))
-	fi
-	if [ $SKIP -eq 2 ]; then
-		echolog Skipped
-	else
 		log_cmd $OF "grep ' dhcpd' /var/log/warn"
 		log_cmd $OF "grep ' dhcpd' /var/log/messages"
 		echolog Done
+	else
+		echolog Skipped
 	fi
 }
 
@@ -5899,15 +4821,6 @@ web_info() {
 		do
 			check_service $OF $(basename $WEB_SERVICE)
 		done
-		OES_CATALINA_BASE=''
-		if [ -d /var/opt/novell ]; then
-			OES_CATALINA_BASE=$(find -L /var/opt/novell -maxdepth 1 -type d | grep tomcat | tail -1)
-		fi
-		if [ -d $OES_CATALINA_BASE ]; then
-			conf_files $OF $OES_CATALINA_BASE/conf/*xml
-			FILES="$OES_CATALINA_BASE/logs/catalina.out"
-			test $ADD_OPTION_LOGS -gt 0 && log_files $OF 0 $FILES || log_files $OF $VAR_OPTION_LINE_COUNT $FILES
-		fi
 		if [ -s /etc/sysconfig/j2ee ]; then
 			conf_files $OF /etc/sysconfig/j2ee
 			. /etc/sysconfig/j2ee
@@ -5915,19 +4828,10 @@ web_info() {
 			FILES="$CATALINA_HOME/logs/catalina.out $CATALINA_HOME/logs/localhost_log*"
 			test $ADD_OPTION_LOGS -gt 0 && log_files $OF 0 $FILES || log_files $OF $VAR_OPTION_LINE_COUNT $FILES
 		fi
+		echolog Done
 	else
-		((SKIP++))
+		echolog Skipped
 	fi
-	if rpm -q novell-nrm &>/dev/null; then
-		check_service $OF novell-httpstkd
-		conf_files $OF /etc/opt/novell/httpstkd.conf
-		log_cmd $OF 'netstat -nlp | grep -i http'
-		log_cmd $OF 'ps -eaf | grep httpstkd'
-		[ -d /etc/opt/novell/httpstkd ] && log_cmd $OF 'ls -lR --time-style=long-iso /etc/opt/novell/httpstkd'
-	else
-		((SKIP++))
-	fi
-	[ $SKIP -eq 2 ] && echolog Skipped || echolog Done
 }
 
 hppsp_info() {
@@ -6491,7 +5395,7 @@ upload_tarball() {
 				echo "ERROR: Unsupported upload service type: ${UPLOAD_SERVICE}"
 				echo
 				echo "  Supported service types: ftp, scp"
-				echo "  Example URI: ftp://ftp.novell.com/incoming"
+				echo "  Example URI: ftp://ftp.server.com/incoming"
 				echo
 				echo "  VAR_OPTION_UPLOAD_TARGET=\"${VAR_OPTION_UPLOAD_TARGET}\""
 				;;
@@ -6621,12 +5525,6 @@ write_xml_file() {
 		xml_write 'sle_patchlevel' ''
 	fi
 
-	if [ -f /etc/novell-release ]; then
-		if grep -i open /etc/novell-release &>/dev/null; then
-			xml_write 'oes_version' "$(sed -ne 's/VERSION = //p' /etc/novell-release)"
-			xml_write 'oes_patchlevel' "$(sed -ne 's/PATCHLEVEL = //p' /etc/novell-release)"
-		fi
-	fi
 	echo '</summary>' >> $LOG/$XML_FILE
 	echo '<customer>' >> $LOG/$XML_FILE
 	test -n "$VAR_OPTION_CONTACT_COMPANY" && 		{ xml_write 'company' "$VAR_OPTION_CONTACT_COMPANY"; }
@@ -6682,7 +5580,7 @@ init_plugins on
 get_sles_ver
 NSA_CHECK=0
 ALL_ARGS="$@"
-while getopts :\#AB:CDE:FG:H:I:LM:N:O:P:QR:S:T:U:W:X:abcdef:ghi:klmo:pqr:st:uvwx:y TMPOPT
+while getopts :\#AB:CDE:FG:H:I:LM:N:O:P:QR:S:T:U:W:X:abcdf:ghi:klmo:pqr:st:uvwx:y TMPOPT
 do
 	case $TMPOPT in
 	\:)	clear; title
@@ -6722,7 +5620,6 @@ do
 	b) VAR_OPTION_SBM=1 ;;
 	c) ADD_OPTION_LOCAL_ONLY=1 ;;
 	d) ADD_OPTION_MINDISK=1 ;;
-	e) ADD_OPTION_EDIR=1 ;;
 	g) COMPRESS="tgz"; COMPRESS_OPT="zcf" ;;
 	h) title; show_help; exit_code 0 ;;
 	i) SELECTED_FEATURE_LIST=$OPTARG; set_to_min; selected_features on ;;
@@ -6753,7 +5650,6 @@ do
 	esac
 done
 
-test $ADD_OPTION_EDIR -eq 1 && ADD_OPTION_FSLIST=1
 test $ADD_OPTION_LOGS -gt 0 && ADD_OPTION_MAXYAST=1
 
 umask 0077
@@ -6763,10 +5659,9 @@ if [ -n "$TARGET_DIRECTORY" ]; then
 	VAR_OPTION_LOG_DIRS=$TARGET_DIRECTORY
 fi
 
-# Ensures files uploaded to a novell.com address have unique file names
+# Ensures files uploaded have unique file names
 if (( UPLOAD_TARBALL )); then
-	TONOVELL=$(echo $VAR_OPTION_UPLOAD_TARGET | grep -i "novell.com")
-	[ -n "$TONOVELL" ] && VAR_OPTION_UNIQUE_FILE=1
+	VAR_OPTION_UNIQUE_FILE=1
 fi
 
 # Add custom tar ball name element
@@ -6835,7 +5730,7 @@ if [ "$USE_SAVED_LOGS_ONLY" != "1" ]; then
 	log_write $CSFILE "please prune private data from the log files. Several startup options"
 	log_write $CSFILE "are available to exclude more sensitive information. Supportconfig data is"
 	log_write $CSFILE "used only for diagnostic purposes and is considered confidential information."
-	log_write $CSFILE "See http://www.novell.com/company/legal/privacy/"
+	log_write $CSFILE "See http://www.suse.com/company/policies/privacy/"
 	log_write $CSFILE
 	rpm_verify ${CSFILE} supportutils
 
@@ -6880,23 +5775,7 @@ if [ "$USE_SAVED_LOGS_ONLY" != "1" ]; then
 	boot_info
 	slert_info
 	update_info
-	(( SLES_VER < 110 )) && update_d_info
 	smt_info
-	if (( OPTION_OES )); then
-		novell_edir_info
-		novell_lum_info
-		novell_ncp_info
-		novell_nit_info
-		novell_nss_info
-		novell_dfs_info
-		novell_dsfw_info
-		novell_sms_info
-		novell_ncs_info
-		novell_afp_info
-		novell_cifs_info
-		novell_iman_info
-		novell_proxy_info
-	fi
 	ha_info
 	ocfs2_info
 	drbd_info

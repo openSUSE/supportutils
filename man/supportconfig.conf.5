@@ -1,4 +1,4 @@
-.TH SUPPORTCONFIG.CONF 5 "01 Feb 2018" "supportutils" "Support Utilities Manual"
+.TH SUPPORTCONFIG.CONF 5 "16 Feb 2019" "supportutils" "Support Utilities Manual"
 .SH NAME
 supportconfig.conf \- 
 .BR supportconfig (1)
@@ -21,9 +21,6 @@ Each regular option is described with the TOKEN used, a description, the \fBfile
 .PD 0
 .TP
 .TP 18
-OPTION_AFP
-Novell Apple File Protocol (AFP) information. \fBnovell-afp.txt\fR (1)
-.TP
 OPTION_APPARMOR
 AppArmor information. \fBsecurity-apparmor.txt\fR (1)
 .TP
@@ -42,9 +39,6 @@ Information related to the B-tree file system. \fBfs-btrfs.txt\fR (1)
 OPTION_CHKCONFIG
 Current system service states. \fBchkconfig.txt\fR (1)
 .TP
-OPTION_CIFS
-Novell Common Internet File System (CIFS) information. \fBnovell-cifs.txt\fR (1)
-.TP
 OPTION_CIMOM
 CIMOM and OpenWBEM related information. \fBcimom.txt\fR (1)
 .TP
@@ -54,23 +48,17 @@ Information related to capturing a system core dump. \fBcrash.txt\fR (1)
 OPTION_CRON
 Information related to cron and at. \fBcron.txt\fR (1)
 .TP
-OPTION_DFS
-Novell's Distributed File Services information on OES. \fBnovell-dfs.txt\fR (1)
-.TP
 OPTION_DHCP
-Dynamic Host Configuration Protocol (DHCP) information. Includes both Novell and system DHCP. \fBdhcp.txt\fR (1)
+Dynamic Host Configuration Protocol (DHCP) information. \fBdhcp.txt\fR (1)
 .TP
 OPTION_DISK
 Disk, file system mounts and partition information. \fBfs-diskio.txt\fR (1)
 .TP
 OPTION_DNS
-Domain Name Service information. Includes both Novell and system DNS. \fBdns.txt\fR (1)
+Domain Name Service information. \fBdns.txt\fR (1)
 .TP
 OPTION_DRBD
 Distributed Replicated Block Device information. \fBdrbd.txt\fR (1)
-.TP
-OPTION_EDIR
-Novell eDirectory health check information. \fBnovell-edir.txt\fR (1)
 .TP
 OPTION_ENV
 System environment information, including sysctl and root's environment. \fBenv.txt\fR (1)
@@ -93,9 +81,6 @@ root user shell history. \fBhistory.txt\fR (0)
 OPTION_IB
 InfiniBand information. Only available with SLE11 or greater. \fBib.txt\fR (1)
 .TP
-OPTION_IMAN
-iManager information for OES servers. \fBnovell-iman.txt\fR (1)
-.TP
 OPTION_ISCSI
 iSCSI target and initiator information. \fBfs-iscsi.txt\fR (1)
 .TP
@@ -104,9 +89,6 @@ KVM virtualization related information. Available in SLES11 SP1 or newer, otherw
 .TP
 OPTION_LDAP
 LDAP related information, including a root DSE search. \fBldap.txt\fR (1)
-.TP
-OPTION_LUM
-Novell Linux User Management related information, including a root DSE, UNIX Config and workstation object searches. \fBnovell-lum.txt\fR (1)
 .TP
 OPTION_LVM
 Linux Volume Management related information. \fBlvm.txt\fR (1)
@@ -120,20 +102,11 @@ System kernel module information. \fBmodules.txt\fR (1)
 OPTION_MPIO
 Native device mapper multipathing information. \fBmpio.txt\fR (1)
 .TP
-OPTION_NCP
-Novell Core Protocol related information. \fBnovell-ncp.txt\fR (1)
-.TP
-OPTION_NCS
-Novell Cluster Services related information. \fBnovell-ncs.txt\fR (1)
-.TP
 OPTION_NET
 Network related information, including firewall rules. \fBnetwork.txt\fR (1)
 .TP
 OPTION_NFS
 Network File System related information. \fBnfs.txt\fR (1)
-.TP
-OPTION_NSS
-Novell Storage Services related information. \fBnovell-nss.txt\fR (1)
 .TP
 OPTION_NTP
 Network Time Protocol related information. \fBntp.txt\fR (1)
@@ -152,9 +125,6 @@ Printing and CUPS related information. \fBprint.txt\fR (1)
 .TP
 OPTION_PROC
 Includes key /proc file content. \fBproc.txt\fR (1)
-.TP
-OPTION_PROXY
-Novell Proxy Management related information. \fBnovell-proxymgnt.txt\fR (1)
 .TP
 OPTION_TUNED
 Gathers dynamic adaptive system tuning daemon information. \fBtuned.txt\fR (1)
@@ -177,9 +147,6 @@ Self-Monitoring, Analysis, and Reporting Technology related information for hard
 .TP
 OPTION_SMB
 Samba and CIFS related information. \fBsamba.txt\fR (1)
-.TP
-OPTION_SMS
-Novell Storage Management Services (SMS) related information. \fBnovell-sms.txt\fR (1)
 .TP
 OPTION_SMT
 Subscription Management Tool (SMT) related information. \fBsmt.txt\fR (1)
@@ -223,9 +190,6 @@ XEN virtualization related information. \fBxen.txt\fR (1)
 .SS Additional Regular Options
 .TP
 Each additional regular option is described with the TOKEN used, a description, the \fBstartup option\fR used to set it, the \fBfilename\fR if any and the default value in (parenthesis). If no startup option is listed, then you must set this option in the supportconfig.conf file.
-.TP
-ADD_OPTION_EDIR
-Tells the supportconfig to search the file system for all eDirectory instances files. If set, ADD_OPTION_FSLIST is automatically set as well. \fB\-e\fR (0)
 .TP
 ADD_OPTION_FSLIST
 A full file list using find from the root of the filesytem. \fB\-L\fR, \fBfs-files.txt\fR (0)
@@ -374,13 +338,13 @@ VAR_OPTION_SILENT
 When set to 1, supportconfig runs in quiet mode. This option is useful if you plan on running regular supportconfigs in a cron job for example. \fB\-Q\fR (0)
 .TP
 VAR_OPTION_UNIQUE_FILE
-When set to 1, supportconfig adds a unique identifier string to the tar ball filename. This option is usually not needed, but is useful for public upload sites, like Novell or service providers. \fB\-q\fR (0)
+When set to 1, supportconfig adds a unique identifier string to the tar ball filename. This option is usually not needed, but is useful for public upload sites, like SUSE or service providers. \fB\-q\fR (0)
 .TP
 VAR_OPTION_UPLOAD_ALT
-Used to specify an alternate upload target where the supportconfig tar ball will be uploaded, when using the \fB\-a\fR startup option. You should use the \fB\-r\fR \fIsrnum\fR to specify the Novell service request number for all tar balls uploaded to Novell. \fB\-U\fR (https://secure-www.novell.com/upload?appname=supportconfig&file={tarball})
+Used to specify an alternate upload target where the supportconfig tar ball will be uploaded, when using the \fB\-a\fR startup option. You should use the \fB\-r\fR \fIsrnum\fR to specify the service request number for all tar balls uploaded to SUSE. \fB\-U\fR
 .TP
 VAR_OPTION_UPLOAD_TARGET
-Specifies where the supportconfig tar ball will be uploaded, when using the \fB\-u\fR startup option. The default is Novell's public secure upload server. The default is Novell's anonymous ftp upload server. You should use the \fB\-r\fR \fIsrnum\fR to specify the Novell service request number for all tar balls uploaded to Novell. \fB\-U\fR (ftp://ftp.novell.com/incoming/)
+Specifies where the supportconfig tar ball will be uploaded, when using the \fB\-u\fR startup option. The default is SUSE's public secure upload server. You should use the \fB\-r\fR \fIsrnum\fR to specify the service request number for all tar balls uploaded to SUSE. \fB\-U\fR
 .TP
 VAR_OPTION_WAIT_TRACE
 Enables the wait trace verbose logging option. When enabled, a time stamp before and after each command or file logged in supportconfig is displayed.\fB\-w\fR (0)

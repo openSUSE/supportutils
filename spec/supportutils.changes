@@ -1,13 +1,16 @@
 -------------------------------------------------------------------
-Sat Feb 16 15:51:57 UTC 2019 - jason.record@suse.com
+Sat Feb 16 16:38:41 UTC 2019 - jason.record@suse.com
 
+- SUSE separation in supportconfig (bsc#1125623)
+- Local root exploit via inclusion of attacker controlled shell script
+  (CVE-2018-19636 bsc#1117751)
 - User can overwrite arbitrary log files in support tar
   (CVE-2018-19638 bsc#1118460)
 - Code execution if run with -v
   (CVE-2018-19639 bsc#1118462)
 - Static temporary filename allows overwriting of files
   (CVE-2018-19637 bsc#1117776)
-- supportconfig: 3.0.120
+- supportconfig: 3.0.125
 
 -------------------------------------------------------------------
 Mon Jan 28 16:07:56 UTC 2019 - jason.record@suse.com
