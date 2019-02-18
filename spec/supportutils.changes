@@ -1,5 +1,5 @@
 -------------------------------------------------------------------
-Sat Feb 16 18:58:08 UTC 2019 - jason.record@suse.com
+Mon Feb 18 10:30:00 UTC 2019 - jason.record@suse.com
 
 - Corrected missed SUSE separation lines
 - Fixed invalid exit code commands (bsc#1125666)
