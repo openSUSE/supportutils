@@ -1,7 +1,7 @@
 #!/bin/bash
 
-SVER='3.0-127'
-SDATE='2019 02 16'
+SVER='3.0-128'
+SDATE='2019 02 18'
 
 ##############################################################################
 #  supportconfig - Gathers system troubleshooting information for NTS.
@@ -113,7 +113,7 @@ VAR_OPTION_CONTACT_TERMINALID=""
 VAR_OPTION_CUSTOM_ARCH=""
 VAR_OPTION_DMESG=0
 VAR_OPTION_GPG_UID=""
-VAR_OPTION_HBREPORT_DIRS='/tmp /root /var/log'
+VAR_OPTION_HBREPORT_DIRS='/var/log /root'
 # reports must have the format hb_report.*\.tar\.bz2 in each directory
 VAR_OPTION_JOURNALCTL_LINE_COUNT=10000
 VAR_OPTION_JOURNALCTL_MAX_BOOTS=10
