@@ -1,14 +1,14 @@
 #!/bin/bash
 
-SVER='2.25-462'
-SDATE="2018 08 24"
+SVER='2.25-462.1'
+SDATE="2019 02 19"
 
 ##############################################################################
 #  supportconfig - Gathers system troubleshooting information for NTS.
-#  Copyright (C) 2001-2018 SUSE LLC
+#  Copyright (C) 2001-2019 SUSE LLC
 #
 #  Creates a tar ball to attach to the SR or send to support. Collects
-#  comprehensive information for SLE10/SLE11/SLE12, OES2/OES11 for SLES.
+#  comprehensive troubleshooting information from the server.
 #
 #  Disclaimer:
 #  Detailed system information and logs are collected and organized in a
@@ -32,7 +32,7 @@ SDATE="2018 08 24"
 #  along with this program; if not, see <http://www.gnu.org/licenses/>.
 #
 #  Authors/Contributors:
-#     Jason Record (jrecord@suse.com)
+#     Jason Record (jason.record@suse.com)
 #
 ##############################################################################
 # Default Options
@@ -152,14 +152,12 @@ CSFILE=${CURRENT_SCRIPT}.txt
 RPMFILE=rpm.txt
 FSLIST_FILE=fs-files.txt
 FSLIST_ADD_FILE="${LIB_DIR}/additional-files.list"
-RPM_QA_FILE=rpm_qa.txt
-RPM_DIST_FILE=rpm_dist.txt
 BASIC_ENVF=basic-environment.txt
 XML_FILE=summary.xml
 COMPRESS="tbz"
 COMPRESS_OPT="jcf"
 SC_SRV=$(hostname) # %s
-test "$SC_SRV" = "" && SC_SRV=novell
+test "$SC_SRV" = "" && SC_SRV=suse
 SC_DATE=$(date +"%y%m%d") # %d
 SC_TIME=$(date +"%H%M") # %t
 test -x /usr/bin/uuidgen && SC_UID="$(uuidgen 2>/dev/null)" || SC_UID="$(mktemp -u XXXXXXXXXXXXXXXXXXXXXXXXXXXXXX)" # %u
@@ -199,7 +197,7 @@ title() {
 	echo " please prune private data from the log files. Several startup options"
 	echo " are available to exclude more sensitive information. Supportconfig data is"
 	echo " used only for diagnostic purposes and is considered confidential information."
-	echo " See http://www.novell.com/company/legal/privacy/"
+	echo " See http://www.suse.com/company/policies/privacy/"
 	echo "============================================================================="
 	echo
 }
@@ -5877,6 +5875,10 @@ if [ "$USE_SAVED_LOGS_ONLY" != "1" ]; then
 		fi
 	fi
 	test $VAR_OPTION_SILENT -gt 0 && title >> $LOG/$BASIC_ENVF || title | tee -a $LOG/$BASIC_ENVF
+	RPM_QA_FILE_PATH=$(mktemp ${LOG}/rpm_qa.XXXXXXXXXX)
+	RPM_DIST_FILE_PATH=$(mktemp ${LOG}/rpm_dist.XXXXXXXXXX)
+	RPM_QA_FILE=$(basename $RPM_QA_FILE_PATH)
+	RPM_DIST_FILE=$(basename $RPM_DIST_FILE_PATH)
 
 	addHeaderFile $CSFILE
 	log_entry $CSFILE note "Privacy Statement"
@@ -5886,7 +5888,7 @@ if [ "$USE_SAVED_LOGS_ONLY" != "1" ]; then
 	log_write $CSFILE "please prune private data from the log files. Several startup options"
 	log_write $CSFILE "are available to exclude more sensitive information. Supportconfig data is"
 	log_write $CSFILE "used only for diagnostic purposes and is considered confidential information."
-	log_write $CSFILE "See http://www.novell.com/company/legal/privacy/"
+	log_write $CSFILE "See http://www.suse.com/company/policies/privacy/"
 	log_write $CSFILE
 	rpm_verify ${CSFILE} supportutils
 
