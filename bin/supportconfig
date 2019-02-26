@@ -2941,6 +2941,10 @@ drbd_info() {
 		log_write $OF
 		log_cmd $OF "lsmod | grep drbd"
 		log_cmd $OF "modinfo drbd"
+		# Added By Ahmad Al Zayed - Feb 21, 2019 to get few drbd output & configuration 
+		log_cmd $OF "drbdadm status" 
+		log_cmd $OF "drbdadm dump"
+		log_cmd $OF "cat /proc/drbd"
 		log_cmd $OF "ps aux | grep drbd | grep -v grep"
 		[[ -x /usr/bin/findmnt ]] && log_cmd $OF "findmnt" || log_cmd $OF "mount"
 		log_cmd $OF "df -h"
@@ -2949,7 +2953,10 @@ drbd_info() {
             FILES=''
             for DIR in $DIRLIST
             do
-		        [ -d $DIR ] && FILES="$FILES $(find -L $DIR -type f)"
+	    		# We need to add "/etc/" since $DIR will have dir inside /etc/ 
+			# However this find will find all files inside a specific folder It's okay
+			# Will end up with /etc/drbd.conf/nfs.res nfs.RES nfs.stop .... 
+		        [ -d "/etc/$DIR" ] && FILES="$FILES $(find -L "/etc/$DIR" -type f)"
             done
 		    conf_files $OF "/etc/drbd.conf $FILES"
         fi
