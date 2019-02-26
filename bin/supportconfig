@@ -1,6 +1,6 @@
 #!/bin/bash
 
-SVER='3.1-4.23'
+SVER='3.1-4.25'
 SDATE='2019 02 26'
 
 ##############################################################################
@@ -579,21 +579,34 @@ messages_file() {
 		done
 	else
 		log_files $OF $VAR_OPTION_LINE_COUNT /var/log/warn
-		for LOGFILE in /var/log/localmessages /var/log/messages
-		do
-			if [ -e $LOGFILE ]; then
-				if [ $VAR_OPTION_MSG_MAXSIZE -eq 0 ]; then
-					log_files $OF 0 $LOGFILE  # override and get the entire file
+		LOGFILE="/var/log/localmessages"
+		if [ -e $LOGFILE ]; then
+			if [ $VAR_OPTION_MSG_MAXSIZE -eq 0 ]; then
+				log_files $OF 0 $LOGFILE  # override and get the entire file
+			else
+				MSGSIZE=$(stat -c%s $LOGFILE)
+				if [ $MSGSIZE -gt $VAR_OPTION_MSG_MAXSIZE ]; then
+					log_files $OF $VAR_OPTION_MSG_LINE_COUNT $LOGFILE # the file exceeded the max size allowed, get specified lines of the file
 				else
-					MSGSIZE=$(stat -c%s $LOGFILE)
-					if [ $MSGSIZE -gt $VAR_OPTION_MSG_MAXSIZE ]; then
-						log_files $OF $VAR_OPTION_MSG_LINE_COUNT $LOGFILE # the file exceeded the max size allowed, get specified lines of the file
-					else
-						log_files $OF 0 $LOGFILE # get the whole file
-					fi
+					log_files $OF 0 $LOGFILE # get the whole file
 				fi
 			fi
-		done
+		fi
+		LOGFILE="/var/log/messages"
+		if [[ -e $LOGFILE ]]; then
+			if [[ $VAR_OPTION_MSG_MAXSIZE -eq 0 ]]; then
+				log_files $OF 0 $LOGFILE  # override and get the entire file
+			else
+				MSGSIZE=$(stat -c%s $LOGFILE)
+				if [[ $MSGSIZE -gt $VAR_OPTION_MSG_MAXSIZE ]]; then
+					log_files $OF $VAR_OPTION_MSG_LINE_COUNT $LOGFILE # the file exceeded the max size allowed, get specified lines of the file
+				else
+					log_files $OF 0 $LOGFILE # get the whole file
+				fi
+			fi
+		else
+			log_cmd $OF "journalctl --no-pager --lines $VAR_OPTION_MSG_LINE_COUNT"
+		fi
 	fi
 	echolog Done
 }

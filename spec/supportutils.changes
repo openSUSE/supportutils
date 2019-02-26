@@ -1,6 +1,8 @@
 -------------------------------------------------------------------
-Tue Feb 26 16:33:38 UTC 2019 - jason.record@suse.com
+Tue Feb 26 17:42:00 UTC 2019 - jason.record@suse.com
 
+- collects systemd journal with minimum install (bsc#1094225)
+- supportconfig fails on bzip archives (bsc#1120049)
 - get few drbd output & configuration #42
   Updated changes and supportconfig version
 
