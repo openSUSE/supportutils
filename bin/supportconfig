@@ -1,6 +1,6 @@
 #!/bin/bash
 
-SVER='3.1-4.28'
+SVER='3.1-4.29'
 SDATE='2019 02 26'
 
 ##############################################################################
@@ -3402,7 +3402,7 @@ drm_sub_info() {
 }
 
 x_info() {
-        local verify_list
+	local verify_list
 	local xserver_present=n
 	local drm_present=n
 
@@ -3414,48 +3414,49 @@ x_info() {
 	11*)
 		for i in xorg-x11-Xvnc xorg-x11-libs xorg-x11
 		do
-		    rpm -q $i &> /dev/null && rpm_verify $OF $i
+			rpm -q $i &> /dev/null && rpm_verify $OF $i
 		done
 		if rpm_verify $OF xorg-x11-server
 		then
-		    xserver_present=y
-		    rpm_verify $OF Mesa
-		    if rpm_verify $OF sax2
-		    then
-			log_cmd $OF 'sysp -q mouse'
-			log_cmd $OF 'sysp -c'
-			log_cmd $OF 'sysp -q keyboard'
-			log_files $OF $VAR_OPTION_LINE_COUNT /var/log/SaX.log
-		    fi
-		    log_cmd $OF 'bash -c "for i in /sys/class/input/input*; do echo -n \"\$i: \"; echo -n \$i/event* \"  \" | sed -e \"s#\$i/##\"; cat \$i/name; done"'
-		    log_cmd $OF 'ls -al /dev | egrep "video.*|mouse.*"'
-		    log_cmd $OF '3Ddiag'
-		    [ $SLES_VER -ge 113 ] && log_cmd $OF 'mokutil --sb-state'
-		    log_cmd $OF 'cat /proc/fb'
-		    grep -q "VESA" /proc/fb && log_cmd $OF 'hwinfo --framebuffer'
-		    log_cmd $OF 'lspci -nn'
+			xserver_present=y
+			rpm_verify $OF Mesa
+			if rpm_verify $OF sax2
+			then
+				log_cmd $OF 'sysp -q mouse'
+				log_cmd $OF 'sysp -c'
+				log_cmd $OF 'sysp -q keyboard'
+				log_files $OF $VAR_OPTION_LINE_COUNT /var/log/SaX.log
+			fi
+			log_cmd $OF 'bash -c "for i in /sys/class/input/input*; do echo -n \"\$i: \"; echo -n \$i/event* \"  \" | sed -e \"s#\$i/##\"; cat \$i/name; done"'
+			log_cmd $OF 'ls -al /dev | egrep "video.*|mouse.*"'
+			log_cmd $OF '3Ddiag'
+			[ $SLES_VER -ge 113 ] && log_cmd $OF 'mokutil --sb-state'
+			if log_cmd $OF 'cat /proc/fb'; then
+				grep -q "VESA" /proc/fb && log_cmd $OF 'hwinfo --framebuffer'
+			fi
+			log_cmd $OF 'lspci -nn'
 
-		    conf_files $OF /etc/sysconfig/displaymanager /etc/sysconfig/windowmanager /etc/xinetd.d/vnc
-		    [ -e /etc/X11/xorg.conf ] && conf_files $OF /etc/X11/xorg.conf
+			conf_files $OF /etc/sysconfig/displaymanager /etc/sysconfig/windowmanager /etc/xinetd.d/vnc
+			[ -e /etc/X11/xorg.conf ] && conf_files $OF /etc/X11/xorg.conf
 
-		    FILES="/var/log/Xorg.[0,1].log /var/log/Xorg.0.log.old /var/log/xdm.errors /root/.X.err /root/.xsession-errors"
-		    test $ADD_OPTION_LOGS -gt 0 && log_files $OF 0 $FILES || log_files $OF $VAR_OPTION_LINE_COUNT $FILES
+			FILES="/var/log/Xorg.[0,1].log /var/log/Xorg.0.log.old /var/log/xdm.errors /root/.X.err /root/.xsession-errors"
+			test $ADD_OPTION_LOGS -gt 0 && log_files $OF 0 $FILES || log_files $OF $VAR_OPTION_LINE_COUNT $FILES
 		fi
 		if [ -d /sys/class/drm ]
 		then
-		    drm_present=y
-		    if [ "$xserver_present" = "n" ]
-		    then
+			drm_present=y
+			if [ "$xserver_present" = "n" ]
+			then
 			[ $SLES_VER -ge 113 ] && log_cmd $OF 'mokutil --sb-state'
 			log_cmd $OF 'lspci -nn'
-		    fi
-		    drm_sub_info
+			fi
+			drm_sub_info
 		fi
 		if [ "$xserver_present" = "y" -o "$drm_present" = "y" ]
 		then
-		    echolog Done
+			echolog Done
 		else
-		    echolog Skipped
+			echolog Skipped
 		fi
 	;;
 	12*|15*)
@@ -3521,49 +3522,50 @@ x_info() {
 		XORG_PACKAGES="$MESA $XORG_APPS $XORG_FONTS $XORG_LIBS $XORG_32_LIBS $XORG_DRIVERS $XORG_STUFF"
 		for i in $XORG_PACKAGES xorg-x11-Xvnc tigervnc xorg-x11-server
 		do
-		    rpm -q $i &> /dev/null && verify_list="$verify_list $i"
+			rpm -q $i &> /dev/null && verify_list="$verify_list $i"
 		done
 		[ -n "$verify_list" ] && rpm_verify $OF "$verify_list"
 		if rpm -q xorg-x11-server &>/dev/null
 		then
-		    xserver_present=y
-		    log_cmd $OF 'bash -c "for i in /sys/class/input/input*; do echo -n \"\$i: \"; echo -n \$i/event* \"  \" | sed -e \"s#\$i/##\"; cat \$i/name; done"'
-		    log_cmd $OF 'ls -al /dev | egrep "video.*"'
-		    [ $SLES_VER -ge 1130 ] && log_cmd $OF 'mokutil --sb-state'
-		    log_cmd $OF 'cat /proc/fb'
-		    grep -q "VESA" /proc/fb && log_cmd $OF 'hwinfo --framebuffer'
-		    log_cmd $OF 'lspci -nn'
+			xserver_present=y
+			log_cmd $OF 'bash -c "for i in /sys/class/input/input*; do echo -n \"\$i: \"; echo -n \$i/event* \"  \" | sed -e \"s#\$i/##\"; cat \$i/name; done"'
+			log_cmd $OF 'ls -al /dev | egrep "video.*"'
+			[ $SLES_VER -ge 1130 ] && log_cmd $OF 'mokutil --sb-state'
+			if log_cmd $OF 'cat /proc/fb'; then
+				grep -q "VESA" /proc/fb && log_cmd $OF 'hwinfo --framebuffer'
+			fi
+			log_cmd $OF 'lspci -nn'
 
-		    conf_files $OF /etc/sysconfig/displaymanager /etc/sysconfig/windowmanager /etc/xinetd.d/vnc
-		    if [ -e /etc/X11/xorg.conf ]
-		    then
+			conf_files $OF /etc/sysconfig/displaymanager /etc/sysconfig/windowmanager /etc/xinetd.d/vnc
+			if [ -e /etc/X11/xorg.conf ]
+			then
 			xorg_conf=/etc/X11/xorg.conf
 			TMPLOG=$ADD_OPTION_LOGS
-		    else [ -d /etc/X11/xorg.conf.d ]
+			else [ -d /etc/X11/xorg.conf.d ]
 			xorg_conf='/etc/X11/xorg.conf.d/*'
 			TMPLOG=0
-		    fi
-		    [ -n "$xorg_conf" ] && ADD_OPTION_LOGS=$TMPLOG conf_files $OF $xorg_conf
+			fi
+			[ -n "$xorg_conf" ] && ADD_OPTION_LOGS=$TMPLOG conf_files $OF $xorg_conf
 
-		    FILES="/var/log/Xorg.[0,1].log /var/log/Xorg.0.log.old /var/log/xdm.errors /root/.X.err /root/.xsession-errors"
-		    test $ADD_OPTION_LOGS -gt 0 && log_files $OF 0 $FILES || log_files $OF $VAR_OPTION_LINE_COUNT $FILES
+			FILES="/var/log/Xorg.[0,1].log /var/log/Xorg.0.log.old /var/log/xdm.errors /root/.X.err /root/.xsession-errors"
+			test $ADD_OPTION_LOGS -gt 0 && log_files $OF 0 $FILES || log_files $OF $VAR_OPTION_LINE_COUNT $FILES
 		fi
 		if [[ -d /sys/class/drm ]]
 		then
-		    drm_present=y
-		    if [ "$xserver_present" == "n" ]
-		    then
+			drm_present=y
+			if [ "$xserver_present" == "n" ]
+			then
 			log_cmd $OF 'mokutil --sb-state'
 			log_cmd $OF 'lspci -nn'
-		    fi
-		    drm_sub_info
+			fi
+			drm_sub_info
 		fi
 
 		if [ "$xserver_present" = "y" -o "$drm_present" = "y" ]
 		then
-		    echolog Done
+			echolog Done
 		else
-		    echolog Skipped
+			echolog Skipped
 		fi
 	;;
 	esac
