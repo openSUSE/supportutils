@@ -1,6 +1,6 @@
 #!/bin/bash
 
-SVER='3.1-4.26'
+SVER='3.1-4.27'
 SDATE='2019 02 26'
 
 ##############################################################################
@@ -106,7 +106,8 @@ show_help() {
 	echo "  -r <srnum>"
 	echo "     Includes the service request number when uploading the tar ball"
 	echo "  -s Include full SLP service lists"
-	echo "  -t Target directory. Just save log files here, do not create tarball."
+	echo "  -t <directory>"
+	echo "     Target directory. Just save log files to <directory>, do not create a tarball."
 	echo "  -u Upload the tar ball to the specified VAR_OPTION_UPLOAD_TARGET."
 	echo "  -v Performs an rpm -V for each installed rpm  NOTE: This takes a long time"
 	echo "     to complete"
