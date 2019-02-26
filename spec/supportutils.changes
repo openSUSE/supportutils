@@ -1,6 +1,7 @@
 -------------------------------------------------------------------
-Tue Feb 26 17:42:00 UTC 2019 - jason.record@suse.com
+Tue Feb 26 18:10:07 UTC 2019 - jason.record@suse.com
 
+- fixed grep error in NTP when /etc/cron.d is empty (bsc#1127063)
 - collects systemd journal with minimum install (bsc#1094225)
 - supportconfig fails on bzip archives (bsc#1120049)
 - get few drbd output & configuration #42

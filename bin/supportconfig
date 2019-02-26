@@ -1,6 +1,6 @@
 #!/bin/bash
 
-SVER='3.1-4.25'
+SVER='3.1-4.26'
 SDATE='2019 02 26'
 
 ##############################################################################
@@ -2235,7 +2235,7 @@ ntp_info() {
 				NTP_DAEMON=0
 			fi
 			if [[ -d /etc/cron.d ]]; then
-				NTP_CRON=$(grep -i chronyd /etc/cron.d/* | cut -d\: -f1)
+				NTP_CRON=$(grep -i chronyd /etc/cron.d/* 2>/dev/null | cut -d\: -f1)
 				if [[ -n $NTP_CRON ]]; then
 					conf_files $OF $NTP_CRON
 					NTP_CRON=$(basename $NTP_CRON)
