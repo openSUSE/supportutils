@@ -1,4 +1,10 @@
 -------------------------------------------------------------------
+Tue Feb 26 16:33:38 UTC 2019 - jason.record@suse.com
+
+- get few drbd output & configuration #42
+  Updated changes and supportconfig version
+
+-------------------------------------------------------------------
 Mon Feb 18 10:30:00 UTC 2019 - jason.record@suse.com
 
 - Corrected missed SUSE separation lines
