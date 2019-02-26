@@ -1,6 +1,6 @@
 #!/bin/bash
 
-SVER='3.1-4.27'
+SVER='3.1-4.28'
 SDATE='2019 02 26'
 
 ##############################################################################
@@ -1876,8 +1876,8 @@ disk_info() {
 		hd[a-z]|hd[a-z][a-z]) log_cmd $OF "parted -s /dev/$DISK unit s print" ;;
 		xvd[a-z]|xvd[a-z][a-z]) log_cmd $OF "parted -s /dev/$DISK unit s print" ;;
 		dasd[a-z]|dasd[a-z][a-z]) 
-			log_cmd $OF "dasdview -i -f /dev/$DISK"
-			log_cmd $OF "dasdview -t info -f /dev/$DISK"
+			log_cmd $OF "dasdview -i /dev/$DISK"
+			log_cmd $OF "dasdview -t info /dev/$DISK"
 			;;
 		cciss*) 
 			CCISS_DISK=$(echo $DISK | cut -d/ -f2)

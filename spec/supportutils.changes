@@ -1,6 +1,7 @@
 -------------------------------------------------------------------
-Tue Feb 26 18:27:33 UTC 2019 - jason.record@suse.com
+Tue Feb 26 18:41:38 UTC 2019 - jason.record@suse.com
 
+- Fixed dasdview -f (bsc#1109664)
 - Clarified -t help description (bsc#1121043)
 - Fixed grep error in NTP when /etc/cron.d is empty (bsc#1127063)
 - Collects systemd journal with minimum install (bsc#1094225)
