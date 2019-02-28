@@ -1,4 +1,9 @@
 -------------------------------------------------------------------
+Thu Feb 28 20:43:11 UTC 2019 - jason.record@suse.com
+
+- Updated to version 3.1.1
+
+-------------------------------------------------------------------
 Tue Feb 26 19:27:56 UTC 2019 - jason.record@suse.com
 
 - Fixed X missing /prob/fb error (bsc#1127069)
