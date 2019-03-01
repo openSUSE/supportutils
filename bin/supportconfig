@@ -1,7 +1,7 @@
 #!/bin/bash
 
-SVER='3.0-128'
-SDATE='2019 02 18'
+SVER='3.0-129'
+SDATE='2019 03 01'
 
 ##############################################################################
 #  supportconfig - Gathers system troubleshooting information for NTS.
@@ -1269,7 +1269,7 @@ boot_info() {
 	if rpm -q grub &> /dev/null; then
 		rpm_verify $OF grub
 		conf_files $OF /etc/grub.conf /boot/grub/menu.lst /boot/grub/device.map
-		log_cmd $OF 'hwinfo --framebuffer'
+		timed_log_cmd $OF 'hwinfo --framebuffer'
 	fi
 	if rpm -q grub2 &> /dev/null; then
 		rpm_verify $OF grub2
@@ -2749,7 +2749,7 @@ nfs_info() {
 			fi
 			log_cmd $OF 'exportfs -v'
 			log_cmd $OF 'nfsstat'
-			if log_cmd $OF 'showmount'
+			if timed_log_cmd $OF 'showmount'
 			then
 				log_cmd $OF 'showmount -e'
 				log_cmd $OF 'showmount -a'
@@ -2778,7 +2778,7 @@ nfs_info() {
 			check_service $OF nfsserver
 			log_cmd $OF 'exportfs -v'
 			log_cmd $OF 'nfsstat'
-			if log_cmd $OF 'showmount'
+			if timed_log_cmd $OF 'showmount'
 			then
 				log_cmd $OF 'showmount -e'
 				log_cmd $OF 'showmount -a'
@@ -4308,7 +4308,7 @@ x_info() {
 		log_cmd $OF '3Ddiag'
 		rpm_verify $OF XFree86-Mesa
 		rpm_verify $OF XFree86-libs
-		log_cmd $OF 'hwinfo --framebuffer'
+		timed_log_cmd $OF 'hwinfo --framebuffer'
 		conf_files $OF /etc/XF86Config /etc/X11/XF86Config
 		if rpm_verify $OF sax2
 		then
@@ -4330,7 +4330,7 @@ x_info() {
                 log_cmd $OF '3Ddiag'
                 rpm_verify $OF Mesa
                 rpm_verify $OF xorg-x11-libs
-                log_cmd $OF 'hwinfo --framebuffer'
+                timed_log_cmd $OF 'hwinfo --framebuffer'
                 conf_files $OF /etc/sysconfig/displaymanager /etc/sysconfig/windowmanager /etc/X11/xorg.conf
                 log_cmd $OF 'intel_reg_dumper'
                 log_cmd $OF 'lspci -n'
@@ -4365,7 +4365,7 @@ x_info() {
 		    log_cmd $OF '3Ddiag'
 		    [ $SLES_VER -ge 113 ] && log_cmd $OF 'mokutil --sb-state'
 		    log_cmd $OF 'cat /proc/fb'
-		    grep -q "VESA" /proc/fb && log_cmd $OF 'hwinfo --framebuffer'
+		    grep -q "VESA" /proc/fb && timed_log_cmd $OF 'hwinfo --framebuffer'
 		    log_cmd $OF 'lspci -nn'
 
 		    conf_files $OF /etc/sysconfig/displaymanager /etc/sysconfig/windowmanager /etc/xinetd.d/vnc
@@ -4464,7 +4464,7 @@ x_info() {
 		    log_cmd $OF 'ls -al /dev | egrep "video.*"'
 		    [ $SLES_VER -ge 1130 ] && log_cmd $OF 'mokutil --sb-state'
 		    log_cmd $OF 'cat /proc/fb'
-		    grep -q "VESA" /proc/fb && log_cmd $OF 'hwinfo --framebuffer'
+		    grep -q "VESA" /proc/fb && timed_log_cmd $OF 'hwinfo --framebuffer'
 		    log_cmd $OF 'lspci -nn'
 
 		    conf_files $OF /etc/sysconfig/displaymanager /etc/sysconfig/windowmanager /etc/xinetd.d/vnc
