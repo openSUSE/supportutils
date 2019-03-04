@@ -1,8 +1,9 @@
 -------------------------------------------------------------------
-Fri Mar  1 15:00:58 UTC 2019 - jason.record@suse.com
+Mon Mar  4 16:50:01 UTC 2019 - jason.record@suse.com
 
 - Updated to version 3.0.1
   + Added timed_log_cmd added to hwinfo and showmount (bsc#1120967)
+  + Added missing sapconf and log to tuned.txt (bsc#1081326)
 
 -------------------------------------------------------------------
 Sat Feb 16 17:14:55 UTC 2019 - jason.record@suse.com
