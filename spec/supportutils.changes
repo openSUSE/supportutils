@@ -1,4 +1,11 @@
 -------------------------------------------------------------------
+Tue Mar 19 17:33:29 UTC 2019 - jason.record@suse.com
+
+- Updated to version 3.1.3
+  + btrfs quota #43
+  + supportconfig: open-files: add file flags #44
+
+-------------------------------------------------------------------
 Mon Mar  4 17:37:56 UTC 2019 - jason.record@suse.com
 
 - Updated to version 3.1.2
