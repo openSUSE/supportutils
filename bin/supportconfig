@@ -1987,6 +1987,8 @@ btrfs_info() {
                                 log_cmd $OF "btrfs scrub status $FILESYS"
                                 log_cmd $OF "btrfs subvolume get-default $SUB_VOL"
                                 log_cmd $OF "btrfs subvolume list $SUB_VOL"
+				# Added By Ahmad Al Zayed ; Mar 12, 2019 ; to get a list of btrfs quota
+				log_cmd $OF "btrfs qgroup show -r /" 
                         done
                 done
 
