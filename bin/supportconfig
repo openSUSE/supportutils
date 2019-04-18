@@ -1,7 +1,7 @@
 #!/bin/bash
 
-SVER='3.1-4.33'
-SDATE='2019 03 19'
+SVER='3.1-5.1'
+SDATE='2019 04 19'
 
 ##############################################################################
 #  supportconfig - Gathers system troubleshooting information for SUSE Support
@@ -4186,7 +4186,7 @@ do
 	S) VAR_OPTION_SAR_FILES_LIMIT=$OPTARG ;;
 	U) VAR_OPTION_UPLOAD_TARGET="$OPTARG" && UPLOAD_TARBALL=1 ;;
 	W) VAR_OPTION_CONTACT_STOREID="$OPTARG" ;;
-	a) UPLOAD_TARBALL=1; VAR_OPTION_UPLOAD_TARGET=$VAR_OPTION_UPLOAD_ALT ;;
+	a) UPLOAD_TARBALL=1; VAR_OPTION_UPLOAD_TARGET=${VAR_OPTION_UPLOAD_NA_HTTPS} ;;
 	b) VAR_OPTION_SBM=1 ;;
 	c) ADD_OPTION_LOCAL_ONLY=1 ;;
 	d) ADD_OPTION_MINDISK=1 ;;
