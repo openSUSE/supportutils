@@ -91,14 +91,14 @@ VAR_OPTION_SILENT=0
 VAR_OPTION_SBM=0
 VAR_OPTION_UNIQUE_FILE=0
 VAR_OPTION_HEADER_FILE='/usr/lib/supportconfig/header.txt'
-VAR_OPTION_UPLOAD_NA_SERVER='support-ftp.us.suse.com'
-VAR_OPTION_UPLOAD_EMEA_SERVER='support-ftp.suse.com'
-VAR_OPTION_UPLOAD_NA_HTTPS="https://${VAR_OPTION_UPLOAD_NA_SERVER}/incoming/upload.php?appname=supportconfig&file={tarball}"
-VAR_OPTION_UPLOAD_NA_FTPES="ftpes://${VAR_OPTION_UPLOAD_NA_SERVER}/incoming"
-VAR_OPTION_UPLOAD_NA_FTP="ftp://anonymous@${VAR_OPTION_UPLOAD_NA_SERVER}/incoming"
-VAR_OPTION_UPLOAD_EMEA_HTTPS="https://${VAR_OPTION_UPLOAD_EMEA_SERVER}/in/upload.php?appname=supportconfig&file={tarball}"
-VAR_OPTION_UPLOAD_EMEA_FTPES="ftpes://${VAR_OPTION_UPLOAD_EMEA_SERVER}/in"
-VAR_OPTION_UPLOAD_EMEA_FTP="ftp://anonymous@${VAR_OPTION_UPLOAD_EMEA_SERVER}/in"
+VAR_OPTION_UPLOAD_NA_ASERVER='support-ftp.us.suse.com'
+VAR_OPTION_UPLOAD_EMEA_ASERVER='support-ftp.suse.com'
+VAR_OPTION_UPLOAD_NA_HTTPS="https://${VAR_OPTION_UPLOAD_NA_ASERVER}/incoming/upload.php?appname=supportconfig&file={tarball}"
+VAR_OPTION_UPLOAD_NA_FTPES="ftps://${VAR_OPTION_UPLOAD_NA_ASERVER}/incoming"
+VAR_OPTION_UPLOAD_NA_FTP="ftp://anonymous@${VAR_OPTION_UPLOAD_NA_ASERVER}/incoming"
+VAR_OPTION_UPLOAD_EMEA_HTTPS="https://${VAR_OPTION_UPLOAD_EMEA_ASERVER}/in/upload.php?appname=supportconfig&file={tarball}"
+VAR_OPTION_UPLOAD_EMEA_FTPES="ftps://${VAR_OPTION_UPLOAD_EMEA_ASERVER}/in"
+VAR_OPTION_UPLOAD_EMEA_FTP="ftp://anonymous@${VAR_OPTION_UPLOAD_EMEA_ASERVER}/in"
 VAR_OPTION_UPLOAD_TARGET="${VAR_OPTION_UPLOAD_NA_FTPES}"
 VAR_OPTION_UPLOAD_EMAIL="supportconfig@suse.com"
 VAR_OPTION_WAIT_TRACE=0
@@ -1001,15 +1001,15 @@ upload_tarball() {
 		UPLOAD_SERVICE=$(echo ${VAR_OPTION_UPLOAD_TARGET} | cut -d: -f1)
 		if (( VAR_OPTION_SILENT )); then
 			case $UPLOAD_SERVICE in
-			ftpes)
-				UPLOAD_URL=$(sed -e 's/ftpes:/ftp:/g' <<< ${VAR_OPTION_UPLOAD_TARGET})
-				FTPES_OPTIONS="--ftp-ssl --user \"ftp:${VAR_OPTION_UPLOAD_EMAIL}\""
+			ftps|ftpes)
+				UPLOAD_URL=$(sed -e 's/ftpes:/ftp:/g;s/ftps:/ftp:/g' <<< ${VAR_OPTION_UPLOAD_TARGET})
+				FTPES_OPTIONS="--ftp-ssl --user ftp:${VAR_OPTION_UPLOAD_EMAIL}"
 				if (( ENCRYPTED_TARBALL )); then
-					curl -sT "${TARBALL}.md5" ${FTPES_OPTIONS} "${UPLOAD_URL}/${TARBALL_FILE}.md5" &>/dev/null
-					curl -sT "${TARBALL}.gpg" ${FTPES_OPTIONS} "${UPLOAD_URL}/${TARBALL_FILE}.gpg" &>/dev/null
+					curl -sT ${TARBALL}.md5 ${FTPES_OPTIONS} ${UPLOAD_URL}/${TARBALL_FILE}.md5 &>/dev/null
+					curl -sT ${TARBALL}.gpg ${FTPES_OPTIONS} ${UPLOAD_URL}/${TARBALL_FILE}.gpg &>/dev/null
 				else
-					curl -sT "${TARBALL}.md5" ${FTPES_OPTIONS} "${UPLOAD_URL}/${TARBALL_FILE}.md5" &>/dev/null
-					curl -sT "${TARBALL}" ${FTPES_OPTIONS} "${UPLOAD_URL}/${TARBALL_FILE}" &>/dev/null
+					curl -sT ${TARBALL}.md5 ${FTPES_OPTIONS} ${UPLOAD_URL}/${TARBALL_FILE}.md5 &>/dev/null
+					curl -sT ${TARBALL} ${FTPES_OPTIONS} ${UPLOAD_URL}/${TARBALL_FILE} &>/dev/null
 				fi
 				;;
 			ftp)
@@ -1057,35 +1057,35 @@ upload_tarball() {
 			fi
 			echo
 			case $UPLOAD_SERVICE in
-			ftpes)
-				UPLOAD_URL=$(sed -e 's/ftpes:/ftp:/g' <<< ${VAR_OPTION_UPLOAD_TARGET})
-				FTPES_OPTIONS="--ftp-ssl --user \"ftp:${VAR_OPTION_UPLOAD_EMAIL}\""
+			ftps|ftpes)
+				UPLOAD_URL=$(sed -e 's/ftpes:/ftp:/g;s/ftps:/ftp:/g' <<< ${VAR_OPTION_UPLOAD_TARGET})
+				FTPES_OPTIONS="--ftp-ssl --user ftp:${VAR_OPTION_UPLOAD_EMAIL}"
 				if (( VAR_OPTION_SBM )); then
-					wait_trace_on -t "curl -sT \"${TARBALL}.md5\" ${FTPES_OPTIONS} \"${UPLOAD_URL}/${TARBALL_FILE}.md5\""
-					curl -sT "${TARBALL}.md5" ${FTPES_OPTIONS} "${UPLOAD_URL}/${TARBALL_FILE}.md5" &>/dev/null
+					wait_trace_on -t "curl -sT ${TARBALL}.md5 ${FTPES_OPTIONS} ${UPLOAD_URL}/${TARBALL_FILE}.md5"
+					curl -sT ${TARBALL}.md5 ${FTPES_OPTIONS} ${UPLOAD_URL}/${TARBALL_FILE}.md5 &>/dev/null
 					wait_trace_off -t
 					if (( ENCRYPTED_TARBALL )); then
-						wait_trace_on -t "curl -sT \"${TARBALL}.gpg\" ${FTPES_OPTIONS} \"${UPLOAD_URL}/${TARBALL_FILE}.gpg\""
-						curl -sT "${TARBALL}.gpg" ${FTPES_OPTIONS} "${UPLOAD_URL}/${TARBALL_FILE}.gpg" &>/dev/null
+						wait_trace_on -t "curl -sT ${TARBALL}.gpg ${FTPES_OPTIONS} ${UPLOAD_URL}/${TARBALL_FILE}.gpg"
+						curl -sT ${TARBALL}.gpg ${FTPES_OPTIONS} ${UPLOAD_URL}/${TARBALL_FILE}.gpg &>/dev/null
 						wait_trace_off -t
 					else
-						wait_trace_on -t "curl -sT \"${TARBALL}\" ${FTPES_OPTIONS} \"${UPLOAD_URL}/${TARBALL_FILE}\""
-						curl -sT "${TARBALL}" ${FTPES_OPTIONS} "${UPLOAD_URL}/${TARBALL_FILE}" &>/dev/null
+						wait_trace_on -t "curl -sT ${TARBALL} ${FTPES_OPTIONS} ${UPLOAD_URL}/${TARBALL_FILE}"
+						curl -sT ${TARBALL} ${FTPES_OPTIONS} ${UPLOAD_URL}/${TARBALL_FILE} &>/dev/null
 						wait_trace_off -t
 					fi
 				else
-					echo "curl -#T \"${TARBALL}.md5\" ${FTPES_OPTIONS} \"${UPLOAD_URL}/${TARBALL_FILE}.md5\""
+					echo "curl -#T ${TARBALL}.md5 ${FTPES_OPTIONS} ${UPLOAD_URL}/${TARBALL_FILE}.md5"
 					echo
-					curl -#T "${TARBALL}.md5" ${FTPES_OPTIONS} "${UPLOAD_URL}/${TARBALL_FILE}.md5"
+					curl -#T ${TARBALL}.md5 ${FTPES_OPTIONS} ${UPLOAD_URL}/${TARBALL_FILE}.md5
 					echo
 					if (( ENCRYPTED_TARBALL )); then
-						echo "curl -#T \"${TARBALL}.gpg\" ${FTPES_OPTIONS} \"${UPLOAD_URL}/${TARBALL_FILE}.gpg\""
+						echo "curl -#T ${TARBALL}.gpg ${FTPES_OPTIONS} ${UPLOAD_URL}/${TARBALL_FILE}.gpg"
 						echo
-						curl -#T "${TARBALL}.gpg" ${FTPES_OPTIONS} "${UPLOAD_URL}/${TARBALL_FILE}.gpg"
+						curl -#T ${TARBALL}.gpg ${FTPES_OPTIONS} ${UPLOAD_URL}/${TARBALL_FILE}.gpg
 					else
-						echo "curl -#T \"${TARBALL}\" ${FTPES_OPTIONS} \"${UPLOAD_URL}/${TARBALL_FILE}\""
+						echo "curl -#T ${TARBALL} ${FTPES_OPTIONS} ${UPLOAD_URL}/${TARBALL_FILE}"
 						echo
-						curl -#T "${TARBALL}" ${FTPES_OPTIONS} "${UPLOAD_URL}/${TARBALL_FILE}"
+						curl -#T ${TARBALL} ${FTPES_OPTIONS} ${UPLOAD_URL}/${TARBALL_FILE}
 					fi
 				fi
 				;;
@@ -1189,7 +1189,8 @@ upload_tarball() {
 			*)
 				echo "ERROR: Unsupported upload service type: ${UPLOAD_SERVICE}"
 				echo
-				echo "  Supported service types: ftp, ftpes, https, scp"
+				echo "  Supported service types: ftp, ftps/ftpes, https, scp"
+				echo "  Example URI: ${VAR_OPTION_UPLOAD_NA_FTPES}"
 				echo
 				echo "  VAR_OPTION_UPLOAD_TARGET=\"${VAR_OPTION_UPLOAD_TARGET}\""
 				;;
