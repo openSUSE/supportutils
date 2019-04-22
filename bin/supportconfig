@@ -1,7 +1,7 @@
 #!/bin/bash
 
-SVER='3.0-130'
-SDATE='2019 03 04'
+SVER='3.0-130_20190422.1'
+SDATE='2019 04 22'
 
 ##############################################################################
 #  supportconfig - Gathers system troubleshooting information for NTS.
@@ -128,8 +128,16 @@ VAR_OPTION_SILENT=0
 VAR_OPTION_SBM=0
 VAR_OPTION_UNIQUE_FILE=0
 VAR_OPTION_HEADER_FILE='/usr/lib/supportconfig/header.txt'
-VAR_OPTION_UPLOAD_ALT='https://secure-www.novell.com/upload?appname=supportconfig&file={tarball}'
-VAR_OPTION_UPLOAD_TARGET='ftp://anonymous@ftp.novell.com/incoming'
+VAR_OPTION_UPLOAD_NA_ASERVER='support-ftp.us.suse.com'
+VAR_OPTION_UPLOAD_EMEA_ASERVER='support-ftp.suse.com'
+VAR_OPTION_UPLOAD_NA_HTTPS="https://${VAR_OPTION_UPLOAD_NA_ASERVER}/incoming/upload.php?appname=supportconfig&file={tarball}"
+VAR_OPTION_UPLOAD_NA_FTPES="ftps://${VAR_OPTION_UPLOAD_NA_ASERVER}/incoming"
+VAR_OPTION_UPLOAD_NA_FTP="ftp://anonymous@${VAR_OPTION_UPLOAD_NA_ASERVER}/incoming"
+VAR_OPTION_UPLOAD_EMEA_HTTPS="https://${VAR_OPTION_UPLOAD_EMEA_ASERVER}/in/upload.php?appname=supportconfig&file={tarball}"
+VAR_OPTION_UPLOAD_EMEA_FTPES="ftps://${VAR_OPTION_UPLOAD_EMEA_ASERVER}/in"
+VAR_OPTION_UPLOAD_EMEA_FTP="ftp://anonymous@${VAR_OPTION_UPLOAD_EMEA_ASERVER}/in"
+VAR_OPTION_UPLOAD_TARGET="${VAR_OPTION_UPLOAD_NA_FTPES}"
+VAR_OPTION_UPLOAD_EMAIL="supportconfig@suse.com"
 VAR_OPTION_WAIT_TRACE=0
 
 LANG=C
@@ -194,7 +202,7 @@ title() {
 	echo " please prune private data from the log files. Several startup options"
 	echo " are available to exclude more sensitive information. Supportconfig data is"
 	echo " used only for diagnostic purposes and is considered confidential information."
-	echo " See http://www.suse.com/company/policies/privacy/"
+	echo " See https://www.suse.com/company/legal/"
 	echo "============================================================================="
 	echo
 }
@@ -5730,7 +5738,7 @@ if [ "$USE_SAVED_LOGS_ONLY" != "1" ]; then
 	log_write $CSFILE "please prune private data from the log files. Several startup options"
 	log_write $CSFILE "are available to exclude more sensitive information. Supportconfig data is"
 	log_write $CSFILE "used only for diagnostic purposes and is considered confidential information."
-	log_write $CSFILE "See http://www.suse.com/company/policies/privacy/"
+	log_write $CSFILE "See https://www.suse.com/company/legal/"
 	log_write $CSFILE
 	rpm_verify ${CSFILE} supportutils
 
