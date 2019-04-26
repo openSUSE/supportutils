@@ -1,6 +1,6 @@
 #!/bin/bash
 
-SVER='3.1-5.5'
+SVER='3.1-6.0'
 SDATE='2019 04 26'
 
 ##############################################################################
@@ -87,7 +87,7 @@ show_help() {
 	echo "                  services include: ftp, scp, http, https"
 	echo "  -M <string> Contact store ID"
 	echo "  -X <number> Max system logs line count"
-	echo "  -a Upload the tar ball to the specified alternate target VAR_OPTION_UPLOAD_ALT"
+	echo "  -a Upload the tar ball to the specified alternate target VAR_OPTION_UPLOAD_TARGET_ALT"
 	echo "  -b Screen buffer mode"
 	echo "  -d Exclude detailed disk info and scans"
 	echo "  -f From directory. Don't collect report files, just use files in that"
@@ -1107,30 +1107,6 @@ environment_info() {
 	conf_files $OF /etc/bash.bashrc /etc/csh\.* /etc/ksh*
 	sed -i -e 's/\r//g' $LOG/$OF
 	echolog Done
-}
-
-chkconfig_info() {
-        printlog "System Daemons..."
-        test $OPTION_DAEMONS -eq 0 && { echolog Excluded; return 1; }
-        OF=chkconfig.txt
-        addHeaderFile $OF
-        log_cmd $OF 'chkconfig --list'
-        LOGFILE=$LOG/$OF
-        echo "# individual boot services:" >> $LOGFILE
-        for BOOTSERVICE in $(find -L /etc/init.d/ -type f -name boot\* | grep -v rpmsave$)
-        do
-                NAME=$(basename $BOOTSERVICE)
-                wait_trace_on "chkconfig $NAME"
-                STATUS=$(chkconfig $NAME 2>>$LOGFILE)
-                printf "%25s:  %-4s\n" $(echo $STATUS | awk '{print $1}') $(echo $STATUS | awk '{print $2}') >> $LOGFILE
-                wait_trace_off
-        done
-        log_write $OF
-        log_cmd $OF 'ls -lR --time-style=long-iso /etc/init.d/'
-        log_cmd $OF 'ls -lR --time-style=long-iso /etc/xinetd.d/'
-        FILES=$(find /etc/xinetd.d/ -type f)
-        conf_files $OF $FILES
-        echolog Done
 }
 
 systemd_info() {
@@ -4088,7 +4064,7 @@ init_plugins on
 get_sles_ver
 NSA_CHECK=0
 ALL_ARGS="$@"
-while getopts :\#AB:CDE:FG:H:I:LM:N:O:P:QR:S:T:U:W:X:abcdef:ghi:klmo:pqr:st:uvwx:y TMPOPT
+while getopts :\#AB:CDE:FG:H:I:LM:N:O:P:QR:S:T:U:W:X:abcdef:ghi:klmo:pqr:st:uvwx:yz TMPOPT
 do
 	case $TMPOPT in
 	\:)	clear; title
@@ -4103,6 +4079,7 @@ do
 				;;
 			esac
 			echo; show_help; exit_code 0 "ERROR: Invalid Options -$OPTARG" ;;
+	\#) set_to_min; MIN_OPTION_HC=0; MIN_OPTION_HARDWARE=0; MIN_OPTION_YAST=0; MIN_OPTION_SYSLOGS=0; NSA_CHECK=1; COMPRESS="tgz"; COMPRESS_OPT="zcf" ;;
 	A) set_to_all ;;
 	B) VAR_OPTION_CUSTOM_ARCH="$OPTARG" ;;
 	C) clear; title; echo "Overwriting $SC_CONF with default options."; gen_sysconfig; exit_code 0 ;;
@@ -4113,29 +4090,30 @@ do
 	H) VAR_OPTION_PENGINE_FILES_LIMIT=$OPTARG ;;
 	I) VAR_OPTION_LINE_COUNT=$OPTARG ;;
 	L) ADD_OPTION_FSLIST=1 ;;
-	Q) VAR_OPTION_SILENT=1 ;;
-	T) VAR_OPTION_BIN_TIMEOUT_SEC=$OPTARG ;;
-	O) VAR_OPTION_CONTACT_COMPANY="$OPTARG" ;;
 	M) VAR_OPTION_CONTACT_TERMINALID="$OPTARG" ;;
 	N) VAR_OPTION_CONTACT_NAME="$OPTARG" ;;
+	O) VAR_OPTION_CONTACT_COMPANY="$OPTARG" ;;
 	P) VAR_OPTION_CONTACT_PHONE="$OPTARG" ;;
+	Q) VAR_OPTION_SILENT=1 ;;
 	R) VAR_OPTION_LOG_DIRS="$OPTARG" ;;
-	X) VAR_OPTION_MSG_MAXSIZE=$OPTARG ;;
 	S) VAR_OPTION_SAR_FILES_LIMIT=$OPTARG ;;
+	T) VAR_OPTION_BIN_TIMEOUT_SEC=$OPTARG ;;
 	U) VAR_OPTION_UPLOAD_TARGET="$OPTARG" && UPLOAD_TARBALL=1 ;;
 	W) VAR_OPTION_CONTACT_STOREID="$OPTARG" ;;
-	a) UPLOAD_TARBALL=1; VAR_OPTION_UPLOAD_TARGET=${VAR_OPTION_UPLOAD_NA_HTTPS} ;;
+	X) VAR_OPTION_MSG_MAXSIZE=$OPTARG ;;
+	a) UPLOAD_TARBALL=1; VAR_OPTION_UPLOAD_TARGET=${VAR_OPTION_UPLOAD_TARGET_ALT} ;;
 	b) VAR_OPTION_SBM=1 ;;
 	c) ADD_OPTION_LOCAL_ONLY=1 ;;
 	d) ADD_OPTION_MINDISK=1 ;;
+	f) FROM_DIRECTORY=$OPTARG  && USE_SAVED_LOGS_ONLY=1;;
 	g) COMPRESS="tgz"; COMPRESS_OPT="zcf" ;;
 	h) title; show_help; exit_code 0 ;;
 	i) SELECTED_FEATURE_LIST=$OPTARG; set_to_min; selected_features on ;;
 	k) MIN_OPTION_AUTOMOD=0 ;;
 	l) ADD_OPTION_LOGS=1 ;;
-	p) init_plugins off ;;
 	m) set_to_min ;;
 	o) SELECTED_FEATURE_LIST=$OPTARG; toggle_features ;;
+	p) init_plugins off ;;
 	q) VAR_OPTION_UNIQUE_FILE=1 ;;
 	r) CONTACT_SRNUM=$OPTARG;
 		if valid_srnum; then
@@ -4146,15 +4124,14 @@ do
 			echo "       Must be a numeric value only"
 			echo; show_help; exit_code 2
 		fi ;;
-	\#) set_to_min; MIN_OPTION_HC=0; MIN_OPTION_HARDWARE=0; MIN_OPTION_YAST=0; MIN_OPTION_SYSLOGS=0; NSA_CHECK=1; COMPRESS="tgz"; COMPRESS_OPT="zcf" ;;
 	s) ADD_OPTION_SLP=1 ;;
+	t) TARGET_DIRECTORY=$OPTARG && SAVE_LOGS_ONLY=1;;
 	u) UPLOAD_TARBALL=1 ;;
 	v) ADD_OPTION_RPMV=1 ;;
 	w) VAR_OPTION_WAIT_TRACE=1; VAR_OPTION_SBM=1 ;;
 	x) SELECTED_FEATURE_LIST=$OPTARG; set_to_all; selected_features off ;;
 	y) ADD_OPTION_MAXYAST=1 ;;
-	t) TARGET_DIRECTORY=$OPTARG && SAVE_LOGS_ONLY=1;;
-	f) FROM_DIRECTORY=$OPTARG  && USE_SAVED_LOGS_ONLY=1;;
+	z) COMPRESS="tbz"; COMPRESS_OPT="jcf" ;;
 	esac
 done
 
@@ -4268,15 +4245,15 @@ if [ "$USE_SAVED_LOGS_ONLY" != "1" ]; then
 	log_options
 
 	basic_healthcheck	#Minimum Requirement
-	rpm_info				#Minimum Requirement
+	rpm_info		#Minimum Requirement
 	basic_environment	#Minimum Requirement
 	module_info
 	memory_info
 	disk_info
-	(( SLES_VER >= 110 )) && btrfs_info
-	(( SLES_VER >= 120 )) && transactional_info
-	(( SLES_VER >= 120 )) && tuned_info
-	yast_files			#Minimum Requirement
+	btrfs_info
+	transactional_info
+	tuned_info
+	yast_files		#Minimum Requirement
 	fslist_info
 	audit_info
 	crash_info
@@ -4292,7 +4269,7 @@ if [ "$USE_SAVED_LOGS_ONLY" != "1" ]; then
 	haproxy_info
 	pam_info
 	ldap_info
-	(( SLES_VER >= 110 )) && sssd_info
+	sssd_info
 	cimom_info
 	open_files
 	environment_info
@@ -4300,8 +4277,8 @@ if [ "$USE_SAVED_LOGS_ONLY" != "1" ]; then
 	etc_info
 	sysconfig_info
 	sysfs_info
-	(( SLES_VER >= 120 )) && systemd_info || chkconfig_info
-	(( SLES_VER >= 120 )) && docker_info
+	systemd_info
+	docker_info
 	cron_info
 	udev_info
 	lvm_info
@@ -4309,7 +4286,7 @@ if [ "$USE_SAVED_LOGS_ONLY" != "1" ]; then
 	mpio_info
 	net_info
 	web_info
-	(( SLES_VER >= 100 )) && ib_info
+	ib_info
 	dns_info
 	dhcp_info
 	slp_info
