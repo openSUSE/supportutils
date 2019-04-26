@@ -1,4 +1,4 @@
-.TH SUPPORTCONFIG.CONF 5 "16 Feb 2019" "supportutils" "Support Utilities Manual"
+.TH SUPPORTCONFIG.CONF 5 "26 Apr 2019" "supportutils" "Support Utilities Manual"
 .SH NAME
 supportconfig.conf \- 
 .BR supportconfig (1)
@@ -36,9 +36,6 @@ Information related to booting and the kernel. \fBboot.txt\fR (1)
 OPTION_BTRFS
 Information related to the B-tree file system. \fBfs-btrfs.txt\fR (1)
 .TP
-OPTION_CHKCONFIG
-Current system service states. \fBchkconfig.txt\fR (1)
-.TP
 OPTION_CIMOM
 CIMOM and OpenWBEM related information. \fBcimom.txt\fR (1)
 .TP
@@ -47,6 +44,9 @@ Information related to capturing a system core dump. \fBcrash.txt\fR (1)
 .TP
 OPTION_CRON
 Information related to cron and at. \fBcron.txt\fR (1)
+.TP
+OPTION_DAEMONS
+SystemD service information. \fBsystemd.txt\fR (1)
 .TP
 OPTION_DHCP
 Dynamic Host Configuration Protocol (DHCP) information. \fBdhcp.txt\fR (1)
@@ -57,6 +57,9 @@ Disk, file system mounts and partition information. \fBfs-diskio.txt\fR (1)
 OPTION_DNS
 Domain Name Service information. \fBdns.txt\fR (1)
 .TP
+OPTION_DOCKER
+Docker virtualization information.  \fBdocker.txt\fR (1)
+.TP
 OPTION_DRBD
 Distributed Replicated Block Device information. \fBdrbd.txt\fR (1)
 .TP
@@ -65,6 +68,9 @@ System environment information, including sysctl and root's environment. \fBenv.
 .TP
 OPTION_ETC
 Recursively gets *.conf files, along with various other configuration files in /etc. \fBetc.txt\fR (1)
+.TP
+OPTION_EVMS
+Enterprise Volume Management System related information. \fBevms.txt\fR (1)
 .TP
 OPTION_HA
 Heartbeat/high availabilty cluster information. \fBha.txt\fR (1)
@@ -89,6 +95,9 @@ LDAP related information, including a root DSE search. \fBldap.txt\fR (1)
 .TP
 OPTION_LVM
 Linux Volume Management related information. \fBlvm.txt\fR (1)
+.TP
+OPTION_LXC
+Linux Container virtualization information. \fBlxc.txt\fR (1)
 .TP
 OPTION_MEM
 Memory related information. \fBmemory.txt\fR (1)
@@ -115,16 +124,19 @@ OPTION_OFILES
 List of all open files using lsof. \fBopen-files.txt\fR (1)
 .TP
 OPTION_PAM
-Replaced with FORCE_OPTION_PAM
-.TP
-FORCE_OPTION_PAM
-Pluggable Authentication Module related information, including user account information. This option is disabled by default per General Data Protection Regulation (GDPR) consideration and cannot be toggled on with -o. You have to set the environment variable FORCE_OPTION_PAM=1 to enable it. \fBpam.txt\fR (0)
+Pluggable Authentication Module related information, including user account information. \fBpam.txt\fR (1)
 .TP
 OPTION_PRINT
 Printing and CUPS related information. \fBprint.txt\fR (1)
 .TP
 OPTION_PROC
 Includes key /proc file content. \fBproc.txt\fR (1)
+.TP
+OPTION_TUNED
+Gathers dynamic adaptive system tuning daemon information. \fBtuned.txt\fR (1)
+.TP
+OPTION_SAM
+Supportability Analysis Module report. NOTE: This takes up to 10 minutes to complete. \fBsam.txt\fR (1)
 .TP
 OPTION_SAR
 System Activity Reporting related information, including copies of the SAR data files. \fBsar.txt\fR (1)
@@ -159,12 +171,6 @@ Configuration files found in /etc/sysconfig. \fBsysconfig.txt\fR (1)
 .TP
 OPTION_SYSFS
 Gathers the contents of all files in /sys. \fBsysfs.txt\fR (1)
-.TP
-OPTION_TRANSACTIONAL
-Gathers transactional update information. \fBtransactional.txt\fR (1)
-.TP
-OPTION_TUNED
-Gathers dynamic adaptive system tuning daemon information. \fBtuned.txt\fR (1)
 .TP
 OPTION_UDEV
 UDEV device manager related information. \fBudev.txt\fR (1)
@@ -295,6 +301,9 @@ The default supportconfig file format \fBnts_%B\fR or \fBnts_%s_%d_%t\fR yields 
 \fBsupportconfig \-B "%r bad" -r 12345678901\fR yields "nts_SR12345678901_bad.tbz"
 .RE
 .TP
+VAR_OPTION_DMESG
+When enabled, supportconfig logs to /dev/kmsg instead of the system logs. \fBNone\fR (0)
+.TP
 VAR_OPTION_GPG_UID
 The GPG recipient's user ID used to encrypt the supportconfig tar ball for more secure uploads. \fB\-G\fR (Not Set)
 .TP
@@ -316,8 +325,11 @@ The number of lines to include when getting a log file. Zero means get the entir
 VAR_OPTION_LOG_DIRS
 The supportconfig tar ball location. The first valid location in the list is always used. \fB\-R\fR ("/var/log /tmp")
 .TP
+VAR_OPTION_MSG_LINE_COUNT
+When the system logs exceed the VAR_OPTION_MSG_MAXSIZE, only the VAR_OPTION_MSG_LINE_COUNT lines are retrieved. \fBNone\fR (200000)
+.TP
 VAR_OPTION_MSG_MAXSIZE
-The maximum number of /var/log/messages lines to get. Zero means get the entire file. \fB\-X\fR (500000)
+The maximum number of /var/log/messages lines to get. Zero means get the entire file. \fB\-X\fR (26214400)
 .TP
 VAR_OPTION_PENGINE_FILES_LIMIT
 The maximum number of heartbeat policy engine log files to include in the supportconfig tar ball. \fB\-H\fR (250)
@@ -335,23 +347,60 @@ VAR_OPTION_SILENT
 When set to 1, supportconfig runs in quiet mode. This option is useful if you plan on running regular supportconfigs in a cron job for example. \fB\-Q\fR (0)
 .TP
 VAR_OPTION_UNIQUE_FILE
-When set to 1, supportconfig adds a unique identifier string to the tar ball filename. This option is usually not needed, but is useful for public upload sites, like Novell or service providers. \fB\-q\fR (0)
-.TP
-VAR_OPTION_UPLOAD_ALT
-Used to specify an alternate upload target where the supportconfig tar ball will be uploaded, when using the \fB\-a\fR startup option. You should use the \fB\-r\fR \fIsrnum\fR to specify the Novell service request number for all tar balls uploaded to Novell. \fB\-U\fR (https://secure-www.novell.com/upload?appname=supportconfig&file={tarball})
+When set to 1, supportconfig adds a unique identifier string to the tar ball filename. This option is usually not needed, but is useful for public upload sites, like SUSE or service providers. \fB\-q\fR (0)
 .TP
 VAR_OPTION_UPLOAD_TARGET
-Specifies where the supportconfig tar ball will be uploaded, when using the \fB\-u\fR startup option. The default is Novell's public secure upload server. The default is Novell's anonymous ftp upload server. You should use the \fB\-r\fR \fIsrnum\fR to specify the Novell service request number for all tar balls uploaded to Novell. \fB\-U\fR (ftp://ftp.novell.com/incoming/)
+Specifies where the supportconfig tar ball will be uploaded, when using the \fB\-u\fR startup option. The default is SUSE's public secure FTPS upload server. You should use the \fB\-r\fR \fIsrnum\fR to specify the service request number for all tar balls uploaded to SUSE. \fB\-u\fR (SUSE_UPLOAD_NA_FTPES)
+.RS
+
+The following variables are defined for use as upload targets for both \fBVAR_OPTION_UPLOAD_TARGET\fR and \fBVAR_OPTION_UPLOAD_TARGET_ALT\fR:
+
+.RE
+.RS
+\fBSUSE_UPLOAD_NA_HTTPS\fR Secure HTTPS uploads to SUSE's North American FTP Server
+.RE
+.RS
+\fBSUSE_UPLOAD_NA_FTPES\fR Secure FTPS explicit uploads to SUSE's North American FTP Server
+.RE
+.RS
+\fBSUSE_UPLOAD_NA_FTP\fR Unsecure FTP uploads to SUSE's North American FTP Server
+.RE
+.RS
+\fBSUSE_UPLOAD_EMEA_HTTPS\fR Secure HTTPS uploads to SUSE's European FTP Server
+.RE
+.RS
+\fBSUSE_UPLOAD_EMEA_FTPES\fR Secure FTPS explicit uploads to SUSE's European FTP Server
+.RE
+.RS
+\fBSUSE_UPLOAD_EMEA_FTP\fR Unsecure FTP uploads to SUSE's European FTP Server
+.RE
+.RS
+
+If you want to change the default \fB-u\fR upload target to SUSE's European FTP server, add the following to \fB/etc/supportconfig.conf\fR.
+
+VAR_OPTION_UPLOAD_TARGET=${SUSE_UPLOAD_EMEA_FTPES}
+
+.RE
+.TP
+VAR_OPTION_UPLOAD_TARGET_ALT
+Specifies an alternate upload target where the supportconfig tar ball will be uploaded, when using the \fB\-a\fR startup option. You should use the \fB\-r\fR \fIsrnum\fR to specify the service request number for all tar balls uploaded to SUSE. \fB\-a\fR (SUSE_UPLOAD_NA_HTTPS)
+.RS
+
+If you want to change the default \fB-a\fR alternate upload target to SUSE's European FTP server, add the following to \fB/etc/supportconfig.conf\fR.
+
+VAR_OPTION_UPLOAD_TARGET_ALT=${SUSE_UPLOAD_EMEA_HTTPS}
+
+.RE
 .TP
 VAR_OPTION_WAIT_TRACE
 Enables the wait trace verbose logging option. When enabled, a time stamp before and after each command or file logged in supportconfig is displayed.\fB\-w\fR (0)
 .PD
 .SH REPORTING BUGS
-Please submit bug fixes or comments via: 
-.B https://github.com/g23guy/supportutils/issues
+Please submit bug fixes or comments via:
+.B
+http://en.opensuse.org/Supportutils#Reporting_Bugs
 .SH AUTHOR
 Jason Record <jason.record@suse.com>
 .SH SEE ALSO
 .BR supportconfig (8)
-.BR supportconfig.rc (8)
 .BR scplugin.rc (3)
