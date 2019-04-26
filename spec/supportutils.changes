@@ -8,6 +8,7 @@ Fri Apr 26 09:02:45 UTC 2019 - jason.record@suse.com
   + Merged etc_info: Add support for .cfg files in /etc dir #46
   + Silence warning in rpm backup db collection path #47
   + Set files in tarball to 660 instead of 600 #48
+  + SUSE separation finalized (bsc#1125623)
 
 -------------------------------------------------------------------
 Mon Mar  4 17:37:56 UTC 2019 - jason.record@suse.com
