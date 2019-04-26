@@ -1,6 +1,6 @@
 #!/bin/bash
 
-SVER='3.0-130_20190426.1'
+SVER='3.0-130_20190426.2'
 SDATE='2019 04 26'
 
 ##############################################################################
@@ -128,16 +128,17 @@ VAR_OPTION_SILENT=0
 VAR_OPTION_SBM=0
 VAR_OPTION_UNIQUE_FILE=0
 VAR_OPTION_HEADER_FILE='/usr/lib/supportconfig/header.txt'
-VAR_OPTION_UPLOAD_NA_ASERVER='support-ftp.us.suse.com'
-VAR_OPTION_UPLOAD_EMEA_ASERVER='support-ftp.suse.com'
-VAR_OPTION_UPLOAD_NA_HTTPS="https://${VAR_OPTION_UPLOAD_NA_ASERVER}/incoming/upload.php?appname=supportconfig&file={tarball}"
-VAR_OPTION_UPLOAD_NA_FTPES="ftps://${VAR_OPTION_UPLOAD_NA_ASERVER}/incoming"
-VAR_OPTION_UPLOAD_NA_FTP="ftp://anonymous@${VAR_OPTION_UPLOAD_NA_ASERVER}/incoming"
-VAR_OPTION_UPLOAD_EMEA_HTTPS="https://${VAR_OPTION_UPLOAD_EMEA_ASERVER}/in/upload.php?appname=supportconfig&file={tarball}"
-VAR_OPTION_UPLOAD_EMEA_FTPES="ftps://${VAR_OPTION_UPLOAD_EMEA_ASERVER}/in"
-VAR_OPTION_UPLOAD_EMEA_FTP="ftp://anonymous@${VAR_OPTION_UPLOAD_EMEA_ASERVER}/in"
-VAR_OPTION_UPLOAD_TARGET="${VAR_OPTION_UPLOAD_NA_FTPES}"
-VAR_OPTION_UPLOAD_EMAIL="supportconfig@suse.com"
+SUSE_UPLOAD_EMAIL="supportconfig@suse.com"
+SUSE_UPLOAD_NA_ASERVER='support-ftp.us.suse.com'
+SUSE_UPLOAD_EMEA_ASERVER='support-ftp.suse.com'
+SUSE_UPLOAD_NA_HTTPS="https://${SUSE_UPLOAD_NA_ASERVER}/incoming/upload.php?appname=supportconfig&file={tarball}"
+SUSE_UPLOAD_NA_FTPES="ftps://${SUSE_UPLOAD_NA_ASERVER}/incoming"
+SUSE_UPLOAD_NA_FTP="ftp://anonymous@${SUSE_UPLOAD_NA_ASERVER}/incoming"
+SUSE_UPLOAD_EMEA_HTTPS="https://${SUSE_UPLOAD_EMEA_ASERVER}/in/upload.php?appname=supportconfig&file={tarball}"
+SUSE_UPLOAD_EMEA_FTPES="ftps://${SUSE_UPLOAD_EMEA_ASERVER}/in"
+SUSE_UPLOAD_EMEA_FTP="ftp://anonymous@${SUSE_UPLOAD_EMEA_ASERVER}/in"
+VAR_OPTION_UPLOAD_TARGET="${SUSE_UPLOAD_NA_FTPES}"
+VAR_OPTION_UPLOAD_TARGET_ALT="${SUSE_UPLOAD_NA_HTTPS}"
 VAR_OPTION_WAIT_TRACE=0
 
 LANG=C
@@ -1726,30 +1727,6 @@ environment_info() {
 	echolog Done
 }
 
-chkconfig_info() {
-        printlog "System Daemons..."
-        test $OPTION_DAEMONS -eq 0 && { echolog Excluded; return 1; }
-        OF=chkconfig.txt
-        addHeaderFile $OF
-        log_cmd $OF 'chkconfig --list'
-        LOGFILE=$LOG/$OF
-        echo "# individual boot services:" >> $LOGFILE
-        for BOOTSERVICE in $(find -L /etc/init.d/ -type f -name boot\* | grep -v rpmsave$)
-        do
-                NAME=$(basename $BOOTSERVICE)
-                wait_trace_on "chkconfig $NAME"
-                STATUS=$(chkconfig $NAME 2>>$LOGFILE)
-                printf "%25s:  %-4s\n" $(echo $STATUS | awk '{print $1}') $(echo $STATUS | awk '{print $2}') >> $LOGFILE
-                wait_trace_off
-        done
-        log_write $OF
-        log_cmd $OF 'ls -lR --time-style=long-iso /etc/init.d/'
-        log_cmd $OF 'ls -lR --time-style=long-iso /etc/xinetd.d/'
-        FILES=$(find /etc/xinetd.d/ -type f)
-        conf_files $OF $FILES
-        echolog Done
-}
-
 systemd_info() {
 	printlog "SystemD..."
 	test $OPTION_DAEMONS -eq 0 && { echolog Excluded; return 1; }
@@ -2028,49 +2005,6 @@ mpio_info() {
 		((SKIP++))
 	fi
 	test $SKIP -lt 2 && echolog Done || echolog Skipped
-}
-
-evms_info() {
-	printlog "EVMS..."
-	test $OPTION_EVMS -eq 0 && { echolog Excluded; return 1; }
-	OF=evms.txt
-	addHeaderFile $OF
-	if rpm_verify $OF evms
-	then
-		log_cmd $OF 'chkconfig boot.evms'
-		log_cmd $OF 'chkconfig boot.device-mapper'
-		log_cmd $OF 'chkconfig boot.lvm'
-		log_cmd $OF 'chkconfig boot.md'
-		log_cmd $OF 'dmsetup ls --tree'
-		log_cmd $OF 'dmsetup table'
-		log_cmd $OF 'dmsetup info'
-		conf_files $OF '/etc/evms.conf'
-		if [ -d /dev/evms ]; then
-			log_cmd $OF 'ls -alR /dev/evms'
-		else
-			log_write $OF "# Missing Directory: /dev/evms"
-		fi
-		conf_files $OF /etc/init.d/boot.evms
-		if [ $MIN_OPTION_AUTOMOD -eq 0 ]; then
-			log_write $OF "#==[ Warning ]======================================#"
-			log_write $OF "# Autoloading kernel modules disabled. Don't use -k."
-			log_write $OF "# Excluding evms_gather_info"
-			log_write $OF
-		else
-			timed_log_cmd $OF 'evms_gather_info'
-		fi
-		if [ $ADD_OPTION_LOGS -gt 0 ]; then
-			log_write $OF "#  >Additional Logs Activated"
-			FILES=$(find -L /var/log/ -type f -name 'evms-engine*')
-		else
-			FILES="/var/log/evms-engine.log"
-		fi
-		log_files $OF 0 $FILES
-		test -f gather_info.qry && rm -f gather_info.qry
-		echolog Done
-	else
-		echolog Skipped
-	fi
 }
 
 detectProducts() {
@@ -4888,34 +4822,6 @@ sysfs_info() {
 	echolog Done
 }
 
-sam_info() {
-	printlog "Supportability Analysis..."
-	test $OPTION_SAM -eq 0 && { echolog Excluded; return 1; }
-	OF=sam.txt
-	addHeaderFile $OF
-	cd $LOG
-	test $ADD_OPTION_RPMV -gt 0 && RPMVER="--orphan-search" || RPMVER="--no-rpm-verify"
-	if rpm_verify $OF suse-sam; then
-		echonlog "Please Wait..."
-		wait_trace_on "sam -vvv --no-log-timestamp $RPMVER"
-		sam -vvv --no-log-timestamp $RPMVER &>/dev/null
-		wait_trace_off
-		conf_files $OF sam.log
-		rm -f sam.log sam.report sam.xml
-		if [ -s sam.html -a -s $VAR_OPTION_HEADER_FILE ]; then
-			mv sam.html sam.html.tmp
-			echo '<!--' > sam.html
-			cat $VAR_OPTION_HEADER_FILE >> sam.html
-			echo '-->' >> sam.html
-			cat sam.html.tmp >> sam.html
-			rm -f sam.html.tmp
-		fi
-		echolog Done
-	else
-		echolog Skipped
-	fi
-}
-
 timed_cmd_cleanup() {
 	PIDS2KILL=$(\ps axwwo pid,cmd | grep SC__SEMAPHORE | grep -v grep | awk '{print $1}')
 	if [[ -n "$PIDS2KILL" ]]; then
@@ -5257,7 +5163,7 @@ upload_tarball() {
 			case $UPLOAD_SERVICE in
 			ftps|ftpes)
 				UPLOAD_URL=$(sed -e 's/ftpes:/ftp:/g;s/ftps:/ftp:/g' <<< ${VAR_OPTION_UPLOAD_TARGET})
-				FTPES_OPTIONS="--ftp-ssl --user ftp:${VAR_OPTION_UPLOAD_EMAIL}"
+				FTPES_OPTIONS="--ftp-ssl --user ftp:${SUSE_UPLOAD_EMAIL}"
 				if (( ENCRYPTED_TARBALL )); then
 					curl -sT ${TARBALL}.md5 ${FTPES_OPTIONS} ${UPLOAD_URL}/${TARBALL_FILE}.md5 &>/dev/null
 					curl -sT ${TARBALL}.gpg ${FTPES_OPTIONS} ${UPLOAD_URL}/${TARBALL_FILE}.gpg &>/dev/null
@@ -5313,7 +5219,7 @@ upload_tarball() {
 			case $UPLOAD_SERVICE in
 			ftps|ftpes)
 				UPLOAD_URL=$(sed -e 's/ftpes:/ftp:/g;s/ftps:/ftp:/g' <<< ${VAR_OPTION_UPLOAD_TARGET})
-				FTPES_OPTIONS="--ftp-ssl --user ftp:${VAR_OPTION_UPLOAD_EMAIL}"
+				FTPES_OPTIONS="--ftp-ssl --user ftp:${SUSE_UPLOAD_EMAIL}"
 				if (( VAR_OPTION_SBM )); then
 					wait_trace_on -t "curl -sT ${TARBALL}.md5 ${FTPES_OPTIONS} ${UPLOAD_URL}/${TARBALL_FILE}.md5"
 					curl -sT ${TARBALL}.md5 ${FTPES_OPTIONS} ${UPLOAD_URL}/${TARBALL_FILE}.md5 &>/dev/null
@@ -5444,7 +5350,7 @@ upload_tarball() {
 				echo "ERROR: Unsupported upload service type: ${UPLOAD_SERVICE}"
 				echo
 				echo "  Supported service types: ftp, ftps/ftpes, https, scp"
-				echo "  Example URI: ${VAR_OPTION_UPLOAD_NA_FTPES}"
+				echo "  Example URI: ${SUSE_UPLOAD_NA_FTPES}"
 				echo
 				echo "  VAR_OPTION_UPLOAD_TARGET=\"${VAR_OPTION_UPLOAD_TARGET}\""
 				;;
@@ -5665,7 +5571,7 @@ do
 	S) VAR_OPTION_SAR_FILES_LIMIT=$OPTARG ;;
 	U) VAR_OPTION_UPLOAD_TARGET="$OPTARG" && UPLOAD_TARBALL=1 ;;
 	W) VAR_OPTION_CONTACT_STOREID="$OPTARG" ;;
-	a) UPLOAD_TARBALL=1; VAR_OPTION_UPLOAD_TARGET=$VAR_OPTION_UPLOAD_NA_HTTPS ;;
+	a) UPLOAD_TARBALL=1; VAR_OPTION_UPLOAD_TARGET=${VAR_OPTION_UPLOAD_TARGET_ALT} ;;
 	b) VAR_OPTION_SBM=1 ;;
 	c) ADD_OPTION_LOCAL_ONLY=1 ;;
 	d) ADD_OPTION_MINDISK=1 ;;
@@ -5813,8 +5719,8 @@ if [ "$USE_SAVED_LOGS_ONLY" != "1" ]; then
 	module_info
 	memory_info
 	disk_info
-	(( SLES_VER >= 110 )) && btrfs_info
-	(( SLES_VER >= 120 )) && tuned_info
+	btrfs_info
+	tuned_info
 	yast_files			#Minimum Requirement
 	fslist_info
 	audit_info
@@ -5831,7 +5737,7 @@ if [ "$USE_SAVED_LOGS_ONLY" != "1" ]; then
 	haproxy_info
 	pam_info
 	ldap_info
-	(( SLES_VER >= 110 )) && sssd_info
+	sssd_info
 	cimom_info
 	open_files
 	environment_info
@@ -5839,17 +5745,16 @@ if [ "$USE_SAVED_LOGS_ONLY" != "1" ]; then
 	etc_info
 	sysconfig_info
 	sysfs_info
-	(( SLES_VER >= 120 )) && systemd_info || chkconfig_info
-	(( SLES_VER >= 120 )) && docker_info
+	systemd_info
+	docker_info
 	cron_info
 	udev_info
 	lvm_info
-	(( SLES_VER < 120 )) && evms_info
 	soft_raid_info
 	mpio_info
 	net_info
 	web_info
-	(( SLES_VER >= 100 )) && ib_info
+	ib_info
 	dns_info
 	dhcp_info
 	slp_info
@@ -5860,15 +5765,14 @@ if [ "$USE_SAVED_LOGS_ONLY" != "1" ]; then
 	autofs_info
 	sar_info
 	apparmor_info
-	(( SLES_VER >= 100 )) && xen_info
-	(( SLES_VER >= 110 )) && kvm_info
-	(( SLES_VER >= 110 )) && lxc_info
+	xen_info
+	kvm_info
+	lxc_info
 	x_info
 	print_info
 	smartmon_info
-	[ -s ${FSLIST_ADD_FILE} ] && fslist_ufiles_info
+	[[ -s ${FSLIST_ADD_FILE} ]] && fslist_ufiles_info
 	hardware_info		#Minimum Requirement
-	(( SLES_VER >= 110 )) && sam_info
 	rpm_full_verify
 	exec_plugins
 	(( OPTION_MOD > 0 )) && post_lsmod_list
