@@ -1,7 +1,7 @@
 #!/bin/bash
 
-SVER='3.0-130_20190422.1'
-SDATE='2019 04 22'
+SVER='3.0-130_20190426.1'
+SDATE='2019 04 26'
 
 ##############################################################################
 #  supportconfig - Gathers system troubleshooting information for NTS.
@@ -5901,8 +5901,8 @@ fi
 
 cd $LOG
 cd ..
-wait_trace_on -t "tar ${COMPRESS_OPT} ${TARBALL} ${BASE}/*"
-tar ${COMPRESS_OPT} ${TARBALL} ${BASE}/*
+wait_trace_on -t "tar ${COMPRESS_OPT} ${TARBALL} --mode='ug+rw' ${BASE}/*"
+tar ${COMPRESS_OPT} ${TARBALL} --mode='ug+rw' ${BASE}/*
 LOGSIZE=$(ls -lh ${TARBALL} | awk '{print $5}')
 wait_trace_off -t
 wait_trace_on -t "md5sum $TARBALL"
