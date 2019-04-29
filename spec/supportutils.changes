@@ -1,5 +1,5 @@
 -------------------------------------------------------------------
-Fri Apr 26 13:22:12 UTC 2019 - jason.record@suse.com
+Mon Apr 29 14:40:57 UTC 2019 - jason.record@suse.com
 
 - Updated to version 3.0.2
   + Using https://www.suse.com/company/legal/ for privacy statement
@@ -8,6 +8,7 @@ Fri Apr 26 13:22:12 UTC 2019 - jason.record@suse.com
   + Set files in tarball to 660 instead of 600 #48
   + Removed deprecated chkconfig code and sle12 checks
   + Updated man pages (bsc#1088234)
+  + Avoiding IO delays (bsc#1100529)
 
 -------------------------------------------------------------------
 Mon Mar  4 16:50:01 UTC 2019 - jason.record@suse.com
