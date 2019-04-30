@@ -1,6 +1,6 @@
 #!/bin/bash
 
-SVER='3.1.3-9'
+SVER='3.1.3-10'
 SDATE='2019 04 30'
 
 ##############################################################################
@@ -84,7 +84,7 @@ show_help() {
 	echo "  -S <number> Limit number of included SAR files"
 	echo "  -T <seconds> Binary execution timeout"
 	echo "  -U <URI string> Sets upload target URL and initiates an upload, supported"
-	echo "                  services include: ftp, scp, http, https"
+	echo "                  services include: ftp, ftps/ftpes, https, scp"
 	echo "  -X <number> Max system logs line count"
 	echo "  -a Upload the tar ball to the specified alternate target VAR_OPTION_UPLOAD_TARGET_ALT"
 	echo "  -b Screen buffer mode"
