@@ -1,7 +1,7 @@
 #!/bin/bash
 
 SVER='3.1.3-9'
-SDATE='2019 04 26'
+SDATE='2019 04 30'
 
 ##############################################################################
 #  supportconfig - Gathers system troubleshooting information for SUSE Support
@@ -241,8 +241,8 @@ basic_healthcheck() {
 	log_cmd $OF 'vmstat 1 4'
 	test -x /usr/bin/mpstat && log_cmd $OF 'mpstat -P ALL 1 3'
 	log_cmd $OF 'free -k'
-	log_cmd $OF 'df -h'
-	log_cmd $OF 'df -i'
+	timed_log_cmd $OF 'df -h' || IO_DELAYS=1
+	(( $IO_DELAYS )) || log_cmd $OF 'df -i'
 	conf_files $OF '/proc/sys/kernel/tainted'
 	TAINT=$(cat /proc/sys/kernel/tainted)
 	TAINTED=0
@@ -1265,25 +1265,20 @@ lvm_info() {
 	test $OPTION_LVM -eq 0 && { echolog Excluded; return 1; }
 	echonlog "Please Wait..."
 	OF=lvm.txt
+	local LVM_IO_DELAYS=0
 	addHeaderFile $OF
 	if rpm_verify $OF lvm2
 	then
 		echonlog Base
 		VGBIN="vgs"
 		LVBIN="lvs"
-		if (( SLES_VER >= 120 )); then
-			log_cmd $OF "systemctl status 'lvm2-activation-early.service'"
-			FILES="/etc/lvm/lvm.conf"
-			log_cmd $OF 'pvs'
-		else
-			log_cmd $OF 'chkconfig boot.device-mapper'
-			log_cmd $OF 'chkconfig boot.lvm'
-			log_cmd $OF 'chkconfig boot.md'
-			FILES="/etc/lvm/lvm.conf /etc/sysconfig/lvm /etc/lvm/.cache"
-			log_cmd $OF 'pvscan'
+		log_cmd $OF "systemctl status 'lvm2-activation-early.service'"
+		FILES="/etc/lvm/lvm.conf"
+		timed_log_cmd $OF 'pvs' || LVM_IO_DELAYS=1
+		if ! (( $LVM_IO_DELAYS )); then
+			log_cmd $OF "vgs"
+			log_cmd $OF "lvs"
 		fi
-		log_cmd $OF "vgs"
-		log_cmd $OF "lvs"
 		conf_files $OF $FILES
 		log_cmd $OF 'dmsetup ls --tree'
 		log_cmd $OF 'dmsetup table'
@@ -1292,17 +1287,19 @@ lvm_info() {
 		conf_files $OF /etc/lvm/backup/*
 		log_cmd $OF 'ls -l --time-style=long-iso /etc/lvm/archive/'
 		conf_files $OF /etc/lvm/archive/*
-		echonlog Detail
-		log_write $OF
-		log_write $OF "###[ Detail Scans ]###########################################################################"
-		log_write $OF
-		log_cmd $OF 'pvdisplay -vv'
-		log_cmd $OF 'vgdisplay -vv'
-		log_cmd $OF 'lvdisplay -vv'
-		log_cmd $OF 'pvs -vvvv'
-		log_cmd $OF 'pvscan -vvv'
-		log_cmd $OF "$VGBIN -vvvv"
-		log_cmd $OF "$LVBIN -vvvv"
+		if ! (( $LVM_IO_DELAYS )); then
+			echonlog Detail
+			log_write $OF
+			log_write $OF "###[ Detail Scans ]###########################################################################"
+			log_write $OF
+			log_cmd $OF 'pvdisplay -vv'
+			log_cmd $OF 'vgdisplay -vv'
+			log_cmd $OF 'lvdisplay -vv'
+			log_cmd $OF 'pvs -vvvv'
+			log_cmd $OF 'pvscan -vvv'
+			log_cmd $OF "$VGBIN -vvvv"
+			log_cmd $OF "$LVBIN -vvvv"
+		fi
 		echolog Done
 	else
 		echolog Skipped
@@ -1809,8 +1806,9 @@ disk_info() {
 	printlog "Disk I/O..."
 	test $OPTION_DISK -eq 0 && { echolog Excluded; return 1; }
 	OF=fs-diskio.txt
+	local DISK_IO_DELAYS=0
 	addHeaderFile $OF
-	log_cmd $OF 'fdisk -l 2>/dev/null | grep Disk'
+	timed_log_cmd $OF 'fdisk -l 2>/dev/null | grep Disk' || DISK_IO_DELAYS=1
 	conf_files $OF /proc/partitions /etc/fstab
 	[[ -x /usr/bin/findmnt ]] && log_cmd $OF "findmnt"
 	log_cmd $OF "mount"
@@ -1878,7 +1876,7 @@ disk_info() {
 			log_write $OF "#---------------------------------------------------#"
 			log_cmd $OF 'lsscsi'
 			log_cmd $OF 'lsscsi -H'
-			[[ -x /bin/lsblk ]] && log_cmd $OF "lsblk -o 'NAME,KNAME,MAJ:MIN,FSTYPE,LABEL,RO,RM,MODEL,SIZE,OWNER,GROUP,MODE,ALIGNMENT,MIN-IO,OPT-IO,PHY-SEC,LOG-SEC,ROTA,SCHED,MOUNTPOINT'"
+			(( $DISK_IO_DELAYS )) || log_cmd $OF "lsblk -o 'NAME,KNAME,MAJ:MIN,FSTYPE,LABEL,RO,RM,MODEL,SIZE,OWNER,GROUP,MODE,ALIGNMENT,MIN-IO,OPT-IO,PHY-SEC,LOG-SEC,ROTA,SCHED,MOUNTPOINT'"
 			if log_cmd $OF 'scsiinfo -l'
 			then
 				FILES=$(scsiinfo -l)
@@ -1903,12 +1901,14 @@ disk_info() {
 			FILES=$(find /proc/driver/cciss/ -maxdepth 1 -type f 2>/dev/null)
 			conf_files $OF $FILES
 		fi
-		DISKS=$(sfdisk -l 2>/dev/null | grep -i 'disk /' | awk '{print $2}' | sed -e 's/://g')
-		if [[ -n $DISKS ]]; then
-			for DISK in $DISKS
-			do
-				log_cmd $OF "sfdisk -d $DISK"
-			done
+		if ! (( $IO_DELAYS )); then
+			DISKS=$(sfdisk -l 2>/dev/null | grep -i 'disk /' | awk '{print $2}' | sed -e 's/://g')
+			if [[ -n $DISKS ]]; then
+				for DISK in $DISKS
+				do
+					log_cmd $OF "sfdisk -d $DISK"
+				done
+			fi
 		fi
 	fi
 	echolog Done
@@ -1923,7 +1923,7 @@ btrfs_info() {
 		log_cmd $OF "btrfs filesystem show"
 		conf_files $OF /etc/fstab
 		[[ -x /usr/bin/findmnt ]] && log_cmd $OF "findmnt" || log_cmd $OF "mount"
-		log_cmd $OF "df -h"
+		(( $IO_DELAYS )) || log_cmd $OF "df -h"
 		log_cmd $OF "modinfo btrfs"
                 for DEVICE in $(btrfs filesystem show | awk 'NF{ print $NF }' | grep ^/)
                 #TODO For multi-device btrfs filesysems only use one device
@@ -2616,8 +2616,9 @@ ha_info() {
 				. /etc/sysconfig/sbd
 				for SBD in $(echo $SBD_DEVICE | sed -e 's/;/ /g')
 				do
-					log_cmd $OF "sbd -d $SBD list"
-					log_cmd $OF "sbd -d $SBD dump"
+					if timed_log_cmd $OF "sbd -d $SBD list"; then
+						log_cmd $OF "sbd -d $SBD dump"
+					fi
 				done
 			fi
 			log_cmd $OF 'ls -lR --time-style=long-iso /etc/csync2'
@@ -2695,8 +2696,9 @@ ha_info() {
 				. /etc/sysconfig/sbd
 				for SBD in $(echo $SBD_DEVICE | sed -e 's/;/ /g')
 				do
-					log_cmd $OF "sbd -d $SBD list"
-					log_cmd $OF "sbd -d $SBD dump"
+					if timed_log_cmd $OF "sbd -d $SBD list"; then
+						log_cmd $OF "sbd -d $SBD dump"
+					fi
 				done
 			fi
 			log_cmd $OF 'ls -lR --time-style=long-iso /etc/csync2'
@@ -2910,19 +2912,20 @@ drbd_info() {
 		log_cmd $OF "cat /proc/drbd"
 		log_cmd $OF "ps aux | grep drbd | grep -v grep"
 		[[ -x /usr/bin/findmnt ]] && log_cmd $OF "findmnt" || log_cmd $OF "mount"
-		log_cmd $OF "df -h"
-        if [ -s /etc/drbd.conf ]; then
-            DIRLIST=$(cat /etc/drbd.conf | grep ^include | cut -d\" -f2 | sed 's!\(.*\)/.*!\1/!' | sort | uniq)
-            FILES=''
-            for DIR in $DIRLIST
-            do
-	    		# We need to add "/etc/" since $DIR will have dir inside /etc/ 
-			# However this find will find all files inside a specific folder It's okay
-			# Will end up with /etc/drbd.conf/nfs.res nfs.RES nfs.stop .... 
-		        [ -d "/etc/$DIR" ] && FILES="$FILES $(find -L "/etc/$DIR" -type f)"
-            done
-		    conf_files $OF "/etc/drbd.conf $FILES"
-        fi
+		(( $IO_DELAYS )) || log_cmd $OF "df -h"
+		if [[ -s /etc/drbd.conf ]]; then
+			DIRLIST=$(cat /etc/drbd.conf | grep ^include | cut -d\" -f2 | sed 's!\(.*\)/.*!\1/!' | sort | uniq)
+			FILES=''
+			for DIR in $DIRLIST
+			do
+				# We need to add "/etc/" since $DIR will have dir inside /etc/ 
+				# However this find will find all files inside a specific folder It's okay
+				# Will end up with /etc/drbd.conf/nfs.res nfs.RES nfs.stop .... 
+				[[ -d "/etc/$DIR" ]] && FILES="$FILES $(find -L "/etc/$DIR" -type f)"
+				[[ -d $DIR ]] && FILES="$FILES $(find -L $DIR -type f)"
+			done
+			conf_files $OF "/etc/drbd.conf $FILES"
+		fi
 		FILES="/var/log/messages"
 		test $ADD_OPTION_LOGS -gt 0 && grep_log_files drbd $OF 0 $FILES || grep_log_files drbd $OF $VAR_OPTION_LINE_COUNT $FILES
 		echolog Done
