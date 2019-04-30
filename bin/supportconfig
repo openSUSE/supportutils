@@ -1,7 +1,7 @@
 #!/bin/bash
 
-SVER='3.0.2-7'
-SDATE='2019 04 29'
+SVER='3.0.2-8'
+SDATE='2019 04 30'
 
 ##############################################################################
 #  supportconfig - Gathers system troubleshooting information for NTS.
@@ -3808,15 +3808,16 @@ drbd_info() {
 		log_cmd $OF "ps aux | grep drbd | grep -v grep"
 		[[ -x /usr/bin/findmnt ]] && log_cmd $OF "findmnt" || log_cmd $OF "mount"
 		(( $IO_DELAYS )) || log_cmd $OF "df -h"
-        if [ -s /etc/drbd.conf ]; then
-            DIRLIST=$(cat /etc/drbd.conf | grep ^include | cut -d\" -f2 | sed 's!\(.*\)/.*!\1/!' | sort | uniq)
-            FILES=''
-            for DIR in $DIRLIST
-            do
-		        [ -d $DIR ] && FILES="$FILES $(find -L $DIR -type f)"
-            done
-		    conf_files $OF "/etc/drbd.conf $FILES"
-        fi
+		if [[ -s /etc/drbd.conf ]]; then
+			DIRLIST=$(cat /etc/drbd.conf | grep ^include | cut -d\" -f2 | sed 's!\(.*\)/.*!\1/!' | sort | uniq)
+			FILES=''
+			for DIR in $DIRLIST
+			do
+				[[ -d $DIR ]] && FILES="$FILES $(find -L $DIR -type f)"
+				[[ -d /etc/$DIR ]] && FILES="$FILES $(find -L /etc/$DIR -type f)"
+			done
+			conf_files $OF "/etc/drbd.conf $FILES"
+		fi
 		FILES="/var/log/messages"
 		test $ADD_OPTION_LOGS -gt 0 && grep_log_files drbd $OF 0 $FILES || grep_log_files drbd $OF $VAR_OPTION_LINE_COUNT $FILES
 		echolog Done

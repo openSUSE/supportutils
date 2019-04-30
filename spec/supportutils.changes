@@ -1,5 +1,5 @@
 -------------------------------------------------------------------
-Mon Apr 29 14:40:57 UTC 2019 - jason.record@suse.com
+Tue Apr 30 13:17:54 UTC 2019 - jason.record@suse.com
 
 - Updated to version 3.0.2
   + Using https://www.suse.com/company/legal/ for privacy statement
@@ -9,6 +9,7 @@ Mon Apr 29 14:40:57 UTC 2019 - jason.record@suse.com
   + Removed deprecated chkconfig code and sle12 checks
   + Updated man pages (bsc#1088234)
   + Avoiding IO delays (bsc#1100529)
+  + Use relative paths in drbd.conf (bsc#1133723)
 
 -------------------------------------------------------------------
 Mon Mar  4 16:50:01 UTC 2019 - jason.record@suse.com
