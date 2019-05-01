@@ -1,6 +1,6 @@
 #!/bin/bash
 
-SVER='3.1.3-10'
+SVER='3.1.3-12'
 SDATE='2019 04 30'
 
 ##############################################################################
@@ -265,31 +265,6 @@ basic_healthcheck() {
 		test $((TAINT & 32))  -ne 0 && TAINT_STRING="${TAINT_STRING}B" || TAINT_STRING="${TAINT_STRING} "
 
 		case $SLES_VER in
-		111)
-		test $((TAINT & 64))         -ne 0 && TAINT_STRING="${TAINT_STRING}U" || TAINT_STRING="${TAINT_STRING} "
-		test $((TAINT & 128))        -ne 0 && TAINT_STRING="${TAINT_STRING}D" || TAINT_STRING="${TAINT_STRING} "
-		test $((TAINT & 256))        -ne 0 && TAINT_STRING="${TAINT_STRING}A" || TAINT_STRING="${TAINT_STRING} "
-		test $((TAINT & 512))        -ne 0 && TAINT_STRING="${TAINT_STRING}W" || TAINT_STRING="${TAINT_STRING} "
-		test $((TAINT & 1024))       -ne 0 && TAINT_STRING="${TAINT_STRING}C" || TAINT_STRING="${TAINT_STRING} "
-		test $((TAINT & 2048))       -ne 0 && TAINT_STRING="${TAINT_STRING}I" || TAINT_STRING="${TAINT_STRING} "
-		test $((TAINT & 1073741824)) -ne 0 && TAINT_STRING="${TAINT_STRING}N" || TAINT_STRING="${TAINT_STRING} "
-		test $((TAINT & 2147483648)) -ne 0 && TAINT_STRING="${TAINT_STRING}X" || TAINT_STRING="${TAINT_STRING} "
-		;;
-		11*|12*)
-		test $((TAINT & 64))         -ne 0 && TAINT_STRING="${TAINT_STRING}U" || TAINT_STRING="${TAINT_STRING} "
-		test $((TAINT & 128))        -ne 0 && TAINT_STRING="${TAINT_STRING}D" || TAINT_STRING="${TAINT_STRING} "
-		test $((TAINT & 256))        -ne 0 && TAINT_STRING="${TAINT_STRING}A" || TAINT_STRING="${TAINT_STRING} "
-		test $((TAINT & 512))        -ne 0 && TAINT_STRING="${TAINT_STRING}W" || TAINT_STRING="${TAINT_STRING} "
-		test $((TAINT & 1024))       -ne 0 && TAINT_STRING="${TAINT_STRING}C" || TAINT_STRING="${TAINT_STRING} "
-		test $((TAINT & 2048))       -ne 0 && TAINT_STRING="${TAINT_STRING}I" || TAINT_STRING="${TAINT_STRING} "
-		test $((TAINT & 4096))       -ne 0 && TAINT_STRING="${TAINT_STRING}O" || TAINT_STRING="${TAINT_STRING} "
-		test $((TAINT & 8192))       -ne 0 && TAINT_STRING="${TAINT_STRING}E" || TAINT_STRING="${TAINT_STRING} "
-		test $((TAINT & 16384))      -ne 0 && TAINT_STRING="${TAINT_STRING}L" || TAINT_STRING="${TAINT_STRING} "
-		test $((TAINT & 32768))      -ne 0 && TAINT_STRING="${TAINT_STRING}K" || TAINT_STRING="${TAINT_STRING} "
-		test $((TAINT & 65536))      -ne 0 && TAINT_STRING="${TAINT_STRING}H" || TAINT_STRING="${TAINT_STRING} "
-		test $((TAINT & 1073741824)) -ne 0 && TAINT_STRING="${TAINT_STRING}N" || TAINT_STRING="${TAINT_STRING} "
-		test $((TAINT & 2147483648)) -ne 0 && TAINT_STRING="${TAINT_STRING}X" || TAINT_STRING="${TAINT_STRING} "
-		;;
 		15*)
 		test $((TAINT & 64))         -ne 0 && TAINT_STRING="${TAINT_STRING}U" || TAINT_STRING="${TAINT_STRING} "
 		test $((TAINT & 128))        -ne 0 && TAINT_STRING="${TAINT_STRING}D" || TAINT_STRING="${TAINT_STRING} "
@@ -317,31 +292,6 @@ basic_healthcheck() {
 		test $((TAINT & 32))  -ne 0 && log_write $OF "  TAINT: (B) System has hit bad_page"
 
 		case $SLES_VER in
-		111)
-		test $((TAINT & 64))         -ne 0 && log_write $OF "  TAINT: (U) Userspace-defined problems"
-		test $((TAINT & 128))        -ne 0 && log_write $OF "  TAINT: (D) Imminent kernel function termination"
-		test $((TAINT & 256))        -ne 0 && log_write $OF "  TAINT: (A) ACPI table overridden"
-		test $((TAINT & 512))        -ne 0 && log_write $OF "  TAINT: (W) Taint on warning"
-		test $((TAINT & 1024))       -ne 0 && log_write $OF "  TAINT: (C) Modules from drivers/staging are loaded"
-		test $((TAINT & 2048))       -ne 0 && log_write $OF "  TAINT: (I) Working around severe firmware bug"
-		test $((TAINT & 1073741824)) -ne 0 && log_write $OF "  TAINT: (N) Unsupported modules loaded"
-		test $((TAINT & 2147483648)) -ne 0 && log_write $OF "  TAINT: (X) Modules with external support loaded"
-		;;
-		11*|12*)
-		test $((TAINT & 64))         -ne 0 && log_write $OF "  TAINT: (U) Userspace-defined problems"
-		test $((TAINT & 128))        -ne 0 && log_write $OF "  TAINT: (D) Kernel has oopsed before"
-		test $((TAINT & 256))        -ne 0 && log_write $OF "  TAINT: (A) ACPI table overridden"
-		test $((TAINT & 512))        -ne 0 && log_write $OF "  TAINT: (W) Taint on warning"
-		test $((TAINT & 1024))       -ne 0 && log_write $OF "  TAINT: (C) Modules from drivers/staging are loaded"
-		test $((TAINT & 2048))       -ne 0 && log_write $OF "  TAINT: (I) Working around severe firmware bug"
-		test $((TAINT & 4096))       -ne 0 && log_write $OF "  TAINT: (O) Out-of-tree module has been loaded"
-		test $((TAINT & 8192))       -ne 0 && log_write $OF "  TAINT: (E) Unsigned module has been loaded"
-		test $((TAINT & 16384))      -ne 0 && log_write $OF "  TAINT: (L) A soft lockup has previously occurred"
-		test $((TAINT & 32768))      -ne 0 && log_write $OF "  TAINT: (K) Kernel has been live patched"
-		test $((TAINT & 65536))      -ne 0 && log_write $OF "  TAINT: (H) System restored from unsafe hibernate snapshot image"
-		test $((TAINT & 1073741824)) -ne 0 && log_write $OF "  TAINT: (N) Unsupported modules loaded"
-		test $((TAINT & 2147483648)) -ne 0 && log_write $OF "  TAINT: (X) Modules with external support loaded"
-		;;
 		15*)
 		test $((TAINT & 64))         -ne 0 && log_write $OF "  TAINT: (U) Userspace-defined problems"
 		test $((TAINT & 128))        -ne 0 && log_write $OF "  TAINT: (D) Kernel has oopsed before"
@@ -1965,100 +1915,40 @@ iscsi_info() {
 	test $OPTION_ISCSI -eq 0 && { echolog Excluded; return 1; }
 	OF=fs-iscsi.txt
 	addHeaderFile $OF
-	case $SLES_VER in
-	11*|12*|15*)
-		log_write $OF "#___________________________________________________________#"
-		log_write $OF "#____[ iSCSI Target Information ]___________________________#"
-		log_write $OF
-		if rpm_verify $OF lio-utils
+	FILES=''
+	log_write $OF "#___________________________________________________________#"
+	log_write $OF "#____[ iSCSI Target Information ]___________________________#"
+	log_write $OF
+	if rpm_verify $OF python3-targetcli-fb
+	then
+		log_cmd $OF 'systemctl status targetcli.service'
+		log_cmd $OF 'lsmod | grep target_'
+		log_cmd $OF 'targetcli ls'
+		[[ -d /etc/target ]] && FILES=$(find /etc/target -type f)
+	fi
+	conf_files $OF $FILES
+
+	log_write $OF "#___________________________________________________________#"
+	log_write $OF "#____[ iSCSI Initiator Information ]________________________#"
+	log_write $OF
+	if rpm_verify $OF open-iscsi
+	then
+		log_cmd $OF 'systemctl status iscsi.service'
+		log_cmd $OF 'systemctl status iscsid.service'
+		log_cmd $OF 'systemctl status iscsid.socket'
+		log_cmd $OF 'iscsi-iname'
+		conf_files $OF /etc/iscsid.conf
+		log_cmd $OF 'iscsiadm -m session'
+		if log_cmd $OF 'iscsiadm -m node'
 		then
-			log_cmd $OF 'systemctl status target.service'
-			log_cmd $OF 'lsmod | grep target_'
-			log_cmd $OF 'lio_node --version'
-			log_cmd $OF 'lio_node --listendpoints'
-			OUTPUT=$(lio_node --listendpoints 2>/dev/null)
-			TARGET_IQN=''
-			TGPT=''
-			if [[ -n $OUTPUT ]]
-			then
-				IN_STATE=0
-				SAVE_IFS=$IFS
-				IFS=$'\n'
-				for i in $(echo "$OUTPUT")
-				do
-					if (( IN_STATE ))
-					then
-						if echo $i | egrep -i targetalias &>/dev/null
-						then
-							TGPT=$(echo $i | awk '{print $2}' | cut -d_ -f2)
-							IN_STATE=0
-							log_entry $OF note "Five Commands for Target IQN: $TARGET_IQN"
-							for LIO_NODE_OPTION in listlunacls listnodeacls listnps listtpgattr listtpgparam
-						  do
-								log_cmd $OF "lio_node --$LIO_NODE_OPTION $TARGET_IQN $TGPT"
-							done
-					fi
-					elif echo $i | egrep '^\\' &>/dev/null
-					then
-						TARGET_IQN=$(echo $i | awk '{print $2}')
-						IN_STATE=1
-					fi
-				done
-				IFS=$SAVE_IFS
-			fi
-			log_cmd $OF 'tcm_node --version'
-			log_cmd $OF 'tcm_node --listhbas'
-			log_cmd $OF 'tcm_node --listlugps'
-			FILES="/etc/target/*"
-		elif rpm_verify $OF iscsitarget
-		then
-			if (( SLES_VER >= 120 )); then
-				log_cmd $OF 'systemctl status iscsitarget.service'
-				FILES='/etc/iet/ietd.conf /proc/net/iet/volume /proc/net/iet/session'
-			else
-				check_service $OF iscsitarget
-				log_cmd $OF 'ietadm --op show'
-				FILES='/etc/ietd.conf /proc/net/iet/volume /proc/net/iet/session'
-			fi
+			NODES=$(iscsiadm -m node -P 1 | grep -i Target | awk '{print $2}')
+			IBIN='iscsiadm -m node -T'
+			for NODE in $NODES
+			do
+				log_cmd $OF "$IBIN $NODE"
+			done
 		fi
-		conf_files $OF $FILES
-		log_write $OF "#___________________________________________________________#"
-		log_write $OF "#____[ iSCSI Initiator Information ]________________________#"
-		log_write $OF
-		if rpm_verify $OF open-iscsi
-		then
-			if (( SLES_VER >= 120 )); then
-				log_cmd $OF 'systemctl status iscsi.service'
-				log_cmd $OF 'systemctl status iscsid.service'
-				log_cmd $OF 'systemctl status iscsid.socket'
-				CHKSRV=0
-			else
-				log_cmd $OF 'chkconfig boot.open-iscsi'
-				check_service $OF open-iscsi
-				CHKSRV=$?
-			fi
-			log_cmd $OF 'iscsi-iname'
-			conf_files $OF /etc/iscsid.conf
-			if [ $CHKSRV -eq 0 ]; then
-				log_cmd $OF 'iscsiadm -m session'
-				if log_cmd $OF 'iscsiadm -m node'
-				then
-					if [ $SLES_VER -ge 102 ]; then
-						NODES=$(iscsiadm -m node -P 1 | grep -i Target | awk '{print $2}')
-						IBIN='iscsiadm -m node -T'
-					else
-						NODES=$(iscsiadm -m node | cut -d] -f1 | cut -d[ -f2)
-						IBIN='iscsiadm -m node -r'
-					fi
-					for NODE in $NODES
-					do
-						log_cmd $OF "$IBIN $NODE"
-					done
-				fi
-			fi
-		fi
-		;;
-	esac
+	fi
 	echolog Done
 }
 
