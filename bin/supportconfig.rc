@@ -91,15 +91,15 @@ VAR_OPTION_SILENT=0
 VAR_OPTION_SBM=0
 VAR_OPTION_UNIQUE_FILE=0
 VAR_OPTION_HEADER_FILE='/usr/lib/supportconfig/header.txt'
-SUSE_UPLOAD_EMAIL="supportconfig@suse.com"
 SUSE_UPLOAD_NA_ASERVER='support-ftp.us.suse.com'
+#SUSE_UPLOAD_EMEA_ASERVER='support-ftp.emea.suse.com'
 SUSE_UPLOAD_EMEA_ASERVER='support-ftp.suse.com'
 SUSE_UPLOAD_NA_HTTPS="https://${SUSE_UPLOAD_NA_ASERVER}/incoming/upload.php?appname=supportconfig&file={tarball}"
 SUSE_UPLOAD_NA_FTPES="ftps://${SUSE_UPLOAD_NA_ASERVER}/incoming"
 SUSE_UPLOAD_NA_FTP="ftp://anonymous@${SUSE_UPLOAD_NA_ASERVER}/incoming"
-SUSE_UPLOAD_EMEA_HTTPS="https://${SUSE_UPLOAD_EMEA_ASERVER}/in/upload.php?appname=supportconfig&file={tarball}"
-SUSE_UPLOAD_EMEA_FTPES="ftps://${SUSE_UPLOAD_EMEA_ASERVER}/in"
-SUSE_UPLOAD_EMEA_FTP="ftp://anonymous@${SUSE_UPLOAD_EMEA_ASERVER}/in"
+SUSE_UPLOAD_EMEA_HTTPS="https://${SUSE_UPLOAD_EMEA_ASERVER}/incoming/upload.php?appname=supportconfig&file={tarball}"
+SUSE_UPLOAD_EMEA_FTPES="ftps://${SUSE_UPLOAD_EMEA_ASERVER}/incoming"
+SUSE_UPLOAD_EMEA_FTP="ftp://anonymous@${SUSE_UPLOAD_EMEA_ASERVER}/incoming"
 VAR_OPTION_UPLOAD_TARGET="${SUSE_UPLOAD_NA_FTPES}"
 VAR_OPTION_UPLOAD_TARGET_ALT="${SUSE_UPLOAD_NA_HTTPS}"
 VAR_OPTION_WAIT_TRACE=0
@@ -1001,11 +1001,11 @@ upload_tarball() {
 		log2sys "Uploading Tar Ball"
 		TARBALL_FILE=$(basename $TARBALL)
 		UPLOAD_SERVICE=$(echo ${VAR_OPTION_UPLOAD_TARGET} | cut -d: -f1)
+		FTPES_OPTIONS="--ssl-reqd"
 		if (( VAR_OPTION_SILENT )); then
 			case $UPLOAD_SERVICE in
 			ftps|ftpes)
 				UPLOAD_URL=$(sed -e 's/ftpes:/ftp:/g;s/ftps:/ftp:/g' <<< ${VAR_OPTION_UPLOAD_TARGET})
-				FTPES_OPTIONS="--ftp-ssl --user ftp:${VAR_OPTION_UPLOAD_EMAIL}"
 				if (( ENCRYPTED_TARBALL )); then
 					curl -sT ${TARBALL}.md5 ${FTPES_OPTIONS} ${UPLOAD_URL}/${TARBALL_FILE}.md5 &>/dev/null
 					curl -sT ${TARBALL}.gpg ${FTPES_OPTIONS} ${UPLOAD_URL}/${TARBALL_FILE}.gpg &>/dev/null
@@ -1061,7 +1061,6 @@ upload_tarball() {
 			case $UPLOAD_SERVICE in
 			ftps|ftpes)
 				UPLOAD_URL=$(sed -e 's/ftpes:/ftp:/g;s/ftps:/ftp:/g' <<< ${VAR_OPTION_UPLOAD_TARGET})
-				FTPES_OPTIONS="--ftp-ssl --user ftp:${VAR_OPTION_UPLOAD_EMAIL}"
 				if (( VAR_OPTION_SBM )); then
 					wait_trace_on -t "curl -sT ${TARBALL}.md5 ${FTPES_OPTIONS} ${UPLOAD_URL}/${TARBALL_FILE}.md5"
 					curl -sT ${TARBALL}.md5 ${FTPES_OPTIONS} ${UPLOAD_URL}/${TARBALL_FILE}.md5 &>/dev/null
