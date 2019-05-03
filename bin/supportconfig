@@ -1,7 +1,7 @@
 #!/bin/bash
 
-SVER='3.0.2-8'
-SDATE='2019 04 30'
+SVER='3.0.2-9'
+SDATE='2019 05 03'
 
 ##############################################################################
 #  supportconfig - Gathers system troubleshooting information for NTS.
@@ -128,15 +128,14 @@ VAR_OPTION_SILENT=0
 VAR_OPTION_SBM=0
 VAR_OPTION_UNIQUE_FILE=0
 VAR_OPTION_HEADER_FILE='/usr/lib/supportconfig/header.txt'
-SUSE_UPLOAD_EMAIL="supportconfig@suse.com"
 SUSE_UPLOAD_NA_ASERVER='support-ftp.us.suse.com'
 SUSE_UPLOAD_EMEA_ASERVER='support-ftp.suse.com'
 SUSE_UPLOAD_NA_HTTPS="https://${SUSE_UPLOAD_NA_ASERVER}/incoming/upload.php?appname=supportconfig&file={tarball}"
 SUSE_UPLOAD_NA_FTPES="ftps://${SUSE_UPLOAD_NA_ASERVER}/incoming"
 SUSE_UPLOAD_NA_FTP="ftp://anonymous@${SUSE_UPLOAD_NA_ASERVER}/incoming"
-SUSE_UPLOAD_EMEA_HTTPS="https://${SUSE_UPLOAD_EMEA_ASERVER}/in/upload.php?appname=supportconfig&file={tarball}"
-SUSE_UPLOAD_EMEA_FTPES="ftps://${SUSE_UPLOAD_EMEA_ASERVER}/in"
-SUSE_UPLOAD_EMEA_FTP="ftp://anonymous@${SUSE_UPLOAD_EMEA_ASERVER}/in"
+SUSE_UPLOAD_EMEA_HTTPS="https://${SUSE_UPLOAD_EMEA_ASERVER}/incoming/upload.php?appname=supportconfig&file={tarball}"
+SUSE_UPLOAD_EMEA_FTPES="ftps://${SUSE_UPLOAD_EMEA_ASERVER}/incoming"
+SUSE_UPLOAD_EMEA_FTP="ftp://anonymous@${SUSE_UPLOAD_EMEA_ASERVER}/incoming"
 VAR_OPTION_UPLOAD_TARGET="${SUSE_UPLOAD_NA_FTPES}"
 VAR_OPTION_UPLOAD_TARGET_ALT="${SUSE_UPLOAD_NA_HTTPS}"
 VAR_OPTION_WAIT_TRACE=0
@@ -3500,7 +3499,6 @@ ha_info() {
 	printlog "HA Cluster..."
 	test $OPTION_HA -eq 0 && { echolog Excluded; return 1; }
 	OF=ha.txt
-	SBD_IO_DELAYS=0
 	addHeaderFile $OF
 	if (( SLES_VER >= 110 )); then
 		if rpm_verify $OF pacemaker
@@ -3534,8 +3532,7 @@ ha_info() {
 				. /etc/sysconfig/sbd
 				for SBD in $(echo $SBD_DEVICE | sed -e 's/;/ /g')
 				do
-					if ! (( $SBD_IO_DELAYS )); then
-						timed_log_cmd $OF "sbd -d $SBD list" || SBD_IO_DELAYS=1
+					if timed_log_cmd $OF "sbd -d $SBD list"; then
 						log_cmd $OF "sbd -d $SBD dump"
 					fi
 				done
@@ -5162,12 +5159,12 @@ upload_tarball() {
 	if (( UPLOAD_TARBALL )); then
 		log2sys "Uploading Tar Ball"
 		TARBALL_FILE=$(basename $TARBALL)
+		FTPES_OPTIONS="--ssl-reqd"
 		UPLOAD_SERVICE=$(echo ${VAR_OPTION_UPLOAD_TARGET} | cut -d: -f1)
 		if (( VAR_OPTION_SILENT )); then
 			case $UPLOAD_SERVICE in
 			ftps|ftpes)
 				UPLOAD_URL=$(sed -e 's/ftpes:/ftp:/g;s/ftps:/ftp:/g' <<< ${VAR_OPTION_UPLOAD_TARGET})
-				FTPES_OPTIONS="--ftp-ssl --user ftp:${SUSE_UPLOAD_EMAIL}"
 				if (( ENCRYPTED_TARBALL )); then
 					curl -sT ${TARBALL}.md5 ${FTPES_OPTIONS} ${UPLOAD_URL}/${TARBALL_FILE}.md5 &>/dev/null
 					curl -sT ${TARBALL}.gpg ${FTPES_OPTIONS} ${UPLOAD_URL}/${TARBALL_FILE}.gpg &>/dev/null
@@ -5223,7 +5220,6 @@ upload_tarball() {
 			case $UPLOAD_SERVICE in
 			ftps|ftpes)
 				UPLOAD_URL=$(sed -e 's/ftpes:/ftp:/g;s/ftps:/ftp:/g' <<< ${VAR_OPTION_UPLOAD_TARGET})
-				FTPES_OPTIONS="--ftp-ssl --user ftp:${SUSE_UPLOAD_EMAIL}"
 				if (( VAR_OPTION_SBM )); then
 					wait_trace_on -t "curl -sT ${TARBALL}.md5 ${FTPES_OPTIONS} ${UPLOAD_URL}/${TARBALL_FILE}.md5"
 					curl -sT ${TARBALL}.md5 ${FTPES_OPTIONS} ${UPLOAD_URL}/${TARBALL_FILE}.md5 &>/dev/null
