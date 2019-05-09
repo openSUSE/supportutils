@@ -1,5 +1,5 @@
 -------------------------------------------------------------------
-Fri May  3 13:58:17 UTC 2019 - jason.record@suse.com
+Thu May  9 13:35:54 UTC 2019 - jason.record@suse.com
 
 - Updated to version 3.0.2
   + Using https://www.suse.com/company/legal/ for privacy statement
@@ -11,6 +11,7 @@ Fri May  3 13:58:17 UTC 2019 - jason.record@suse.com
   + Avoiding IO delays (bsc#1100529)
   + Use relative paths in drbd.conf (bsc#1133723)
   + FTPES uses --ssl-reqd
+  + Default uploads to SUSE FTP servers is https (bsc#1134599)
 
 -------------------------------------------------------------------
 Mon Mar  4 16:50:01 UTC 2019 - jason.record@suse.com
