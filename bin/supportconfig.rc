@@ -1374,6 +1374,9 @@ get_sles_ver() {
 		SLES_VER=${VID//\./}
 		if (( ${#SLES_VER} < 3 )); then
 			SLES_VER=${SLES_VER}0
+		# tumbleweed versions are yyyymmdd
+		elif (( ${#SLES_VER} == 8 )); then
+			SLES_VER=999
 		fi
 	elif [[ -s /etc/SuSE-release ]]; then
 		VMAJOR=$(grep VERSION /etc/SuSE-release | awk '{print $NF}')
