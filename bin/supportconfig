@@ -3036,6 +3036,15 @@ smartmon_info() {
 	fi
 }
 
+orphaned_pkgs_info() {
+	printlog "Orphaned Packages List..."
+	test $OPTION_ORPHANED_PKGS -eq 0 && { echolog Excluded; return 1; }
+	OF=orphaned_pkgs.txt
+	addHeaderFile $OF
+	log_cmd $OF "zypper packages --orphaned"
+	echolog Done
+}
+
 ldap_info() {
 	printlog "LDAP..."
 	test $OPTION_LDAP -eq 0 && { echolog Excluded; return 1; }
@@ -4194,6 +4203,7 @@ if [ "$USE_SAVED_LOGS_ONLY" != "1" ]; then
 	x_info
 	print_info
 	smartmon_info
+	orphaned_pkgs_info
 	[ -s ${FSLIST_ADD_FILE} ] && fslist_ufiles_info
 	hardware_info		#Minimum Requirement
 	rpm_full_verify
