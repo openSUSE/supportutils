@@ -155,7 +155,7 @@ basic_environment() {
 		fi
 		cat $LOG/$RPM_DIST_FILE >> $LOG/$BASIC_ENVF
 		case $SLES_VER in
-		15*)
+		15*|999)
 			if rpm_verify $BASIC_ENVF firewalld
 			then
 				log_write $BASIC_ENVF "#==[ Firewall Services ]============================#"
@@ -265,7 +265,7 @@ basic_healthcheck() {
 		test $((TAINT & 32))  -ne 0 && TAINT_STRING="${TAINT_STRING}B" || TAINT_STRING="${TAINT_STRING} "
 
 		case $SLES_VER in
-		15*)
+		15*|999)
 		test $((TAINT & 64))         -ne 0 && TAINT_STRING="${TAINT_STRING}U" || TAINT_STRING="${TAINT_STRING} "
 		test $((TAINT & 128))        -ne 0 && TAINT_STRING="${TAINT_STRING}D" || TAINT_STRING="${TAINT_STRING} "
 		test $((TAINT & 256))        -ne 0 && TAINT_STRING="${TAINT_STRING}A" || TAINT_STRING="${TAINT_STRING} "
@@ -292,7 +292,7 @@ basic_healthcheck() {
 		test $((TAINT & 32))  -ne 0 && log_write $OF "  TAINT: (B) System has hit bad_page"
 
 		case $SLES_VER in
-		15*)
+		15*|999)
 		test $((TAINT & 64))         -ne 0 && log_write $OF "  TAINT: (U) Userspace-defined problems"
 		test $((TAINT & 128))        -ne 0 && log_write $OF "  TAINT: (D) Kernel has oopsed before"
 		test $((TAINT & 256))        -ne 0 && log_write $OF "  TAINT: (A) ACPI table overridden"
@@ -1285,7 +1285,7 @@ mpio_info() {
 		log_cmd $OF 'dmsetup table'
 		log_cmd $OF 'dmsetup info'
 		case $SLES_VER in
-		11*|12*|15*) log_cmd $OF "udevadm info -e" ;;
+		11*|12*|15*|999) log_cmd $OF "udevadm info -e" ;;
 		esac 
 		test -d /proc/scsi && SCSI_DIRS=$(find /proc/scsi/ -type d) || SCSI_DIRS=""
 		for SDIR in $SCSI_DIRS
@@ -1700,7 +1700,7 @@ net_info_namespace() {
 		log_cmd $OF "nscd -g"
 		conf_files $OF /etc/hosts /etc/host.conf /etc/resolv.conf /etc/nsswitch.conf /etc/nscd.conf /etc/hosts.allow /etc/hosts.deny
 		case $SLES_VER in
-		15*)
+		15*|999)
 			FILES="/etc/sysconfig/firewalld"
 			;;
 		11*|12*)
@@ -2057,7 +2057,7 @@ ntp_info() {
 			echolog Skipped
 		fi
 		;;
-	15*)
+	15*|999)
 		if rpm_verify $OF chrony
 		then
 			NTP_DAEMON=1
@@ -2131,7 +2131,7 @@ udev_info() {
 		fi
 		conf_files $OF $UDEV_CONF
 		case $SLES_VER in
-		11*|12*|15*) log_cmd $OF "udevadm info -e" ;;
+		11*|12*|15*|999) log_cmd $OF "udevadm info -e" ;;
 		esac 
 		if [[ -f $UDEV_CONF ]]; then
 			. $UDEV_CONF
@@ -2562,7 +2562,7 @@ ha_info() {
 			echolog Skipped
 		fi
 		;;
-	15*)
+	15*|999)
 		if rpm_verify $OF pacemaker
 		then
 			log_cmd $OF "rpm -qa | egrep 'ais|resource-agents|cluster-glue|corosync|csync2|pacemaker'"
@@ -2718,7 +2718,7 @@ ocfs2_info() {
 			OCFS2_MODULES=1
 		fi
 		case $SLES_VER in
-		11*|12*|15*)
+		11*|12*|15*|999)
 			[[ -x /usr/bin/findmnt ]] && log_cmd $OF "findmnt" || log_cmd $OF "mount"
 			(( OCFS2_MODULES )) && timed_log_cmd $OF "mounted.ocfs2 -d"
 			(( OCFS2_MODULES )) && timed_log_cmd $OF "mounted.ocfs2 -f"
@@ -3301,7 +3301,7 @@ x_info() {
 			echolog Skipped
 		fi
 	;;
-	12*|15*)
+	12*|15*|999)
 		MESA="Mesa Mesa-32bit Mesa-demo-x Mesa-libEGL1 Mesa-libEGL1-32bit Mesa-libGL1 \
 		Mesa-libGL1-32bit Mesa-libGLESv2-2 Mesa-libGLESv2-2-32bit Mesa-libglapi0 \
                 Mesa-libglapi0-32bit"
@@ -3665,7 +3665,7 @@ cimom_info() {
 			if [ -n "$OWSSLCHECK" ]; then
 				if [ -L $OWSSLCHECK ]; then
 					case $SLES_VER in
-					11*|12*|15*) log_cmd $OF "readlink -ev $OWSSLCHECK" ;;
+					11*|12*|15*|999) log_cmd $OF "readlink -ev $OWSSLCHECK" ;;
 					esac
 				fi
 			fi
@@ -3767,7 +3767,7 @@ ib_info() {
 			echolog Skipped
 		fi
 		;;
-	15*)
+	15*|999)
 		CHK_UTILS=0
 		CHK_SRP=0
 		CHK_DIAG=0
