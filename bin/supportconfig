@@ -3462,7 +3462,7 @@ slert_info() {
 			conf_files $OF /proc/irq/default_smp_affinity /proc/irq/*/smp_affinity
 		fi
 		log_cmd $OF "grep cpuset /etc/mtab"
-		CPUSET=$(grep ' cpuset ' /etc/mtab | cut -d' ' -f2)
+		CPUSET=$(grep -m 1 -E ' cpuset |cgroup .*cpuset' /etc/mtab | cut -d' ' -f2)
 		if [ -n "$CPUSET" ]; then
 			log_cmd $OF "find -L ${CPUSET}/ -type f"
 			FILES=$(find -L ${CPUSET}/ -type f)
