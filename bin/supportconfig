@@ -1101,6 +1101,7 @@ docker_info() {
 	test $OPTION_DOCKER -eq 0 && { echolog Excluded; return 1; }
 	OF=docker.txt
 	addHeaderFile $OF
+	DOCKERSCDIR=$LOG/docker
 	[[ -e /usr/bin/docker ]] && DOCKER_PKG=`rpm -q --whatprovides /usr/bin/docker 2>/dev/null`
 	[[ -z $DOCKER_PKG ]] && DOCKER_PKG='docker'
 	if rpm_verify $OF $DOCKER_PKG
@@ -1117,11 +1118,13 @@ docker_info() {
 			log_cmd $OF 'sle2docker version'
 			log_cmd $OF 'sle2docker list'
 		fi
-		for i in $(docker ps -a 2>/dev/null | grep -v "COMMAND" | awk '{print $1}');
+		mkdir -p $DOCKERSCDIR
+		for container in $(docker ps -a --format "{{.ID}}" 2>/dev/null);
 		do
-			log_cmd $OF "docker top $i"
-			log_cmd $OF "docker logs $i"
-			log_cmd $OF "docker inspect $i"
+			CONTAINEROF=docker/"$container".txt
+			log_cmd $CONTAINEROF "docker top $container"
+			log_cmd $CONTAINEROF "docker inspect $container"
+			log_cmd $CONTAINEROF "docker logs $container"
 		done
 		log_cmd $OF 'ls -al --time-style=long-iso /var/lib/docker/containers'
 		log_cmd $OF 'ls -alR --time-style=long-iso /sys/fs/cgroup/*/system.slice/docker*'
