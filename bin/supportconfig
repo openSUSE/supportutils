@@ -3219,6 +3219,14 @@ proc_info() {
 		FILES=$(find ${SCHED_DOMAIN} -type f 2>/dev/null | sort -f)
 		conf_files $OF $FILES
 	fi
+	# cpuset information relates to processes
+	log_cmd $OF "grep cpuset /etc/mtab"
+	CPUSET=$(grep -m 1 -E ' cpuset |cgroup .*cpuset' /etc/mtab | cut -d' ' -f2)
+	if [ -n "$CPUSET" ]; then
+		log_cmd $OF "find -L ${CPUSET}/ -type f"
+		FILES=$(find -L ${CPUSET}/ -type f)
+		conf_files $OF $FILES
+	fi
 	echolog Done
 }
 
@@ -3466,14 +3474,6 @@ slert_info() {
 		do
 			log_cmd $OF "chrt -p $TASK"
 		done
-
-		log_cmd $OF "grep cpuset /etc/mtab"
-		CPUSET=$(grep -m 1 -E ' cpuset |cgroup .*cpuset' /etc/mtab | cut -d' ' -f2)
-		if [ -n "$CPUSET" ]; then
-			log_cmd $OF "find -L ${CPUSET}/ -type f"
-			FILES=$(find -L ${CPUSET}/ -type f)
-			conf_files $OF $FILES
-		fi
 		echolog Done
 	else
 		echolog Skipped
