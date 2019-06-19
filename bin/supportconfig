@@ -3219,6 +3219,14 @@ proc_info() {
 		FILES=$(find ${SCHED_DOMAIN} -type f 2>/dev/null | sort -f)
 		conf_files $OF $FILES
 	fi
+	# cpuset information relates to processes
+	log_cmd $OF "grep cpuset /etc/mtab"
+	CPUSET=$(grep -m 1 -E ' cpuset |cgroup .*cpuset' /etc/mtab | cut -d' ' -f2)
+	if [ -n "$CPUSET" ]; then
+		log_cmd $OF "find -L ${CPUSET}/ -type f"
+		FILES=$(find -L ${CPUSET}/ -type f)
+		conf_files $OF $FILES
+	fi
 	echolog Done
 }
 
@@ -3461,28 +3469,11 @@ slert_info() {
 		if [ -e /proc/irq/default_smp_affinity ]; then
 			conf_files $OF /proc/irq/default_smp_affinity /proc/irq/*/smp_affinity
 		fi
-		log_cmd $OF "grep cpuset /etc/mtab"
-		CPUSET=$(grep ' cpuset ' /etc/mtab | cut -d' ' -f2)
-		if [ -n "$CPUSET" ]; then
-			log_cmd $OF "find -L ${CPUSET}/ -type f"
-			FILES=$(find -L ${CPUSET}/ -type f)
-			conf_files $OF $FILES
-			for TASKS in $(find -L ${CPUSET}/ -type f | grep tasks)
-			do
-				log_write $OF "#==[ Task Scheduling ]==============================#"
-				log_write $OF "# Threads in CPUSET: $TASKS"
-				log_write $OF
-				for TASK in $(cat $TASKS)
-				do
-					log_cmd $OF chrt -p $TASK
-				done
-			done
-		else
-			for TASK in $(ps axo pid | sed -e '/PID/d')
-			do
-				test -e /proc/$TASK && log_cmd $OF "chrt -p $TASK"
-			done
-		fi
+		log_write $OF "#==[ Process (thread) RT scheduling ]==============================#"
+		for TASK in $(ps axHo pid | sed -e '/PID/d')
+		do
+			log_cmd $OF "chrt -p $TASK"
+		done
 		echolog Done
 	else
 		echolog Skipped
