@@ -30,6 +30,8 @@ Requires:       net-tools
 Requires:       ncurses-utils
 Requires:       kmod-compat
 Requires:       iproute2
+Requires:       sed
+Requires:       gawk
 Provides:       supportconfig-plugin-resource
 Provides:       supportconfig-plugin-tag
 Provides:       supportconfig-plugin-icommand

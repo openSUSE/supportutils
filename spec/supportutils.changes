@@ -1,4 +1,9 @@
 -------------------------------------------------------------------
+Fri Jul  5 13:58:39 UTC 2019 - jason.record@suse.com
+
+- Added sed and gawk spec requirements (bsc#1137336)
+
+-------------------------------------------------------------------
 Thu May  9 13:35:54 UTC 2019 - jason.record@suse.com
 
 - Updated to version 3.0.2
