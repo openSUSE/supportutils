@@ -1,11 +1,12 @@
 -------------------------------------------------------------------
-Wed Jun 19 16:46:58 UTC 2019 - jason.record@suse.com
+Fri Jul  5 13:14:36 UTC 2019 - jason.record@suse.com
 
 - Updated to version 3.1.4
   + Tumbleweed support #50
   + Added zypper orphaned packages check to updates.txt
   + Cpuset listing #52
   + Docker disunite #53 
+  + Added sed and gawk to spec requirements (bsc#1137336)
 
 -------------------------------------------------------------------
 Thu May  9 14:52:29 UTC 2019 - jason.record@suse.com
