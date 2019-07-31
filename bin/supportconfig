@@ -3133,7 +3133,7 @@ etc_info() {
 	addHeaderFile $OF
 	conf_files $OF $(find -L /etc/ -type f | egrep "conf$|cfg$")
 	[ -d /etc/logrotate.d ] && conf_files $OF /etc/logrotate.d/*
-	conf_files $OF /etc/rc.dialout /etc/ppp/options /etc/ppp/ioptions /etc/ppp/peers/pppoe
+	conf_files $OF /etc/rc.dialout /etc/ppp/options /etc/ppp/ioptions /etc/ppp/peers/pppoe /etc/motd
 	echolog Done
 }
 
