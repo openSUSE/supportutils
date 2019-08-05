@@ -1,7 +1,7 @@
 #!/bin/bash
 
-SVER='3.1-4.33'
-SDATE='2019 03 19'
+SVER='3.1.3-16'
+SDATE='2019 05 22'
 
 ##############################################################################
 #  supportconfig - Gathers system troubleshooting information for SUSE Support
@@ -85,15 +85,15 @@ show_help() {
 	echo "  -S <number> Limit number of included SAR files"
 	echo "  -T <seconds> Binary execution timeout"
 	echo "  -U <URI string> Sets upload target URL and initiates an upload, supported"
-	echo "                  services include: ftp, scp, http, https"
-	echo "  -M <string> Contact store ID"
+	echo "                  services include: ftp, ftps/ftpes, https, scp"
 	echo "  -X <number> Max system logs line count"
-	echo "  -a Upload the tar ball to the specified alternate target VAR_OPTION_UPLOAD_ALT"
+	echo "  -a Upload the tar ball to the specified alternate target VAR_OPTION_UPLOAD_TARGET_ALT"
 	echo "  -b Screen buffer mode"
+	echo "  -c Disables curl checks to SUSE update servers"
 	echo "  -d Exclude detailed disk info and scans"
 	echo "  -f From directory. Don't collect report files, just use files in that"
 	echo "     directory."
-	echo "  -g Use gzip instead of the default bzip2 compression."
+	echo "  -g Use gzip instead of the default xz compression"
 	echo "  -i <keyword list>"
 	echo "     Include keywords. A comma separated list of feature keywords that specify"
 	echo "     which features to include. Use -F to see a list of valid keywords."
@@ -118,6 +118,7 @@ show_help() {
 	echo "     Exclude keywords. A comma separated list of feature keywords that specify"
 	echo "     which features to exclude. Use -F to see a list of valid keywords."
 	echo "  -y Gathers full YaST log files."
+	echo "  -z Use bzip2 instead of the default xz compression"
 	echo 
 	echo "  Use Ctrl-\ to try and skip a function that is hanging."
 	echo
@@ -155,7 +156,7 @@ basic_environment() {
 		fi
 		cat $LOG/$RPM_DIST_FILE >> $LOG/$BASIC_ENVF
 		case $SLES_VER in
-		15*)
+		15*|999)
 			if rpm_verify $BASIC_ENVF firewalld
 			then
 				log_write $BASIC_ENVF "#==[ Firewall Services ]============================#"
@@ -241,8 +242,8 @@ basic_healthcheck() {
 	log_cmd $OF 'vmstat 1 4'
 	test -x /usr/bin/mpstat && log_cmd $OF 'mpstat -P ALL 1 3'
 	log_cmd $OF 'free -k'
-	log_cmd $OF 'df -h'
-	log_cmd $OF 'df -i'
+	timed_log_cmd $OF 'df -h' || IO_DELAYS=1
+	(( $IO_DELAYS )) || log_cmd $OF 'df -i'
 	conf_files $OF '/proc/sys/kernel/tainted'
 	TAINT=$(cat /proc/sys/kernel/tainted)
 	TAINTED=0
@@ -265,32 +266,7 @@ basic_healthcheck() {
 		test $((TAINT & 32))  -ne 0 && TAINT_STRING="${TAINT_STRING}B" || TAINT_STRING="${TAINT_STRING} "
 
 		case $SLES_VER in
-		111)
-		test $((TAINT & 64))         -ne 0 && TAINT_STRING="${TAINT_STRING}U" || TAINT_STRING="${TAINT_STRING} "
-		test $((TAINT & 128))        -ne 0 && TAINT_STRING="${TAINT_STRING}D" || TAINT_STRING="${TAINT_STRING} "
-		test $((TAINT & 256))        -ne 0 && TAINT_STRING="${TAINT_STRING}A" || TAINT_STRING="${TAINT_STRING} "
-		test $((TAINT & 512))        -ne 0 && TAINT_STRING="${TAINT_STRING}W" || TAINT_STRING="${TAINT_STRING} "
-		test $((TAINT & 1024))       -ne 0 && TAINT_STRING="${TAINT_STRING}C" || TAINT_STRING="${TAINT_STRING} "
-		test $((TAINT & 2048))       -ne 0 && TAINT_STRING="${TAINT_STRING}I" || TAINT_STRING="${TAINT_STRING} "
-		test $((TAINT & 1073741824)) -ne 0 && TAINT_STRING="${TAINT_STRING}N" || TAINT_STRING="${TAINT_STRING} "
-		test $((TAINT & 2147483648)) -ne 0 && TAINT_STRING="${TAINT_STRING}X" || TAINT_STRING="${TAINT_STRING} "
-		;;
-		11*|12*)
-		test $((TAINT & 64))         -ne 0 && TAINT_STRING="${TAINT_STRING}U" || TAINT_STRING="${TAINT_STRING} "
-		test $((TAINT & 128))        -ne 0 && TAINT_STRING="${TAINT_STRING}D" || TAINT_STRING="${TAINT_STRING} "
-		test $((TAINT & 256))        -ne 0 && TAINT_STRING="${TAINT_STRING}A" || TAINT_STRING="${TAINT_STRING} "
-		test $((TAINT & 512))        -ne 0 && TAINT_STRING="${TAINT_STRING}W" || TAINT_STRING="${TAINT_STRING} "
-		test $((TAINT & 1024))       -ne 0 && TAINT_STRING="${TAINT_STRING}C" || TAINT_STRING="${TAINT_STRING} "
-		test $((TAINT & 2048))       -ne 0 && TAINT_STRING="${TAINT_STRING}I" || TAINT_STRING="${TAINT_STRING} "
-		test $((TAINT & 4096))       -ne 0 && TAINT_STRING="${TAINT_STRING}O" || TAINT_STRING="${TAINT_STRING} "
-		test $((TAINT & 8192))       -ne 0 && TAINT_STRING="${TAINT_STRING}E" || TAINT_STRING="${TAINT_STRING} "
-		test $((TAINT & 16384))      -ne 0 && TAINT_STRING="${TAINT_STRING}L" || TAINT_STRING="${TAINT_STRING} "
-		test $((TAINT & 32768))      -ne 0 && TAINT_STRING="${TAINT_STRING}K" || TAINT_STRING="${TAINT_STRING} "
-		test $((TAINT & 65536))      -ne 0 && TAINT_STRING="${TAINT_STRING}H" || TAINT_STRING="${TAINT_STRING} "
-		test $((TAINT & 1073741824)) -ne 0 && TAINT_STRING="${TAINT_STRING}N" || TAINT_STRING="${TAINT_STRING} "
-		test $((TAINT & 2147483648)) -ne 0 && TAINT_STRING="${TAINT_STRING}X" || TAINT_STRING="${TAINT_STRING} "
-		;;
-		15*)
+		15*|999)
 		test $((TAINT & 64))         -ne 0 && TAINT_STRING="${TAINT_STRING}U" || TAINT_STRING="${TAINT_STRING} "
 		test $((TAINT & 128))        -ne 0 && TAINT_STRING="${TAINT_STRING}D" || TAINT_STRING="${TAINT_STRING} "
 		test $((TAINT & 256))        -ne 0 && TAINT_STRING="${TAINT_STRING}A" || TAINT_STRING="${TAINT_STRING} "
@@ -317,32 +293,7 @@ basic_healthcheck() {
 		test $((TAINT & 32))  -ne 0 && log_write $OF "  TAINT: (B) System has hit bad_page"
 
 		case $SLES_VER in
-		111)
-		test $((TAINT & 64))         -ne 0 && log_write $OF "  TAINT: (U) Userspace-defined problems"
-		test $((TAINT & 128))        -ne 0 && log_write $OF "  TAINT: (D) Imminent kernel function termination"
-		test $((TAINT & 256))        -ne 0 && log_write $OF "  TAINT: (A) ACPI table overridden"
-		test $((TAINT & 512))        -ne 0 && log_write $OF "  TAINT: (W) Taint on warning"
-		test $((TAINT & 1024))       -ne 0 && log_write $OF "  TAINT: (C) Modules from drivers/staging are loaded"
-		test $((TAINT & 2048))       -ne 0 && log_write $OF "  TAINT: (I) Working around severe firmware bug"
-		test $((TAINT & 1073741824)) -ne 0 && log_write $OF "  TAINT: (N) Unsupported modules loaded"
-		test $((TAINT & 2147483648)) -ne 0 && log_write $OF "  TAINT: (X) Modules with external support loaded"
-		;;
-		11*|12*)
-		test $((TAINT & 64))         -ne 0 && log_write $OF "  TAINT: (U) Userspace-defined problems"
-		test $((TAINT & 128))        -ne 0 && log_write $OF "  TAINT: (D) Kernel has oopsed before"
-		test $((TAINT & 256))        -ne 0 && log_write $OF "  TAINT: (A) ACPI table overridden"
-		test $((TAINT & 512))        -ne 0 && log_write $OF "  TAINT: (W) Taint on warning"
-		test $((TAINT & 1024))       -ne 0 && log_write $OF "  TAINT: (C) Modules from drivers/staging are loaded"
-		test $((TAINT & 2048))       -ne 0 && log_write $OF "  TAINT: (I) Working around severe firmware bug"
-		test $((TAINT & 4096))       -ne 0 && log_write $OF "  TAINT: (O) Out-of-tree module has been loaded"
-		test $((TAINT & 8192))       -ne 0 && log_write $OF "  TAINT: (E) Unsigned module has been loaded"
-		test $((TAINT & 16384))      -ne 0 && log_write $OF "  TAINT: (L) A soft lockup has previously occurred"
-		test $((TAINT & 32768))      -ne 0 && log_write $OF "  TAINT: (K) Kernel has been live patched"
-		test $((TAINT & 65536))      -ne 0 && log_write $OF "  TAINT: (H) System restored from unsafe hibernate snapshot image"
-		test $((TAINT & 1073741824)) -ne 0 && log_write $OF "  TAINT: (N) Unsupported modules loaded"
-		test $((TAINT & 2147483648)) -ne 0 && log_write $OF "  TAINT: (X) Modules with external support loaded"
-		;;
-		15*)
+		15*|999)
 		test $((TAINT & 64))         -ne 0 && log_write $OF "  TAINT: (U) Userspace-defined problems"
 		test $((TAINT & 128))        -ne 0 && log_write $OF "  TAINT: (D) Kernel has oopsed before"
 		test $((TAINT & 256))        -ne 0 && log_write $OF "  TAINT: (A) ACPI table overridden"
@@ -501,7 +452,7 @@ rpm_info() {
 		log_write $RPMFILE
 		log_cmd $RPMFILE "rpm -qa --last"
 		# Jul 12, 2018 ; Added by Ahmad AL Zayed to get a list of RPM DB Backups 
-		RETURN=$(grep RPMDB_BACKUP_DIR /etc/sysconfig/backup | grep -v "^#" | cut -d= -f2 | tr -d "\"") 
+		RETURN=$(grep RPMDB_BACKUP_DIR /etc/sysconfig/backup 2>/dev/null | grep -v "^#" | cut -d= -f2 | tr -d "\"")
 		[[ -d $RETURN ]] && { log_cmd $RPMFILE "ls -ltr $RETURN" ;} 
 	fi
 	echolog Done
@@ -847,7 +798,7 @@ update_info() {
 		log_cmd $OF 'date'
 		log_cmd $OF 'ls -lA --time-style=long-iso /etc/products.d/'
 		log_cmd $OF 'zypper locks'
-		for CMDOPT in services 'repos -d' patch-check patches list-patches products '--xml products'
+		for CMDOPT in services 'repos -d' patch-check patches list-patches list-updates products '--xml products' 'packages --orphaned'
 		do
 			if [ $TIMEOUT -ge 10 ]; then
 				log_write $OF "#==[ Command ]======================================#"
@@ -931,46 +882,16 @@ update_info() {
 			if (( ADD_OPTION_LOCAL_ONLY )); then
 				log_entry $OF note "curl -- aborted: ADD_OPTION_LOCAL_ONLY set, no local update URLs found"
 			else
-				for SUSE_TEST_URL in 'https://secure-www.novell.com/center/regsvc/' 'https://updates.suse.com/' 'https://scc.suse.com/'
+				for SUSE_TEST_URL in 'https://updates.suse.com/' 'https://scc.suse.com/'
 				do
 					SUSE_TEST_HOST=$(echo $SUSE_TEST_URL | awk -F/ '{print $3}')
 					log_cmd $OF "curl --connect-timeout 10 --trace-ascii ${LOG}/updates-curl-trace_${SUSE_TEST_HOST}.txt --digest --remote-time --fail $SUSE_TEST_URL"
 				done
 			fi
 		fi
-
-		if [ -s /etc/zmd/deviceid -a -s /etc/zmd/secret ]; then
-			NCCUSER=$(cat /etc/zmd/deviceid)
-			NCCPASS=$(cat /etc/zmd/secret)
-		elif [ -s /etc/zypp/credentials.d/NCCcredentials ]; then
-			NCCUSER=$(grep -i username /etc/zypp/credentials.d/NCCcredentials | sed -e 's/^username[[:space:]]*=[[:space:]]*//g')
-			NCCPASS=$(grep -i password /etc/zypp/credentials.d/NCCcredentials | sed -e 's/^password[[:space:]]*=[[:space:]]*//g')
-		else
-			NCCUSER=''
-		fi
-		if [ -n "$NCCUSER" ]; then
-			DOWNURL="https://nu.novell.com/repo/repoindex.xml"
-			TMPHOST='nu.novell.com'
-			if [ -s /etc/suseRegister.conf ]; then
-				TMPURL=$(grep -i ^url /etc/suseRegister.conf | tail -1 | awk -F= '{print $2}' | grep -v "secure-www\.novell\.com" | sed -e 's/^[[:space:]]*//' )
-				if [ -n "$TMPURL" ]; then
-					TMPROTO=$(echo $TMPURL | cut -d\/ -f1)
-					TMPHOST=$(echo $TMPURL | cut -d\/ -f3)
-					DOWNURL="${TMPROTO}//${TMPHOST}/repo/repoindex.xml"
-				fi
-			fi
-			log_cmd $OF "curl --connect-timeout 10 --trace-ascii ${LOG}/updates-curl-trace_${TMPHOST}.txt --digest --remote-time --fail -u $NCCUSER:$NCCPASS -O \"$DOWNURL\""
-			FILES="repoindex.xml"
-			log_files $OF 0 $FILES
-			rm -f $FILES
-		fi
 	else
 		log_entry $OF note "curl -- not installed, aborted"
 	fi
-
-#rug
-	FILES="/var/log/zmd-backend.log"
-	test $ADD_OPTION_LOGS -gt 0 && log_files $OF 0 $FILES || log_files $OF $VAR_OPTION_LINE_COUNT $FILES
 
 #zypper
 	FILES=$(find -L /var/log/ -type f | grep zypp)
@@ -1140,30 +1061,6 @@ environment_info() {
 	echolog Done
 }
 
-chkconfig_info() {
-        printlog "System Daemons..."
-        test $OPTION_DAEMONS -eq 0 && { echolog Excluded; return 1; }
-        OF=chkconfig.txt
-        addHeaderFile $OF
-        log_cmd $OF 'chkconfig --list'
-        LOGFILE=$LOG/$OF
-        echo "# individual boot services:" >> $LOGFILE
-        for BOOTSERVICE in $(find -L /etc/init.d/ -type f -name boot\* | grep -v rpmsave$)
-        do
-                NAME=$(basename $BOOTSERVICE)
-                wait_trace_on "chkconfig $NAME"
-                STATUS=$(chkconfig $NAME 2>>$LOGFILE)
-                printf "%25s:  %-4s\n" $(echo $STATUS | awk '{print $1}') $(echo $STATUS | awk '{print $2}') >> $LOGFILE
-                wait_trace_off
-        done
-        log_write $OF
-        log_cmd $OF 'ls -lR --time-style=long-iso /etc/init.d/'
-        log_cmd $OF 'ls -lR --time-style=long-iso /etc/xinetd.d/'
-        FILES=$(find /etc/xinetd.d/ -type f)
-        conf_files $OF $FILES
-        echolog Done
-}
-
 systemd_info() {
 	printlog "SystemD..."
 	test $OPTION_DAEMONS -eq 0 && { echolog Excluded; return 1; }
@@ -1205,16 +1102,16 @@ docker_info() {
 	test $OPTION_DOCKER -eq 0 && { echolog Excluded; return 1; }
 	OF=docker.txt
 	addHeaderFile $OF
+	DOCKERSCDIR=$LOG/docker
 	[[ -e /usr/bin/docker ]] && DOCKER_PKG=`rpm -q --whatprovides /usr/bin/docker 2>/dev/null`
 	[[ -z $DOCKER_PKG ]] && DOCKER_PKG='docker'
 	if rpm_verify $OF $DOCKER_PKG
 	then
-		log_cmd $OF 'docker version'
 		log_cmd $OF "systemctl status docker.service"
+		log_cmd $OF 'docker version'
 		log_cmd $OF 'docker info'
 		log_cmd $OF 'docker images'
 		log_cmd $OF 'docker ps --all'
-		log_cmd $OF 'zypper --non-interactive --no-gpg-checks repos -d'
 		FILES='/etc/sysconfig/docker'
 		conf_files $OF $FILES
 		if rpm_verify $OF ruby2.1-rubygem-sle2docker
@@ -1222,11 +1119,13 @@ docker_info() {
 			log_cmd $OF 'sle2docker version'
 			log_cmd $OF 'sle2docker list'
 		fi
-		for i in $(docker ps -a 2>/dev/null | grep -v "COMMAND" | awk '{print $1}');
+		mkdir -p $DOCKERSCDIR
+		for container in $(docker ps -a --format "{{.ID}}" 2>/dev/null);
 		do
-			log_cmd $OF "docker top $i"
-			log_cmd $OF "docker logs $i"
-			log_cmd $OF "docker inspect $i"
+			CONTAINEROF=docker/"$container".txt
+			log_cmd $CONTAINEROF "docker top $container"
+			log_cmd $CONTAINEROF "docker inspect $container"
+			log_cmd $CONTAINEROF "docker logs $container"
 		done
 		log_cmd $OF 'ls -al --time-style=long-iso /var/lib/docker/containers'
 		log_cmd $OF 'ls -alR --time-style=long-iso /sys/fs/cgroup/*/system.slice/docker*'
@@ -1319,25 +1218,20 @@ lvm_info() {
 	test $OPTION_LVM -eq 0 && { echolog Excluded; return 1; }
 	echonlog "Please Wait..."
 	OF=lvm.txt
+	local LVM_IO_DELAYS=0
 	addHeaderFile $OF
 	if rpm_verify $OF lvm2
 	then
 		echonlog Base
 		VGBIN="vgs"
 		LVBIN="lvs"
-		if (( SLES_VER >= 120 )); then
-			log_cmd $OF "systemctl status 'lvm2-activation-early.service'"
-			FILES="/etc/lvm/lvm.conf"
-			log_cmd $OF 'pvs'
-		else
-			log_cmd $OF 'chkconfig boot.device-mapper'
-			log_cmd $OF 'chkconfig boot.lvm'
-			log_cmd $OF 'chkconfig boot.md'
-			FILES="/etc/lvm/lvm.conf /etc/sysconfig/lvm /etc/lvm/.cache"
-			log_cmd $OF 'pvscan'
+		log_cmd $OF "systemctl status 'lvm2-activation-early.service'"
+		FILES="/etc/lvm/lvm.conf"
+		timed_log_cmd $OF 'pvs' || LVM_IO_DELAYS=1
+		if ! (( $LVM_IO_DELAYS )); then
+			log_cmd $OF "vgs"
+			log_cmd $OF "lvs"
 		fi
-		log_cmd $OF "vgs"
-		log_cmd $OF "lvs"
 		conf_files $OF $FILES
 		log_cmd $OF 'dmsetup ls --tree'
 		log_cmd $OF 'dmsetup table'
@@ -1346,17 +1240,19 @@ lvm_info() {
 		conf_files $OF /etc/lvm/backup/*
 		log_cmd $OF 'ls -l --time-style=long-iso /etc/lvm/archive/'
 		conf_files $OF /etc/lvm/archive/*
-		echonlog Detail
-		log_write $OF
-		log_write $OF "###[ Detail Scans ]###########################################################################"
-		log_write $OF
-		log_cmd $OF 'pvdisplay -vv'
-		log_cmd $OF 'vgdisplay -vv'
-		log_cmd $OF 'lvdisplay -vv'
-		log_cmd $OF 'pvs -vvvv'
-		log_cmd $OF 'pvscan -vvv'
-		log_cmd $OF "$VGBIN -vvvv"
-		log_cmd $OF "$LVBIN -vvvv"
+		if ! (( $LVM_IO_DELAYS )); then
+			echonlog Detail
+			log_write $OF
+			log_write $OF "###[ Detail Scans ]###########################################################################"
+			log_write $OF
+			log_cmd $OF 'pvdisplay -vv'
+			log_cmd $OF 'vgdisplay -vv'
+			log_cmd $OF 'lvdisplay -vv'
+			log_cmd $OF 'pvs -vvvv'
+			log_cmd $OF 'pvscan -vvv'
+			log_cmd $OF "$VGBIN -vvvv"
+			log_cmd $OF "$LVBIN -vvvv"
+		fi
 		echolog Done
 	else
 		echolog Skipped
@@ -1392,7 +1288,7 @@ mpio_info() {
 		log_cmd $OF 'dmsetup table'
 		log_cmd $OF 'dmsetup info'
 		case $SLES_VER in
-		11*|12*|15*) log_cmd $OF "udevadm info -e" ;;
+		11*|12*|15*|999) log_cmd $OF "udevadm info -e" ;;
 		esac 
 		test -d /proc/scsi && SCSI_DIRS=$(find /proc/scsi/ -type d) || SCSI_DIRS=""
 		for SDIR in $SCSI_DIRS
@@ -1807,7 +1703,7 @@ net_info_namespace() {
 		log_cmd $OF "nscd -g"
 		conf_files $OF /etc/hosts /etc/host.conf /etc/resolv.conf /etc/nsswitch.conf /etc/nscd.conf /etc/hosts.allow /etc/hosts.deny
 		case $SLES_VER in
-		15*)
+		15*|999)
 			FILES="/etc/sysconfig/firewalld"
 			;;
 		11*|12*)
@@ -1863,8 +1759,9 @@ disk_info() {
 	printlog "Disk I/O..."
 	test $OPTION_DISK -eq 0 && { echolog Excluded; return 1; }
 	OF=fs-diskio.txt
+	local DISK_IO_DELAYS=0
 	addHeaderFile $OF
-	log_cmd $OF 'fdisk -l 2>/dev/null | grep Disk'
+	timed_log_cmd $OF 'fdisk -l 2>/dev/null | grep Disk' || DISK_IO_DELAYS=1
 	conf_files $OF /proc/partitions /etc/fstab
 	[[ -x /usr/bin/findmnt ]] && log_cmd $OF "findmnt"
 	log_cmd $OF "mount"
@@ -1932,7 +1829,7 @@ disk_info() {
 			log_write $OF "#---------------------------------------------------#"
 			log_cmd $OF 'lsscsi'
 			log_cmd $OF 'lsscsi -H'
-			[[ -x /bin/lsblk ]] && log_cmd $OF "lsblk -o 'NAME,KNAME,MAJ:MIN,FSTYPE,LABEL,RO,RM,MODEL,SIZE,OWNER,GROUP,MODE,ALIGNMENT,MIN-IO,OPT-IO,PHY-SEC,LOG-SEC,ROTA,SCHED,MOUNTPOINT'"
+			(( $DISK_IO_DELAYS )) || log_cmd $OF "lsblk -o 'NAME,KNAME,MAJ:MIN,FSTYPE,LABEL,RO,RM,MODEL,SIZE,OWNER,GROUP,MODE,ALIGNMENT,MIN-IO,OPT-IO,PHY-SEC,LOG-SEC,ROTA,SCHED,MOUNTPOINT'"
 			if log_cmd $OF 'scsiinfo -l'
 			then
 				FILES=$(scsiinfo -l)
@@ -1957,12 +1854,14 @@ disk_info() {
 			FILES=$(find /proc/driver/cciss/ -maxdepth 1 -type f 2>/dev/null)
 			conf_files $OF $FILES
 		fi
-		DISKS=$(sfdisk -l 2>/dev/null | grep -i 'disk /' | awk '{print $2}' | sed -e 's/://g')
-		if [[ -n $DISKS ]]; then
-			for DISK in $DISKS
-			do
-				log_cmd $OF "sfdisk -d $DISK"
-			done
+		if ! (( $IO_DELAYS )); then
+			DISKS=$(sfdisk -l 2>/dev/null | grep -i 'disk /' | awk '{print $2}' | sed -e 's/://g')
+			if [[ -n $DISKS ]]; then
+				for DISK in $DISKS
+				do
+					log_cmd $OF "sfdisk -d $DISK"
+				done
+			fi
 		fi
 	fi
 	echolog Done
@@ -1977,7 +1876,7 @@ btrfs_info() {
 		log_cmd $OF "btrfs filesystem show"
 		conf_files $OF /etc/fstab
 		[[ -x /usr/bin/findmnt ]] && log_cmd $OF "findmnt" || log_cmd $OF "mount"
-		log_cmd $OF "df -h"
+		(( $IO_DELAYS )) || log_cmd $OF "df -h"
 		log_cmd $OF "modinfo btrfs"
                 for DEVICE in $(btrfs filesystem show | awk 'NF{ print $NF }' | grep ^/)
                 #TODO For multi-device btrfs filesysems only use one device
@@ -2019,100 +1918,40 @@ iscsi_info() {
 	test $OPTION_ISCSI -eq 0 && { echolog Excluded; return 1; }
 	OF=fs-iscsi.txt
 	addHeaderFile $OF
-	case $SLES_VER in
-	11*|12*|15*)
-		log_write $OF "#___________________________________________________________#"
-		log_write $OF "#____[ iSCSI Target Information ]___________________________#"
-		log_write $OF
-		if rpm_verify $OF lio-utils
+	FILES=''
+	log_write $OF "#___________________________________________________________#"
+	log_write $OF "#____[ iSCSI Target Information ]___________________________#"
+	log_write $OF
+	if rpm_verify $OF python3-targetcli-fb
+	then
+		log_cmd $OF 'systemctl status targetcli.service'
+		log_cmd $OF 'lsmod | grep target_'
+		log_cmd $OF 'targetcli ls'
+		[[ -d /etc/target ]] && FILES=$(find /etc/target -type f)
+	fi
+	conf_files $OF $FILES
+
+	log_write $OF "#___________________________________________________________#"
+	log_write $OF "#____[ iSCSI Initiator Information ]________________________#"
+	log_write $OF
+	if rpm_verify $OF open-iscsi
+	then
+		log_cmd $OF 'systemctl status iscsi.service'
+		log_cmd $OF 'systemctl status iscsid.service'
+		log_cmd $OF 'systemctl status iscsid.socket'
+		log_cmd $OF 'iscsi-iname'
+		conf_files $OF /etc/iscsid.conf
+		log_cmd $OF 'iscsiadm -m session'
+		if log_cmd $OF 'iscsiadm -m node'
 		then
-			log_cmd $OF 'systemctl status target.service'
-			log_cmd $OF 'lsmod | grep target_'
-			log_cmd $OF 'lio_node --version'
-			log_cmd $OF 'lio_node --listendpoints'
-			OUTPUT=$(lio_node --listendpoints 2>/dev/null)
-			TARGET_IQN=''
-			TGPT=''
-			if [[ -n $OUTPUT ]]
-			then
-				IN_STATE=0
-				SAVE_IFS=$IFS
-				IFS=$'\n'
-				for i in $(echo "$OUTPUT")
-				do
-					if (( IN_STATE ))
-					then
-						if echo $i | egrep -i targetalias &>/dev/null
-						then
-							TGPT=$(echo $i | awk '{print $2}' | cut -d_ -f2)
-							IN_STATE=0
-							log_entry $OF note "Five Commands for Target IQN: $TARGET_IQN"
-							for LIO_NODE_OPTION in listlunacls listnodeacls listnps listtpgattr listtpgparam
-						  do
-								log_cmd $OF "lio_node --$LIO_NODE_OPTION $TARGET_IQN $TGPT"
-							done
-					fi
-					elif echo $i | egrep '^\\' &>/dev/null
-					then
-						TARGET_IQN=$(echo $i | awk '{print $2}')
-						IN_STATE=1
-					fi
-				done
-				IFS=$SAVE_IFS
-			fi
-			log_cmd $OF 'tcm_node --version'
-			log_cmd $OF 'tcm_node --listhbas'
-			log_cmd $OF 'tcm_node --listlugps'
-			FILES="/etc/target/*"
-		elif rpm_verify $OF iscsitarget
-		then
-			if (( SLES_VER >= 120 )); then
-				log_cmd $OF 'systemctl status iscsitarget.service'
-				FILES='/etc/iet/ietd.conf /proc/net/iet/volume /proc/net/iet/session'
-			else
-				check_service $OF iscsitarget
-				log_cmd $OF 'ietadm --op show'
-				FILES='/etc/ietd.conf /proc/net/iet/volume /proc/net/iet/session'
-			fi
+			NODES=$(iscsiadm -m node -P 1 | grep -i Target | awk '{print $2}')
+			IBIN='iscsiadm -m node -T'
+			for NODE in $NODES
+			do
+				log_cmd $OF "$IBIN $NODE"
+			done
 		fi
-		conf_files $OF $FILES
-		log_write $OF "#___________________________________________________________#"
-		log_write $OF "#____[ iSCSI Initiator Information ]________________________#"
-		log_write $OF
-		if rpm_verify $OF open-iscsi
-		then
-			if (( SLES_VER >= 120 )); then
-				log_cmd $OF 'systemctl status iscsi.service'
-				log_cmd $OF 'systemctl status iscsid.service'
-				log_cmd $OF 'systemctl status iscsid.socket'
-				CHKSRV=0
-			else
-				log_cmd $OF 'chkconfig boot.open-iscsi'
-				check_service $OF open-iscsi
-				CHKSRV=$?
-			fi
-			log_cmd $OF 'iscsi-iname'
-			conf_files $OF /etc/iscsid.conf
-			if [ $CHKSRV -eq 0 ]; then
-				log_cmd $OF 'iscsiadm -m session'
-				if log_cmd $OF 'iscsiadm -m node'
-				then
-					if [ $SLES_VER -ge 102 ]; then
-						NODES=$(iscsiadm -m node -P 1 | grep -i Target | awk '{print $2}')
-						IBIN='iscsiadm -m node -T'
-					else
-						NODES=$(iscsiadm -m node | cut -d] -f1 | cut -d[ -f2)
-						IBIN='iscsiadm -m node -r'
-					fi
-					for NODE in $NODES
-					do
-						log_cmd $OF "$IBIN $NODE"
-					done
-				fi
-			fi
-		fi
-		;;
-	esac
+	fi
 	echolog Done
 }
 
@@ -2221,7 +2060,7 @@ ntp_info() {
 			echolog Skipped
 		fi
 		;;
-	15*)
+	15*|999)
 		if rpm_verify $OF chrony
 		then
 			NTP_DAEMON=1
@@ -2295,7 +2134,7 @@ udev_info() {
 		fi
 		conf_files $OF $UDEV_CONF
 		case $SLES_VER in
-		11*|12*|15*) log_cmd $OF "udevadm info -e" ;;
+		11*|12*|15*|999) log_cmd $OF "udevadm info -e" ;;
 		esac 
 		if [[ -f $UDEV_CONF ]]; then
 			. $UDEV_CONF
@@ -2456,7 +2295,7 @@ crash_info() {
 		ls -l --time-style=long-iso ${i}/${COREFILE} ${i}/${COREFILE}\.* ${i}/core ${i}/core\.* >> $SEARCH_LIST 2>/dev/null
 	done
 	# Search specific products
-	SEARCH="/opt/novell/groupwise/agents/bin/ /var/log/samba/cores/smbd/ /var/log/samba/cores/nmbd/"
+	SEARCH="/var/log/samba/cores/smbd/ /var/log/samba/cores/nmbd/"
 	for i in $SEARCH
 	do
 		ls -l --time-style=long-iso ${i}/${COREFILE} ${i}/${COREFILE}\.* ${i}/core ${i}/core\.* >> $SEARCH_LIST 2>/dev/null
@@ -2670,8 +2509,9 @@ ha_info() {
 				. /etc/sysconfig/sbd
 				for SBD in $(echo $SBD_DEVICE | sed -e 's/;/ /g')
 				do
-					log_cmd $OF "sbd -d $SBD list"
-					log_cmd $OF "sbd -d $SBD dump"
+					if timed_log_cmd $OF "sbd -d $SBD list"; then
+						log_cmd $OF "sbd -d $SBD dump"
+					fi
 				done
 			fi
 			log_cmd $OF 'ls -lR --time-style=long-iso /etc/csync2'
@@ -2725,7 +2565,7 @@ ha_info() {
 			echolog Skipped
 		fi
 		;;
-	15*)
+	15*|999)
 		if rpm_verify $OF pacemaker
 		then
 			log_cmd $OF "rpm -qa | egrep 'ais|resource-agents|cluster-glue|corosync|csync2|pacemaker'"
@@ -2749,8 +2589,9 @@ ha_info() {
 				. /etc/sysconfig/sbd
 				for SBD in $(echo $SBD_DEVICE | sed -e 's/;/ /g')
 				do
-					log_cmd $OF "sbd -d $SBD list"
-					log_cmd $OF "sbd -d $SBD dump"
+					if timed_log_cmd $OF "sbd -d $SBD list"; then
+						log_cmd $OF "sbd -d $SBD dump"
+					fi
 				done
 			fi
 			log_cmd $OF 'ls -lR --time-style=long-iso /etc/csync2'
@@ -2880,7 +2721,7 @@ ocfs2_info() {
 			OCFS2_MODULES=1
 		fi
 		case $SLES_VER in
-		11*|12*|15*)
+		11*|12*|15*|999)
 			[[ -x /usr/bin/findmnt ]] && log_cmd $OF "findmnt" || log_cmd $OF "mount"
 			(( OCFS2_MODULES )) && timed_log_cmd $OF "mounted.ocfs2 -d"
 			(( OCFS2_MODULES )) && timed_log_cmd $OF "mounted.ocfs2 -f"
@@ -2964,19 +2805,20 @@ drbd_info() {
 		log_cmd $OF "cat /proc/drbd"
 		log_cmd $OF "ps aux | grep drbd | grep -v grep"
 		[[ -x /usr/bin/findmnt ]] && log_cmd $OF "findmnt" || log_cmd $OF "mount"
-		log_cmd $OF "df -h"
-        if [ -s /etc/drbd.conf ]; then
-            DIRLIST=$(cat /etc/drbd.conf | grep ^include | cut -d\" -f2 | sed 's!\(.*\)/.*!\1/!' | sort | uniq)
-            FILES=''
-            for DIR in $DIRLIST
-            do
-	    		# We need to add "/etc/" since $DIR will have dir inside /etc/ 
-			# However this find will find all files inside a specific folder It's okay
-			# Will end up with /etc/drbd.conf/nfs.res nfs.RES nfs.stop .... 
-		        [ -d "/etc/$DIR" ] && FILES="$FILES $(find -L "/etc/$DIR" -type f)"
-            done
-		    conf_files $OF "/etc/drbd.conf $FILES"
-        fi
+		(( $IO_DELAYS )) || log_cmd $OF "df -h"
+		if [[ -s /etc/drbd.conf ]]; then
+			DIRLIST=$(cat /etc/drbd.conf | grep ^include | cut -d\" -f2 | sed 's!\(.*\)/.*!\1/!' | sort | uniq)
+			FILES=''
+			for DIR in $DIRLIST
+			do
+				# We need to add "/etc/" since $DIR will have dir inside /etc/ 
+				# However this find will find all files inside a specific folder It's okay
+				# Will end up with /etc/drbd.conf/nfs.res nfs.RES nfs.stop .... 
+				[[ -d "/etc/$DIR" ]] && FILES="$FILES $(find -L "/etc/$DIR" -type f)"
+				[[ -d $DIR ]] && FILES="$FILES $(find -L $DIR -type f)"
+			done
+			conf_files $OF "/etc/drbd.conf $FILES"
+		fi
 		FILES="/var/log/messages"
 		test $ADD_OPTION_LOGS -gt 0 && grep_log_files drbd $OF 0 $FILES || grep_log_files drbd $OF $VAR_OPTION_LINE_COUNT $FILES
 		echolog Done
@@ -3290,9 +3132,9 @@ etc_info() {
 	test $OPTION_ETC -eq 0 && { echolog Excluded; return 1; }
 	OF=etc.txt
 	addHeaderFile $OF
-	conf_files $OF $(find -L /etc/ -type f | grep conf$)
+	conf_files $OF $(find -L /etc/ -type f | egrep "conf$|cfg$")
 	[ -d /etc/logrotate.d ] && conf_files $OF /etc/logrotate.d/*
-	conf_files $OF /etc/rc.dialout /etc/ppp/options /etc/ppp/ioptions /etc/ppp/peers/pppoe
+	conf_files $OF /etc/rc.dialout /etc/ppp/options /etc/ppp/ioptions /etc/ppp/peers/pppoe /etc/motd
 	echolog Done
 }
 
@@ -3380,6 +3222,14 @@ proc_info() {
 		FILES=$(find ${SCHED_DOMAIN} -type f 2>/dev/null | sort -f)
 		conf_files $OF $FILES
 	fi
+	# cpuset information relates to processes
+	log_cmd $OF "grep cpuset /etc/mtab"
+	CPUSET=$(grep -m 1 -E ' cpuset |cgroup .*cpuset' /etc/mtab | cut -d' ' -f2)
+	if [ -n "$CPUSET" ]; then
+		log_cmd $OF "find -L ${CPUSET}/ -type f"
+		FILES=$(find -L ${CPUSET}/ -type f)
+		conf_files $OF $FILES
+	fi
 	echolog Done
 }
 
@@ -3462,7 +3312,7 @@ x_info() {
 			echolog Skipped
 		fi
 	;;
-	12*|15*)
+	12*|15*|999)
 		MESA="Mesa Mesa-32bit Mesa-demo-x Mesa-libEGL1 Mesa-libEGL1-32bit Mesa-libGL1 \
 		Mesa-libGL1-32bit Mesa-libGLESv2-2 Mesa-libGLESv2-2-32bit Mesa-libglapi0 \
                 Mesa-libglapi0-32bit"
@@ -3622,28 +3472,11 @@ slert_info() {
 		if [ -e /proc/irq/default_smp_affinity ]; then
 			conf_files $OF /proc/irq/default_smp_affinity /proc/irq/*/smp_affinity
 		fi
-		log_cmd $OF "grep cpuset /etc/mtab"
-		CPUSET=$(grep ' cpuset ' /etc/mtab | cut -d' ' -f2)
-		if [ -n "$CPUSET" ]; then
-			log_cmd $OF "find -L ${CPUSET}/ -type f"
-			FILES=$(find -L ${CPUSET}/ -type f)
-			conf_files $OF $FILES
-			for TASKS in $(find -L ${CPUSET}/ -type f | grep tasks)
-			do
-				log_write $OF "#==[ Task Scheduling ]==============================#"
-				log_write $OF "# Threads in CPUSET: $TASKS"
-				log_write $OF
-				for TASK in $(cat $TASKS)
-				do
-					log_cmd $OF chrt -p $TASK
-				done
-			done
-		else
-			for TASK in $(ps axo pid | sed -e '/PID/d')
-			do
-				test -e /proc/$TASK && log_cmd $OF "chrt -p $TASK"
-			done
-		fi
+		log_write $OF "#==[ Process (thread) RT scheduling ]==============================#"
+		for TASK in $(ps axHo pid | sed -e '/PID/d')
+		do
+			log_cmd $OF "chrt -p $TASK"
+		done
 		echolog Done
 	else
 		echolog Skipped
@@ -3743,33 +3576,6 @@ dns_info() {
 	SKIP=0
 	OF=dns.txt
 	addHeaderFile $OF
-	log_write $OF "#-----[ Novell DNS ]--------------------------------#"
-	if rpm_verify $OF novell-bind; then
-		check_service $OF novell-named
-		log_cmd $OF 'ss -nlp | grep named'
-		FILES=/etc/sysconfig/novell/NvlDns*
-		SYSNOVLDNS=$(ls -1 /etc/sysconfig/novell/NvlDns* | sort | tail -1)
-		conf_text_files $OF $FILES
-		if [ -s $SYSNOVLDNS ]; then
-			log_write $OF "#-----[ Configuration File Used by Supportconfig ]--#"
-			log_write $OF "$SYSNOVLDNS"
-			log_write $OF
-			. $SYSNOVLDNS &>/dev/null
-			[ -n "$CONFIG_DNS_LDAP_SERVER" ] && ping_addr $OF 'LDAP Server' $CONFIG_DNS_LDAP_SERVER
-			[ -n "$CONFIG_DNS_EXISTING_DNS_IP" ] && ping_addr $OF 'Existing DNS IP' $CONFIG_DNS_EXISTING_DNS_IP
-			[ -n "$CONFIG_DNS_LOCATOR_CONTEXT" ] && timed_log_cmd $OF "ldapsearch -x -s one -b $CONFIG_DNS_LOCATOR_CONTEXT objectclass=dNIPLocator"
-			[ -n "$CONFIG_DNS_GROUP_CONTEXT" ] && timed_log_cmd $OF "ldapsearch -x -b cn=DNSDHCP-GROUP,$CONFIG_DNS_GROUP_CONTEXT"
-		fi
-		[ -d /etc/opt/novell/named ] && FILES=$(find -L /etc/opt/novell/named -type f | grep -v named.conf) || FILES=''
-		conf_text_files $OF /etc/opt/novell/named/named.conf $FILES
-		if [ -d /var/opt/novell/log/named ]; then
-			FILES=$(find -L /var/opt/novell/log/named -type f)
-			conf_text_files $OF $FILES
-		fi
-	else
-		((SKIP++))
-	fi
-	log_write $OF "#-----[ System DNS ]--------------------------------#"
 	if rpm_verify $OF bind; then
 		check_service $OF named
 		[ $SKIP -gt 0 ] && log_cmd $OF 'ss -nlp | grep named'
@@ -3782,11 +3588,6 @@ dns_info() {
 			FILES=$(find -L ${ZDIR}/ -mount -type f 2>/dev/null | egrep -v "localtime|zone" | grep -v '/proc/') || unset FILES
 			conf_files $OF $FILES
 		fi
-	else
-		((SKIP++))
-	fi
-	if [ $SKIP -lt 2 ]; then
-		log_write $OF "#-----[ System Logs ]-------------------------------#"
 		log_cmd $OF "grep named /var/log/warn"
 		log_cmd $OF "grep named /var/log/messages"
 		echolog Done
@@ -3858,7 +3659,7 @@ cimom_info() {
 			if [ -n "$OWSSLCHECK" ]; then
 				if [ -L $OWSSLCHECK ]; then
 					case $SLES_VER in
-					11*|12*|15*) log_cmd $OF "readlink -ev $OWSSLCHECK" ;;
+					11*|12*|15*|999) log_cmd $OF "readlink -ev $OWSSLCHECK" ;;
 					esac
 				fi
 			fi
@@ -3960,7 +3761,7 @@ ib_info() {
 			echolog Skipped
 		fi
 		;;
-	15*)
+	15*|999)
 		CHK_UTILS=0
 		CHK_SRP=0
 		CHK_DIAG=0
@@ -4160,7 +3961,7 @@ init_plugins on
 get_sles_ver
 NSA_CHECK=0
 ALL_ARGS="$@"
-while getopts :\#AB:CDE:FG:H:I:JLM:N:O:P:QR:S:T:U:W:X:abcdef:ghi:klmo:pqr:st:uvwx:y TMPOPT
+while getopts :\#AB:CDE:FG:H:I:JLM:N:O:P:QR:S:T:U:W:X:abcdef:ghi:klmo:pqr:st:uvwx:yz TMPOPT
 do
 	case $TMPOPT in
 	\:)	clear; title
@@ -4175,6 +3976,7 @@ do
 				;;
 			esac
 			echo; show_help; exit_code 0 "ERROR: Invalid Options -$OPTARG" ;;
+	\#) set_to_min; MIN_OPTION_HC=0; MIN_OPTION_HARDWARE=0; MIN_OPTION_YAST=0; MIN_OPTION_SYSLOGS=0; NSA_CHECK=1; COMPRESS="tgz"; COMPRESS_OPT="zcf" ;;
 	A) set_to_all ;;
 	B) VAR_OPTION_CUSTOM_ARCH="$OPTARG" ;;
 	C) clear; title; echo "Overwriting $SC_CONF with default options."; gen_sysconfig; exit_code 0 ;;
@@ -4186,29 +3988,30 @@ do
 	I) VAR_OPTION_LINE_COUNT=$OPTARG ;;
 	J) VAR_OPTION_EXHAUSTIVE_MEM=1 ;;
 	L) ADD_OPTION_FSLIST=1 ;;
-	Q) VAR_OPTION_SILENT=1 ;;
-	T) VAR_OPTION_BIN_TIMEOUT_SEC=$OPTARG ;;
-	O) VAR_OPTION_CONTACT_COMPANY="$OPTARG" ;;
 	M) VAR_OPTION_CONTACT_TERMINALID="$OPTARG" ;;
 	N) VAR_OPTION_CONTACT_NAME="$OPTARG" ;;
+	O) VAR_OPTION_CONTACT_COMPANY="$OPTARG" ;;
 	P) VAR_OPTION_CONTACT_PHONE="$OPTARG" ;;
+	Q) VAR_OPTION_SILENT=1 ;;
 	R) VAR_OPTION_LOG_DIRS="$OPTARG" ;;
-	X) VAR_OPTION_MSG_MAXSIZE=$OPTARG ;;
 	S) VAR_OPTION_SAR_FILES_LIMIT=$OPTARG ;;
+	T) VAR_OPTION_BIN_TIMEOUT_SEC=$OPTARG ;;
 	U) VAR_OPTION_UPLOAD_TARGET="$OPTARG" && UPLOAD_TARBALL=1 ;;
 	W) VAR_OPTION_CONTACT_STOREID="$OPTARG" ;;
-	a) UPLOAD_TARBALL=1; VAR_OPTION_UPLOAD_TARGET=$VAR_OPTION_UPLOAD_ALT ;;
+	X) VAR_OPTION_MSG_MAXSIZE=$OPTARG ;;
+	a) UPLOAD_TARBALL=1; VAR_OPTION_UPLOAD_TARGET=${VAR_OPTION_UPLOAD_TARGET_ALT} ;;
 	b) VAR_OPTION_SBM=1 ;;
 	c) ADD_OPTION_LOCAL_ONLY=1 ;;
 	d) ADD_OPTION_MINDISK=1 ;;
+	f) FROM_DIRECTORY=$OPTARG  && USE_SAVED_LOGS_ONLY=1;;
 	g) COMPRESS="tgz"; COMPRESS_OPT="zcf" ;;
 	h) title; show_help; exit_code 0 ;;
 	i) SELECTED_FEATURE_LIST=$OPTARG; set_to_min; selected_features on ;;
 	k) MIN_OPTION_AUTOMOD=0 ;;
 	l) ADD_OPTION_LOGS=1 ;;
-	p) init_plugins off ;;
 	m) set_to_min ;;
 	o) SELECTED_FEATURE_LIST=$OPTARG; toggle_features ;;
+	p) init_plugins off ;;
 	q) VAR_OPTION_UNIQUE_FILE=1 ;;
 	r) CONTACT_SRNUM=$OPTARG;
 		if valid_srnum; then
@@ -4219,15 +4022,14 @@ do
 			echo "       Must be a numeric value only"
 			echo; show_help; exit_code 2
 		fi ;;
-	\#) set_to_min; MIN_OPTION_HC=0; MIN_OPTION_HARDWARE=0; MIN_OPTION_YAST=0; MIN_OPTION_SYSLOGS=0; NSA_CHECK=1; COMPRESS="tgz"; COMPRESS_OPT="zcf" ;;
 	s) ADD_OPTION_SLP=1 ;;
+	t) TARGET_DIRECTORY=$OPTARG && SAVE_LOGS_ONLY=1;;
 	u) UPLOAD_TARBALL=1 ;;
 	v) ADD_OPTION_RPMV=1 ;;
 	w) VAR_OPTION_WAIT_TRACE=1; VAR_OPTION_SBM=1 ;;
 	x) SELECTED_FEATURE_LIST=$OPTARG; set_to_all; selected_features off ;;
 	y) ADD_OPTION_MAXYAST=1 ;;
-	t) TARGET_DIRECTORY=$OPTARG && SAVE_LOGS_ONLY=1;;
-	f) FROM_DIRECTORY=$OPTARG  && USE_SAVED_LOGS_ONLY=1;;
+	z) COMPRESS="tbz"; COMPRESS_OPT="jcf" ;;
 	esac
 done
 
@@ -4341,15 +4143,15 @@ if [ "$USE_SAVED_LOGS_ONLY" != "1" ]; then
 	log_options
 
 	basic_healthcheck	#Minimum Requirement
-	rpm_info				#Minimum Requirement
+	rpm_info		#Minimum Requirement
 	basic_environment	#Minimum Requirement
 	module_info
 	memory_info
 	disk_info
-	(( SLES_VER >= 110 )) && btrfs_info
-	(( SLES_VER >= 120 )) && transactional_info
-	(( SLES_VER >= 120 )) && tuned_info
-	yast_files			#Minimum Requirement
+	btrfs_info
+	transactional_info
+	tuned_info
+	yast_files		#Minimum Requirement
 	fslist_info
 	audit_info
 	crash_info
@@ -4365,7 +4167,7 @@ if [ "$USE_SAVED_LOGS_ONLY" != "1" ]; then
 	haproxy_info
 	pam_info
 	ldap_info
-	(( SLES_VER >= 110 )) && sssd_info
+	sssd_info
 	cimom_info
 	open_files
 	environment_info
@@ -4373,8 +4175,8 @@ if [ "$USE_SAVED_LOGS_ONLY" != "1" ]; then
 	etc_info
 	sysconfig_info
 	sysfs_info
-	(( SLES_VER >= 120 )) && systemd_info || chkconfig_info
-	(( SLES_VER >= 120 )) && docker_info
+	systemd_info
+	docker_info
 	cron_info
 	udev_info
 	lvm_info
@@ -4382,7 +4184,7 @@ if [ "$USE_SAVED_LOGS_ONLY" != "1" ]; then
 	mpio_info
 	net_info
 	web_info
-	(( SLES_VER >= 100 )) && ib_info
+	ib_info
 	dns_info
 	dhcp_info
 	slp_info
@@ -4430,8 +4232,8 @@ fi
 
 cd $LOG
 cd ..
-wait_trace_on -t "tar ${COMPRESS_OPT} ${TARBALL} ${BASE}/*"
-tar ${COMPRESS_OPT} ${TARBALL} ${BASE}/*
+wait_trace_on -t "tar ${COMPRESS_OPT} ${TARBALL} --mode='ug+rw' ${BASE}/*"
+tar ${COMPRESS_OPT} ${TARBALL} --mode='ug+rw' ${BASE}/*
 LOGSIZE=$(ls -lh ${TARBALL} | awk '{print $5}')
 wait_trace_off -t
 wait_trace_on -t "md5sum $TARBALL"

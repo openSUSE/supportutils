@@ -19,7 +19,7 @@
 %define support_libdir /usr/lib/supportconfig
 
 Name:           supportutils
-Version:        3.1.2
+Version:        3.1.4
 Release:        0
 Summary:        Support Troubleshooting Tools
 License:        GPL-2.0
@@ -34,6 +34,8 @@ Requires:       sysfsutils
 Requires:       tar
 Requires:       util-linux-systemd
 Requires:       which
+Requires:       sed
+Requires:       gawk
 Provides:       supportconfig-plugin-icommand
 Provides:       supportconfig-plugin-resource
 Provides:       supportconfig-plugin-tag
