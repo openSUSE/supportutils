@@ -74,6 +74,7 @@ show_help() {
 	echo "  -G <gpg_uid> The GPG recipient's user ID used to encrypt the supportconfig tarball"
 	echo "  -H <number> Limit number of included HA Policy engine files"
 	echo "  -I <number> Default log file line count"
+	echo "  -J Collect memory information from sysfs"
 	echo "  -L Create a full file listing from '/'"
 	echo "  -M <string> Contact terminal ID"
 	echo "  -N <string> Contact name"
@@ -3886,6 +3887,15 @@ sysfs_info() {
 		modules:) SMOD=1; continue ;;
 		esac
 		if (( SBUS )); then
+			# collecting memory info from sysfs can be time consuming
+			# skip it on systems with 16TB  or ram or more unless exhaustive
+			# option is used
+			if [ $ITEM == "memory" ]; then
+				mem=$(grep 'MemTotal' /proc/meminfo | awk '{print $2}')
+				test $mem -gt 16000000000 -a $VAR_OPTION_EXHAUSTIVE_MEM -eq 0 && continue
+				echonlog "Please Wait..."
+				echonlog "Memory"
+			fi
 			log_cmd $OF "systool -vb $ITEM"
 		elif (( SCLS )); then
 			log_cmd $OF "systool -vc $ITEM"
@@ -3951,7 +3961,7 @@ init_plugins on
 get_sles_ver
 NSA_CHECK=0
 ALL_ARGS="$@"
-while getopts :\#AB:CDE:FG:H:I:LM:N:O:P:QR:S:T:U:W:X:abcdef:ghi:klmo:pqr:st:uvwx:yz TMPOPT
+while getopts :\#AB:CDE:FG:H:I:JLM:N:O:P:QR:S:T:U:W:X:abcdef:ghi:klmo:pqr:st:uvwx:yz TMPOPT
 do
 	case $TMPOPT in
 	\:)	clear; title
@@ -3976,6 +3986,7 @@ do
 	G) VAR_OPTION_GPG_UID="$OPTARG" ;;
 	H) VAR_OPTION_PENGINE_FILES_LIMIT=$OPTARG ;;
 	I) VAR_OPTION_LINE_COUNT=$OPTARG ;;
+	J) VAR_OPTION_EXHAUSTIVE_MEM=1 ;;
 	L) ADD_OPTION_FSLIST=1 ;;
 	M) VAR_OPTION_CONTACT_TERMINALID="$OPTARG" ;;
 	N) VAR_OPTION_CONTACT_NAME="$OPTARG" ;;
