@@ -1112,6 +1112,7 @@ docker_info() {
 		log_cmd $OF 'docker info'
 		log_cmd $OF 'docker images'
 		log_cmd $OF 'docker ps --all'
+		log_cmd $OF 'docker network ls'
 		FILES='/etc/sysconfig/docker'
 		conf_files $OF $FILES
 		if rpm_verify $OF ruby2.1-rubygem-sle2docker
