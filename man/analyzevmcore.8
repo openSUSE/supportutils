@@ -1,4 +1,4 @@
-.TH ANALYZEVMCORE "8" "20 Mar 2014" "supportutils" "Support Utilities Manual"
+.TH ANALYZEVMCORE "8" "13 Aug 2019" "supportutils" "Support Utilities Manual"
 .SH NAME
 analyzevmcore - Creates an analysis file for kernel cores
 .SH SYNOPSIS
@@ -7,7 +7,7 @@ analyzevmcore [OPTIONS]
 Creates an analysis file (nts_analyzevmcore_<CORE_DATE>.txt) for all
 kernel cores found on the system. This analysis file is automatically copied
 to /var/log, and included in supportconfig's crash.txt file for further
-analysis by SUSE and Novell Technical Services.
+analysis by SUSE Technical Services.
 
 In order to create the analysis, this script requires the kernel (vmlinux-*)
 and the debuginfo kernel (vmlinux-*.debug) which match the kernel version which
@@ -61,11 +61,11 @@ This can be done manually, or automatically through the following parameter:
    -d [kernel-*-debuginfo.rpm]
 
 
-The correct kernel-*-debuginfo RPM can be downloaded through the Novell FileFinder,
+The correct kernel-*-debuginfo RPM can be downloaded through the SUSE file finder,
 or through the patch database (using valid update credentials) at the following urls:
 
-     FileFinder:     \fBhttp://download.novell.com/patch/finder\fP
-     Patch Database: \fBhttp://download.novell.com/patch/psdb\fP
+     FileFinder:     \fBhttp://download.suse.com/patch/finder\fP
+     Patch Database: \fBhttp://download.suse.com/patch/psdb\fP
 .PP
 .RE
 .RE

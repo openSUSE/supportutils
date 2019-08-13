@@ -1,4 +1,4 @@
-.TH GETAPPCORE "8" "20 Mar 2014" "supportutils" "Support Utilities Manual"
+.TH GETAPPCORE "8" "13 Aug 2019" "supportutils" "Support Utilities Manual"
 .SH NAME
 getappcore - Get Application Core File
 .SH SYNOPSIS
@@ -18,10 +18,16 @@ This screen
 Path to the binary which generated the application core file
 .TP
 \fB\-r\fR \fIsrnum\fR
-Novell Service Request number associated with this issue
+SUSE Service Request number associated with this issue
 .TP
 \fB\-u\fR 
-Automatically uploads archive to ftp.novell.com:/incoming
+Automatically upload archive to SUSE FTP server via HTTPS
+.TP
+\fB\-f\fR 
+Automatically upload archive to SUSE FTP server via FTPES
+.TP
+\fB\-F\fR 
+Automatically upload archive to SUSE FTP server via FTP
 .TP
 \fB\-v\fR 
 Enable verbose messages
