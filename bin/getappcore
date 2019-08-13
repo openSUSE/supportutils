@@ -80,7 +80,6 @@ SUSE_UPLOAD_EMEA_HTTPS="https://${SUSE_UPLOAD_EMEA_ASERVER}/incoming/upload.php?
 SUSE_UPLOAD_EMEA_FTPES="ftps://${SUSE_UPLOAD_EMEA_ASERVER}/incoming"
 SUSE_UPLOAD_EMEA_FTP="ftp://anonymous@${SUSE_UPLOAD_EMEA_ASERVER}/incoming"
 
-UPLOAD_TARGET="${SUSE_UPLOAD_NA_FTP}"
 
 VERBOSE=0
 
@@ -159,7 +158,9 @@ show_help() {
 	echo "  -h              This screen"
 	echo "  -b [BINARY]     Binary which generated [COREFILE]"
 	echo "  -r [SR Number]  SUSE Service Request number associated with this issue"
-	echo "  -u              Automatically upload archive to the SUSE FTP server"
+	echo "  -f              Automatically upload archive to SUSE FTP server via FTPES"
+	echo "  -F              Automatically upload archive to SUSE FTP server via FTP"
+	echo "  -u              Automatically upload archive to SUSE FTP server via HTTPS"
 	echo "  -v              Enable verbose messages"
 	echo
 	echo "For example:"
@@ -394,7 +395,7 @@ upload_archive() {
 # main ()                                                   #
 # Main script function                                      #
 # --------------------------------------------------------- #
-while getopts b:hr:uv opt
+while getopts b:fFhr:uv opt
 do
 	case $opt in
 	\?)
@@ -409,6 +410,15 @@ do
 		;;
 	u)
 		UPLOAD=1
+		UPLOAD_TARGET="${SUSE_UPLOAD_NA_HTTPS}"
+		;;
+	f)
+		UPLOAD=1
+		UPLOAD_TARGET="${SUSE_UPLOAD_NA_FTPES}"
+		;;
+	F)
+		UPLOAD=1
+		UPLOAD_TARGET="${SUSE_UPLOAD_NA_FTP}"
 		;;
 	v)
 		VERBOSE=1
