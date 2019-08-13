@@ -338,9 +338,9 @@ create_archive() {
 	$TAR_BIN -jhvcvf $FINAL_ARCHIVE_NAME $CORE_ARCHIVE_NAME 1>/dev/null 2>&1
 	if [ -e $FINAL_ARCHIVE_NAME ]; then
 		echo "Done"
-		echo "        Created archive as:  $FINAL_ARCHIVE_NAME"
+		echo "+ Created archive as:  $FINAL_ARCHIVE_NAME"
 	else
-		echo "        Unable to create $FINAL_ARCHIVE_NAME!"
+		echo "+ Unable to create $FINAL_ARCHIVE_NAME!"
 	fi
 	cd $ORIGINAL_DIR
 }
@@ -378,16 +378,18 @@ upload_archive() {
 	esac
 	echo
 	if (( $ERRNO )); then
-		echo "   Upload failed! Please upload the archive manually."
-	else
-		echo "   Upload successful!"
+		echo "Upload status... FAILED"
 		echo
-		echo "   Please contact SUSE Technical Services for assistance analyzing this core." 
+		echo "Please upload the archive manually."
+	else
+		echo "Upload status... Success!"
+		echo
+		echo "   Please contact SUSE Technical Support for assistance analyzing this core." 
 		echo "   If you already have an open Service Request, please update the SR with the"
 		echo "   name of the file which has just been uploaded."
-		echo
 	fi
-	echo "   Archive: ${FINAL_ARCHIVE_NAME}"
+	echo
+	echo "   Archive Name: ${FINAL_ARCHIVE_NAME}"
 	echo
 }
 
