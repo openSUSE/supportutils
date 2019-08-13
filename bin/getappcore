@@ -54,6 +54,7 @@ SNAME=$(basename $0)
 #    - Removed Novell references                                        #
 #    - Updated to use SUSE FTP server                                   #
 #    - Added HTTPS and FTPES upload protocols                           #
+#    - Shows number of coredumps in the journal                         #
 # 1.28 Release                                                          #
 #    - Changed upload process to use curl instead of ftp                #
 # 1.27 Release                                                          #
@@ -171,6 +172,22 @@ show_help() {
 	echo "$SNAME version $SVER ($SDATE)"
 	echo
 }
+
+
+# --------------------------------------------------------- #
+# get_journal_coredumps()                                   #
+# Shows the number of coredumps in the journal              #
+# --------------------------------------------------------- #
+get_journal_coredumps() {
+	echo -n "Number of coredumps in the journal... "
+	CORENUM=$(coredumpctl list --no-legend --no-pager | wc -l)
+	echo $CORENUM
+	if (( $CORENUM )); then
+		echo "Use 'coredumpctl list' to see them."
+	fi
+	echo
+}
+
 
 # --------------------------------------------------------- #
 # verbose ()                                                #
@@ -584,6 +601,7 @@ if [ ! -z $COREFILE -a -e $COREFILE ]; then
 		if [ $UPLOAD -eq '1' ]; then
 			upload_archive
 		fi
+		get_journal_coredumps
 	fi
 else
 	if [ -z $COREFILE ]; then
@@ -592,8 +610,9 @@ else
 		echo "Missing valid corefile!"
 	fi
 	show_help
+	get_journal_coredumps
 	exit -1
 fi
 
-echo
 echo "Finished!"
+echo
