@@ -73,9 +73,14 @@ SERVER_RELEASE=/etc/SuSE-release
 UPLOAD=0
 SUSE_UPLOAD_NA_ASERVER='support-ftp.us.suse.com'
 SUSE_UPLOAD_EMEA_ASERVER='support-ftp.emea.suse.com'
+SUSE_UPLOAD_NA_HTTPS="https://${SUSE_UPLOAD_NA_ASERVER}/incoming/upload.php?appname=supportconfig&file={tarball}"
+SUSE_UPLOAD_NA_FTPES="ftps://${SUSE_UPLOAD_NA_ASERVER}/incoming"
 SUSE_UPLOAD_NA_FTP="ftp://anonymous@${SUSE_UPLOAD_NA_ASERVER}/incoming"
+SUSE_UPLOAD_EMEA_HTTPS="https://${SUSE_UPLOAD_EMEA_ASERVER}/incoming/upload.php?appname=supportconfig&file={tarball}"
+SUSE_UPLOAD_EMEA_FTPES="ftps://${SUSE_UPLOAD_EMEA_ASERVER}/incoming"
 SUSE_UPLOAD_EMEA_FTP="ftp://anonymous@${SUSE_UPLOAD_EMEA_ASERVER}/incoming"
-UPLOAD_URL="${SUSE_UPLOAD_NA_FTP}"
+
+UPLOAD_TARGET="${SUSE_UPLOAD_NA_FTP}"
 
 VERBOSE=0
 
@@ -325,7 +330,8 @@ create_archive() {
 	echo -n "Creating core archive... "
 	ORIGINAL_DIR=$PWD
 	cd $TMP_DIR
-	FINAL_ARCHIVE_NAME=$ARCHIVE_PATH/${CORE_ARCHIVE_NAME}.tbz
+	FINAL_ARCHIVE_FILE="${CORE_ARCHIVE_NAME}.tbz"
+	FINAL_ARCHIVE_NAME="${ARCHIVE_PATH}/${FINAL_ARCHIVE_FILE}"
 	verbose "Executing: $TAR_BIN -jhvcvf $FINAL_ARCHIVE_NAME $CORE_ARCHIVE_NAME 1>/dev/null 2>&1"
 	$TAR_BIN -jhvcvf $FINAL_ARCHIVE_NAME $CORE_ARCHIVE_NAME 1>/dev/null 2>&1
 	if [ -e $FINAL_ARCHIVE_NAME ]; then
@@ -342,22 +348,45 @@ create_archive() {
 # Upload the appcore archive to the designated ftp server   #
 # --------------------------------------------------------- #
 upload_archive() {
-        echo "Uploading Archive..."
+        echo "Uploading Archive... "
 	echo
-	verbose "Executing: $CURL_BIN -sT $FINAL_ARCHIVE_NAME $UPLOAD_URL/$($BASENAME_BIN $FINAL_ARCHIVE_NAME)"
-	$CURL_BIN -sT $FINAL_ARCHIVE_NAME $UPLOAD_URL/$($BASENAME_BIN $FINAL_ARCHIVE_NAME)
-	if [ "$?" = "1" ]; then
+	UPLOAD_SERVICE=$(echo ${UPLOAD_TARGET} | cut -d: -f1)
+	ERRNO=255
+	case $UPLOAD_SERVICE in
+	https)
+		echo "Protocol: HTTPS"
+		UPLOAD_URL=$(sed -e "s/{[Tt][Aa][Rr][Bb][Aa][Ll][Ll]}/${FINAL_ARCHIVE_FILE}/g" <<< ${UPLOAD_TARGET})
+		verbose "Executing: $CURL_BIN -s -L -A SupportConfig -T "${FINAL_ARCHIVE_NAME}" "${UPLOAD_URL}" &>/dev/null"
+		$CURL_BIN -s -L -A SupportConfig -T "${FINAL_ARCHIVE_NAME}" "${UPLOAD_URL}" &>/dev/null
+		ERRNO=$?
+		;;
+        ftps|ftpes)
+		echo "Protocol: FTPES"
+		UPLOAD_URL=$(sed -e 's/ftpes:/ftp:/g;s/ftps:/ftp:/g' <<< ${UPLOAD_TARGET})
+		FTPES_OPTIONS="--ssl-reqd"
+		verbose "Executing: $CURL_BIN -sT ${FINAL_ARCHIVE_NAME} ${FTPES_OPTIONS} ${UPLOAD_URL}/${FINAL_ARCHIVE_FILE} &>/dev/null"
+		$CURL_BIN -sT ${FINAL_ARCHIVE_NAME} ${FTPES_OPTIONS} ${UPLOAD_URL}/${FINAL_ARCHIVE_FILE} &>/dev/null
+		ERRNO=$?
+		;;
+	ftp)
+		echo "Protocol: FTP"
+		UPLOAD_URL=$UPLOAD_TARGET}
+        	curl -sT "${TARBALL}" "${UPLOAD_URL}/${TARBALL_FILE}" &>/dev/null
+		ERRNO=$?
+		;;
+	esac
+	if (( $ERRNO )); then
 		echo "   Upload failed! Please upload the archive manually."
 	else
 		echo "   Upload successful!"
 		echo
 		echo "   Please contact SUSE Technical Services for assistance analyzing this core." 
 		echo "   If you already have an open Service Request, please update the SR with the"
-		echo "   name of the file which has just been uploaded:"
-		echo
-		echo "      $($BASENAME_BIN $FINAL_ARCHIVE_NAME)"
+		echo "   name of the file which has just been uploaded."
 		echo
 	fi
+	echo "   Archive: ${FINAL_ARCHIVE_NAME}"
+	echo
 }
 
 
