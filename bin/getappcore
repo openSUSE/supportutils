@@ -1,6 +1,6 @@
 #!/bin/bash
 
-SVER=1.30
+SVER=1.35
 SDATE="2019 08 13"
 SNAME=$(basename $0)
 
@@ -50,9 +50,10 @@ SNAME=$(basename $0)
 # --------------------------------------------------------------------- #
 # Changes:                                                              #
 #                                                                       #
-# 1.30 Release                                                          #
+# 1.35 Release                                                          #
 #    - Removed Novell references                                        #
 #    - Updated to use SUSE FTP server                                   #
+#    - Added HTTPS and FTPES upload protocols                           #
 # 1.28 Release                                                          #
 #    - Changed upload process to use curl instead of ftp                #
 # 1.27 Release                                                          #
@@ -349,20 +350,19 @@ create_archive() {
 # Upload the appcore archive to the designated ftp server   #
 # --------------------------------------------------------- #
 upload_archive() {
-        echo "Uploading Archive... "
-	echo
+        echo "Uploading Archive... ${FINAL_ARCHIVE_FILE}"
 	UPLOAD_SERVICE=$(echo ${UPLOAD_TARGET} | cut -d: -f1)
 	ERRNO=255
 	case $UPLOAD_SERVICE in
 	https)
-		echo "Protocol: HTTPS"
+		echo "Protocol... HTTPS"
 		UPLOAD_URL=$(sed -e "s/{[Tt][Aa][Rr][Bb][Aa][Ll][Ll]}/${FINAL_ARCHIVE_FILE}/g" <<< ${UPLOAD_TARGET})
 		verbose "Executing: $CURL_BIN -s -L -A SupportConfig -T "${FINAL_ARCHIVE_NAME}" "${UPLOAD_URL}" &>/dev/null"
 		$CURL_BIN -s -L -A SupportConfig -T "${FINAL_ARCHIVE_NAME}" "${UPLOAD_URL}" &>/dev/null
 		ERRNO=$?
 		;;
         ftps|ftpes)
-		echo "Protocol: FTPES"
+		echo "Protocol... FTPES"
 		UPLOAD_URL=$(sed -e 's/ftpes:/ftp:/g;s/ftps:/ftp:/g' <<< ${UPLOAD_TARGET})
 		FTPES_OPTIONS="--ssl-reqd"
 		verbose "Executing: $CURL_BIN -sT ${FINAL_ARCHIVE_NAME} ${FTPES_OPTIONS} ${UPLOAD_URL}/${FINAL_ARCHIVE_FILE} &>/dev/null"
@@ -370,12 +370,13 @@ upload_archive() {
 		ERRNO=$?
 		;;
 	ftp)
-		echo "Protocol: FTP"
+		echo "Protocol... FTP"
 		UPLOAD_URL=$UPLOAD_TARGET}
         	curl -sT "${TARBALL}" "${UPLOAD_URL}/${TARBALL_FILE}" &>/dev/null
 		ERRNO=$?
 		;;
 	esac
+	echo
 	if (( $ERRNO )); then
 		echo "   Upload failed! Please upload the archive manually."
 	else
