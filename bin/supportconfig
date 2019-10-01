@@ -1,7 +1,7 @@
 #!/bin/bash
 
-SVER='3.0.3-1'
-SDATE='2019 08 13'
+SVER='3.0.4-1'
+SDATE='2019 09 09'
 
 ##############################################################################
 #  supportconfig - Gathers system troubleshooting information for NTS.
@@ -860,7 +860,7 @@ basic_healthcheck() {
 	log_cmd $OF 'grep -H . /sys/devices/system/cpu/vulnerabilities/*'
 	log_cmd $OF 'vmstat 1 4'
 	test -x /usr/bin/mpstat && log_cmd $OF 'mpstat -P ALL 1 3'
-	log_cmd $OF 'free -k'
+	log_cmd $OF 'free -h'
 	timed_log_cmd $OF 'df -h' || IO_DELAYS=1
 	(( $IO_DELAYS )) || log_cmd $OF 'df -i'
 	conf_files $OF '/proc/sys/kernel/tainted'
@@ -1003,6 +1003,7 @@ basic_healthcheck() {
 	AARTMP=$(basename $AARPTMP)
 
 	log_cmd $PSTMP 'ps axwwo user,pid,ppid,%cpu,%mem,vsz,rss,stat,time,cmd'
+	log_cmd $OF 'free -k'
 
 	log_write $OF "#==[ Checking Health of Processes ]=================#"
 	log_write $OF "# egrep \" D| Z\" $PSPTMP"
@@ -3829,7 +3830,7 @@ memory_info() {
 	OF=memory.txt
 	addHeaderFile $OF
 	log_cmd $OF "vmstat 1 4"
-	log_cmd $OF "free -k"
+	log_cmd $OF "free -h"
 	conf_files $OF /proc/meminfo /proc/vmstat
 	log_cmd $OF 'sysctl -a 2>/dev/null | grep ^vm'
 	[ -d /sys/kernel/mm/transparent_hugepage/ ] && FILES=$(find /sys/kernel/mm/transparent_hugepage/ -type f) || FILES=''
