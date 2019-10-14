@@ -3928,6 +3928,20 @@ transactional_info() {
 	fi
 }
 
+kernel_livepatch_info() {
+	printlog "Kernel Livepatch..."
+	test $OPTIONAL_KERNEL_LIVEPATCH -eq 0 && { echolog Excluded; return 1; }
+	OF=kernel-livepatch.txt
+	addHeaderFile $OF
+	for FDIR in $(find -L /sys/kernel/livepatch/ -maxdepth 1 -type d | grep -v "/sys/kernel/livepatch/$")
+	do
+		log_cmd $OF "find -L $FDIR -type d"
+		FILES=$(find -L $FDIR/ -type f)
+		conf_files $OF $FILES
+	done
+
+	echolog Done
+}
 
 ##############################################################################
 #  main 
@@ -4202,6 +4216,7 @@ if [ "$USE_SAVED_LOGS_ONLY" != "1" ]; then
 	print_info
 	smartmon_info
 	[ -s ${FSLIST_ADD_FILE} ] && fslist_ufiles_info
+	kernel_livepatch_info
 	hardware_info		#Minimum Requirement
 	rpm_full_verify
 	exec_plugins
