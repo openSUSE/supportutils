@@ -4,7 +4,7 @@ SVER='3.0.4-1.dev2'
 SDATE='2019 10 15'
 
 ##############################################################################
-#  supportconfig - Gathers system troubleshooting information for NTS.
+#  supportconfig - Gathers system troubleshooting information for SUSE Support
 #  Copyright (C) 2001-2019 SUSE LLC
 #
 #  Creates a tar ball to attach to the SR or send to support. Collects
