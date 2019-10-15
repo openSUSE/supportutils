@@ -1,7 +1,7 @@
 #!/bin/bash
 
-SVER='3.1.3-16.dev.2'
-SDATE='2019 10 14'
+SVER='3.1.3-16.dev.3'
+SDATE='2019 10 15'
 
 ##############################################################################
 #  supportconfig - Gathers system troubleshooting information for SUSE Support
@@ -1508,34 +1508,6 @@ hardware_info() {
 				log_cmd $OF "servicelog_notify --list"
 			fi
 		fi
-
-		PPC_DIR="${LOG}/ppc64"
-		mkdir -p $PPC_DIR
-		case $platform in
-		"pSeries")
-			log_entry $OF command "cp /proc/ppc64/eeh /proc/ppc64/lparcfg /proc/ppc64/systemcfg /var/log/platform /dev/nvram $PPC_DIR"
-			cp /proc/ppc64/eeh /proc/ppc64/lparcfg /proc/ppc64/systemcfg /var/log/platform /dev/nvram $PPC_DIR 2>/dev/null
-
-			if rpm -q rsct.core.utils &>/dev/null; then
-				CTSNAP_DIR="${PPC_DIR}/ctsnap"
-				mkdir -p $CTSNAP_DIR
-				log_cmd $OF "ctsnap -xrunrpttr -d $CTSNAP_DIR"
-			fi
-
-			if [[ -f /var/log/drmgr ]]; then
-				log_entry $OF command "cp /var/log/drmgr $PPC_DIR"
-				cp /var/log/drmgr $PPC_DIR 2>/dev/null
-			fi
-			if [[ -f /var/log/drmgr.0 ]]; then
-				log_entry $OF command "cp /var/log/drmgr.0 $PPC_DIR"
-				cp /var/log/drmgr.0 $PPC_DIR 2>/dev/null
-			fi
-			;;
-		"PowerNV")
-			log_entry $OF command "cp /proc/ppc64/eeh /proc/ppc64/systemcfg /proc/ppc64/topology_updates /sys/firmware/opal/msglog /var/log/opal-elog /dev/nvram $PPC_DIR"
-			cp /proc/ppc64/eeh /proc/ppc64/systemcfg /proc/ppc64/topology_updates /sys/firmware/opal/msglog /var/log/opal-elog /dev/nvram $PPC_DIR 2>/dev/null
-			;;
-		esac
 
 		if [[ -d /proc/device-tree/ ]]; then
 			SAVE_DIR="${PPC_DIR}/device-tree"

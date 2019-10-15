@@ -1,7 +1,9 @@
 -------------------------------------------------------------------
-Mon Oct 14 13:55:53 UTC 2019 - jason.record@suse.com
+Tue Oct 15 12:07:42 UTC 2019 - jason.record@suse.com
 
 - Updated to version 3.1.4
+  + Removed LPM/DLPAR data for POWER (bsc#1111029)
+  + prevent running 'systool -vb memory' by default on systems with 16TB or more #57 (bsc#1127734)
   + Tumbleweed support #50
   + Added zypper orphaned packages check to updates.txt
   + Cpuset listing #52
