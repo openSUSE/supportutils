@@ -1,6 +1,6 @@
 #!/bin/bash
 
-SVER='3.1.3-16.dev.3'
+SVER='3.1.3-16.dev.4'
 SDATE='2019 10 15'
 
 ##############################################################################
@@ -3042,13 +3042,16 @@ ldap_info() {
 	if rpm_verify $OF openldap2-client
 	then
 		LDAP_BIN="/usr/bin/ldapsearch"
-		conf_files $OF /etc/openldap/ldap.conf
-		IPADDRS=$(grep -i '^uri[[:space:]]' /etc/openldap/ldap.conf | sed -e 's!uri[[:space:]]*!!g;s!ldap://!!g;s!ldaps://!!g;s!ldapi://[[:alnum:][:punct:]]*!!g')
-		for I in $IPADDRS
-		do
-			IPADDR=$(echo $I | sed -e "s/:[[:digit:]]*//g")
-			ping_addr $OF 'LDAP Server' $IPADDR
-		done
+		LDAP_CONF="/etc/openldap/ldap.conf"
+		conf_files $OF $LDAP_CONF
+		if [[ -s $LDAP_CONF ]]; then
+			IPADDRS=$(grep -i '^uri[[:space:]]' $LDAP_CONF | sed -e 's!uri[[:space:]]*!!g;s!ldap://!!g;s!ldaps://!!g;s!ldapi://[[:alnum:][:punct:]]*!!g')
+			for I in $IPADDRS
+			do
+				IPADDR=$(echo $I | sed -e "s/:[[:digit:]]*//g")
+				ping_addr $OF 'LDAP Server' $IPADDR
+			done
+		fi
 		log_write $OF "#==[ Search for LDAP Server's root DSE ]============#"
 		if log_cmd $OF "$LDAP_BIN -x -b \"\" -s base \"objectclass=*\""; then
 			log_write $OF "LDAP Connection: Success"
