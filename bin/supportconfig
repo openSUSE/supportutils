@@ -3902,7 +3902,7 @@ transactional_info() {
 
 kernel_livepatch_info() {
 	printlog "Kernel Livepatch..."
-	test $OPTIONAL_KERNEL_LIVEPATCH -eq 0 && { echolog Excluded; return 1; }
+	test $OPTION_LIVEPATCH -eq 0 && { echolog Excluded; return 1; }
 	OF=kernel-livepatch.txt
 	addHeaderFile $OF
 	for FDIR in $(find -L /sys/kernel/livepatch/ -maxdepth 1 -type d | grep -v "/sys/kernel/livepatch/$")
