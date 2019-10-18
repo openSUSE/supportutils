@@ -1,4 +1,10 @@
 -------------------------------------------------------------------
+Fri Oct 18 13:51:17 UTC 2019 - jason.record@suse.com
+
+- Updated to version 3.0.5
+  + Removed root .snapshots directory from full file list (bsc#1154482)
+
+-------------------------------------------------------------------
 Tue Oct 15 11:41:18 UTC 2019 - jason.record@suse.com
 
 - Updated to version 3.0.4
