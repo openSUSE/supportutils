@@ -409,7 +409,7 @@ if [ ! -z $COREFILE -a -e $COREFILE ]; then
 	COREFILE=$($READLINK_BIN -f $COREFILE)
 	if [ -z $COREFILE_BIN ]; then
 		echo -n "Binary file not provided, trying to determine source binary using gdb... "
-		COREFILE_BIN=`$GDB_BIN --core=$COREFILE --batch 2>/dev/null | $GREP_BIN "generated" | $CUT_BIN -d '\`'  -f 2| $CUT_BIN -d " " -f 1 | $CUT_BIN -d "'" -f 1`
+		COREFILE_BIN=`$GDB_BIN --core=$COREFILE --batch 2>/dev/null | $GREP_BIN "generated" | $CUT_BIN -d '\`'  -f 2| $CUT_BIN -d " " -f 1 | $CUT_BIN -d "'" -f 1 | $CUT_BIN -d ":" -f 1`
 		if [ ! -z "$COREFILE_BIN" ]; then
 			COREFILE_BIN=`$WHICH_BIN $COREFILE_BIN 2>/dev/null`
 		fi
