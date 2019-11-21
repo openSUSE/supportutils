@@ -1,7 +1,7 @@
 #!/bin/bash
 
-SVER='3.1.3-18.dev1'
-SDATE='2019 10 18'
+SVER='3.1.6-1.dev1'
+SDATE='2019 11 21'
 
 ##############################################################################
 #  supportconfig - Gathers system troubleshooting information for SUSE Support
@@ -1083,8 +1083,7 @@ systemd_info() {
 	log_cmd $OF 'systemctl --no-pager --all list-sockets'
 	log_cmd $OF 'systemctl --no-pager list-unit-files'
 	log_cmd $OF 'systemctl --no-pager list-jobs'
-	SYSTEMD_UNITS=$(systemctl --no-pager --all list-unit-files | egrep -v '^UNIT |^[[:digit:]]* ' | awk '{print $1}')
-	for i in $SYSTEMD_UNITS
+	for i in $(systemctl --no-pager --all list-units | sed 's/^[^-_:\\a-zA-Z0-9]*//' | egrep -v '^UNIT |^LOAD |^ACTIVE |^SUB |^To |^[[:digit:]]* ' | awk '{print $1}')
 	do
 		if [[ -z "$i" ]]
 		then
