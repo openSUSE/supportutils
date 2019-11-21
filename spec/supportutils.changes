@@ -1,11 +1,12 @@
 -------------------------------------------------------------------
-Thu Nov 21 21:06:49 UTC 2019 - jason.record@suse.com
+Thu Nov 21 21:25:20 UTC 2019 - jason.record@suse.com
 
 - Addition to version 3.1.6
   + Strip trailing commas from process names #64 (bsc#1156837)
   + Dynamically select compression method (bsc#1145233)
   + Updated detailed unit information fix in systemd.txt (bsc#1023308)
   + Fixed supportconig.conf man page with order placement
+  + Include IPv6 routes (bsc#1089877)
 
 -------------------------------------------------------------------
 Fri Oct 18 13:57:37 UTC 2019 - jason.record@suse.com

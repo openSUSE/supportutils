@@ -1,6 +1,6 @@
 #!/bin/bash
 
-SVER='3.1.6-1.dev1'
+SVER='3.1.6-5'
 SDATE='2019 11 21'
 
 ##############################################################################
@@ -1578,6 +1578,7 @@ net_info_namespace() {
 	fi
 	log_cmd $OF "${NS}ip addr"
 	log_cmd $OF "${NS}ip route"
+	log_cmd $OF "${NS}ip -6 route"
 	log_cmd $OF "${NS}ip -s link"
 	if [ -z "${NS}" ] ; then
 		if [[ $MIN_OPTION_AUTOMOD -ne 0 ]]; then
@@ -1622,6 +1623,7 @@ net_info_namespace() {
 		log_cmd $OF "${NS}ip route show table $table"
 	done
 	log_cmd $OF "${NS}ip route show table cache"
+	log_cmd $OF "${NS}ip -6 route show table cache"
 	log_cmd $OF "${NS}ip rule show"
 	NICS=$(IFS="@: ";${NS}ip -o l | while read number nic dummy ; do echo $nic ; done)
 	for NIC in ${NICS}
@@ -1632,6 +1634,7 @@ net_info_namespace() {
 	done
 	log_cmd $OF "${NS}ss -nlp"
 	log_cmd $OF "${NS}ip route list"
+	log_cmd $OF "${NS}ip -6 route list"
 	log_cmd $OF "${NS}ip -stats link"
 	log_cmd $OF "${NS}ip -stats neighbor"
 	log_cmd $OF "${NS}ip ntable show"
