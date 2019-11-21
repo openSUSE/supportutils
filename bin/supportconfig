@@ -1,6 +1,6 @@
 #!/bin/bash
 
-SVER='3.0.6-1'
+SVER='3.0.6-2'
 SDATE='2019 11 21'
 
 ##############################################################################
@@ -1721,8 +1721,7 @@ systemd_info() {
 	log_cmd $OF 'systemctl --no-pager --all list-units'
 	log_cmd $OF 'systemctl --no-pager --all list-sockets'
 	log_cmd $OF 'systemctl --no-pager list-unit-files'
-	SYSTEMD_UNITS=$(systemctl --no-pager --all list-unit-files | egrep -v '^UNIT |^[[:digit:]]* ' | awk '{print $1}')
-	for i in $SYSTEMD_UNITS
+	for i in $(systemctl --no-pager --all list-units | sed 's/^[^-_:\\a-zA-Z0-9]*//' | egrep -v '^UNIT |^LOAD |^ACTIVE |^SUB |^To |^[[:digit:]]* ' | awk '{print $1}')
 	do
 		if [[ -z "$i" ]]
 		then

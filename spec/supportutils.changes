@@ -1,8 +1,9 @@
 -------------------------------------------------------------------
-Thu Nov 21 15:04:17 UTC 2019 - jason.record@suse.com
+Thu Nov 21 17:36:13 UTC 2019 - jason.record@suse.com
 
 - Updated to version 3.0.6
   + Supportconfig takes a long time to complete on 32TB machine (bsc#1157043)
+  + Updated detailed unit information fix in systemd.txt (bsc#1023308)
 
 -------------------------------------------------------------------
 Fri Oct 18 15:10:16 UTC 2019 - jason.record@suse.com
