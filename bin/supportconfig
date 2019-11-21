@@ -1,6 +1,6 @@
-bin/bash
+#!/bin/bash
 
-SVER='3.0.6-4'
+SVER='3.0.6-5'
 SDATE='2019 11 21'
 
 ##############################################################################
@@ -2241,6 +2241,7 @@ net_info_namespace() {
 	log_cmd $OF "${NS}ifconfig -a"
 	log_cmd $OF "${NS}ip addr"
 	log_cmd $OF "${NS}ip route"
+	log_cmd $OF "${NS}ip -6 route"
 	log_cmd $OF "${NS}ip -s link"
 	if [ -z "${NS}" ] ; then
 		if [ $MIN_OPTION_AUTOMOD -ne 0 ]; then
@@ -2285,6 +2286,7 @@ net_info_namespace() {
 		log_cmd $OF "${NS}ip route show table $table"
 	done
 	log_cmd $OF "${NS}ip route show table cache"
+	log_cmd $OF "${NS}ip -6 route show table cache"
 	log_cmd $OF "${NS}ip rule show"
 	NICS=$(IFS="@: ";${NS}ip -o l | while read number nic dummy ; do echo $nic ; done)
 	for NIC in ${NICS}
@@ -3208,6 +3210,7 @@ xen_info() {
 		conf_text_files $OF $FILES
 
 		log_cmd $OF 'ip route list'
+		log_cmd $OF 'ip -6 route list'
 		log_cmd $OF 'arp -v'
 		unset NETCMD
 		unset XSCRIPTS
@@ -3329,6 +3332,7 @@ kvm_info() {
 		conf_text_files $OF $FILES
 
 		log_cmd $OF 'ip route list'
+		log_cmd $OF 'ip -6 route list'
 		log_cmd $OF 'arp -v'
 
 		if [ $MIN_OPTION_AUTOMOD -eq 0 ]; then
