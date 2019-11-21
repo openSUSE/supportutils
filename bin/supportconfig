@@ -1,7 +1,7 @@
 #!/bin/bash
 
-SVER='3.0.5-1'
-SDATE='2019 10 18'
+SVER='3.0.6-1'
+SDATE='2019 11 21'
 
 ##############################################################################
 #  supportconfig - Gathers system troubleshooting information for SUSE Support
@@ -112,6 +112,7 @@ VAR_OPTION_CONTACT_STOREID=""
 VAR_OPTION_CONTACT_TERMINALID=""
 VAR_OPTION_CUSTOM_ARCH=""
 VAR_OPTION_DMESG=0
+VAR_OPTION_EXHAUSTIVE_MEM=0
 VAR_OPTION_GPG_UID=""
 VAR_OPTION_HBREPORT_DIRS='/var/log /root'
 # reports must have the format hb_report.*\.tar\.bz2 in each directory
@@ -224,6 +225,7 @@ show_help() {
 	echo "  -G <gpg_uid> The GPG recipient's user ID used to encrypt the supportconfig tarball"
 	echo "  -H <number> Limit number of included HA Policy engine files"
 	echo "  -I <number> Default log file line count"
+	echo "  -J Collect memory information from sysfs"
 	echo "  -L Create a full file listing from '/'"
 	echo "  -M <string> Contact terminal ID"
 	echo "  -N <string> Contact name"
@@ -4759,6 +4761,7 @@ sysfs_info() {
 	test $OPTION_SYSFS -eq 0 && { echolog Excluded; return 1; }
 	OF=sysfs.txt
 	addHeaderFile $OF
+	EXHAUSTIVE_MEM_LIMIT=16000000000
 	log_cmd $OF "find /sys | xargs ls -ld --time-style=long-iso"
 	log_cmd $OF "systool"
 	for ITEM in $(systool)
@@ -4771,6 +4774,15 @@ sysfs_info() {
 		modules:) SMOD=1; continue ;;
 		esac
 		if (( SBUS )); then
+			# collecting memory info from sysfs can be time consuming
+			# skip it on systems with 16TB  or ram or more unless exhaustive
+			# option is used
+			if [[ $ITEM == "memory" ]]; then
+				mem=$(grep 'MemTotal' /proc/meminfo | awk '{print $2}')
+				test $mem -gt $EXHAUSTIVE_MEM_LIMIT -a $VAR_OPTION_EXHAUSTIVE_MEM -eq 0 && continue
+				echonlog "Please Wait..."
+				echonlog "Memory"
+			fi
 			log_cmd $OF "systool -vb $ITEM"
 		elif (( SCLS )); then
 			log_cmd $OF "systool -vc $ITEM"
@@ -5493,7 +5505,7 @@ init_plugins on
 get_sles_ver
 NSA_CHECK=0
 ALL_ARGS="$@"
-while getopts :\#AB:CDE:FG:H:I:LM:N:O:P:QR:S:T:U:W:X:abcdf:ghi:klmo:pqr:st:uvwx:y TMPOPT
+while getopts :\#AB:CDE:FG:H:I:JLM:N:O:P:QR:S:T:U:W:X:abcdf:ghi:klmo:pqr:st:uvwx:y TMPOPT
 do
 	case $TMPOPT in
 	\:)	clear; title
@@ -5517,6 +5529,7 @@ do
 	G) VAR_OPTION_GPG_UID="$OPTARG" ;;
 	H) VAR_OPTION_PENGINE_FILES_LIMIT=$OPTARG ;;
 	I) VAR_OPTION_LINE_COUNT=$OPTARG ;;
+	J) VAR_OPTION_EXHAUSTIVE_MEM=1 ;;
 	L) ADD_OPTION_FSLIST=1 ;;
 	Q) VAR_OPTION_SILENT=1 ;;
 	T) VAR_OPTION_BIN_TIMEOUT_SEC=$OPTARG ;;

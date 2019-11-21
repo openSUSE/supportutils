@@ -1,4 +1,4 @@
-.TH SUPPORTCONFIG.CONF 5 "26 Apr 2019" "supportutils" "Support Utilities Manual"
+.TH SUPPORTCONFIG.CONF 5 "21 Nov 2019" "supportutils" "Support Utilities Manual"
 .SH NAME
 supportconfig.conf \- 
 .BR supportconfig (1)
@@ -303,6 +303,9 @@ The default supportconfig file format \fBnts_%B\fR or \fBnts_%s_%d_%t\fR yields 
 .TP
 VAR_OPTION_DMESG
 When enabled, supportconfig logs to /dev/kmsg instead of the system logs. \fBNone\fR (0)
+.TP
+VAR_OPTION_EXHASTIVE_MEM
+Includes sysfs memory information on systems with 16TB of memory or more \fB\-J\fR (Not Set)
 .TP
 VAR_OPTION_GPG_UID
 The GPG recipient's user ID used to encrypt the supportconfig tar ball for more secure uploads. \fB\-G\fR (Not Set)

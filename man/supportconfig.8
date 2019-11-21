@@ -1,8 +1,8 @@
-.TH SUPPORTCONFIG 8 "26 Apr 2019" "supportutils" "Support Utilities Manual"
+.TH SUPPORTCONFIG 8 "21 Nov 2019" "supportutils" "Support Utilities Manual"
 .SH NAME
 supportconfig - Gathers system troubleshooting information
 .SH SYNOPSIS
-supportconfig [\fB\-ACDFLQabdeghklmpqsuvy\fR][\fB-B\fR string][\fB-E\fR string][\fB-G\fR gpg_uid][\fB-H\fR number][\fB-I\fR number][\fB-M\fR string][\fB-N\fR string][\fB-O\fR string][\fB-P\fR string][\fB-R\fR directory path][\fB-S\fR number][\fB-T\fR seconds][\fB-U\fR URI string][\fB-W\fR string][\fB-X\fR number][\fB-f\fR directory][\fB-i\fR keyword list][\fB-o\fR keyword list][\fB-r\fR srnum][\fB-t\fR directory][\fB-x\fR keyword list]
+supportconfig [\fB\-ACDFJLQabdeghklmpqsuvy\fR][\fB-B\fR string][\fB-E\fR string][\fB-G\fR gpg_uid][\fB-H\fR number][\fB-I\fR number][\fB-M\fR string][\fB-N\fR string][\fB-O\fR string][\fB-P\fR string][\fB-R\fR directory path][\fB-S\fR number][\fB-T\fR seconds][\fB-U\fR URI string][\fB-W\fR string][\fB-X\fR number][\fB-f\fR directory][\fB-i\fR keyword list][\fB-o\fR keyword list][\fB-r\fR srnum][\fB-t\fR directory][\fB-x\fR keyword list]
 .SH DESCRIPTION
 Creates a tar ball that can be attached to a SUSE service request and/or sent to a SUSE Technical Services engineer. Collects comprehensive system information for troubleshooting and reducing resolution time.
 .PP
@@ -49,6 +49,9 @@ Limit number of included HA Policy engine files
 .TP
 \fB\-I\fR \fInumber\fR
 Default log file line count
+.TP
+\fB\-J\fR
+If the system has 16TB of memory or more, supportconfig will skip potentially times-consuming systool memory device information. This will override to have it included.
 .TP
 \fB\-L\fR 
 Create a full file listing from '/'
