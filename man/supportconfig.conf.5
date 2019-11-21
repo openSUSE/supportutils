@@ -1,4 +1,4 @@
-.TH SUPPORTCONFIG.CONF 5 "26 Apr 2019" "supportutils" "Support Utilities Manual"
+.TH SUPPORTCONFIG.CONF 5 "21 Nov 2019" "supportutils" "Support Utilities Manual"
 .SH NAME
 supportconfig.conf \- 
 .BR supportconfig (1)
@@ -243,9 +243,6 @@ Contact's company terminal identifier to include in the basic-environment.txt \f
 .TP
 VAR_OPTION_CUSTOM_ARCH
 Includes the string to create a custom tar ball filename in the format nts_<string> \fB\-B\fR (Not Set)
-.TP
-VAR_OPTION_EXHASTIVE_MEM
-Includes sysfs memory information on systems with 16TB of memory or more \fB\-J\fR (Not Set)
 .RS
 
 .RE
@@ -303,6 +300,9 @@ The default supportconfig file format \fBnts_%B\fR or \fBnts_%s_%d_%t\fR yields 
 .RS
 \fBsupportconfig \-B "%r bad" -r 12345678901\fR yields "nts_SR12345678901_bad.tbz"
 .RE
+.TP
+VAR_OPTION_EXHASTIVE_MEM
+Includes sysfs memory information on systems with 16TB of memory or more \fB\-J\fR (Not Set)
 .TP
 VAR_OPTION_DMESG
 When enabled, supportconfig logs to /dev/kmsg instead of the system logs. \fBNone\fR (0)
