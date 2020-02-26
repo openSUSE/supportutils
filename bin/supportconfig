@@ -1,11 +1,11 @@
 #!/bin/bash
 
-SVER='3.0.6-5'
-SDATE='2019 11 21'
+SVER='3.0.7-1'
+SDATE='2020 02 26'
 
 ##############################################################################
 #  supportconfig - Gathers system troubleshooting information for SUSE Support
-#  Copyright (C) 2001-2019 SUSE LLC
+#  Copyright (C) 2001-2020 SUSE LLC
 #
 #  Creates a tar ball to attach to the SR or send to support. Collects
 #  comprehensive system information for troubleshooting and reducing resolution
@@ -4167,7 +4167,7 @@ proc_info() {
 		log_write $OF
 	fi	
 
-	FILES=$(find /proc/ -maxdepth 1 -type f 2>/dev/null | egrep -iv "kcore$|kpagecount$|kpageflags$|kpagecgroup$|vmcore$|config.gz$|kmsg$|sysrq-trigger$|kallsyms$|mm$|ssstm" | sort -f)
+	FILES=$(find /proc/ -maxdepth 1 -type f 2>/dev/null | egrep -iv "kcore$|kpagecount$|kpageflags$|kpagecgroup$|vmcore$|config.gz$|kmsg$|sysrq-trigger$|kallsyms$|mm$|ssstm|pagetypeinfo$" | sort -f)
 	conf_files $OF $FILES
 	conf_files $OF /proc/mounts /proc/zoneinfo
 	ADDPROCS="/proc/sys/kernel/ /proc/scsi/ /proc/net/ /proc/dasd/"
