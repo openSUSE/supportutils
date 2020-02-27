@@ -1,8 +1,9 @@
 -------------------------------------------------------------------
-Wed Feb 26 19:36:45 UTC 2020 - jason.record@suse.com
+Thu Feb 27 14:58:33 UTC 2020 - jason.record@suse.com
 
 - Addition to version 3.0.7
   + exclude /proc/pagetypeinfo as it can be an expensive operation on some systems (bsc#1162357)
+  + Readded LPM/DLPAR data for Power (bsc#1157852)
 
 -------------------------------------------------------------------
 Thu Nov 21 21:20:02 UTC 2019 - jason.record@suse.com

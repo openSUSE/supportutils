@@ -2131,7 +2131,7 @@ hardware_info() {
 			log_files $OF 0 /tmp/alsa-info.txt
 		fi
 	fi
-	if uname -i | grep ppc64 &> /dev/null
+	if uname -i | grep ppc64 &> /dev/null #Readded from previous commit, including it now.
 	then
 		platform=""
 		if grep PowerNV /proc/cpuinfo &> /dev/null; then
