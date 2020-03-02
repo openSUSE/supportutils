@@ -1,7 +1,7 @@
 #!/bin/bash
 
-SVER=1.31
-SDATE="2019 11 18"
+SVER='1.45_dev8'
+SDATE="2020 03 02"
 SNAME=$(basename $0)
 
 # --------------------------------------------------------------------- #
@@ -12,7 +12,7 @@ SNAME=$(basename $0)
 #  Please submit bug fixes or comments via:                             #
 #    http://en.opensuse.org/Supportutils#Reporting_Bugs                 #
 #                                                                       #
-#  Copyright (C) 2007,2008-2019 SUSE LINUX GmbH, Nuernberg, Germany     #
+#  Copyright (C) 2007,2008-2020 SUSE LINUX GmbH, Nuernberg, Germany     #
 #                                                                       #
 # --------------------------------------------------------------------- #
 #                                                                       #
@@ -26,7 +26,7 @@ SNAME=$(basename $0)
 #  GNU General Public License for more details.                         #
 #                                                                       #
 #  You should have received a copy of the GNU General Public License    #
-#  along with this program; if not, see <http://www.gnu.org/licenses/>.          #
+#  along with this program; if not, see <http://www.gnu.org/licenses/>. #
 #                                                                       #
 #  Authors/Contributors:                                                #
 #     Mike Latimer (mlatimer@suse.com)                                  #
@@ -50,6 +50,8 @@ SNAME=$(basename $0)
 # --------------------------------------------------------------------- #
 # Changes:                                                              #
 #                                                                       #
+# 1.46 Release                                                          #
+#    - Uses /etc/getappcore.conf if present                             #
 # 1.30 Release                                                          #
 #    - Added /etc/os-release processing                                 #
 # 1.28 Release                                                          #
@@ -83,6 +85,7 @@ CHMOD_BIN=/bin/chmod
 CURL_BIN=/usr/bin/curl
 CUT_BIN=/usr/bin/cut
 DATE_BIN=/bin/date
+DOS2UNIX_BIN=/usr/bin/dos2unix
 DIRNAME_BIN=/usr/bin/dirname
 FIND_BIN=/usr/bin/find
 GDB_BIN=/usr/bin/gdb
@@ -95,6 +98,7 @@ READLINK_BIN=/usr/bin/readlink
 RM_BIN=/bin/rm
 RMDIR_BIN=/bin/rmdir
 RPM_BIN=/bin/rpm
+SED_BIN=/usr/bin/sed
 SORT_BIN=/usr/bin/sort
 TAR_BIN=/bin/tar
 TEE_BIN=/usr/bin/tee
@@ -104,9 +108,9 @@ UNIQ_BIN=/usr/bin/uniq
 WC_BIN=/usr/bin/wc
 WHICH_BIN=/usr/bin/which
 XARGS_BIN=/usr/bin/xargs
-ALL_BINS="$AWK_BIN $BASENAME_BIN $CAT_BIN $CHKBIN_BIN $CHMOD_BIN $CUT_BIN $DATE_BIN $DIRNAME_BIN $FIND_BIN \
+ALL_BINS="$AWK_BIN $BASENAME_BIN $CAT_BIN $CHKBIN_BIN $CHMOD_BIN $CUT_BIN $DATE_BIN $DIRNAME_BIN $DOS2UNIX_BIN $FIND_BIN \
 	$CURL_BIN $GDB_BIN $GREP_BIN $HEAD_BIN $LN_BIN $MKDIR_BIN $MV_BIN $READLINK_BIN $RM_BIN $RMDIR_BIN $RPM_BIN \
-	$SORT_BIN $TAR_BIN $TEE_BIN $TR_BIN $UNAME_BIN $UNIQ_BIN $WC_BIN $WHICH_BIN $XARGS_BIN"
+	$SED_BIN $SORT_BIN $TAR_BIN $TEE_BIN $TR_BIN $UNAME_BIN $UNIQ_BIN $WC_BIN $WHICH_BIN $XARGS_BIN"
 
 
 # --------------------------------------------------------- #
@@ -401,6 +405,16 @@ eval COREFILE=\$$OPTIND
 CMDLINE="$0 $*"
 
 check_binaries
+
+# Check for valid configuration file
+if [[ -s ${GETAPPCORE_CONF:="/etc/getappcore.conf"} ]]; then
+	if [[ -x $DOS2UNIX_BIN ]]; then
+		$DOS2UNIX_BIN $GETAPPCORE_CONF &>/dev/null
+	else
+		$SED_BIN -i -e 's/\r//g' $GETAPPCORE_CONF &>/dev/null
+	fi
+	. ${GETAPPCORE_CONF}
+fi
 
 if [ ! -z $COREFILE -a -e $COREFILE ]; then
 	get_server_release
