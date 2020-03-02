@@ -1,6 +1,6 @@
 #!/bin/bash
 
-SVER='1.45_dev8'
+SVER='1.45_dev9.1'
 SDATE="2020 03 02"
 SNAME=$(basename $0)
 
@@ -224,11 +224,6 @@ check_binaries()
 		exit -1
 	fi
 }
-
-
-
-
-
 
 # -- ------------------------------------------------------ #
 # create_filename ()                                        #
@@ -474,10 +469,10 @@ if [ ! -z $COREFILE -a -e $COREFILE ]; then
                 echo "Done"
 		echo >> $GETAPPCORE_LOG
 
-		echo "Building list of debuginfo RPMs... "
+		(( $VERBOSE )) && echo "Building list of debuginfo RPMs... " || echo -n "Building list of debuginfo RPMs... "
 		echo "DEBUG RPMs:" >> $GETAPPCORE_LOG
 		echo "-----------" >> $GETAPPCORE_LOG
-		echo
+		verbose ""
 		while read LIBRARY_RPM
 		do
 			if [ "${LIBRARY_RPM:(-4)}" = ".rpm" ]; then
@@ -502,7 +497,7 @@ if [ ! -z $COREFILE -a -e $COREFILE ]; then
 				else
 					DEBUG_RPM="${RPM_INFO[0]}-debuginfo-${RPM_INFO[2]}.${RPM_INFO[3]}.rpm"
 				fi
-				echo "     $LIBRARY_RPM   -->   $DEBUG_RPM"
+				verbose "     $LIBRARY_RPM   -->   $DEBUG_RPM"
 				if [ "$GUESSED" = "1" ]; then
 					echo "           -- ${RPM_INFO[0]}: RPM and SRC version did not match. Debuginfo name may not be reliable! --"
 					GUESSED=0
@@ -513,8 +508,12 @@ if [ ! -z $COREFILE -a -e $COREFILE ]; then
 		done < $GETAPPCORE_LOG
 		# Parse list of debug RPMs and add to log
 		echo $DBG_LIST | $TR_BIN " " \\n | $SORT_BIN | $UNIQ_BIN >> $GETAPPCORE_LOG
-		echo
-                echo "                               ... Done"
+		verbose ""
+		if (( $VERBOSE )); then
+	                echo "                               ... Done"
+		else
+			echo " Done"
+		fi
 		echo >> $GETAPPCORE_LOG
 
 		# Build list of libraries and library directories for gdb
