@@ -1,14 +1,11 @@
 -------------------------------------------------------------------
-Mon Mar  2 15:04:11 UTC 2020 - jason.record@suse.com
-
-- Added missed Power collection per bsc#1157852
-
--------------------------------------------------------------------
-Thu Feb 27 14:58:33 UTC 2020 - jason.record@suse.com
+Mon Mar  2 16:09:38 UTC 2020 - jason.record@suse.com
 
 - Addition to version 3.0.7
   + exclude /proc/pagetypeinfo as it can be an expensive operation on some systems (bsc#1162357)
   + Readded LPM/DLPAR data for Power (bsc#1157852)
+  + Added missed Power collection per bsc#1157852
+  + Fixed s390x typo
 
 -------------------------------------------------------------------
 Thu Nov 21 21:20:02 UTC 2019 - jason.record@suse.com

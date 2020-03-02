@@ -1,6 +1,6 @@
 #!/bin/bash
 
-SVER='3.0.7-2'
+SVER='3.0.7-3'
 SDATE='2020 03 02'
 
 ##############################################################################
@@ -2281,7 +2281,7 @@ net_info_namespace() {
 		if grep vmcp /proc/modules &>/dev/null; then
 			log_cmd $OF "vmcp query nic details"
 			log_cmd $OF "vmcp query lan details"
-			log_cmd $OF "mcp query vswitch detail"
+			log_cmd $OF "vmcp query vswitch detail"
 		else
 			case $(uname -i) in
 			s390x) 
