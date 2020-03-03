@@ -50,7 +50,8 @@ SNAME=$(basename $0)
 # --------------------------------------------------------------------- #
 # Changes:                                                              #
 #                                                                       #
-# 1.46 Release                                                          #
+# 1.46 Release                                                          #  
+#    - Replaced Novell with SUSE FTP servers                            #
 #    - Uses /etc/getappcore.conf if present                             #
 # 1.30 Release                                                          #
 #    - Added /etc/os-release processing                                 #
