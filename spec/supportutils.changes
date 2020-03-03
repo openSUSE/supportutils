@@ -1,10 +1,10 @@
 -------------------------------------------------------------------
-Tue Mar  3 01:53:46 UTC 2020 - jason.record@suse.com
+Tue Mar  3 14:16:04 UTC 2020 - jason.record@suse.com
 
 - Addition to version 3.1.8
   + Changes affecting getappcore
     - Added -u for HTTPS and -f for FTPES uploads to SUSE FTP servers
-    - Replaced Novell with SUSE FTP servers
+    - Replaced Novell with SUSE FTP servers (bsc#1165475)
     - Uses /etc/getappcore.conf if present
   + Changes affecting supportconfig
     - Added missed Power collection per bsc#1162539
