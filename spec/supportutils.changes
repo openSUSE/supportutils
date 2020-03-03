@@ -1,5 +1,5 @@
 -------------------------------------------------------------------
-Tue Mar  3 14:16:04 UTC 2020 - jason.record@suse.com
+Tue Mar  3 14:22:12 UTC 2020 - jason.record@suse.com
 
 - Addition to version 3.1.8
   + Changes affecting getappcore
@@ -8,6 +8,7 @@ Tue Mar  3 14:16:04 UTC 2020 - jason.record@suse.com
     - Uses /etc/getappcore.conf if present
   + Changes affecting supportconfig
     - Added missed Power collection per bsc#1162539
+    - Added zypper patterns output to updates.txt #66
 
 -------------------------------------------------------------------
 Mon Mar  2 16:12:12 UTC 2020 - jason.record@suse.com
