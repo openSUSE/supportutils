@@ -1,11 +1,13 @@
 -------------------------------------------------------------------
 Tue Mar  3 01:53:46 UTC 2020 - jason.record@suse.com
 
-- Addition to version 3.1.7
-  + Chages affecting getappcore
+- Addition to version 3.1.8
+  + Changes affecting getappcore
+    - Added -u for HTTPS and -f for FTPES uploads to SUSE FTP servers
     - Replaced Novell with SUSE FTP servers
     - Uses /etc/getappcore.conf if present
-    - Added -u for HTTPS and -f for FTPES uploads to SUSE FTP servers
+  + Changes affecting supportconfig
+    - Added missed Power collection per bsc#1162539
 
 -------------------------------------------------------------------
 Mon Mar  2 16:12:12 UTC 2020 - jason.record@suse.com
@@ -13,7 +15,6 @@ Mon Mar  2 16:12:12 UTC 2020 - jason.record@suse.com
 - Addition to version 3.1.7
   + exclude /proc/pagetypeinfo as it can be an expensive operation on some systems (bsc#1162357)
   + Readded LPM/DLPAR data for Power (bsc#1162539)
-  + Added missed Power collection per bsc#1162539
 
 -------------------------------------------------------------------
 Thu Nov 21 21:25:20 UTC 2019 - jason.record@suse.com
