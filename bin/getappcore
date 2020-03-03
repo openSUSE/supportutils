@@ -1,6 +1,6 @@
 #!/bin/bash
 
-SVER='1.45_dev10.8'
+SVER='1.45_dev11.3'
 SDATE="2020 03 02"
 SNAME=$(basename $0)
 
@@ -179,7 +179,7 @@ show_help() {
 # Enable vebose messages                                    #
 # --------------------------------------------------------- #
 verbose() {
-        if [ $VERBOSE -eq '1' ]; then
+        if [[ $VERBOSE -eq '1' ]]; then
                 echo "-- $1"
         fi
 }
@@ -447,11 +447,11 @@ do
 	esac
 done
 
-show_title
-
 eval COREFILE=\$$OPTIND
 CMDLINE="$0 $*"
 
+get_server_release
+show_title
 check_binaries
 
 # Check for valid configuration file
@@ -465,8 +465,6 @@ if [[ -s ${GETAPPCORE_CONF:="/etc/getappcore.conf"} ]]; then
 fi
 
 if [ ! -z $COREFILE -a -e $COREFILE ]; then
-	get_server_release
-
 	COREFILE=$($READLINK_BIN -f $COREFILE)
 	if [ -z $COREFILE_BIN ]; then
 		echo -n "Binary file not provided, trying to determine source binary using gdb... "
@@ -496,8 +494,9 @@ if [ ! -z $COREFILE -a -e $COREFILE ]; then
 		CHKBIN_RESULT=$($CAT_BIN $CHKBIN_LOG | $GREP_BIN STATUS | $AWK_BIN '{print $2}')
                 echo "Done"
 
-		echo "Crashing binary: $COREFILE_BIN       chkbin result: $CHKBIN_RESULT"	>> $GETAPPCORE_LOG	
-		echo >> $GETAPPCORE_LOG
+		echo "Crashing binary: $COREFILE_BIN       chkbin result: $CHKBIN_RESULT" &> $GETAPPCORE_LOG
+		verbose "Crashing binary: $COREFILE_BIN"
+		verbose "Chkbin result:   $CHKBIN_RESULT"
 
 		# Use GDB to build list of required libraries
 		echo -n "Building list of required libraries with gdb... " 
