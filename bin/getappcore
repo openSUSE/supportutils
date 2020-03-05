@@ -1,7 +1,7 @@
 #!/bin/bash
 
-SVER='1.46'
-SDATE="2020 03 02"
+SVER='1.47_dev26'
+SDATE="2020 03 05"
 SNAME=$(basename $0)
 
 # --------------------------------------------------------------------- #
@@ -50,6 +50,8 @@ SNAME=$(basename $0)
 # --------------------------------------------------------------------- #
 # Changes:                                                              #
 #                                                                       #
+# 1.48 Release                                                          #
+#    - Added journal core dump processing                               #
 # 1.46 Release                                                          #  
 #    - Replaced Novell with SUSE FTP servers                            #
 #    - Uses /etc/getappcore.conf if present                             #
@@ -68,14 +70,17 @@ SNAME=$(basename $0)
 
 
 ARCHIVE_PATH=/var/log
-TMP_DIR=$(/bin/mktemp -d /tmp/getappcore_tmp_XXXXXXXX)
-GETAPPCORE_LOG=$TMP_DIR/getappcore.log
-GDBLIBS_CMD=$TMP_DIR/.gdblibs.cmd
+BASE_TMP_DIR=/tmp
+GETAPPCORE_TMP_DIR=$(/bin/mktemp -d ${BASE_TMP_DIR}/getappcore_tmp_XXXXXXXX)
+GETAPPCORE_LOG=$GETAPPCORE_TMP_DIR/getappcore.log
+GDBLIBS_CMD=$GETAPPCORE_TMP_DIR/.gdblibs.cmd
 SERVER_NAME=$(/bin/uname -n)
 SUSE_RELEASE="/etc/SuSE-release"
 OS_RELEASE="/etc/os-release"
+JOURNAL_PID=''
 UPLOAD=0
 VERBOSE=0
+CLEANUP_CORE=0
 
 SUSE_UPLOAD_NA_ASERVER='support-ftp.us.suse.com'
 SUSE_UPLOAD_EMEA_ASERVER='support-ftp.emea.suse.com'
@@ -93,6 +98,7 @@ BASENAME_BIN=/usr/bin/basename
 CAT_BIN=/bin/cat
 CHKBIN_BIN=/sbin/chkbin
 CHMOD_BIN=/bin/chmod
+COREDUMP_BIN=/usr/bin/coredumpctl
 CURL_BIN=/usr/bin/curl
 CUT_BIN=/usr/bin/cut
 DATE_BIN=/bin/date
@@ -119,7 +125,7 @@ UNIQ_BIN=/usr/bin/uniq
 WC_BIN=/usr/bin/wc
 WHICH_BIN=/usr/bin/which
 XARGS_BIN=/usr/bin/xargs
-ALL_BINS="$AWK_BIN $BASENAME_BIN $CAT_BIN $CHKBIN_BIN $CHMOD_BIN $CUT_BIN $DATE_BIN $DIRNAME_BIN $DOS2UNIX_BIN $FIND_BIN \
+ALL_BINS="$AWK_BIN $BASENAME_BIN $CAT_BIN $CHKBIN_BIN $CHMOD_BIN $COREDUMP_BIN $CUT_BIN $DATE_BIN $DIRNAME_BIN $DOS2UNIX_BIN $FIND_BIN \
 	$CURL_BIN $GDB_BIN $GREP_BIN $HEAD_BIN $LN_BIN $MKDIR_BIN $MV_BIN $READLINK_BIN $RM_BIN $RMDIR_BIN $RPM_BIN \
 	$SED_BIN $SORT_BIN $TAR_BIN $TEE_BIN $TR_BIN $UNAME_BIN $UNIQ_BIN $WC_BIN $WHICH_BIN $XARGS_BIN"
 
@@ -135,7 +141,7 @@ show_title() {
 	echo "Server:   $SERVER_NAME"                                               | $TEE_BIN -a $GETAPPCORE_LOG
 	echo "OS:       $OS_VERSION $OS_PATCHLEVEL"	                            | $TEE_BIN -a $GETAPPCORE_LOG
 	echo "Kernel:   $($UNAME_BIN -r) ($($UNAME_BIN -i))"                        | $TEE_BIN -a $GETAPPCORE_LOG
-	echo "Corefile: $COREFILE"                                                  | $TEE_BIN -a $GETAPPCORE_LOG
+	echo "Corefile: $COREFILE_STR"                                              | $TEE_BIN -a $GETAPPCORE_LOG
 	echo "####################################################################" | $TEE_BIN -a $GETAPPCORE_LOG
 	echo
 }
@@ -145,7 +151,7 @@ show_title() {
 # Display program help screen                               #
 # --------------------------------------------------------- #
 show_help() {
-	echo "Usage: $0 [OPTION] COREFILE"
+	echo "Usage: $0 [OPTION] < -j PID | /path/to/corefile >"
 	echo 
 	echo "$SNAME creates an archive containing an application core, and all files"
 	echo "required to analyze the application core - including the binary which"
@@ -162,6 +168,7 @@ show_help() {
 	echo
 	echo "  -h              This screen"
 	echo "  -b [BINARY]     Binary which generated [COREFILE]"
+	echo "  -j [PID]        PID of coredump from coredumpctl list to extract"
 	echo "  -r [SR Number]  SUSE Service Request number associated with this issue"
 	echo "  -u              Automatically upload archive to the SUSE FTP server using HTTPS"
 	echo "  -f              Automatically upload archive to the SUSE FTP server using FTPES"
@@ -173,6 +180,7 @@ show_help() {
 	echo
 	echo "$SNAME version $SVER ($SDATE)"
 	echo
+	show_journal_coredumps
 }
 
 # --------------------------------------------------------- #
@@ -233,11 +241,12 @@ check_binaries()
 		echo
 		echo "Please install the required package(s) and try again."
 		echo
+		cleanup
 		exit -1
 	fi
 }
 
-# -- ------------------------------------------------------ #
+# --------------------------------------------------------- #
 # create_filename ()                                        #
 # Create the archive filename                               #
 # --------------------------------------------------------- #
@@ -248,9 +257,9 @@ create_filename() {
 	else
 		CORE_ARCHIVE_NAME="nts_SR${SR_NUM}_${CORE_ARCHIVE_NAME}"
 	fi
-	OPENCORE_INI=$TMP_DIR/$CORE_ARCHIVE_NAME/opencore.ini
-	OPENCORE_SH=$TMP_DIR/$CORE_ARCHIVE_NAME/opencore.sh
-	LOG_DIR=$TMP_DIR/$CORE_ARCHIVE_NAME/logs
+	OPENCORE_INI=$GETAPPCORE_TMP_DIR/$CORE_ARCHIVE_NAME/opencore.ini
+	OPENCORE_SH=$GETAPPCORE_TMP_DIR/$CORE_ARCHIVE_NAME/opencore.sh
+	LOG_DIR=$GETAPPCORE_TMP_DIR/$CORE_ARCHIVE_NAME/logs
 	$MKDIR_BIN -p $LOG_DIR
 }
 
@@ -303,15 +312,19 @@ cleanup() {
 		verbose "Removing file: $FILE"
 		$RM_BIN $FILE
 	done
+	if (( $CLEANUP_CORE )); then
+		verbose "Removing file: $COREFILE"
+		$RM_BIN $COREFILE
+	fi
 	for FILE in $REQUIRED_LIBRARIES $COREFILE $COREFILE_BIN; do
-		SYMLINK=$TMP_DIR/$CORE_ARCHIVE_NAME/$FILE
+		SYMLINK=$GETAPPCORE_TMP_DIR/$CORE_ARCHIVE_NAME/$FILE
 		SYMLINK=${SYMLINK/\/\//\/}
 		if [ -L "$SYMLINK" ]; then
 			verbose "Removing symlink: $SYMLINK"
 			$RM_BIN $SYMLINK
 		fi
 	done	
-	for DIR in $($FIND_BIN $TMP_DIR -type d | sort -r); do
+	for DIR in $($FIND_BIN $GETAPPCORE_TMP_DIR -type d | sort -r); do
 		verbose "Removing directory: $DIR"
 		$RMDIR_BIN $DIR
 	done
@@ -326,7 +339,7 @@ cleanup() {
 # --------------------------------------------------------------- #
 create_symlinks() {
 	for REQUIRED_FILE in $COREFILE $COREFILE_BIN $REQUIRED_LIBRARIES; do
-		REQUIRED_FILE_LINK=$TMP_DIR/$CORE_ARCHIVE_NAME/$REQUIRED_FILE
+		REQUIRED_FILE_LINK=$GETAPPCORE_TMP_DIR/$CORE_ARCHIVE_NAME/$REQUIRED_FILE
 		REQUIRED_FILE_LINK=${REQUIRED_FILE_LINK/\/\//\/}
 		$MKDIR_BIN -p $(dirname $REQUIRED_FILE_LINK)
 		verbose "Creating symlink: $REQUIRED_FILE_LINK --> $REQUIRED_FILE"
@@ -341,18 +354,64 @@ create_symlinks() {
 create_archive() {
 	echo -n "Creating core archive... "
 	ORIGINAL_DIR=$PWD
-	cd $TMP_DIR
+	cd $GETAPPCORE_TMP_DIR
 	FINAL_ARCHIVE_FILE="${CORE_ARCHIVE_NAME}.tbz"
 	FINAL_ARCHIVE_NAME="${ARCHIVE_PATH}/${FINAL_ARCHIVE_FILE}"
 	verbose "Executing: $TAR_BIN -jhvcvf $FINAL_ARCHIVE_NAME $CORE_ARCHIVE_NAME 1>/dev/null 2>&1"
 	$TAR_BIN -jhvcvf $FINAL_ARCHIVE_NAME $CORE_ARCHIVE_NAME 1>/dev/null 2>&1
 	if [ -e $FINAL_ARCHIVE_NAME ]; then
 		echo "Done"
-		echo "+ Created archive as:  $FINAL_ARCHIVE_NAME"
+		verbose "Created archive as:  $FINAL_ARCHIVE_NAME"
 	else
+		echo "ERROR"
 		echo "+ Unable to create $FINAL_ARCHIVE_NAME!"
 	fi
 	cd $ORIGINAL_DIR
+}
+
+# --------------------------------------------------------- #
+# show_journal_coredumps()                                   #
+# Shows the number of coredumps in the journal              #
+# --------------------------------------------------------- #
+show_journal_coredumps() {
+	echo -n "Number of coredumps in the journal... "
+	CORENUM=$($COREDUMP_BIN list --no-legend --no-pager | wc -l)
+	echo $CORENUM
+	if (( $CORENUM )); then
+		echo
+		echo "Newest coredump:"
+		$COREDUMP_BIN list -1
+		echo
+		echo "Use '$COREDUMP_BIN list' to see more."
+	fi
+	echo
+}
+
+# --------------------------------------------------------- #
+# get_journal_coredump()                                    #
+# Gets the coredump from the journal using the PID          #
+# --------------------------------------------------------- #
+get_journal_coredump() {
+	JPID=$1
+	echo -n "Retrieving core file with PID $JPID ... "
+	COREFILE="${ARCHIVE_PATH}/core.${JPID}"
+	COREFILE_BIN=$($COREDUMP_BIN dump -o ${COREFILE} ${JPID} 2>/dev/null | grep -i 'Executable:' | $AWK_BIN '{print $NF}')
+	#Only extracted core files are cleaned up.
+	CLEANUP_CORE=1
+	if [[ -s $COREFILE ]]; then
+		echo Done
+	else
+		echo "ERROR"
+		echo "Coredump not found - PID ${JPID}"
+		echo
+		echo "Use '$COREDUMP_BIN list' to see coredumps."
+		echo
+		cleanup
+		exit 10
+	fi
+	verbose "$($COREDUMP_BIN info $JPID)"
+	verbose "Extracted corefile:    $COREFILE"
+	verbose "Associated executable: $COREFILE_BIN"
 }
 
 # --------------------------------------------------------- #
@@ -408,8 +467,6 @@ upload_archive() {
 		echo "   archive name below."
 	fi
 	echo
-	echo "   Archive Name: ${FINAL_ARCHIVE_NAME}"
-	echo
 }
 
 
@@ -417,11 +474,12 @@ upload_archive() {
 # main ()                                                   #
 # Main script function                                      #
 # --------------------------------------------------------- #
-while getopts b:hr:ufv opt
+while getopts b:hr:ufvj: opt
 do
 	case $opt in
 	\?)
 		show_help
+		cleanup
 		exit 0
 		;;
 	b)
@@ -441,8 +499,12 @@ do
 	v)
 		VERBOSE=1
 		;;
+	j)
+		JOURNAL_PID=$OPTARG
+		;;
 	h)
 		show_help
+		cleanup
 		exit 0
 		;;
 	esac
@@ -450,6 +512,7 @@ done
 
 eval COREFILE=\$$OPTIND
 CMDLINE="$0 $*"
+[[ $JOURNAL_PID ]] && COREFILE_STR="PID $JOURNAL_PID" || COREFILE_STR=${COREFILE}
 
 get_server_release
 show_title
@@ -464,6 +527,8 @@ if [[ -s ${GETAPPCORE_CONF:="/etc/getappcore.conf"} ]]; then
 	fi
 	. ${GETAPPCORE_CONF}
 fi
+
+[[ $JOURNAL_PID ]] && get_journal_coredump $JOURNAL_PID
 
 if [ ! -z $COREFILE -a -e $COREFILE ]; then
 	COREFILE=$($READLINK_BIN -f $COREFILE)
@@ -485,7 +550,8 @@ if [ ! -z $COREFILE -a -e $COREFILE ]; then
 		exit -1
 	else
 		COREFILE_BIN=$($READLINK_BIN -f $COREFILE_BIN)
-		echo "Done ($COREFILE_BIN)"
+		echo "Done"
+		verbose "$(file $COREFILE_BIN)"
 
 		# Build full name of directory and tarball
 		create_filename
@@ -596,7 +662,7 @@ if [ ! -z $COREFILE -a -e $COREFILE ]; then
 		done
                 echo "Done"
 
-		# Move chkbin and getappcore log to $TMP_DIR to be included in tar archive
+		# Move chkbin and getappcore log to GETAPPCORE_TMP_DIR to be included in tar archive
 		$MV_BIN $CHKBIN_LOG $GETAPPCORE_LOG $LOG_DIR
 		CHKBIN_LOG=$LOG_DIR/$(basename $CHKBIN_LOG)
 		GETAPPCORE_LOG=$LOG_DIR/$(basename $GETAPPCORE_LOG)
@@ -611,6 +677,8 @@ if [ ! -z $COREFILE -a -e $COREFILE ]; then
 
 		(( $UPLOAD )) && upload_archive
 		cleanup
+		echo
+		echo "Archive Name: ${FINAL_ARCHIVE_NAME}"
 	fi
 else
 	if [ -z $COREFILE ]; then
@@ -618,6 +686,7 @@ else
 	else
 		echo "Missing valid corefile!"
 	fi
+	cleanup
 	show_help
 	exit -1
 fi
