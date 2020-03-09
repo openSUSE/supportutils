@@ -1,6 +1,6 @@
 #!/bin/bash
 
-SVER='1.49_dev31.4'
+SVER='1.49_dev31.7'
 SDATE="2020 03 09"
 SNAME=$(basename $0)
 
@@ -52,6 +52,7 @@ SNAME=$(basename $0)
 #                                                                       #
 # 1.50 Release                                                          #
 #    - Added journal core dump processing                               #
+#    - Check for valid core file                                        #
 #    - Updated documentation and messages                               #
 # 1.46 Release                                                          #  
 #    - Replaced Novell with SUSE FTP servers                            #
@@ -557,16 +558,17 @@ if [ ! -z $COREFILE -a -e $COREFILE ]; then
 		exit -5
 	fi
 	COREFILE=$($READLINK_BIN -f $COREFILE)
+	echo -n "Validating binary file... "
+	verbose ''
 	if [ -z $COREFILE_BIN ]; then
-		echo -n "Scanning core for binary file... "
+		verbose "Extracting binary file from core file"
 		COREFILE_BIN=`$GDB_BIN --core=$COREFILE --batch 2>/dev/null | $GREP_BIN "generated" | $CUT_BIN -d '\`'  -f 2| $CUT_BIN -d " " -f 1 | $CUT_BIN -d "'" -f 1 | $CUT_BIN -d ":" -f 1`
 		if [ ! -z "$COREFILE_BIN" ]; then
 			COREFILE_BIN=`$WHICH_BIN $COREFILE_BIN 2>/dev/null`
 		fi
-	else
-		echo -n "Validating binary file... "
+		verbose "Extracted file: $COREFILE_BIN"
 	fi
-	if ! [ -x $COREFILE_BIN ]; then
+	if ! [[ -x $COREFILE_BIN ]]; then
 		echo
 		echo "Unable to determine the binary which generated $COREFILE!"
 		echo "  ($COREFILE_BIN does not seem to be an executable!)"
@@ -577,8 +579,8 @@ if [ ! -z $COREFILE -a -e $COREFILE ]; then
 		exit -1
 	else
 		COREFILE_BIN=$($READLINK_BIN -f $COREFILE_BIN)
-		echo "Done"
 		verbose "$(file $COREFILE_BIN)"
+		echo "Done"
 
 		# Build full name of directory and tarball
 		create_filename
