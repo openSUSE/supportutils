@@ -1,7 +1,7 @@
 #!/bin/bash
 
-SVER='1.47_dev30.7'
-SDATE="2020 03 06"
+SVER='1.47_dev30.12'
+SDATE="2020 03 09"
 SNAME=$(basename $0)
 
 # --------------------------------------------------------------------- #
@@ -404,7 +404,7 @@ show_journal_coredumps() {
 # --------------------------------------------------------- #
 get_journal_coredump() {
 	JPID=$1
-	echo -n "Retrieving core file with PID $JPID ... "
+	echo -n "Retrieving core file with PID ${JPID}... "
 	COREFILE="${ARCHIVE_PATH}/core.${JPID}"
 	COREFILE_BIN=$($COREDUMP_BIN dump -o ${COREFILE} ${JPID} 2>/dev/null | grep -i 'Executable:' | $AWK_BIN '{print $NF}')
 	#Only extracted core files are cleaned up.
@@ -531,12 +531,15 @@ check_binaries
 
 # Check for valid configuration file
 if [[ -s ${GETAPPCORE_CONF:="/etc/getappcore.conf"} ]]; then
+	echo "Local configuration file... ${GETAPPCORE_CONF}"
 	if [[ -x $DOS2UNIX_BIN ]]; then
 		$DOS2UNIX_BIN $GETAPPCORE_CONF &>/dev/null
 	else
 		$SED_BIN -i -e 's/\r//g' $GETAPPCORE_CONF &>/dev/null
 	fi
 	. ${GETAPPCORE_CONF}
+else
+	echo "Local configuration file... None"
 fi
 
 [[ $JOURNAL_PID ]] && get_journal_coredump $JOURNAL_PID
@@ -575,6 +578,7 @@ if [ ! -z $COREFILE -a -e $COREFILE ]; then
                 echo "Done"
 
 		echo "Crashing binary: $COREFILE_BIN       chkbin result: $CHKBIN_RESULT" &> $GETAPPCORE_LOG
+		echo >> $GETAPPCORE_LOG
 		verbose "Crashing binary: $COREFILE_BIN"
 		verbose "Chkbin result:   $CHKBIN_RESULT"
 
@@ -604,6 +608,8 @@ if [ ! -z $COREFILE -a -e $COREFILE ]; then
 		echo "DEBUG RPMs:" >> $GETAPPCORE_LOG
 		echo "-----------" >> $GETAPPCORE_LOG
 		verbose ""
+		GUESSED=0
+		GUESSED_BEFORE=0
 		while read LIBRARY_RPM
 		do
 			if [ "${LIBRARY_RPM:(-4)}" = ".rpm" ]; then
@@ -614,6 +620,7 @@ if [ ! -z $COREFILE -a -e $COREFILE ]; then
 					# If so, building the debuginfo name is easy
 					RPM_VER="-${RPM_INFO[2]}.*.rpm"
 					SRC_NAME=${RPM_INFO[1]/$RPM_VER/}
+					verbose "${SRC_NAME} =? ${RPM_INFO[1]}"
 					if [ "${#SRC_NAME}" -lt "${#RPM_INFO[1]}" ]; then
 						DEBUG_RPM=$SRC_NAME-debuginfo-${RPM_INFO[2]}.${RPM_INFO[3]}.rpm
 					else
@@ -629,9 +636,11 @@ if [ ! -z $COREFILE -a -e $COREFILE ]; then
 					DEBUG_RPM="${RPM_INFO[0]}-debuginfo-${RPM_INFO[2]}.${RPM_INFO[3]}.rpm"
 				fi
 				verbose "     $LIBRARY_RPM   -->   $DEBUG_RPM"
-				if [ "$GUESSED" = "1" ]; then
-					echo "           -- ${RPM_INFO[0]}: RPM and SRC version did not match. Debuginfo name may not be reliable! --"
+				if (( $GUESSED )); then
+					(( $GUESSED_BEFORE )) || echo Warning
+					echo " + ${RPM_INFO[0]}: RPM and SRC version did not match. Debuginfo name may not be reliable! --"
 					GUESSED=0
+					GUESSED_BEFORE=1
 				fi
 				# Build list of debug RPMs
 				DBG_LIST="$DBG_LIST $DEBUG_RPM"
