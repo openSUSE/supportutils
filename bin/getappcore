@@ -1,6 +1,6 @@
 #!/bin/bash
 
-SVER='1.49_dev31.7'
+SVER='1.50'
 SDATE="2020 03 09"
 SNAME=$(basename $0)
 
@@ -722,7 +722,9 @@ else
 	if [ -z $COREFILE ]; then
 		echo "Required parameter -j PID or COREFILE missing!"
 	else
-		echo "Missing valid corefile!"
+		echo
+		echo "ERROR: Missing valid corefile!"
+		echo
 	fi
 	cleanup
 	show_help
