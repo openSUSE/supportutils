@@ -1,6 +1,6 @@
 #!/bin/bash
 
-SVER='1.50'
+SVER='1.51'
 SDATE="2020 03 09"
 SNAME=$(basename $0)
 
@@ -50,10 +50,11 @@ SNAME=$(basename $0)
 # --------------------------------------------------------------------- #
 # Changes:                                                              #
 #                                                                       #
-# 1.50 Release                                                          #
+# 1.51 Release                                                          #
 #    - Added journal core dump processing                               #
 #    - Check for valid core file                                        #
 #    - Updated documentation and messages                               #
+#    - Creates ARCHIVE_PATH as needed                                   #
 # 1.46 Release                                                          #  
 #    - Replaced Novell with SUSE FTP servers                            #
 #    - Uses /etc/getappcore.conf if present                             #
@@ -71,10 +72,11 @@ SNAME=$(basename $0)
 # --------------------------------------------------------------------- #
 
 
-ARCHIVE_PATH=/var/log
-BASE_TMP_DIR=/tmp
+ARCHIVE_PATH="/var/log"
+BASE_TMP_DIR="/tmp"
+GETAPPCORE_CONF="/etc/getappcore.conf"
 GETAPPCORE_TMP_DIR=$(/bin/mktemp -d ${BASE_TMP_DIR}/getappcore_tmp_XXXXXXXX)
-GETAPPCORE_LOG=$GETAPPCORE_TMP_DIR/getappcore.log
+GETAPPCORE_LOG="$GETAPPCORE_TMP_DIR/getappcore.log"
 GDBLIBS_CMD=$GETAPPCORE_TMP_DIR/.gdblibs.cmd
 SERVER_NAME=$(/bin/uname -n)
 SUSE_RELEASE="/etc/SuSE-release"
@@ -532,7 +534,7 @@ show_title
 check_binaries
 
 # Check for valid configuration file
-if [[ -s ${GETAPPCORE_CONF:="/etc/getappcore.conf"} ]]; then
+if [[ -s ${GETAPPCORE_CONF} ]]; then
 	echo "Local configuration file... ${GETAPPCORE_CONF}"
 	if [[ -x $DOS2UNIX_BIN ]]; then
 		$DOS2UNIX_BIN $GETAPPCORE_CONF &>/dev/null
@@ -543,6 +545,8 @@ if [[ -s ${GETAPPCORE_CONF:="/etc/getappcore.conf"} ]]; then
 else
 	echo "Local configuration file... None"
 fi
+
+[[ -d ${ARCHIVE_PATH} ]] || mkdir -p ${ARCHIVE_PATH}
 
 [[ $JOURNAL_PID ]] && get_journal_coredump $JOURNAL_PID
 
@@ -698,6 +702,12 @@ if [ ! -z $COREFILE -a -e $COREFILE ]; then
                 echo "Done"
 
 		# Move chkbin and getappcore log to GETAPPCORE_TMP_DIR to be included in tar archive
+		if [[ -s $GETAPPCORE_CONF ]]; then
+			echo "${GETAPPCORE_CONF}:" >> $GETAPPCORE_LOG
+			echo "-----------" >> $GETAPPCORE_LOG
+			$CAT_BIN ${GETAPPCORE_CONF} >> $GETAPPCORE_LOG
+			echo >> $GETAPPCORE_LOG
+		fi
 		$MV_BIN $CHKBIN_LOG $GETAPPCORE_LOG $LOG_DIR
 		CHKBIN_LOG=$LOG_DIR/$(basename $CHKBIN_LOG)
 		GETAPPCORE_LOG=$LOG_DIR/$(basename $GETAPPCORE_LOG)

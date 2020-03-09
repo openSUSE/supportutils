@@ -1,11 +1,11 @@
-.TH GETAPPCORE.CONF 5 "05 Mar 2020" "supportutils" "Support Utilities Manual"
+.TH GETAPPCORE.CONF 5 "09 Mar 2020" "supportutils" "Support Utilities Manual"
 .SH NAME
 /etc/getappcore.conf \-
 .BR getappcore (8)
 configuration file.
 
 .SH DESCRIPTION
-.B /etc/updatedb.conf
+.B /etc/getappcore.conf
 is a text file. 
 .B getappcore
 sources it if available. It must follow
@@ -39,7 +39,16 @@ being the default.
 
 .TP
 \fBUPLOAD_TARGET\fR
-The destination URL where the application core archive will be uploaded. The default is the North American SUSE FTP server using HTTPS.
+The destination URL where the application core archive will be uploaded. The default is the North American SUSE FTP server using HTTPS. If you set 
+.I UPLOAD_TARGET,
+the -j and -f will only use the value you set. You can use the European SUSE FTP server by setting one of the following:
+
+.RS
+UPLOAD_TARGET=${SUSE_UPLOAD_EMEA_HTTPS}
+.RE
+.RS
+UPLOAD_TARGET=${SUSE_UPLOAD_EMEA_FTPES}
+.RE
 
 .TP
 \fBARCHIVE_PATH\fR
