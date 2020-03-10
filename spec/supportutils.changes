@@ -4,6 +4,7 @@ Mon Mar  9 20:04:22 UTC 2020 - jason.record@suse.com
 - Addition to version 3.1.9
   + Changes affecting getappcore
     - Added core file validation (bsc#1166126)
+    - Added -j <PID> to extract core from systemd journal
 
 -------------------------------------------------------------------
 Tue Mar  3 14:22:12 UTC 2020 - jason.record@suse.com

@@ -726,7 +726,7 @@ if [ ! -z $COREFILE -a -e $COREFILE ]; then
 		echo "Affected Binary: ${COREFILE_BIN}"
 		echo "Coredump File:   ${COREFILE}"
 		echo "Archive Name:    ${FINAL_ARCHIVE_NAME}"
-		(( $UPLOAD )) && echo "Upload Target:   ${UPLOAD_URL}"
+		(( $UPLOAD )) && echo "Upload URL:      ${UPLOAD_URL}"
 	fi
 else
 	if [ -z $COREFILE ]; then
