@@ -1,7 +1,7 @@
 #!/bin/bash
 
-SVER='1.51'
-SDATE="2020 03 09"
+SVER='1.51.1'
+SDATE="2020 03 12"
 SNAME=$(basename $0)
 
 # --------------------------------------------------------------------- #
@@ -50,6 +50,8 @@ SNAME=$(basename $0)
 # --------------------------------------------------------------------- #
 # Changes:                                                              #
 #                                                                       #
+# 1.52 Release                                                          #
+#    - Capture coredumpctl info in getappcore.log                       #
 # 1.51 Release                                                          #
 #    - Added journal core dump processing                               #
 #    - Check for valid core file                                        #
@@ -425,6 +427,9 @@ get_journal_coredump() {
 		exit 10
 	fi
 	verbose "$($COREDUMP_BIN info $JPID)"
+	echo >> $GETAPPCORE_LOG
+	$COREDUMP_BIN info $JPID >> $GETAPPCORE_LOG
+	echo >> $GETAPPCORE_LOG
 	verbose "Extracted corefile:    $COREFILE"
 	verbose "Associated executable: $COREFILE_BIN"
 }
@@ -450,7 +455,7 @@ upload_archive() {
 			$CURL_BIN -v -L -A SupportConfig -T "${FINAL_ARCHIVE_NAME}" "${UPLOAD_URL}"
 			ERRNO=$?
 		else
-			$CURL_BIN -v -L -A SupportConfig -T "${FINAL_ARCHIVE_NAME}" "${UPLOAD_URL}" &> $GETAPPCORE_LOG
+			$CURL_BIN -v -L -A SupportConfig -T "${FINAL_ARCHIVE_NAME}" "${UPLOAD_URL}" >> $GETAPPCORE_LOG 2>&1
 			ERRNO=$?
 		fi
 		;;
@@ -464,7 +469,7 @@ upload_archive() {
 			$CURL_BIN -#T ${FINAL_ARCHIVE_NAME} ${FTPES_OPTIONS} ${UPLOAD_URL}/${FINAL_ARCHIVE_FILE}
 			ERRNO=$?
 		else
-			$CURL_BIN -#T ${FINAL_ARCHIVE_NAME} ${FTPES_OPTIONS} ${UPLOAD_URL}/${FINAL_ARCHIVE_FILE} &> $GETAPPCORE_LOG
+			$CURL_BIN -#T ${FINAL_ARCHIVE_NAME} ${FTPES_OPTIONS} ${UPLOAD_URL}/${FINAL_ARCHIVE_FILE} >> $GETAPPCORE_LOG 2>&1
 			ERRNO=$?
 		fi
 		;;
@@ -594,7 +599,7 @@ if [ ! -z $COREFILE -a -e $COREFILE ]; then
 		CHKBIN_RESULT=$($CAT_BIN $CHKBIN_LOG | $GREP_BIN STATUS | $AWK_BIN '{print $2}')
                 echo "Done"
 
-		echo "Crashing binary: $COREFILE_BIN       chkbin result: $CHKBIN_RESULT" &> $GETAPPCORE_LOG
+		echo "Crashing binary: $COREFILE_BIN       chkbin result: $CHKBIN_RESULT" >> $GETAPPCORE_LOG 2>&1
 		echo >> $GETAPPCORE_LOG
 		verbose "Crashing binary: $COREFILE_BIN"
 		verbose "Chkbin result:   $CHKBIN_RESULT"
@@ -721,12 +726,12 @@ if [ ! -z $COREFILE -a -e $COREFILE ]; then
 		create_archive
 
 		(( $UPLOAD )) && upload_archive
+		echo | $TEE_BIN -a $GETAPPCORE_LOG
+		echo "Affected Binary: ${COREFILE_BIN}" | $TEE_BIN -a $GETAPPCORE_LOG
+		echo "Coredump File:   ${COREFILE}" | $TEE_BIN -a $GETAPPCORE_LOG
+		echo "Archive Name:    ${FINAL_ARCHIVE_NAME}" | $TEE_BIN -a $GETAPPCORE_LOG
+		(( $UPLOAD )) && echo "Upload URL:      ${UPLOAD_URL}" | $TEE_BIN -a $GETAPPCORE_LOG
 		cleanup
-		echo
-		echo "Affected Binary: ${COREFILE_BIN}"
-		echo "Coredump File:   ${COREFILE}"
-		echo "Archive Name:    ${FINAL_ARCHIVE_NAME}"
-		(( $UPLOAD )) && echo "Upload URL:      ${UPLOAD_URL}"
 	fi
 else
 	if [ -z $COREFILE ]; then
