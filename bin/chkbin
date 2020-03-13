@@ -1,6 +1,6 @@
 #!/bin/bash
 
-SVER='1.01-25.dev1'
+SVER='1.02.1'
 
 ##############################################################################
 #  chkbin - Checks the specified binary and it shared library dependencies
