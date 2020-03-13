@@ -1,11 +1,12 @@
 -------------------------------------------------------------------
-Thu Mar 12 18:53:09 UTC 2020 - jason.record@suse.com
+Fri Mar 13 14:10:38 UTC 2020 - jason.record@suse.com
 
 - Addition to version 3.1.9
   + Changes affecting getappcore
     - Added core file validation (bsc#1166126)
     - Added -j <PID> to extract core from systemd journal
     - Capture coredumptctl info in getappcore.log
+  + Changed filename prefixes from nts_ to scc_ (SLE-8702, SLE-6762)
 
 -------------------------------------------------------------------
 Tue Mar  3 14:22:12 UTC 2020 - jason.record@suse.com

@@ -1,4 +1,4 @@
-.TH SUPPORTCONFIG.CONF 5 "05 Mar 2020" "supportutils" "Support Utilities Manual"
+.TH SUPPORTCONFIG.CONF 5 "12 Mar 2020" "supportutils" "Support Utilities Manual"
 .SH NAME
 supportconfig.conf \- 
 .BR supportconfig (8)
@@ -242,7 +242,7 @@ VAR_OPTION_CONTACT_TERMINALID
 Contact's company terminal identifier to include in the basic-environment.txt \fB\-M\fR (Not Set)
 .TP
 VAR_OPTION_CUSTOM_ARCH
-Includes the string to create a custom tar ball filename in the format nts_<string> \fB\-B\fR (Not Set)
+Includes the string to create a custom tar ball filename in the format scc_<string> \fB\-B\fR (Not Set)
 .RS
 
 .RE
@@ -283,22 +283,22 @@ appending a "_%u" onto the filename.
 .B Examples:
 .RE
 .RS
-The default supportconfig file format \fBnts_%B\fR or \fBnts_%s_%d_%t\fR yields "nts_hostname_100326_1105.tbz"
+The default supportconfig file format \fBscc_%B\fR or \fBscc_%s_%d_%t\fR yields "scc_hostname_100326_1105.tbz"
 .RE
 .RS
-\fBsupportconfig \-B "before problem %s"\fR yields "nts_before_problem_hostname.tbz"
+\fBsupportconfig \-B "before problem %s"\fR yields "scc_before_problem_hostname.tbz"
 .RE
 .RS
-\fBsupportconfig \-B "testcase 1 %d-%t"\fR yields "nts_testcase_1_100326-1105.tbz"
+\fBsupportconfig \-B "testcase 1 %d-%t"\fR yields "scc_testcase_1_100326-1105.tbz"
 .RE
 .RS
-\fBsupportconfig \-qB "testcase %d %t"\fR yields "nts_testcase_100326_1105_21a17f8c-13c2-44ff-b0ef-29b7fa7d91c0.tbz"
+\fBsupportconfig \-qB "testcase %d %t"\fR yields "scc_testcase_100326_1105_21a17f8c-13c2-44ff-b0ef-29b7fa7d91c0.tbz"
 .RE
 .RS
-\fBsupportconfig \-B "testcase %d %t %u"\fR yields "nts_testcase_100326_1105_21a17f8c-13c2-44ff-b0ef-29b7fa7d91c0.tbz"
+\fBsupportconfig \-B "testcase %d %t %u"\fR yields "scc_testcase_100326_1105_21a17f8c-13c2-44ff-b0ef-29b7fa7d91c0.tbz"
 .RE
 .RS
-\fBsupportconfig \-B "%r bad" -r 12345678901\fR yields "nts_SR12345678901_bad.tbz"
+\fBsupportconfig \-B "%r bad" -r 12345678901\fR yields "scc_SR12345678901_bad.tbz"
 .RE
 .TP
 VAR_OPTION_EXHASTIVE_MEM

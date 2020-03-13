@@ -1,4 +1,4 @@
-.TH SUPPORTCONFIG 8 "26 Apr 2019" "supportutils" "Support Utilities Manual"
+.TH SUPPORTCONFIG 8 "12 Mar 2020" "supportutils" "Support Utilities Manual"
 .SH NAME
 supportconfig - Gathers system troubleshooting information
 .SH SYNOPSIS
@@ -27,7 +27,7 @@ This screen
 Activates all supportconfig functions with additional logging and full rpm verification.
 .TP
 \fB\-B\fR \fIstring\fR
-Includes the string in the tar ball filename in the format nts_<string>. See \fBsupportconfig.conf\fR(5) under VAR_OPTION_CUSTOM_ARCH for string qualifiers.
+Includes the string in the tar ball filename in the format scc_<string>. See \fBsupportconfig.conf\fR(5) under VAR_OPTION_CUSTOM_ARCH for string qualifiers.
 .TP
 \fB\-C\fR 
 Creates a new default /etc/supportconfig.conf
@@ -173,7 +173,7 @@ Includes the service request number in the basic-environment.txt file and the ta
 Include full SLP service lists
 .TP
 \fB\-t\fR \fIdirectory\fR
-Target directory. Just save log files here, do not create tarball. Uses the newest nts_* directory found.
+Target directory. Just save log files here, do not create tarball.
 .TP
 \fB\-u\fR
 Uploads the supportconfig tar ball to the specified VAR_OPTION_UPLOAD_TARGET. See 

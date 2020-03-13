@@ -115,6 +115,7 @@ LIB_DIR='/usr/lib/supportconfig'
 SC_RESOURCE_FILE="${LIB_DIR}/resources/supportconfig.rc"
 XPLUGIN_DIR="${LIB_DIR}/plugins"
 CURRENT_SCRIPT=$(basename $0)
+ARCHIVE_PREFIX='scc_'
 unset CONTACT_SRNUM
 UPLOAD_TARBALL=0
 CSFILE=${CURRENT_SCRIPT}.txt
@@ -139,7 +140,7 @@ test "$SC_SRV" = "" && SC_SRV=suse
 SC_DATE=$(date +"%y%m%d") # %d
 SC_TIME=$(date +"%H%M") # %t
 test -x /usr/bin/uuidgen && SC_UID="$(uuidgen 2>/dev/null)" || SC_UID="$(mktemp -u XXXXXXXXXXXXXXXXXXXXXXXXXXXXXX)" # %u
-BASE="nts_%B"
+BASE="${ARCHIVE_PREFIX}%B"
 ARCH=$(uname -i)
 SAVE_LOGS_ONLY=0
 USE_SAVED_LOGS_ONLY=0

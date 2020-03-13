@@ -1,7 +1,7 @@
 #!/bin/bash
 
-SVER=1.32.1
-SDATE="2020 03 06"
+SVER='1.32.1'
+SDATE="2020 03 12"
 SNAME="analyzevmcore"
 
 # --------------------------------------------------------------------- #
@@ -26,10 +26,11 @@ SNAME="analyzevmcore"
 #  GNU General Public License for more details.                         #
 #                                                                       #
 #  You should have received a copy of the GNU General Public License    #
-#  along with this program; if not, see <http://www.gnu.org/licenses/>.          #
+#  along with this program; if not, see <http://www.gnu.org/licenses/>. #
 #                                                                       #
 #  Authors/Contributors:                                                #
 #     Mike Latimer (mlatimer@suse.com)                                  #
+#     Jason Record (jason.record@suse.com)                              #
 # --------------------------------------------------------------------- #
 #                                                                       #
 # Overview:                                                             #
@@ -51,6 +52,8 @@ SNAME="analyzevmcore"
 # --------------------------------------------------------------------- #
 # Changes:                                                              #
 #                                                                       #
+# 1.33 Release                                                          #
+#    - Changed filename prefix from nts_ to scc_ with FILENAME_PREFIX   #
 # 1.32 Release                                                          #
 #    - Improved support for user-specified crash directory              #
 # 1.31 Release                                                          #
@@ -80,6 +83,7 @@ CRASHV4=0
 REWRITE_ANALYSIS=0
 FORMAT="%-35s"
 SPINSTR='|/-\'
+FILENAME_PREFIX='scc_'
 
 #Required Binaries
 AWK_BIN=/usr/bin/awk
@@ -122,7 +126,7 @@ showhelp ()
 {
 	echo "Usage: $SNAME [OPTIONS]"
 	echo
-	echo "$SNAME creates an analysis file (nts_analyzevmcore_<CORE_DATE>.txt) for all"
+	echo "$SNAME creates an analysis file (${FILENAME_PREFIX}analyzevmcore_<CORE_DATE>.txt) for all"
 	echo "kernel cores found on the system. This analysis file is automatically copied"
 	echo "to /var/log, and included in supportconfig archives for further analysis by"
 	echo "SUSE Technical Services."
@@ -564,7 +568,7 @@ if ! [ -z "$COREDIR" ]; then
 	for CRASHDIR in $COREDIR; do
 		echo "Analyzing $CRASHDIR..."
 		CORE_DATE=${CRASHDIR##*/}
-		ANALYSIS="$CRASHDIR/nts_analyzevmcore_$CORE_DATE.txt"
+		ANALYSIS="$CRASHDIR/${FILENAME_PREFIX}analyzevmcore_$CORE_DATE.txt"
 		$PRINTF_BIN "$FORMAT" "  Existing analysis..."
 		if [ -e "$ANALYSIS" ]; then
 			if [ "$REWRITE_ANALYSIS" = "1" ]; then

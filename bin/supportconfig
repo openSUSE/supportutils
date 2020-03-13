@@ -1,7 +1,7 @@
 #!/bin/bash
 
-SVER='3.1.7-3'
-SDATE='2020 03 03'
+SVER='3.1.8-2'
+SDATE='2020 03 12'
 
 ##############################################################################
 #  supportconfig - Gathers system troubleshooting information for SUSE Support
@@ -2241,8 +2241,9 @@ crash_info() {
 			fi
 		fi
 	fi
+	ANALYZEVMCORE_PREFIX=$ARCHIVE_PREFIX
 
-	for i in $(ls -1 /var/log/nts_analyzevmcore* 2>/dev/null)
+	for i in $(ls -1 /var/log/${ANALYZEVMCORE_PREFIX}analyzevmcore* 2>/dev/null)
 	do
 		log_write $OF "#==[ Kernel Core Logs ]==========================#"
 		log_write $OF "# $i"
@@ -2343,7 +2344,9 @@ crash_info() {
 		log_cmd $OF "file $FILES"
 	fi
 
-	for i in $(ls -1 /var/log/nts_chkbin* 2>/dev/null)
+	CHKBIN_PREFIX=$ARCHIVE_PREFIX
+
+	for i in $(ls -1 /var/log/${CHKBIN_PREFIX}chkbin* 2>/dev/null)
 	do
 		log_write $OF "#==[ chkbin Logs ]==========================#"
 		log_write $OF "# $i"
@@ -4038,7 +4041,7 @@ do
 	q) VAR_OPTION_UNIQUE_FILE=1 ;;
 	r) CONTACT_SRNUM=$OPTARG;
 		if valid_srnum; then
-			BASE="nts_%r_%B"
+			BASE="${ARCHIVE_PREFIX}%r_%B"
 		else
 			clear; title
 			echo "ERROR: Invalid SR Number, -${TMPOPT} $CONTACT_SRNUM"
@@ -4073,7 +4076,7 @@ fi
 # Add custom tar ball name element
 if [ -n "$VAR_OPTION_CUSTOM_ARCH" ]; then
 	TMP=$(echo "$VAR_OPTION_CUSTOM_ARCH" | sed -e 's/ /_/g')
-	BASE="nts_${TMP}"
+	BASE="${ARCHIVE_PREFIX}${TMP}"
 fi
 
 if (( VAR_OPTION_UNIQUE_FILE )); then
