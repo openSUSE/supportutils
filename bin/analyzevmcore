@@ -54,6 +54,7 @@ SNAME="analyzevmcore"
 #                                                                       #
 # 1.33 Release                                                          #
 #    - Changed filename prefix from nts_ to scc_ with FILENAME_PREFIX   #
+#    - Processes all available crash dumps                              #
 # 1.32 Release                                                          #
 #    - Improved support for user-specified crash directory              #
 # 1.31 Release                                                          #
@@ -344,9 +345,9 @@ checkdebug()
 				echo
 				echo "  --- Missing $DEBUGKERNEL! ---"
 				echo
-				echo "Please install the debuginfo package for this kernel and try again."
-				echo "The debuginfo kernel can be automatically installed (if debuginfo"
-				echo "channels are activated) using:"
+				echo "  Please install the debuginfo package for this kernel and try again."
+				echo "  The debuginfo kernel can be automatically installed (if debuginfo"
+				echo "  channels are activated) using:"
 				echo
 				if [ "$CRASHV4" = "1" ]; then
 					echo "       rug in kernel-$KERNEL_FLAVOR-debuginfo-$KERNEL_VER"
@@ -354,9 +355,9 @@ checkdebug()
 					echo "       zypper in kernel-$KERNEL_FLAVOR-debuginfo-${KERNEL_VER%-*}"
 				fi
 				echo
-				echo "For additional information, see analyzevmcore(8)."
+				echo "  For additional information, see analyzevmcore(8)."
 				echo
-				exit -1
+				return 1
 			fi
 		fi
 	else
@@ -368,6 +369,7 @@ checkdebug()
 			$LN_BIN -s /usr/lib/debug/boot/$DEBUGKERNEL $CRASHDIR/$DEBUGKERNEL
 		fi
 	fi
+	return 0
 }
 
 # --------------------------------------------------------- #
@@ -565,8 +567,11 @@ fi
 if ! [ -z "$COREDIR" ]; then
 	TMP_DIR=$($MKTEMP_BIN -d /tmp/analyzevmcore_tmp_XXXXXX)
 	ORG_DIR=$PWD
+	COREDIR_TOTAL=$($WC_BIN -w <<< $COREDIR)
+	COREDIR_COUNT=1
 	for CRASHDIR in $COREDIR; do
-		echo "Analyzing $CRASHDIR..."
+		echo "Analyzing $COREDIR_COUNT of $COREDIR_TOTAL $CRASHDIR..."
+		(( COREDIR_COUNT++ ))
 		CORE_DATE=${CRASHDIR##*/}
 		ANALYSIS="$CRASHDIR/${FILENAME_PREFIX}analyzevmcore_$CORE_DATE.txt"
 		$PRINTF_BIN "$FORMAT" "  Existing analysis..."
@@ -605,11 +610,12 @@ if ! [ -z "$COREDIR" ]; then
 			fi
 
 			$PRINTF_BIN "$FORMAT" "  Checking vmlinux.debug..."
-			checkdebug
-
-			createreport
-
-			cd $OLD_DIR
+			if checkdebug; then
+				createreport
+				cd $OLD_DIR
+			else
+				continue
+			fi
 		fi
 		echo
 	done
