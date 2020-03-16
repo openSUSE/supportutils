@@ -1,7 +1,7 @@
 #!/bin/bash
 
-SVER='3.0.7-3'
-SDATE='2020 03 02'
+SVER='3.0.8-1'
+SDATE='2020 03 16'
 
 ##############################################################################
 #  supportconfig - Gathers system troubleshooting information for SUSE Support
@@ -148,6 +148,7 @@ export PATH LANG
 LIB_DIR='/usr/lib/supportconfig'
 XPLUGIN_DIR="${LIB_DIR}/plugins"
 CURRENT_SCRIPT=$(basename $0)
+ARCHIVE_PREFIX='scc_'
 unset CONTACT_SRNUM
 UPLOAD_TARBALL=0
 CSFILE=${CURRENT_SCRIPT}.txt
@@ -172,7 +173,7 @@ test "$SC_SRV" = "" && SC_SRV=suse
 SC_DATE=$(date +"%y%m%d") # %d
 SC_TIME=$(date +"%H%M") # %t
 test -x /usr/bin/uuidgen && SC_UID="$(uuidgen 2>/dev/null)" || SC_UID="$(mktemp -u XXXXXXXXXXXXXXXXXXXXXXXXXXXXXX)" # %u
-BASE="nts_%B"
+BASE="${ARCHIVE_PREFIX}%B"
 ARCH=$(uname -i)
 SAVE_LOGS_ONLY=0
 USE_SAVED_LOGS_ONLY=0
@@ -2934,7 +2935,9 @@ crash_info() {
 		fi
 	fi
 
-	for i in $(ls -1 /var/log/nts_analyzevmcore* 2>/dev/null)
+	ANALYZEVMCORE_PREFIX=$ARCHIVE_PREFIX
+
+	for i in $(ls -1 /var/log/${ANALYZEVMCORE_PREFIX}analyzevmcore* 2>/dev/null)
 	do
 		log_write $OF "#==[ Kernel Core Logs ]==========================#"
 		log_write $OF "# $i"
@@ -3035,7 +3038,9 @@ crash_info() {
 		log_cmd $OF "file $FILES"
 	fi
 
-	for i in $(ls -1 /var/log/nts_chkbin* 2>/dev/null)
+	CHKBIN_PREFIX=$ARCHIVE_PREFIX
+
+	for i in $(ls -1 /var/log/${CHKBIN_PREFIX}chkbin* 2>/dev/null)
 	do
 		log_write $OF "#==[ chkbin Logs ]==========================#"
 		log_write $OF "# $i"
@@ -5597,7 +5602,7 @@ do
 	q) VAR_OPTION_UNIQUE_FILE=1 ;;
 	r) CONTACT_SRNUM=$OPTARG;
 		if valid_srnum; then
-			BASE="nts_%r_%B"
+			BASE="${ARCHIVE_PREFIX}%r_%B"
 		else
 			clear; title
 			echo "ERROR: Invalid SR Number, -${TMPOPT} $CONTACT_SRNUM"
@@ -5633,7 +5638,7 @@ fi
 # Add custom tar ball name element
 if [ -n "$VAR_OPTION_CUSTOM_ARCH" ]; then
 	TMP=$(echo "$VAR_OPTION_CUSTOM_ARCH" | sed -e 's/ /_/g')
-	BASE="nts_${TMP}"
+	BASE="${ARCHIVE_PREFIX}${TMP}"
 fi
 
 if (( VAR_OPTION_UNIQUE_FILE )); then

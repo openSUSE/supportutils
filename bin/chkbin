@@ -1,6 +1,6 @@
 #!/bin/bash
 
-SVER=1.01-25
+SVER='1.02.1'
 
 ##############################################################################
 #  chkbin - Checks the specified binary and it shared library dependencies
@@ -9,7 +9,7 @@ SVER=1.01-25
 #  Please submit bug fixes or comments via:
 #    http://en.opensuse.org/Supportutils#Reporting_Bugs
 #
-#  Copyright (C) 2007-2012 SUSE Linux Products GmbH, Nuernberg, Germany
+#  Copyright (C) 2007-2020 SUSE Linux Products GmbH, Nuernberg, Germany
 #
 ##############################################################################
 #
@@ -26,7 +26,7 @@ SVER=1.01-25
 #  along with this program; if not, see <http://www.gnu.org/licenses/>.
 #
 #  Authors/Contributors:
-#     Jason Record (jrecord@suse.com)
+#     Jason Record (jason.record@suse.com)
 #
 ##############################################################################
 
@@ -42,6 +42,7 @@ ALL_LOG=$(mktemp /tmp/chkbin_all_XXXXXXXX)
 SCR_LOG=$(mktemp /tmp/chkbin_screen_XXXXXXXX)
 TMP_LOGS="$RPM_LOG $RPMV_LOG $LDD_LOG $CACHE_LOG $DL_LOG $ALL_LOG $SCR_LOG"
 SHOW_LEGEND=0
+ARCHIVE_PREFIX='scc_'
 GDIFF=0
 GWARN=0
 GERR=0
@@ -155,7 +156,7 @@ do
 done
 shift $(( $# - 1 ))
 BINARG=$@
-LOG=$LOGPATH/nts_chkbin_$(basename $BINARG)_$$.txt
+LOG=$LOGPATH/${ARCHIVE_PREFIX}chkbin_$(basename $BINARG)_$$.txt
 clear
 >$LOG
 title | tee -a $LOG

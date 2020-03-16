@@ -1,0 +1,67 @@
+.TH GETAPPCORE.CONF 5 "09 Mar 2020" "supportutils" "Support Utilities Manual"
+.SH NAME
+/etc/getappcore.conf \-
+.BR getappcore (8)
+configuration file.
+
+.SH DESCRIPTION
+.B /etc/getappcore.conf
+is a text file. 
+.B getappcore
+sources it if available. It must follow
+.BR bash (1)
+guidelines.
+
+Lines generally follow the form:
+.RS
+.I VARIABLE="VALUE"
+.RE
+
+Unknown
+.I VARIABLE
+values are considered an error.
+
+The defined variables are:
+
+.TP
+\fBVERBOSE\fR
+Turns verbose output on and off. Acceptable values are 0 and 1, 
+.B 0
+being the default.
+
+.TP
+\fBUPLOAD\fR
+Determines if the application core archive will be uploaded to the 
+.I UPLOAD_TARGET.
+Acceptable values are 0 and 1, 
+.B 0
+being the default.
+
+.TP
+\fBUPLOAD_TARGET\fR
+The destination URL where the application core archive will be uploaded. The default is the North American SUSE FTP server using HTTPS. If you set 
+.I UPLOAD_TARGET,
+the -j and -f will only use the value you set. You can use the European SUSE FTP server by setting one of the following:
+
+.RS
+UPLOAD_TARGET=${SUSE_UPLOAD_EMEA_HTTPS}
+.RE
+.RS
+UPLOAD_TARGET=${SUSE_UPLOAD_EMEA_FTPES}
+.RE
+
+.TP
+\fBARCHIVE_PATH\fR
+The location where the application core archive will be created. The default is
+.B /var/log
+
+.PD
+.SH REPORTING BUGS
+Please submit bug fixes or comments via:
+.B
+http://en.opensuse.org/Supportutils#Reporting_Bugs
+.SH AUTHOR
+Jason Record <jason.record@suse.com>
+.SH SEE ALSO
+.BR getappcore (8)
+

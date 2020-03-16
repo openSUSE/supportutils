@@ -1,4 +1,21 @@
 -------------------------------------------------------------------
+Mon Mar 16 16:13:27 UTC 2020 - jason.record@suse.com
+
+- Addition to version 3.0.8
+  + Changes affecting getappcore
+    - Added -u for HTTPS and -f for FTPES uploads to SUSE FTP servers
+    - Replaced Novell with SUSE FTP servers (bsc#1165475)
+    - Uses /etc/getappcore.conf if present
+    - Added core file validation (bsc#1166128)
+    - Added default upload targets (bsc#1165474)
+    - Added -j <PID> to extract core from systemd journal
+  + Changes affecting supportconfig
+    - Added missed Power collection per bsc#1162539
+    - Added zypper patterns output to updates.txt #66
+  + Changed filename prefixes from nts_ to scc_ (bsc#1166774)
+    - The new prefix references SUSE Customer Center
+
+-------------------------------------------------------------------
 Mon Mar  2 16:13:44 UTC 2020 - jason.record@suse.com
 
 - Addition to version 3.0.7
