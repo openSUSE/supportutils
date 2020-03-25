@@ -224,7 +224,7 @@ extractdebug()
 	DBGRPM_NAME=$($BASENAME_BIN $DBGRPM)
 	DBGRPM_NAME=${DBGRPM_NAME#*-*-}
 	if ! [ "${DBGRPM_NAME:0:9}" = "debuginfo" -a "${DBGRPM_NAME:(-4)}" = ".rpm" ]; then
-		echo "    Invalid RPM specied!"
+		echo "    Invalid RPM specified!"
 		echo "    Please specify a valid kernel-*-debuginfo.rpm file with the -d parameter,"
 		echo "    or install the kernel-*-debuginfo rpm, and do not use the -d parameter."
 		exit -1
