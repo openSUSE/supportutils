@@ -1,7 +1,7 @@
 #!/bin/bash
 
-SVER='3.1.8-2'
-SDATE='2020 03 12'
+SVER='3.1.9-1'
+SDATE='2020 04 07'
 
 ##############################################################################
 #  supportconfig - Gathers system troubleshooting information for SUSE Support
@@ -1891,10 +1891,10 @@ btrfs_info() {
                         do
                                 log_cmd $OF "btrfs filesystem usage $FILESYS"
                                 log_cmd $OF "btrfs scrub status $FILESYS"
-                                log_cmd $OF "btrfs subvolume get-default $SUB_VOL"
-                                log_cmd $OF "btrfs subvolume list $SUB_VOL"
+                                log_cmd $OF "btrfs subvolume get-default $FILESYS"
+                                log_cmd $OF "btrfs subvolume list $FILESYS"
 				# Added By Ahmad Al Zayed ; Mar 12, 2019 ; to get a list of btrfs quota
-				log_cmd $OF "btrfs qgroup show -r /" 
+				log_cmd $OF "btrfs qgroup show -r $FILESYS" 
                         done
                 done
 
