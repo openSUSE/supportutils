@@ -1,7 +1,7 @@
 #!/bin/bash
 
-SVER='3.1.9-1'
-SDATE='2020 04 07'
+SVER='3.1.9-2'
+SDATE='2020 04 09'
 
 ##############################################################################
 #  supportconfig - Gathers system troubleshooting information for SUSE Support
@@ -2084,10 +2084,9 @@ ntp_info() {
 				NTP_DAEMON=0
 			fi
 			if [[ -d /etc/cron.d ]]; then
-				NTP_CRON=$(grep -i chronyd /etc/cron.d/* 2>/dev/null | cut -d\: -f1)
+				NTP_CRON=$(grep -li chronyd /etc/cron.d/* 2>/dev/null)
 				if [[ -n $NTP_CRON ]]; then
 					conf_files $OF $NTP_CRON
-					NTP_CRON=$(basename $NTP_CRON)
 				fi
 			fi
 			log_cmd $OF "timedatectl"
@@ -2112,9 +2111,6 @@ ntp_info() {
 				test $ADD_OPTION_LOGS -gt 0 && log_files $OF 0 $FILES || log_files $OF $VAR_OPTION_LINE_COUNT $FILES
 				FILES="/var/log/messages"
 				test $ADD_OPTION_LOGS -gt 0 && grep_log_files chrony $OF 0 $FILES || grep_log_files chrony $OF $VAR_OPTION_LINE_COUNT $FILES
-				if [[ -n $NTP_CRON ]]; then
-					test $ADD_OPTION_LOGS -gt 0 && grep_log_files $NTP_CRON $OF 0 $FILES || grep_log_files $NTP_CRON $OF $VAR_OPTION_LINE_COUNT $FILES
-				fi
 			fi
 			echolog Done
 		else
