@@ -1891,6 +1891,7 @@ btrfs_info() {
                         do
                                 log_cmd $OF "btrfs filesystem usage $FILESYS"
                                 log_cmd $OF "btrfs scrub status $FILESYS"
+                                log_cmd $OF "btrfs balance status -v $FILESYS"
                                 log_cmd $OF "btrfs subvolume get-default $FILESYS"
                                 log_cmd $OF "btrfs subvolume list $FILESYS"
 				# Added By Ahmad Al Zayed ; Mar 12, 2019 ; to get a list of btrfs quota
