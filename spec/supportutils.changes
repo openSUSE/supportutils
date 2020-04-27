@@ -1,5 +1,5 @@
 -------------------------------------------------------------------
-Mon Apr 27 18:01:07 UTC 2020 - jason.record@suse.com
+Mon Apr 27 18:04:24 UTC 2020 - jason.record@suse.com
 
 - Addition to version 3.1.10
   + Changes affecting analyzevmcore
@@ -7,6 +7,7 @@ Mon Apr 27 18:01:07 UTC 2020 - jason.record@suse.com
   + Changes affecting supportconfig
     - Fixed btrfs errors (bsc#1168894)
     - Large ntp.txt with binary data (bsc#1169122)
+    - Check btrfs balance status #69
 
 -------------------------------------------------------------------
 Fri Mar 13 20:45:16 UTC 2020 - jason.record@suse.com
