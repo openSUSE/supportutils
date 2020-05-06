@@ -1835,7 +1835,7 @@ disk_info() {
 			log_write $OF "#---------------------------------------------------#"
 			log_cmd $OF 'lsscsi'
 			log_cmd $OF 'lsscsi -H'
-			(( $DISK_IO_DELAYS )) || log_cmd $OF "lsblk -o 'NAME,KNAME,MAJ:MIN,FSTYPE,LABEL,RO,RM,MODEL,SIZE,OWNER,GROUP,MODE,ALIGNMENT,MIN-IO,OPT-IO,PHY-SEC,LOG-SEC,ROTA,SCHED,MOUNTPOINT'"
+			(( $DISK_IO_DELAYS )) || log_cmd $OF "lsblk -o 'NAME,KNAME,MAJ:MIN,FSTYPE,LABEL,RO,RM,MODEL,SIZE,OWNER,GROUP,MODE,ALIGNMENT,MIN-IO,OPT-IO,PHY-SEC,LOG-SEC,ROTA,SCHED,MOUNTPOINT,DISC-ALN,DISC-GRAN,DISC-MAX,DISC-ZERO'"
 			if log_cmd $OF 'scsiinfo -l'
 			then
 				FILES=$(scsiinfo -l)
