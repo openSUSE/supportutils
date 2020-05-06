@@ -1,4 +1,11 @@
 -------------------------------------------------------------------
+Wed May  6 12:32:48 UTC 2020 - jason.record@suse.com
+
+- Additions to version 3.1.11
+  + Changes affecting supportconfig
+    - disk_info: Show discard information in lsblk #70
+
+-------------------------------------------------------------------
 Mon Apr 27 18:04:24 UTC 2020 - jason.record@suse.com
 
 - Addition to version 3.1.10
