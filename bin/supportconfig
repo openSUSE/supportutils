@@ -2879,6 +2879,9 @@ memory_info() {
 		log_cmd $OF 'numactl --hardware'
 		log_cmd $OF 'numastat'
 	fi
+	if [ -e /sys/kernel/debug/vmmemctl ]; then
+		conf_files $OF /sys/kernel/debug/vmmemctl
+	fi
 	if [ -x /usr/bin/pmap ]; then
 		for I in $(ps axo pid)
 		do
