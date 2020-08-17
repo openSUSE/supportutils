@@ -1289,6 +1289,9 @@ mpio_info() {
 		log_cmd $OF 'dmsetup ls --tree'
 		log_cmd $OF 'dmsetup table'
 		log_cmd $OF 'dmsetup info'
+		log_cmd $OF 'lspath'
+		log_cmd $OF 'lsmap -all'
+		log_cmd $OF 'lsnports'
 		case $SLES_VER in
 		11*|12*|15*|999) log_cmd $OF "udevadm info -e" ;;
 		esac 
