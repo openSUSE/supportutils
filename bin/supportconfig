@@ -3755,6 +3755,8 @@ ib_info() {
 			if (( CHK_DIAG )); then
 				log_cmd $OF 'ibaddr'
 				log_cmd $OF 'ibstat'
+				log_cmd $OF 'ibstatus'
+				log_cmd $OF 'ibswitches'
 			fi
 			if (( CHK_ACM )); then
 				log_cmd $OF 'ib_acme -e'
