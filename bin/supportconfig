@@ -2171,6 +2171,17 @@ crash_info() {
 		log_cmd $OF "kdumptool calibrate"
 		log_cmd $OF "kdumptool dump_config"
 		conf_files $OF /proc/cmdline
+		conf_files $OF /etc/sysconfig/kdump
+		conf_files $OF /proc/sys/kernel/panic
+		conf_files $OF /proc/sys/kernel/panic_on_oops
+		conf_files $OF /sys/kernel/kexec_loaded
+		conf_files $OF /sys/kernel/fadump_enabled
+		conf_files $OF /sys/kernel/fadump/enabled
+		conf_files $OF /sys/kernel/fadump_registered
+		conf_files $OF /sys/kernel/fadump/registered
+		conf_files $OF /sys/kernel/fadump/mem_reserved
+		conf_files $OF /sys/kernel/kexec_crash_loaded
+		conf_files $OF /sys/kernel/kexec_crash_size
 		if rpm -q kdump &>/dev/null; then
 			DUMPDIR=$(kdumptool dump_config | grep ^KDUMP_SAVEDIR | sed -e 's/"//g;s!file://!!g' | cut -d= -f2)
 			if [[ -d $DUMPDIR ]]; then
