@@ -1,4 +1,11 @@
 -------------------------------------------------------------------
+Thu Sep  3 14:51:50 UTC 2020 - jason.record@suse.com
+
+- Additions to version 3.1.12
+  + [powerpc] Collect logs for power specific components #72
+  + supportconfig: fs-btrfs: Add "btrfs device stats" output #73
+
+-------------------------------------------------------------------
 Wed Jul  1 15:22:30 UTC 2020 - jason.record@suse.com
 
 - Additions to version 3.1.11
