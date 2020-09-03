@@ -1897,8 +1897,8 @@ btrfs_info() {
                                 log_cmd $OF "btrfs balance status -v $FILESYS"
                                 log_cmd $OF "btrfs subvolume get-default $FILESYS"
                                 log_cmd $OF "btrfs subvolume list $FILESYS"
-				# Added By Ahmad Al Zayed ; Mar 12, 2019 ; to get a list of btrfs quota
 				log_cmd $OF "btrfs qgroup show -r $FILESYS" 
+				log_cmd $OF "btrfs device stats $FILESYS"
                         done
                 done
 
