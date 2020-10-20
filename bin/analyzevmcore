@@ -80,6 +80,7 @@ CRASHV4=0
 REWRITE_ANALYSIS=0
 FORMAT="%-35s"
 SPINSTR='|/-\'
+FILENAME_PREFIX='scc_'
 
 #Required Binaries
 AWK_BIN=/usr/bin/awk
@@ -122,10 +123,10 @@ showhelp ()
 {
 	echo "Usage: $SNAME [OPTIONS]"
 	echo
-	echo "$SNAME creates an analysis file (nts_analyzevmcore_<CORE_DATE>.txt) for all"
+	echo "$SNAME creates an analysis file (${FILENAME_PREFIX}analyzevmcore_<CORE_DATE>.txt) for all"
 	echo "kernel cores found on the system. This analysis file is automatically copied"
 	echo "to /var/log, and included in supportconfig archives for further analysis by"
-	echo "Novell and SUSE Technical Services."
+	echo "SUSE Technical Services."
 	echo
 	echo "In order to create the analysis, this script requires the debuginfo kernel"
 	echo "(vmlinux-*.debug) that matches the kernel version which generated the core."
@@ -564,7 +565,7 @@ if ! [ -z "$COREDIR" ]; then
 	for CRASHDIR in $COREDIR; do
 		echo "Analyzing $CRASHDIR..."
 		CORE_DATE=${CRASHDIR##*/}
-		ANALYSIS="$CRASHDIR/nts_analyzevmcore_$CORE_DATE.txt"
+		ANALYSIS="$CRASHDIR/${FILENAME_PREFIX}analyzevmcore_$CORE_DATE.txt"
 		$PRINTF_BIN "$FORMAT" "  Existing analysis..."
 		if [ -e "$ANALYSIS" ]; then
 			if [ "$REWRITE_ANALYSIS" = "1" ]; then

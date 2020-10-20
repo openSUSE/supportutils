@@ -42,6 +42,7 @@ ALL_LOG=$(mktemp /tmp/chkbin_all_XXXXXXXX)
 SCR_LOG=$(mktemp /tmp/chkbin_screen_XXXXXXXX)
 TMP_LOGS="$RPM_LOG $RPMV_LOG $LDD_LOG $CACHE_LOG $DL_LOG $ALL_LOG $SCR_LOG"
 SHOW_LEGEND=0
+ARCHIVE_PREFIX='scc_'
 GDIFF=0
 GWARN=0
 GERR=0
@@ -155,7 +156,7 @@ do
 done
 shift $(( $# - 1 ))
 BINARG=$@
-LOG=$LOGPATH/nts_chkbin_$(basename $BINARG)_$$.txt
+LOG=$LOGPATH/${ARCHIVE_PREFIX}chkbin_$(basename $BINARG)_$$.txt
 clear
 >$LOG
 title | tee -a $LOG
