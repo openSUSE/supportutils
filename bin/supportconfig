@@ -2488,9 +2488,10 @@ apparmor_info() {
 			log_cmd $OF "systemctl status apparmor.service"
 		fi
 		log_cmd $OF 'unconfined'
-		log_files $OF 0 /var/log/audit/audit.log
+		log_cmd $OF 'aa-status' 
 		test -d /etc/apparmor && FILES=$(find -L /etc/apparmor/ | grep conf) || FILES=""
 		conf_files $OF $FILES
+		log_files $OF 0 /var/log/audit/audit.log
 	else
 		((SKIP++))
 	fi
