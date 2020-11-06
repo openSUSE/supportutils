@@ -4,7 +4,7 @@ SVER='2.25-467'
 SDATE="2019 02 26"
 
 ##############################################################################
-#  supportconfig - Gathers system troubleshooting information for NTS.
+#  supportconfig - Gathers system troubleshooting information for SUSE Support
 #  Copyright (C) 2001-2019 SUSE LLC
 #
 #  Creates a tar ball to attach to the SR or send to support. Collects
@@ -135,8 +135,12 @@ VAR_OPTION_SILENT=0
 VAR_OPTION_SBM=0
 VAR_OPTION_UNIQUE_FILE=0
 VAR_OPTION_HEADER_FILE='/usr/lib/supportconfig/header.txt'
-VAR_OPTION_UPLOAD_ALT='https://secure-www.novell.com/upload?appname=supportconfig&file={tarball}'
-VAR_OPTION_UPLOAD_TARGET='ftp://anonymous@ftp.novell.com/incoming'
+SUSE_UPLOAD_NA_ASERVER='support-ftp.us.suse.com'
+SUSE_UPLOAD_EMEA_ASERVER='support-ftp.emea.suse.com'
+SUSE_UPLOAD_NA_FTP="ftp://anonymous@${SUSE_UPLOAD_NA_ASERVER}/incoming"
+SUSE_UPLOAD_EMEA_FTP="ftp://anonymous@${SUSE_UPLOAD_EMEA_ASERVER}/incoming"
+VAR_OPTION_UPLOAD_TARGET="${SUSE_UPLOAD_NA_FTP}"
+VAR_OPTION_UPLOAD_ALT="${SUSE_UPLOAD_EMEA_FTP}"
 VAR_OPTION_WAIT_TRACE=0
 
 LANG=C
@@ -146,6 +150,7 @@ export PATH LANG
 LIB_DIR='/usr/lib/supportconfig'
 XPLUGIN_DIR="${LIB_DIR}/plugins"
 CURRENT_SCRIPT=$(basename $0)
+ARCHIVE_PREFIX='scc_'
 unset CONTACT_SRNUM
 UPLOAD_TARBALL=0
 CSFILE=${CURRENT_SCRIPT}.txt
@@ -161,7 +166,7 @@ test "$SC_SRV" = "" && SC_SRV=suse
 SC_DATE=$(date +"%y%m%d") # %d
 SC_TIME=$(date +"%H%M") # %t
 test -x /usr/bin/uuidgen && SC_UID="$(uuidgen 2>/dev/null)" || SC_UID="$(mktemp -u XXXXXXXXXXXXXXXXXXXXXXXXXXXXXX)" # %u
-BASE="nts_%B"
+BASE="${ARCHIVE_PREFIX}%B"
 ARCH=$(uname -i)
 SAVE_LOGS_ONLY=0
 USE_SAVED_LOGS_ONLY=0
@@ -197,7 +202,7 @@ title() {
 	echo " please prune private data from the log files. Several startup options"
 	echo " are available to exclude more sensitive information. Supportconfig data is"
 	echo " used only for diagnostic purposes and is considered confidential information."
-	echo " See http://www.suse.com/company/policies/privacy/"
+	echo " See https://www.suse.com/company/legal/"
 	echo "============================================================================="
 	echo
 }
@@ -1394,31 +1399,43 @@ update_info() {
 	fi
 
 	if rpm -q curl &>/dev/null; then
-		if [ -s /etc/zmd/deviceid -a -s /etc/zmd/secret ]; then
-			NCCUSER=$(cat /etc/zmd/deviceid)
-			NCCPASS=$(cat /etc/zmd/secret)
-		elif [ -s /etc/zypp/credentials.d/NCCcredentials ]; then
-			NCCUSER=$(grep -i username /etc/zypp/credentials.d/NCCcredentials | sed -e 's/^username[[:space:]]*=[[:space:]]*//g')
-			NCCPASS=$(grep -i password /etc/zypp/credentials.d/NCCcredentials | sed -e 's/^password[[:space:]]*=[[:space:]]*//g')
-		else
-			NCCUSER=''
+		# Test update server
+		UPDATE_TEST_URL=''
+		if [[ -s /etc/sysconfig/rhn/up2date ]]; then # get SUMA update URL
+			UPDATE_TEST_URL=$( cat /etc/sysconfig/rhn/up2date | grep -i "^serverURL=" | cut -d= -f2)
+		elif [[ -s /etc/SUSEConnect ]]; then # get SLE12 update URL
+			UPDATE_TEST_URL=$( cat /etc/SUSEConnect | grep -i "^url: " | awk '{print $2}')
+		elif [[ -s /etc/suseRegister.conf ]]; then # get SLE11 update URL
+			UPDATE_TEST_URL=$( cat /etc/suseRegister.conf | grep -i "^url" | cut -d= -f2)
 		fi
-		if [ -n "$NCCUSER" ]; then
-			DOWNURL="https://nu.novell.com/repo/repoindex.xml"
-			if [ -s /etc/suseRegister.conf ]; then
-				TMPURL=$(grep -i ^url /etc/suseRegister.conf | tail -1 | awk -F= '{print $2}' | grep -v "secure-www\.novell\.com" | sed -e 's/^[[:space:]]*//' )
-				if [ -n "$TMPURL" ]; then
-					TMPROTO=$(echo $TMPURL | cut -d\/ -f1)
-					TMPHOST=$(echo $TMPURL | cut -d\/ -f3)
-					DOWNURL="${TMPROTO}//${TMPHOST}/repo/repoindex.xml"
-				fi
+
+		if [[ -n $UPDATE_TEST_URL ]]; then # a local update server URL was found
+			if echo $UPDATE_TEST_URL | egrep -i "^http.*//" &>/dev/null; then
+				LOCAL_TEST_PROTOCOL=$(echo $UPDATE_TEST_URL | awk -F/ '{print $1}')
+				LOCAL_TEST_HOST=$(echo $UPDATE_TEST_URL | awk -F/ '{print $3}')
+			else
+				LOCAL_TEST_PROTOCOL=''
+				LOCAL_TEST_HOST=$(echo $UPDATE_TEST_URL | awk -F/ '{print $1}')
 			fi
-			timed_log_cmd $OF "curl --verbose --capath /etc/ssl/certs/ --digest --remote-time --fail -u $NCCUSER:$NCCPASS -O \"$DOWNURL\" 2>curlnu.log"
-			timed_log_cmd $OF "curl --verbose https://secure-www.novell.com/home/ 2>curlsecure.log"
-			FILES="repoindex.xml curlnu.log curlsecure.log"
-			log_files $OF 0 $FILES
-			rm -f $FILES
+			if [[ -n LOCAL_TEST_PROTOCOL ]]; then
+				LOCAL_TEST_URL="${LOCAL_TEST_PROTOCOL}//${LOCAL_TEST_HOST}/"
+			else
+				LOCAL_TEST_URL="${UPDATE_TEST_HOST}"
+			fi
+			log_cmd $OF "curl --connect-timeout 10 --trace-ascii ${LOG}/updates-curl-trace_${LOCAL_TEST_HOST}.txt --digest --remote-time --fail ${LOCAL_TEST_URL}"
+		else # no local update server URL found
+			if (( ADD_OPTION_LOCAL_ONLY )); then
+				log_entry $OF note "curl -- aborted: ADD_OPTION_LOCAL_ONLY set, no local update URLs found"
+			else
+				for SUSE_TEST_URL in 'https://updates.suse.com/' 'https://scc.suse.com/'
+				do
+					SUSE_TEST_HOST=$(echo $SUSE_TEST_URL | awk -F/ '{print $3}')
+					log_cmd $OF "curl --connect-timeout 10 --trace-ascii ${LOG}/updates-curl-trace_${SUSE_TEST_HOST}.txt --digest --remote-time --fail $SUSE_TEST_URL"
+				done
+			fi
 		fi
+	else
+		log_entry $OF note "curl -- not installed, aborted"
 	fi
 
 #rug
@@ -5528,7 +5545,7 @@ upload_tarball() {
 				echo "ERROR: Unsupported upload service type: ${UPLOAD_SERVICE}"
 				echo
 				echo "  Supported service types: ftp, scp"
-				echo "  Example URI: ftp://ftp.novell.com/incoming"
+				echo "  Example URI: ${SUSE_UPLOAD_NA_FTP}"
 				echo
 				echo "  VAR_OPTION_UPLOAD_TARGET=\"${VAR_OPTION_UPLOAD_TARGET}\""
 				;;

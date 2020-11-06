@@ -1,4 +1,4 @@
-.TH CHKBIN "8" "20 Mar 2014" "supportutils" "Support Utilities Manual"
+.TH CHKBIN "8" "12 Mar 2020" "supportutils" "Support Utilities Manual"
 .SH NAME
 chkbin - Binary Check Tool
 .SH SYNOPSIS
@@ -6,7 +6,7 @@ chkbin [\fB\-ah\fR] </path/to/file>
 .SH DESCRIPTION
 Checks the RPM package owner of the file being checked. It also checks the RPM package owner for each of the file's shared library dependencies. It then runs an rpm verify on each of the unique RPM packages associated with the file and it's shared library dependencies.
 
-This tool will create a text file in the default /var/log directory. Supportconfig will gather chkbin log files if present. Please attach the chkbin log files or the supportconfig with chkbin files to your open service request, using the following URL: https://secure\-support.novell.com/eService_enu
+This tool will create a text file in the default /var/log directory. Supportconfig will gather chkbin log files if present. Please attach the chkbin log files or the supportconfig with chkbin files to your open service request.
 
 If you cannot attach the file to the service request, then email it to the support engineer assigned to your service request.
 .SH OPTIONS

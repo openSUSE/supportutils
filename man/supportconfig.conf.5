@@ -1,7 +1,7 @@
-.TH SUPPORTCONFIG.CONF 5 "20 Mar 2014" "supportutils" "Support Utilities Manual"
+.TH SUPPORTCONFIG.CONF 5 "12 Mar 2020" "supportutils" "Support Utilities Manual"
 .SH NAME
 supportconfig.conf \- 
-.BR supportconfig (1)
+.BR supportconfig (8)
 configuration file.
 .SH ENVIRONMENT
 .I SC_CONF
@@ -58,13 +58,13 @@ OPTION_DFS
 Novell's Distributed File Services information on OES. \fBnovell-dfs.txt\fR (1)
 .TP
 OPTION_DHCP
-Dynamic Host Configuration Protocol (DHCP) information. Includes both Novell and system DHCP. \fBdhcp.txt\fR (1)
+Dynamic Host Configuration Protocol (DHCP) information. \fBdhcp.txt\fR (1)
 .TP
 OPTION_DISK
 Disk, file system mounts and partition information. \fBfs-diskio.txt\fR (1)
 .TP
 OPTION_DNS
-Domain Name Service information. Includes both Novell and system DNS. \fBdns.txt\fR (1)
+Domain Name Service information. \fBdns.txt\fR (1)
 .TP
 OPTION_DRBD
 Distributed Replicated Block Device information. \fBdrbd.txt\fR (1)
@@ -263,7 +263,7 @@ VAR_OPTION_CONTACT_TERMINALID
 Contact's company terminal identifier to include in the basic-environment.txt \fB\-M\fR (Not Set)
 .TP
 VAR_OPTION_CUSTOM_ARCH
-Includes the string to create a custom tar ball filename in the format nts_<string> \fB\-B\fR (Not Set)
+Includes the string to create a custom tar ball filename in the format scc_<string> \fB\-B\fR (Not Set)
 .RS
 
 .RE
@@ -304,22 +304,22 @@ appending a "_%u" onto the filename.
 .B Examples:
 .RE
 .RS
-The default supportconfig file format \fBnts_%B\fR or \fBnts_%s_%d_%t\fR yields "nts_hostname_100326_1105.tbz"
+The default supportconfig file format \fBscc_%B\fR or \fBscc_%s_%d_%t\fR yields "scc_hostname_100326_1105.tbz"
 .RE
 .RS
-\fBsupportconfig \-B "before problem %s"\fR yields "nts_before_problem_hostname.tbz"
+\fBsupportconfig \-B "before problem %s"\fR yields "scc_before_problem_hostname.tbz"
 .RE
 .RS
-\fBsupportconfig \-B "testcase 1 %d-%t"\fR yields "nts_testcase_1_100326-1105.tbz"
+\fBsupportconfig \-B "testcase 1 %d-%t"\fR yields "scc_testcase_1_100326-1105.tbz"
 .RE
 .RS
-\fBsupportconfig \-qB "testcase %d %t"\fR yields "nts_testcase_100326_1105_21a17f8c-13c2-44ff-b0ef-29b7fa7d91c0.tbz"
+\fBsupportconfig \-qB "testcase %d %t"\fR yields "scc_testcase_100326_1105_21a17f8c-13c2-44ff-b0ef-29b7fa7d91c0.tbz"
 .RE
 .RS
-\fBsupportconfig \-B "testcase %d %t %u"\fR yields "nts_testcase_100326_1105_21a17f8c-13c2-44ff-b0ef-29b7fa7d91c0.tbz"
+\fBsupportconfig \-B "testcase %d %t %u"\fR yields "scc_testcase_100326_1105_21a17f8c-13c2-44ff-b0ef-29b7fa7d91c0.tbz"
 .RE
 .RS
-\fBsupportconfig \-B "%r bad" -r 12345678901\fR yields "nts_SR12345678901_bad.tbz"
+\fBsupportconfig \-B "%r bad" -r 12345678901\fR yields "scc_SR12345678901_bad.tbz"
 .RE
 .TP
 VAR_OPTION_HBREPORT_DIRS
@@ -356,13 +356,13 @@ VAR_OPTION_SILENT
 When set to 1, supportconfig runs in quiet mode. This option is useful if you plan on running regular supportconfigs in a cron job for example. \fB\-Q\fR (0)
 .TP
 VAR_OPTION_UNIQUE_FILE
-When set to 1, supportconfig adds a unique identifier string to the tar ball filename. This option is usually not needed, but is useful for public upload sites, like Novell or service providers. \fB\-q\fR (0)
+When set to 1, supportconfig adds a unique identifier string to the tar ball filename. This option is usually not needed, but is useful for public upload sites, like SUSE or service providers. \fB\-q\fR (0)
 .TP
 VAR_OPTION_UPLOAD_ALT
-Used to specify an alternate upload target where the supportconfig tar ball will be uploaded, when using the \fB\-a\fR startup option. You should use the \fB\-r\fR \fIsrnum\fR to specify the Novell service request number for all tar balls uploaded to Novell. \fB\-U\fR (https://secure-www.novell.com/upload?appname=supportconfig&file={tarball})
+Specifies an alternate upload target where the supportconfig tar ball will be uploaded, when using the \fB\-a\fR startup option. You should use the \fB\-r\fR \fIsrnum\fR to specify the service request number for all tar balls uploaded to SUSE. \fB\-a\fR (SUSE_UPLOAD_EMEA_FTP)
 .TP
 VAR_OPTION_UPLOAD_TARGET
-Specifies where the supportconfig tar ball will be uploaded, when using the \fB\-u\fR startup option. The default is Novell's public secure upload server. The default is Novell's anonymous ftp upload server. You should use the \fB\-r\fR \fIsrnum\fR to specify the Novell service request number for all tar balls uploaded to Novell. \fB\-U\fR (ftp://ftp.novell.com/incoming/)
+Specifies where the supportconfig tar ball will be uploaded, when using the \fB\-u\fR startup option. The default is SUSE's anonymous FTP upload server. You should use the \fB\-r\fR \fIsrnum\fR to specify the service request number for all tar balls uploaded to SUSE. \fB\-u\fR (SUSE_UPLOAD_NA_FTP)
 .TP
 VAR_OPTION_WAIT_TRACE
 Enables the wait trace verbose logging option. When enabled, a time stamp before and after each command or file logged in supportconfig is displayed.\fB\-w\fR (0)

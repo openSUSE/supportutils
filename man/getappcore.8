@@ -1,34 +1,42 @@
-.TH GETAPPCORE "8" "20 Mar 2014" "supportutils" "Support Utilities Manual"
+.TH GETAPPCORE "8" "10 Mar 2020" "supportutils" "Support Utilities Manual"
 .SH NAME
 getappcore - Get Application Core File
 .SH SYNOPSIS
 getappcore [OPTIONS] </path/to/core/file>
 .SH DESCRIPTION
 Creates an archive containing an application core, and all files
-required to analyze the application core - including the binary which
-created the core, and all required shared libraries. Included in the
-archive is a logfile containing RPM version information for further
-investigation by SUSE.
+required to analyze it - including the binary which created the core, 
+and all required shared libraries. Included in the archive is a logfile
+containing RPM version information for further investigation by SUSE. 
+You must specify the filename of the application core you want to submit.
+
+
 .SH OPTIONS
 .TP
 \fB\-h\fR
-This screen
+The help screen
 .TP
 \fB\-b\fR \fIpath\fR
 Path to the binary which generated the application core file
 .TP
 \fB\-r\fR \fIsrnum\fR
-Novell Service Request number associated with this issue
+SUSE Service Request number associated with this issue
 .TP
 \fB\-u\fR 
-Automatically uploads archive to ftp.novell.com:/incoming
+Automatically uploads archive to the SUSE FTP server
 .TP
 \fB\-v\fR 
 Enable verbose messages
 .SH EXAMPLES
 .B getappcore -ur 12345678901 -b /bin/rpm /core.15832
-.SH AUTHOR
+.SH AUTHORS
+.RE
+.RS
+Jason Record <jason.record@suse.com>
+.RE
+.RS
 Mike Latimer <mlatimer@suse.com>
+.RE
 .SH COPYRIGHT
 This program is free software; you can redistribute it and/or modify
 it under the terms of the GNU General Public License as published by
