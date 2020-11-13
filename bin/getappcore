@@ -50,6 +50,7 @@ SNAME=$(basename $0)
 # --------------------------------------------------------------------- #
 # Changes:                                                              #
 #                                                                       #
+#    - Check tar return code instead of existence of archive            #
 # 1.52 Release                                                          #
 #    - Capture coredumpctl info in getappcore.log                       #
 #    - Changed nts_ to scc_ with ARCHIVE_PREFIX                         #
@@ -372,7 +373,7 @@ create_archive() {
 	verbose ''
 	verbose "Executing: $TAR_BIN -jhvcvf $FINAL_ARCHIVE_NAME $CORE_ARCHIVE_NAME 1>/dev/null 2>&1"
 	$TAR_BIN -jhvcvf $FINAL_ARCHIVE_NAME $CORE_ARCHIVE_NAME 1>/dev/null 2>&1
-	if [ -e $FINAL_ARCHIVE_NAME ]; then
+	if [ $? -eq 0 ]; then
 		echo "Done"
 		verbose "Created archive as:  $FINAL_ARCHIVE_NAME"
 	else
