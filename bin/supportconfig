@@ -1118,7 +1118,7 @@ docker_info() {
 		log_cmd $OF 'docker images'
 		log_cmd $OF 'docker ps --all'
 		log_cmd $OF 'docker network ls'
-		FILES='/etc/sysconfig/docker'
+		FILES=('/etc/sysconfig/docker' '/etc/docker/daemon.json')
 		conf_files $OF $FILES
 		if rpm_verify $OF ruby2.1-rubygem-sle2docker
 		then
