@@ -1,4 +1,11 @@
 -------------------------------------------------------------------
+Tue Dec  8 21:19:11 UTC 2020 - jason.record@suse.com
+
+- Additions to version 3.1.12
+  + btrfs_info: add -pce argument to qgroup show #80
+  + docker: add /etc/docker/daemon.json contents #81
+
+-------------------------------------------------------------------
 Tue Nov 10 17:25:36 UTC 2020 - jason.record@suse.com
 
 - Additions to version 3.1.12
