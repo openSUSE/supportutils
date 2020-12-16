@@ -3163,6 +3163,8 @@ etc_info() {
 	test $OPTION_ETC -eq 0 && { echolog Excluded; return 1; }
 	OF=etc.txt
 	addHeaderFile $OF
+	# Let us get alternatives output
+	log_cmd $OF "update-alternatives --get-selections"
 	conf_files $OF $(find -L /etc/ -type f | egrep "conf$|cfg$")
 	[ -d /etc/logrotate.d ] && conf_files $OF /etc/logrotate.d/*
 	conf_files $OF /etc/rc.dialout /etc/ppp/options /etc/ppp/ioptions /etc/ppp/peers/pppoe /etc/motd
