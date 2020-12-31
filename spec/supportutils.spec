@@ -22,7 +22,7 @@ Name:           supportutils
 Version:        3.1.13
 Release:        0
 Summary:        Support Troubleshooting Tools
-License:        GPL-2.0
+License:        GPL-2.0-only
 Group:          System/Monitoring
 Url:            https://github.com/g23guy/supportutils
 Source:         %{name}-%{version}.tar.gz
