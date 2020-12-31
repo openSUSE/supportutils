@@ -1,8 +1,9 @@
 -------------------------------------------------------------------
-Thu Dec 17 17:52:57 UTC 2020 - jason.record@suse.com
+Thu Dec 31 14:28:31 UTC 2020 - jason.record@suse.com
 
 - Additions to version 3.1.13
   + Added update-alternatives to etc.txt #82
+  + Collects rotated logs with different compression types (bsc#1179188)
 
 -------------------------------------------------------------------
 Tue Dec  8 21:19:11 UTC 2020 - jason.record@suse.com
