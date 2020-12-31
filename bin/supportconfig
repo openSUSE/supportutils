@@ -1171,25 +1171,35 @@ messages_file() {
 	test $MIN_OPTION_SYSLOGS -eq 0 && { echolog EXCLUDED; return 1; }
 	OF=messages.txt
 	addHeaderFile $OF
-	if [ $ADD_OPTION_LOGS -gt 0 ]; then
-		if (( SLES_VER >= 120 ))
-		then
-			MSG_COMPRESS="\.xz"
-			MSG_COMPRESS_BIN="xz -d"
-		else
-			MSG_COMPRESS="\.bz2"
-			MSG_COMPRESS_BIN="bzip2 -d"
-		fi
-		FILES="$(ls -1 /var/log/warn-*${MSG_COMPRESS} 2>/dev/null) $(ls -1 /var/log/localmessages-*${MSG_COMPRESS} 2>/dev/null) $(ls -1 /var/log/messages-*${MSG_COMPRESS} 2>/dev/null)"
-		[ -n "$FILES" ] && log_entry $OF note "Additional Rotated Logs Included in the Tar Ball"
+	if [[ $ADD_OPTION_LOGS -gt 0 ]]; then
+		FILES="$(ls -1 /var/log/warn-[[:digit:]]* 2>/dev/null) $(ls -1 /var/log/localmessages-[[:digit:]]* 2>/dev/null) $(ls -1 /var/log/messages-[[:digit:]]* 2>/dev/null)"
+		[[ -n "$FILES" ]] && log_entry $OF note "Additional Rotated Logs Included in the Tar Ball"
 		log_files $OF 0 /var/log/warn /var/log/localmessages /var/log/messages
 		for CMPLOG in $FILES
 		do
 			FILE=$(basename $CMPLOG)
-			(( SLES_VER >= 120 )) && FILEROOT="${LOG}/${FILE%%\.xz}" || FILEROOT="${LOG}/${FILE%%\.bz2}"
+			FILEROOT=${LOG}/$(cut -d\. -f1 <<< ${FILE})
 			cp $CMPLOG ${LOG}
-			wait_trace_on "${MSG_COMPRESS_BIN} ${LOG}/$FILE"
-			${MSG_COMPRESS_BIN} ${LOG}/$FILE
+			FILE_TYPE=$(file --brief --mime-type $CMPLOG 2>/dev/null)
+			case $FILE_TYPE in
+			"text/plain")
+			;;
+			"application/x-xz")
+				wait_trace_on "xz -d ${LOG}/$FILE"
+				xz -d ${LOG}/$FILE
+			;;
+			"application/x-bzip2")
+				wait_trace_on "bzip2 -d ${LOG}/$FILE"
+				bzip2 -d ${LOG}/$FILE
+			;;
+			"application/x-gzip")
+				wait_trace_on "gzip -d ${LOG}/$FILE"
+				gzip -d ${LOG}/$FILE
+			;;
+ 			*)
+				continue
+			;;
+			esac
 			mv ${FILEROOT} ${FILEROOT}.txt
 			wait_trace_off
 		done
@@ -1197,12 +1207,12 @@ messages_file() {
 		log_files $OF $VAR_OPTION_LINE_COUNT /var/log/warn
 		for LOGFILE in /var/log/localmessages /var/log/messages
 		do
-			if [ -e $LOGFILE ]; then
-				if [ $VAR_OPTION_MSG_MAXSIZE -eq 0 ]; then
+			if [[ -e $LOGFILE ]]; then
+				if [[ $VAR_OPTION_MSG_MAXSIZE -eq 0 ]]; then
 					log_files $OF 0 $LOGFILE  # override and get the entire file
 				else
 					MSGSIZE=$(stat -c%s $LOGFILE)
-					if [ $MSGSIZE -gt $VAR_OPTION_MSG_MAXSIZE ]; then
+					if [[ $MSGSIZE -gt $VAR_OPTION_MSG_MAXSIZE ]]; then
 						log_files $OF $VAR_OPTION_MSG_LINE_COUNT $LOGFILE # the file exceeded the max size allowed, get specified lines of the file
 					else
 						log_files $OF 0 $LOGFILE # get the whole file
