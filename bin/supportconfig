@@ -509,9 +509,9 @@ messages_file() {
 	OF=messages.txt
 	addHeaderFile $OF
 	if [[ $ADD_OPTION_LOGS -gt 0 ]]; then
-		FILES="$(ls -1 /var/log/warn-[[:digit:]]* 2>/dev/null) $(ls -1 /var/log/localmessages-[[:digit:]]* 2>/dev/null) $(ls -1 /var/log/messages-[[:digit:]]* 2>/dev/null)"
+		FILES="$(ls -1 /var/log/messages-[[:digit:]]* 2>/dev/null)"
 		[[ -n "$FILES" ]] && log_entry $OF note "Additional Rotated Logs Included in the Tar Ball"
-		log_files $OF 0 /var/log/warn /var/log/localmessages /var/log/messages
+		log_files $OF 0 /var/log/warn /var/log/localmessages
 		for CMPLOG in $FILES
 		do
 			FILE=$(basename $CMPLOG)
@@ -541,20 +541,6 @@ messages_file() {
 			wait_trace_off
 		done
 	else
-		log_files $OF $VAR_OPTION_LINE_COUNT /var/log/warn
-		LOGFILE="/var/log/localmessages"
-		if [[ -e $LOGFILE ]]; then
-			if [[ $VAR_OPTION_MSG_MAXSIZE -eq 0 ]]; then
-				log_files $OF 0 $LOGFILE  # override and get the entire file
-			else
-				MSGSIZE=$(stat -c%s $LOGFILE)
-				if [[ $MSGSIZE -gt $VAR_OPTION_MSG_MAXSIZE ]]; then
-					log_files $OF $VAR_OPTION_MSG_LINE_COUNT $LOGFILE # the file exceeded the max size allowed, get specified lines of the file
-				else
-					log_files $OF 0 $LOGFILE # get the whole file
-				fi
-			fi
-		fi
 		LOGFILE="/var/log/messages"
 		if [[ -e $LOGFILE ]]; then
 			if [[ $VAR_OPTION_MSG_MAXSIZE -eq 0 ]]; then
@@ -573,6 +559,63 @@ messages_file() {
 	fi
 	echolog Done
 }
+
+localwarn_file() {
+        printlog "Localmessages/Warn Logs..."
+        test $MIN_OPTION_SYSLOGS -eq 0 && { echolog EXCLUDED; return 1; }
+        OF=localwarn.txt
+        addHeaderFile $OF
+        if [[ $ADD_OPTION_LOGS -gt 0 ]]; then
+                FILES="$(ls -1 /var/log/warn-[[:digit:]]* 2>/dev/null) $(ls -1 /var/log/localmessages-[[:digit:]]* 2>/dev/null)"
+                [[ -n "$FILES" ]] && log_entry $OF note "Additional Rotated Logs Included in the Tar Ball"
+                log_files $OF 0 /var/log/warn /var/log/localmessages
+                for CMPLOG in $FILES
+                do
+                        FILE=$(basename $CMPLOG)
+                        FILEROOT=${LOG}/$(cut -d\. -f1 <<< ${FILE})
+                        cp $CMPLOG ${LOG}
+                        FILE_TYPE=$(file --brief --mime-type $CMPLOG 2>/dev/null)
+                        case $FILE_TYPE in
+                        "text/plain")
+                        ;;
+                        "application/x-xz")
+                                wait_trace_on "xz -d ${LOG}/$FILE"
+                                xz -d ${LOG}/$FILE
+                        ;;
+                        "application/x-bzip2")
+                                wait_trace_on "bzip2 -d ${LOG}/$FILE"
+                                bzip2 -d ${LOG}/$FILE
+                        ;;
+                        "application/x-gzip")
+                                wait_trace_on "gzip -d ${LOG}/$FILE"
+                                gzip -d ${LOG}/$FILE
+                        ;;
+                        *)
+                                continue
+                        ;;
+                        esac
+                        mv ${FILEROOT} ${FILEROOT}.txt
+                        wait_trace_off
+                done
+        else
+                log_files $OF $VAR_OPTION_LINE_COUNT /var/log/warn
+                LOGFILE="/var/log/localmessages"
+                if [[ -e $LOGFILE ]]; then
+                        if [[ $VAR_OPTION_MSG_MAXSIZE -eq 0 ]]; then
+                                log_files $OF 0 $LOGFILE  # override and get the entire file
+                        else
+                                MSGSIZE=$(stat -c%s $LOGFILE)
+                                if [[ $MSGSIZE -gt $VAR_OPTION_MSG_MAXSIZE ]]; then
+                                        log_files $OF $VAR_OPTION_MSG_LINE_COUNT $LOGFILE # the file exceeded the max size allowed, get specified lines of the file
+                                else
+                                        log_files $OF 0 $LOGFILE # get the whole file
+                                fi
+                        fi
+                fi
+        fi
+        echolog Done
+}
+
 
 audit_info() {
 	printlog "Auditing..."
@@ -4265,6 +4308,7 @@ if [ "$USE_SAVED_LOGS_ONLY" != "1" ]; then
 	(( OPTION_MOD > 0 )) && post_lsmod_list
 	log2sys "Finished Gathering"
 	messages_file		#Minimum Requirement
+	localwarn_file
 	write_xml_file
 
 	rm -f $LOG/$RPM_QA_FILE $LOG/$RPM_DIST_FILE
