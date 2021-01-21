@@ -511,7 +511,7 @@ messages_file() {
 	if [[ $ADD_OPTION_LOGS -gt 0 ]]; then
 		FILES="$(ls -1 /var/log/messages-[[:digit:]]* 2>/dev/null)"
 		[[ -n "$FILES" ]] && log_entry $OF note "Additional Rotated Logs Included in the Tar Ball"
-		log_files $OF 0 /var/log/warn /var/log/localmessages
+		log_files $OF 0 /var/log/messages
 		for CMPLOG in $FILES
 		do
 			FILE=$(basename $CMPLOG)
