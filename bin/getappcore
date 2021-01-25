@@ -50,6 +50,7 @@ SNAME=$(basename $0)
 # --------------------------------------------------------------------- #
 # Changes:                                                              #
 #                                                                       #
+#    - Check tar return code instead of existence of archive            #
 # 1.52 Release                                                          #
 #    - Capture coredumpctl info in getappcore.log                       #
 #    - Changed nts_ to scc_ with ARCHIVE_PREFIX                         #
@@ -58,7 +59,7 @@ SNAME=$(basename $0)
 #    - Check for valid core file                                        #
 #    - Updated documentation and messages                               #
 #    - Creates ARCHIVE_PATH as needed                                   #
-# 1.46 Release                                                          #  
+# 1.46 Release                                                          #
 #    - Replaced Novell with SUSE FTP servers                            #
 #    - Uses /etc/getappcore.conf if present                             #
 #    - Added -u for HTTPS and -f for FTPES uploads to SUSE FTP servers  #
@@ -143,7 +144,7 @@ ALL_BINS="$AWK_BIN $BASENAME_BIN $CAT_BIN $CHKBIN_BIN $CHMOD_BIN $COREDUMP_BIN $
 # Display title banner, showing environment and core info   #
 # --------------------------------------------------------- #
 show_title() {
-	echo "####################################################################" | $TEE_BIN $GETAPPCORE_LOG 
+	echo "####################################################################" | $TEE_BIN $GETAPPCORE_LOG
 	echo "Get Application Core Tool, v$SVER"                                    | $TEE_BIN -a $GETAPPCORE_LOG
 	echo "Date:     $($DATE_BIN +'%D, %T')"                                     | $TEE_BIN -a $GETAPPCORE_LOG
 	echo "Server:   $SERVER_NAME"                                               | $TEE_BIN -a $GETAPPCORE_LOG
@@ -160,13 +161,13 @@ show_title() {
 # --------------------------------------------------------- #
 show_help() {
 	echo "Usage: $0 [OPTION] < -j PID | /path/to/corefile >"
-	echo 
+	echo
 	echo "$SNAME creates an archive containing an application core, and all files"
 	echo "required to analyze the application core - including the binary which"
-        echo "created the core, and all required shared libraries. Included in the"
+	echo "created the core, and all required shared libraries. Included in the"
 	echo "archive is a logfile containing RPM version information for further"
 	echo "investigation by SUSE."
-	echo 
+	echo
 	echo "Required parameter:"
 	echo
 	echo "  COREFILE        The application core file, typically found in the working"
@@ -183,7 +184,7 @@ show_help() {
 	echo "  -v              Enable verbose messages"
 	echo
 	echo "For example:"
-	echo 
+	echo
 	echo "   $SNAME -ur 00123456 -b /bin/rpm -j 2344"
 	echo "   $SNAME -ur 00123456 -b /bin/rpm /core.15832"
 	echo
@@ -197,9 +198,9 @@ show_help() {
 # Enable vebose messages                                    #
 # --------------------------------------------------------- #
 verbose() {
-        if [[ $VERBOSE -eq '1' ]]; then
+	if [[ $VERBOSE -eq '1' ]]; then
 		[[ -z $1 ]] && echo || echo "-- $1"
-        fi
+	fi
 }
 
 # --------------------------------------------------------- #
@@ -228,13 +229,12 @@ get_server_release() {
 # check_binaries ()                                         #
 # Check for all required binaries prior to execution        #
 # --------------------------------------------------------- #
-check_binaries()
-{
-        for BINARY in $ALL_BINS
-        do
+check_binaries() {
+	for BINARY in $ALL_BINS
+	do
 		verbose "Checking $BINARY"
-                if ! [ -e $BINARY ]; then
-       			if [ -z "$MISSING_BINS" ]; then
+		if ! [ -e $BINARY ]; then
+			if [ -z "$MISSING_BINS" ]; then
 				MISSING_BINS=$BINARY
 			else
 				MISSING_BINS="$BINARY $MISSING_BINS"
@@ -336,7 +336,7 @@ cleanup() {
 			verbose "Removing symlink: $SYMLINK"
 			$RM_BIN $SYMLINK
 		fi
-	done	
+	done
 	for DIR in $($FIND_BIN $GETAPPCORE_TMP_DIR -type d | sort -r); do
 		verbose "Removing directory: $DIR"
 		$RMDIR_BIN $DIR
@@ -357,7 +357,7 @@ create_symlinks() {
 		$MKDIR_BIN -p $(dirname $REQUIRED_FILE_LINK)
 		verbose "Creating symlink: $REQUIRED_FILE_LINK --> $REQUIRED_FILE"
 		$LN_BIN -s $REQUIRED_FILE $REQUIRED_FILE_LINK
-	done	
+	done
 }
 
 # ------------------------------------------------------------ #
@@ -373,7 +373,7 @@ create_archive() {
 	verbose ''
 	verbose "Executing: $TAR_BIN -jhvcvf $FINAL_ARCHIVE_NAME $CORE_ARCHIVE_NAME 1>/dev/null 2>&1"
 	$TAR_BIN -jhvcvf $FINAL_ARCHIVE_NAME $CORE_ARCHIVE_NAME 1>/dev/null 2>&1
-	if [ -e $FINAL_ARCHIVE_NAME ]; then
+	if [ $? -eq 0 ]; then
 		echo "Done"
 		verbose "Created archive as:  $FINAL_ARCHIVE_NAME"
 	else
@@ -441,7 +441,7 @@ get_journal_coredump() {
 # Upload the appcore archive to the designated ftp server   #
 # --------------------------------------------------------- #
 upload_archive() {
-        echo "Uploading Archive... ${FINAL_ARCHIVE_FILE}"
+	echo "Uploading Archive... ${FINAL_ARCHIVE_FILE}"
 	UPLOAD_SERVICE=$(echo ${UPLOAD_TARGET} | cut -d: -f1)
 	ERRNO=255
 	verbose "UPLOAD_TARGET      = ${UPLOAD_TARGET}"
@@ -461,7 +461,7 @@ upload_archive() {
 			ERRNO=$?
 		fi
 		;;
-        ftps|ftpes)
+	ftps|ftpes)
 		echo "Protocol... FTPES"
 		UPLOAD_URL=$($SED_BIN -e 's/ftpes:/ftp:/g;s/ftps:/ftp:/g' <<< ${UPLOAD_TARGET})
 		verbose "UPLOAD_URL         = $UPLOAD_URL"
@@ -484,7 +484,7 @@ upload_archive() {
 	else
 		echo "Upload status... Success!"
 		echo
-		echo "   Please contact SUSE Technical Support for assistance analyzing this core." 
+		echo "   Please contact SUSE Technical Support for assistance analyzing this core."
 		echo "   If you already have an open Service Request, please update it with the"
 		echo "   archive name below."
 	fi
@@ -599,7 +599,7 @@ if [ ! -z $COREFILE -a -e $COREFILE ]; then
 		echo -n "Checking Source Binary with chkbin... "
 		CHKBIN_LOG=$($CHKBIN_BIN $COREFILE_BIN | $GREP_BIN "Log File" 2>/dev/null | $AWK_BIN '{print $3}')
 		CHKBIN_RESULT=$($CAT_BIN $CHKBIN_LOG | $GREP_BIN STATUS | $AWK_BIN '{print $2}')
-                echo "Done"
+		echo "Done"
 
 		echo "Crashing binary: $COREFILE_BIN       chkbin result: $CHKBIN_RESULT" >> $GETAPPCORE_LOG 2>&1
 		echo >> $GETAPPCORE_LOG
@@ -607,7 +607,7 @@ if [ ! -z $COREFILE -a -e $COREFILE ]; then
 		verbose "Chkbin result:   $CHKBIN_RESULT"
 
 		# Use GDB to build list of required libraries
-		echo -n "Building list of required libraries... " 
+		echo -n "Building list of required libraries... "
 		echo "Libraries:" >> $GETAPPCORE_LOG
 		echo "----------" >> $GETAPPCORE_LOG
 		# Create temporary GDB command file
@@ -618,14 +618,14 @@ if [ ! -z $COREFILE -a -e $COREFILE ]; then
 		$RM_BIN $GDBLIBS_CMD
 		echo "Done"
 
-		echo -n "Building list of required RPMs... " 
+		echo -n "Building list of required RPMs... "
 		echo "RPMs:" >> $GETAPPCORE_LOG
 		echo "-----" >> $GETAPPCORE_LOG
 		RPM_LIST=$($RPM_BIN -qf --queryformat "%{NAME}-%{VERSION}-%{RELEASE}.%{ARCH}.rpm\n" $COREFILE_BIN | $GREP_BIN -v "not owned")
 		RPM_LIST="$RPM_LIST $($CAT_BIN $GETAPPCORE_LOG | $GREP_BIN -i "^/.*\.so.*" | \
 			$XARGS_BIN $RPM_BIN -qf --queryformat "%{NAME}-%{VERSION}-%{RELEASE}.%{ARCH}.rpm\n" | $GREP_BIN -v "not owned")"
 		echo $RPM_LIST | $TR_BIN " " \\n | $SORT_BIN | $UNIQ_BIN >> $GETAPPCORE_LOG
-                echo "Done"
+		echo "Done"
 		echo >> $GETAPPCORE_LOG
 
 		(( $VERBOSE )) && echo "Building list of debuginfo RPMs... " || echo -n "Building list of debuginfo RPMs... "
@@ -674,7 +674,7 @@ if [ ! -z $COREFILE -a -e $COREFILE ]; then
 		echo $DBG_LIST | $TR_BIN " " \\n | $SORT_BIN | $UNIQ_BIN >> $GETAPPCORE_LOG
 		if (( $VERBOSE )); then
 			echo
-	                echo "                               ... Done"
+			echo "                               ... Done"
 		else
 			echo " Done"
 		fi
@@ -684,7 +684,7 @@ if [ ! -z $COREFILE -a -e $COREFILE ]; then
 		echo -n "Setting gdb environment variables... "
 		while read LIBRARY
 		do
-		        IS_LIB=$(echo $LIBRARY | $GREP_BIN -i  "^/.*\.so.*" | $WC_BIN -l)
+			IS_LIB=$(echo $LIBRARY | $GREP_BIN -i  "^/.*\.so.*" | $WC_BIN -l)
 			if [ "$IS_LIB" = "1" ]; then
 				if [ -z "$REQUIRED_LIBRARIES" ]; then
 					REQUIRED_LIBRARIES="$LIBRARY"
@@ -706,7 +706,7 @@ if [ ! -z $COREFILE -a -e $COREFILE ]; then
 				GDB_SOLIB_SEARCH_PATH="$GDB_SOLIB_SEARCH_PATH:.$LIBRARY_DIR"
 			fi
 		done
-                echo "Done"
+		echo "Done"
 
 		# Move chkbin and getappcore log to GETAPPCORE_TMP_DIR to be included in tar archive
 		if [[ -s $GETAPPCORE_CONF ]]; then
@@ -723,7 +723,7 @@ if [ ! -z $COREFILE -a -e $COREFILE ]; then
 		create_opencoreini
 		create_opencoresh
 		create_symlinks
-                (( $VERBOSE )) && { echo "                          ... Done"; echo; } || echo "Done"
+		(( $VERBOSE )) && { echo "                          ... Done"; echo; } || echo "Done"
 
 		create_archive
 
