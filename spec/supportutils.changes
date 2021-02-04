@@ -1,4 +1,9 @@
 -------------------------------------------------------------------
+Thu Feb  4 18:44:12 UTC 2021 - jason.record@gmail.com
+
+- No longer truncates boot log (bsc#1181610)
+
+-------------------------------------------------------------------
 Tue Jan 19 12:28:49 UTC 2021 - Thorsten Kukuk <kukuk@suse.com>
 
 - Require the awk, which and sed commands instead of packages to

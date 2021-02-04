@@ -1,7 +1,7 @@
 #!/bin/bash
 
-SVER='3.1.10-5'
-SDATE='2020 12 31'
+SVER='3.1.10-6'
+SDATE='2021 02 04'
 
 ##############################################################################
 #  supportconfig - Gathers system troubleshooting information for SUSE Support
@@ -728,7 +728,7 @@ boot_info() {
 			fi
 		else
 			if (( VAR_OPTION_JOURNALCTL_LINE_COUNT > 0 )); then
-				log_cmd $OF "journalctl --no-pager --boot 0 | head -n ${VAR_OPTION_JOURNALCTL_LINE_COUNT}"
+				log_cmd $OF "journalctl --no-pager --boot 0 | tail -n ${VAR_OPTION_JOURNALCTL_LINE_COUNT}"
 			else
 				log_cmd $OF "journalctl --no-pager --boot 0"
 			fi
