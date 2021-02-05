@@ -1,6 +1,6 @@
 #!/bin/bash
 
-SVER='3.1.10-7'
+SVER='3.1.10-7.dev2'
 SDATE='2021 02 05'
 
 ##############################################################################
@@ -944,25 +944,35 @@ update_info() {
 
 pam_info() {
 	printlog "PAM..."
-	test $FORCE_OPTION_PAM -eq 0 && { echolog Excluded; return 1; }
 	OF=pam.txt
 	addHeaderFile $OF
-	rpm_verify $OF pam
-	rpm_verify $OF pam-modules
-	conf_files $OF /etc/nsswitch.conf /etc/nologin
-	conf_files $OF /etc/passwd
-	log_cmd $OF 'getent passwd'
-	conf_files $OF /etc/group
-	log_cmd $OF 'getent group'
-	conf_files $OF /etc/sudoers
-	(( SLES_VER >= 120 )) && log_cmd $OF 'loginctl --no-pager list-sessions'
-	log_write $OF "#==[ Files in /etc/security ]=======================#"
-	test -d /etc/security && FILES="$(find -L /etc/security/ -type f -name \*conf)" || FILES=""
-	conf_files $OF $FILES
-	log_write $OF "#==[ Files in /etc/pam.d ]==========================#"
-	test -d /etc/pam.d && FILES="$(find -L /etc/pam.d/ -type f)" || FILES=""
-	conf_files $OF $FILES
-	echolog Done
+	if (( $FORCE_OPTION_PAM > 0 )); then
+		rpm_verify $OF pam
+		rpm_verify $OF pam-modules
+		conf_files $OF /etc/nsswitch.conf /etc/nologin
+		conf_files $OF /etc/passwd
+		log_cmd $OF 'getent passwd'
+		conf_files $OF /etc/group
+		log_cmd $OF 'getent group'
+		conf_files $OF /etc/sudoers
+		(( SLES_VER >= 120 )) && log_cmd $OF 'loginctl --no-pager list-sessions'
+		log_write $OF "#==[ Files in /etc/security ]=======================#"
+		test -d /etc/security && FILES="$(find -L /etc/security/ -type f -name \*conf)" || FILES=""
+		conf_files $OF $FILES
+		log_write $OF "#==[ Files in /etc/pam.d ]==========================#"
+		test -d /etc/pam.d && FILES="$(find -L /etc/pam.d/ -type f)" || FILES=""
+		conf_files $OF $FILES
+		echolog Done
+	else
+		log_entry $OF note "Restricted"
+		echo "PAM module is disabled in compliance with General Data Protection Regulation (GDPR)." >> $LOG/$OF
+		echo "To consent to supportconfig collecting this information, run:" >> $LOG/$OF
+		echo "# FORCE_OPTION_PAM=1 supportconfig" >> $LOG/$OF
+		echo >> $LOG/$OF
+		echo 'Additional info: https://www.suse.com/support/kb/doc/?id=000019695' >> $LOG/$OF
+		echo >> $LOG/$OF
+		echolog Restriced
+	fi
 }
 
 sssd_info() {
