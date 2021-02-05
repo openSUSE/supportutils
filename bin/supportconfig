@@ -1524,6 +1524,9 @@ hardware_info() {
 				log_cmd $OF "servicelog --dump"
 				log_cmd $OF "servicelog_notify --list"
 			fi
+			log_cmd $OF 'lsdevinfo'
+			log_cmd $OF 'systemctl is-enabled hcn-init.service'
+			log_files $OF 0 /var/log/hcnmgr /var/ct/IBM.DRM.stderr /var/ct/IW/log/mc/IBM.DRM/trace*
 		fi
 
 		PPC_DIR="${LOG}/ppc64"
