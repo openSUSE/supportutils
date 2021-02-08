@@ -1,8 +1,8 @@
 -------------------------------------------------------------------
-Fri Feb  5 19:23:14 UTC 2021 - jason.record@gmail.com
+Mon Feb  8 15:30:43 UTC 2021 - jason.record@gmail.com
 
 - Additions to version 3.1.14
-  + [powerpc] Collect logs for power specific components (HNV ) #88
+  + [powerpc] Collect logs for power specific components (HNV ) #88 (bsc#1181911)
   + Updated pam.txt documentation explaining GDPR
 
 -------------------------------------------------------------------
