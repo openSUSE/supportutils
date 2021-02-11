@@ -2333,8 +2333,8 @@ crash_info() {
 		COREFILE=$(echo $CORE | sed -e 's/\%./\*/g')
 	fi
 
-	# Search CWD per lsof
-	SEARCH="$(lsof -b +M -n -l 2>/dev/null | grep '[[:space:]]cwd[[:space:]]' | awk '{print $9}' | sort | uniq)"
+	# Search CWD per /proc/<pid>/cwd
+	SEARCH="$(readlink /proc/*/cwd | sort | uniq)"
 	for i in $SEARCH
 	do
 		ls -l --time-style=long-iso ${i}/${COREFILE} ${i}/${COREFILE}\.* ${i}/core ${i}/core\.* >> $SEARCH_LIST 2>/dev/null
