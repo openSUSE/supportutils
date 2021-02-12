@@ -1019,16 +1019,16 @@ sssd_info() {
 			SSSD_PID=""
 		fi
 		if [ -n "$SSSD_PID" ]; then
-			SSSD_PIDS=$(ps axwwo pid,ppid,cmd | grep ${SSSD_PID} | grep -v grep | awk '{print $1}' | sort -n)
-			log_cmd $OF "ps axwwo user,pid,ppid,%cpu,%mem,vsz,rss,stat,time,cmd | egrep \"${SSSD_PID}|PPID\" | grep -v grep"
-			for THISPID in $SSSD_PIDS
-			do
-				log_cmd $OF "lsof -p $THISPID"
-			done
+			GREPTERM="$SSSD_PID"
 		else
-			log_cmd $OF "ps axwwo user,pid,ppid,%cpu,%mem,vsz,rss,stat,time,cmd | egrep \"sssd|PPID\" | grep -v grep"
-			log_cmd $OF "lsof | grep sssd"
+			GREPTERM="sssd"
 		fi
+		SSSD_PIDS=$(ps axwwo pid,ppid,cmd | grep ${GREPTERM} | grep -v grep | awk '{print $1}' | sort -n)
+		log_cmd $OF "ps axwwo user,pid,ppid,%cpu,%mem,vsz,rss,stat,time,cmd | egrep \"${GREPTERM}|PPID\" | grep -v grep"
+		for THISPID in $SSSD_PIDS
+		do
+			log_cmd $OF "lsof -p $THISPID"
+		done
 		log_cmd $OF 'grep pam_sss /etc/pam.d/*'
 		FILES="/var/log/sssd/*"
 		[ $ADD_OPTION_LOGS -gt 0 ] && log_files $OF 0 $FILES || log_files $OF $VAR_OPTION_LINE_COUNT $FILES
