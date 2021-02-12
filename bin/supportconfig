@@ -1009,23 +1009,22 @@ sssd_info() {
 		log_cmd $OF 'ls -lR --time-style=long-iso /var/lib/sss/'
 		if (( SLES_VER < 120 )); then
 			[ -s /etc/init.d/sssd ] && SSSD_PIDF=$(grep '^PID_FILE' /etc/init.d/sssd | sed -e 's/ *//g' | cut -d= -f2)
-			test -z "$SSSD_PIDF" && SLAPD_PIDF="/var/run/sssd.pid"
-			if [ -f $SSSD_PIDF ]; then
-				SSSD_PID=$(cat $SSSD_PIDF)
-			else
-				SSSD_PID=""
-			fi
-			if [ -n "$SSSD_PID" ]; then
-				SSSD_PIDS=$(ps axwwo pid,ppid,cmd | grep ${SSSD_PID} | grep -v grep | awk '{print $1}' | sort -n)
-				log_cmd $OF "ps axwwo user,pid,ppid,%cpu,%mem,vsz,rss,stat,time,cmd | egrep \"${SSSD_PID}|PPID\" | grep -v grep"
-				for THISPID in $SSSD_PIDS
-				do
-					log_cmd $OF "lsof -p $THISPID"
-				done
-			else
-				log_cmd $OF "ps axwwo user,pid,ppid,%cpu,%mem,vsz,rss,stat,time,cmd | egrep \"sssd|PPID\" | grep -v grep"
-				log_cmd $OF "lsof | grep sssd"
-			fi
+		else
+			SSSD_PIDF=$(systemctl --property PIDFile show sssd.service | cut -d= -f2)
+		fi
+		test -z "$SSSD_PIDF" && SSSD_PIDF="/var/run/sssd.pid"
+		if [ -f $SSSD_PIDF ]; then
+			SSSD_PID=$(cat $SSSD_PIDF)
+		else
+			SSSD_PID=""
+		fi
+		if [ -n "$SSSD_PID" ]; then
+			SSSD_PIDS=$(ps axwwo pid,ppid,cmd | grep ${SSSD_PID} | grep -v grep | awk '{print $1}' | sort -n)
+			log_cmd $OF "ps axwwo user,pid,ppid,%cpu,%mem,vsz,rss,stat,time,cmd | egrep \"${SSSD_PID}|PPID\" | grep -v grep"
+			for THISPID in $SSSD_PIDS
+			do
+				log_cmd $OF "lsof -p $THISPID"
+			done
 		else
 			log_cmd $OF "ps axwwo user,pid,ppid,%cpu,%mem,vsz,rss,stat,time,cmd | egrep \"sssd|PPID\" | grep -v grep"
 			log_cmd $OF "lsof | grep sssd"
