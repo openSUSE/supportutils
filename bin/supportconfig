@@ -1,15 +1,15 @@
 #!/bin/bash
 
-SVER='3.1.10-8'
-SDATE='2021 02 05'
+SVER='3.1.11-1'
+SDATE='2021 02 16'
 
 ##############################################################################
 #  supportconfig - Gathers system troubleshooting information for SUSE Support
-#  Copyright (C) 2001-2020 SUSE LLC
+#  Copyright (C) 2001-2021 SUSE LLC
 #
-#  Creates a tar ball to attach to the SR or send to support. Collects
-#  comprehensive system information for troubleshooting and reducing resolution
-#  time.
+#  Creates a tar ball to attach to the support case or send to support. 
+#  Collects comprehensive system information for troubleshooting and reducing
+#  resolution time.
 #
 #  Disclaimer:
 #  Detailed system information and logs are collected and organized in a
@@ -1009,26 +1009,27 @@ sssd_info() {
 		log_cmd $OF 'ls -lR --time-style=long-iso /var/lib/sss/'
 		if (( SLES_VER < 120 )); then
 			[ -s /etc/init.d/sssd ] && SSSD_PIDF=$(grep '^PID_FILE' /etc/init.d/sssd | sed -e 's/ *//g' | cut -d= -f2)
+			test -z "$SSSD_PIDF" && SLAPD_PIDF="/var/run/sssd.pid"
+			if [ -f $SSSD_PIDF ]; then
+				SSSD_PID=$(cat $SSSD_PIDF)
+			else
+				SSSD_PID=""
+			fi
+			if [ -n "$SSSD_PID" ]; then
+				SSSD_PIDS=$(ps axwwo pid,ppid,cmd | grep ${SSSD_PID} | grep -v grep | awk '{print $1}' | sort -n)
+				log_cmd $OF "ps axwwo user,pid,ppid,%cpu,%mem,vsz,rss,stat,time,cmd | egrep \"${SSSD_PID}|PPID\" | grep -v grep"
+				for THISPID in $SSSD_PIDS
+				do
+					log_cmd $OF "lsof -p $THISPID"
+				done
+			else
+				log_cmd $OF "ps axwwo user,pid,ppid,%cpu,%mem,vsz,rss,stat,time,cmd | egrep \"sssd|PPID\" | grep -v grep"
+				log_cmd $OF "lsof | grep sssd"
+			fi
 		else
-			SSSD_PIDF=$(systemctl --property PIDFile show sssd.service | cut -d= -f2)
+			log_cmd $OF "ps axwwo user,pid,ppid,%cpu,%mem,vsz,rss,stat,time,cmd | egrep \"sssd|PPID\" | grep -v grep"
+			log_cmd $OF "lsof | grep sssd"
 		fi
-		test -z "$SSSD_PIDF" && SSSD_PIDF="/var/run/sssd.pid"
-		if [ -f $SSSD_PIDF ]; then
-			SSSD_PID=$(cat $SSSD_PIDF)
-		else
-			SSSD_PID=""
-		fi
-		if [ -n "$SSSD_PID" ]; then
-			GREPTERM="$SSSD_PID"
-		else
-			GREPTERM="sssd"
-		fi
-		SSSD_PIDS=$(ps axwwo pid,ppid,cmd | grep ${GREPTERM} | grep -v grep | awk '{print $1}' | sort -n)
-		log_cmd $OF "ps axwwo user,pid,ppid,%cpu,%mem,vsz,rss,stat,time,cmd | egrep \"${GREPTERM}|PPID\" | grep -v grep"
-		for THISPID in $SSSD_PIDS
-		do
-			log_cmd $OF "lsof -p $THISPID"
-		done
 		log_cmd $OF 'grep pam_sss /etc/pam.d/*'
 		FILES="/var/log/sssd/*"
 		[ $ADD_OPTION_LOGS -gt 0 ] && log_files $OF 0 $FILES || log_files $OF $VAR_OPTION_LINE_COUNT $FILES
@@ -2150,6 +2151,37 @@ ntp_info() {
 	esac
 }
 
+nvme_info() {
+	printlog "NVMe..."
+	test $OPTION_NVME -eq 0 && { echolog Excluded; return 1; }
+	OF=nvme.txt
+	addHeaderFile $OF
+	NVME_PKG='nvme-cli'
+	if lsmod | grep nvme &> /dev/null; then
+		if rpm_verify $OF $NVME_PKG
+		then
+			log_cmd $OF "nvme list"
+			log_cmd $OF "nvme list-subsys"
+			FILES="/etc/nvme/*"
+			[[ -d /etc/nvme/ ]] && conf_files $OF $FILES
+			[[ -f /etc/nvme/discovery.conf ]] && log_cmd $OF "nvme discover"
+			NVME_DEVICES=$(nvme list | grep /dev | awk '{print $1}')
+			for NVME_DEVICE in $NVME_DEVICES
+			do
+				log_entry $OF note "Processing: $NVME_DEVICE"
+				log_cmd $OF "nvme id-ctrl -H $NVME_DEVICE"
+				log_cmd $OF "nvme fw-log $NVME_DEVICE"
+				log_cmd $OF "nvme smart-log $NVME_DEVICE"
+				log_entry $OF note "Done: $NVME_DEVICE"
+			done
+			log_cmd $OF "lspci -tv"
+		fi
+		echolog Done
+	else
+		echolog Skipped
+	fi
+}
+
 udev_info() {
 	printlog "UDEV..."
 	test $OPTION_UDEV -eq 0 && { echolog Excluded; return 1; }
@@ -2332,8 +2364,8 @@ crash_info() {
 		COREFILE=$(echo $CORE | sed -e 's/\%./\*/g')
 	fi
 
-	# Search CWD per /proc/<pid>/cwd
-	SEARCH="$(readlink /proc/*/cwd | sort | uniq)"
+	# Search CWD per lsof
+	SEARCH="$(lsof -b +M -n -l 2>/dev/null | grep '[[:space:]]cwd[[:space:]]' | awk '{print $9}' | sort | uniq)"
 	for i in $SEARCH
 	do
 		ls -l --time-style=long-iso ${i}/${COREFILE} ${i}/${COREFILE}\.* ${i}/core ${i}/core\.* >> $SEARCH_LIST 2>/dev/null
@@ -2675,7 +2707,7 @@ ha_info() {
 			fi
 			log_cmd $OF 'cibadmin -Q'
 			conf_files $OF $CURRENT_CIB $FILES
-			FILES="/var/log/ha-log /var/log/pacemaker/pacemaker.log /var/log/ctdb/log.ctdb"
+			FILES="/var/log/ha-log /var/log/pacemaker.log /var/log/ctdb/log.ctdb"
 			test $ADD_OPTION_LOGS -gt 0 && log_files $OF 0 $FILES || log_files $OF $VAR_OPTION_LINE_COUNT $FILES
 			CORBIN="/usr/sbin/corosync-fplay"
 			if [[ -x $CORBIN ]]; then
@@ -4231,6 +4263,7 @@ if [ "$USE_SAVED_LOGS_ONLY" != "1" ]; then
 	boot_info
 	slert_info
 	update_info
+	nvme_info
 	smt_info
 	ha_info
 	ocfs2_info
