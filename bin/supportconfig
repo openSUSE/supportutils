@@ -1528,6 +1528,19 @@ hardware_info() {
 			log_cmd $OF "diag_encl -v"
 		fi
 
+		if rpm -q iprutils &>/dev/null; then
+			rpm_verify $OF iprutils
+			log_cmd $OF "iprconfig -c show-config"
+			log_cmd $OF "iprconfig -c show-alt-config"
+			log_cmd $OF "iprconfig -c show-arrays"
+			log_cmd $OF "iprconfig -c show-jbod-disks"
+			log_cmd $OF "iprconfig -c show-ioas"
+			log_cmd $OF "iprconfig -c show-hot-spares"
+			log_cmd $OF "iprconfig -c show-af-disks"
+			log_cmd $OF "iprconfig -c show-all-af-disks"
+			log_cmd $OF "iprconfig -c show-slots"
+			log_cmd $OF "iprconfig -c dump"
+		fi
 		if [ $platform == "pSeries" ]; then
 			if rpm -q servicelog &>/dev/null; then
 				rpm_verify $OF servicelog
