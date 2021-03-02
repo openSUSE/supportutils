@@ -1,4 +1,11 @@
 -------------------------------------------------------------------
+Tue Mar  2 14:45:38 UTC 2021 - Mike Latimer mlatimer@suse.com
+
+- Collect logs for power specific components (using iprconfig) #94
+  + Additional nvme information
+  + Additional kdump configuration and logs
+
+-------------------------------------------------------------------
 Tue Feb 16 20:10:28 UTC 2021 - jason.record@gmail.com
 
 - Additions to version 3.1.14
