@@ -1528,6 +1528,19 @@ hardware_info() {
 			log_cmd $OF "diag_encl -v"
 		fi
 
+		if rpm -q iprutils &>/dev/null; then
+			rpm_verify $OF iprutils
+			log_cmd $OF "iprconfig -c show-config"
+			log_cmd $OF "iprconfig -c show-alt-config"
+			log_cmd $OF "iprconfig -c show-arrays"
+			log_cmd $OF "iprconfig -c show-jbod-disks"
+			log_cmd $OF "iprconfig -c show-ioas"
+			log_cmd $OF "iprconfig -c show-hot-spares"
+			log_cmd $OF "iprconfig -c show-af-disks"
+			log_cmd $OF "iprconfig -c show-all-af-disks"
+			log_cmd $OF "iprconfig -c show-slots"
+			log_cmd $OF "iprconfig -c dump"
+		fi
 		if [ $platform == "pSeries" ]; then
 			if rpm -q servicelog &>/dev/null; then
 				rpm_verify $OF servicelog
@@ -2173,6 +2186,12 @@ nvme_info() {
 				log_cmd $OF "nvme fw-log $NVME_DEVICE"
 				log_cmd $OF "nvme smart-log $NVME_DEVICE"
 				log_entry $OF note "Done: $NVME_DEVICE"
+				log_cmd $OF "smartctl --all $NVME_DEVICE"
+				log_cmd $OF "nvme list-ns $NVME_DEVICE"
+				log_cmd $OF "nvme list-ctrl $NVME_DEVICE"
+				log_cmd $OF "nvme id-ns -H $NVME_DEVICE"
+				log_cmd $OF "nvme error-log $NVME_DEVICE"
+				log_cmd $OF "nvme show-regs $NVME_DEVICE"
 			done
 			log_cmd $OF "lspci -tv"
 		fi
@@ -2243,6 +2262,11 @@ crash_info() {
 		conf_files $OF /sys/kernel/fadump/mem_reserved
 		conf_files $OF /sys/kernel/kexec_crash_loaded
 		conf_files $OF /sys/kernel/kexec_crash_size
+		conf_files $OF /etc/kdump.conf
+		conf_files $OF /etc/udev/rules.d/*kexec.rules
+		conf_files $OF /var/crash/*/vmcore-dmesg.txt
+		conf_files $OF /var/crash/*/kexec-dmesg.log
+		conf_files $OF /var/log/kdump.log
 		if rpm -q kdump &>/dev/null; then
 			DUMPDIR=$(kdumptool dump_config | grep ^KDUMP_SAVEDIR | sed -e 's/"//g;s!file://!!g' | cut -d= -f2)
 			if [[ -d $DUMPDIR ]]; then
