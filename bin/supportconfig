@@ -2262,6 +2262,11 @@ crash_info() {
 		conf_files $OF /sys/kernel/fadump/mem_reserved
 		conf_files $OF /sys/kernel/kexec_crash_loaded
 		conf_files $OF /sys/kernel/kexec_crash_size
+		conf_files $OF /etc/kdump.conf
+		conf_files $OF /etc/udev/rules.d/*kexec.rules
+		conf_files $OF /var/crash/*/vmcore-dmesg.txt
+		conf_files $OF /var/crash/*/kexec-dmesg.log
+		conf_files $OF /var/log/kdump.log
 		if rpm -q kdump &>/dev/null; then
 			DUMPDIR=$(kdumptool dump_config | grep ^KDUMP_SAVEDIR | sed -e 's/"//g;s!file://!!g' | cut -d= -f2)
 			if [[ -d $DUMPDIR ]]; then
