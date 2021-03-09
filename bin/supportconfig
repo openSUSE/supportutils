@@ -1,7 +1,7 @@
 #!/bin/bash
 
-SVER='3.1.11-1'
-SDATE='2021 02 16'
+SVER='3.1.11-1_dev4'
+SDATE='2021 03 09'
 
 ##############################################################################
 #  supportconfig - Gathers system troubleshooting information for SUSE Support
@@ -33,7 +33,7 @@ SDATE='2021 02 16'
 #  along with this program; if not, see <http://www.gnu.org/licenses/>.
 #
 #  Authors/Contributors:
-#     Jason Record (jason.record@suse.com)
+#     Jason Record <jason.record@suse.com>
 #
 ##############################################################################
 
@@ -91,7 +91,7 @@ show_help() {
 	echo "  -b Screen buffer mode"
 	echo "  -c Disables curl checks to SUSE update servers"
 	echo "  -d Exclude detailed disk info and scans"
-	echo "  -f From directory. Don't collect report files, just use files in that"
+	echo "  -f From directory. Don't collect report files, just use the directory or files in that"
 	echo "     directory."
 	echo "  -g Use gzip instead of the default xz compression"
 	echo "  -i <keyword list>"
@@ -1927,20 +1927,20 @@ btrfs_info() {
 		[[ -x /usr/bin/findmnt ]] && log_cmd $OF "findmnt" || log_cmd $OF "mount"
 		(( $IO_DELAYS )) || log_cmd $OF "df -h"
 		log_cmd $OF "modinfo btrfs"
-                for DEVICE in $(btrfs filesystem show | awk 'NF{ print $NF }' | grep ^/)
-                #TODO For multi-device btrfs filesysems only use one device
-                do
-                        for FILESYS in $(findmnt -S $DEVICE --types btrfs --list --output target --first-only --noheadings)
-                        do
-                                log_cmd $OF "btrfs filesystem usage $FILESYS"
-                                log_cmd $OF "btrfs scrub status $FILESYS"
-                                log_cmd $OF "btrfs balance status -v $FILESYS"
-                                log_cmd $OF "btrfs subvolume get-default $FILESYS"
-                                log_cmd $OF "btrfs subvolume list $FILESYS"
+		for DEVICE in $(btrfs filesystem show | awk 'NF{ print $NF }' | grep ^/)
+		#TODO For multi-device btrfs filesysems only use one device
+		do
+			for FILESYS in $(findmnt -S $DEVICE --types btrfs --list --output target --first-only --noheadings)
+			do
+				log_cmd $OF "btrfs filesystem usage $FILESYS"
+				log_cmd $OF "btrfs scrub status $FILESYS"
+				log_cmd $OF "btrfs balance status -v $FILESYS"
+				log_cmd $OF "btrfs subvolume get-default $FILESYS"
+				log_cmd $OF "btrfs subvolume list $FILESYS"
 				log_cmd $OF "btrfs qgroup show -prce $FILESYS"
 				log_cmd $OF "btrfs device stats $FILESYS"
-                        done
-                done
+			done
+		done
 
 		if rpm_verify $OF snapper; then
 			log_cmd $OF "snapper list-configs"
@@ -4185,38 +4185,56 @@ if (( VAR_OPTION_UNIQUE_FILE )); then
 	test -z "$NOTFOUND" && BASE="${BASE}_%u" #add UID if not present already
 fi
 
-if [ -n "$FROM_DIRECTORY" ]; then
-	VAR_OPTION_LOG_DIRS=$FROM_DIRECTORY
-	BASE=$(ls -t $FROM_DIRECTORY | grep nts | head -n1)
+if [[ -n "$FROM_DIRECTORY" ]]; then
+	if [[ -s ${FROM_DIRECTORY}/${BASIC_ENVF} ]]; then
+		VAR_OPTION_LOG_DIRS=$(dirname ${FROM_DIRECTORY} 2>/dev/null)
+		BASE=$(basename ${FROM_DIRECTORY} 2>/dev/null)
+	else
+		VAR_OPTION_LOG_DIRS=$FROM_DIRECTORY
+		TBASE=$(ls -1td ${FROM_DIRECTORY}/*/ 2>/dev/null | egrep 'scc_|nts_' | head -n1)
+		BASE=$(basename $TBASE 2>/dev/null)
+	fi
 fi
 
 for LOG in $VAR_OPTION_LOG_DIRS
 do
 	# If a full path was not assigned, the cwd will be prepended to the LOG path
 	VALID_LOG=$(echo $LOG | grep '^/')
-	if [ -z "$VALID_LOG" ]; then
+	if [[ -z "$VALID_LOG" ]]; then
 		VALID_LOG=$(echo $LOG | grep '^\./')
 		CURRENT_PATH="$(pwd)"
-		if [ -n "$VALID_LOG" ]; then
+		if [[ -n "$VALID_LOG" ]]; then
 			LOG="${CURRENT_PATH}/${LOG:2}"
 		else
 			LOG="${CURRENT_PATH}/${LOG}"
 		fi
 	fi
-	# Create the paths
 	normalize_base
-	[ $USE_SAVED_LOGS_ONLY -eq 0 ] && check_log_dir
-	LOG=${LOG}/${BASE}
-	if mkdir -p $LOG &>/dev/null; then 
-		unset LOGERROR
-		break
+	# Create the paths
+	if (( USE_SAVED_LOGS_ONLY )); then
+		if [[ -n $BASE ]]; then
+			LOG=${LOG}/${BASE}
+		else
+			echo "ERROR: Missing or invalid supportconfig directory in -f $LOG"
+			LOGERROR=1
+		fi
 	else
-		echo "ERROR: Cannot create $LOG"
-		LOGERROR=1
+		check_log_dir
+		LOG=${LOG}/${BASE}
+		if mkdir -p $LOG &>/dev/null; then 
+			unset LOGERROR
+			break
+		else
+			echo "ERROR: Cannot create $LOG"
+			LOGERROR=1
+		fi
 	fi
 done
 
-test $LOGERROR && { echo; exit_code 3; }
+if (( $LOGERROR )); then
+	echo
+	exit_code 3
+fi
 export LOG
 
 if [ "$USE_SAVED_LOGS_ONLY" != "1" ]; then

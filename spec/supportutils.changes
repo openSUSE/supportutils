@@ -1,4 +1,9 @@
 -------------------------------------------------------------------
+Tue Mar  9 18:19:18 UTC 2021 - jason.record@gmail.com
+
+- supportconfig processes -f without hanging (bsc#1182904)
+
+-------------------------------------------------------------------
 Wed Mar  3 14:12:42 UTC 2021 - Thorsten Kukuk <kukuk@suse.com>
 
 - Remove net-tools from requires, it does not contain any tool
