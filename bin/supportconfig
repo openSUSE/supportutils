@@ -1,6 +1,6 @@
 #!/bin/bash
 
-SVER='3.1.11-1_dev4'
+SVER='3.1.11-3'
 SDATE='2021 03 09'
 
 ##############################################################################
@@ -1808,10 +1808,9 @@ disk_info() {
 	printlog "Disk I/O..."
 	test $OPTION_DISK -eq 0 && { echolog Excluded; return 1; }
 	OF=fs-diskio.txt
-	local DISK_IO_DELAYS=0
 	addHeaderFile $OF
-	timed_log_cmd $OF 'fdisk -l 2>/dev/null | grep Disk' || DISK_IO_DELAYS=1
 	conf_files $OF /proc/partitions /etc/fstab
+	log_cmd $OF "lsblk -o 'NAME,KNAME,MAJ:MIN,FSTYPE,LABEL,RO,RM,MODEL,SIZE,OWNER,GROUP,MODE,ALIGNMENT,MIN-IO,OPT-IO,PHY-SEC,LOG-SEC,ROTA,SCHED,MOUNTPOINT,DISC-ALN,DISC-GRAN,DISC-MAX,DISC-ZERO'"
 	[[ -x /usr/bin/findmnt ]] && log_cmd $OF "findmnt"
 	log_cmd $OF "mount"
 	conf_files $OF /proc/mounts /etc/mtab
@@ -1878,7 +1877,6 @@ disk_info() {
 			log_write $OF "#---------------------------------------------------#"
 			log_cmd $OF 'lsscsi'
 			log_cmd $OF 'lsscsi -H'
-			(( $DISK_IO_DELAYS )) || log_cmd $OF "lsblk -o 'NAME,KNAME,MAJ:MIN,FSTYPE,LABEL,RO,RM,MODEL,SIZE,OWNER,GROUP,MODE,ALIGNMENT,MIN-IO,OPT-IO,PHY-SEC,LOG-SEC,ROTA,SCHED,MOUNTPOINT,DISC-ALN,DISC-GRAN,DISC-MAX,DISC-ZERO'"
 			if log_cmd $OF 'scsiinfo -l'
 			then
 				FILES=$(scsiinfo -l)

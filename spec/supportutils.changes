@@ -1,6 +1,7 @@
 -------------------------------------------------------------------
-Tue Mar  9 18:19:18 UTC 2021 - jason.record@gmail.com
+Tue Mar  9 18:37:25 UTC 2021 - jason.record@gmail.com
 
+- removed redundant fdisk code that can cause timeout issues (bsc#1181679)
 - supportconfig processes -f without hanging (bsc#1182904)
 
 -------------------------------------------------------------------
