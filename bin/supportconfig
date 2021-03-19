@@ -1586,6 +1586,10 @@ hardware_info() {
 				log_entry $OF command "cp /var/log/drmgr.0 $PPC_DIR"
 				cp /var/log/drmgr.0 $PPC_DIR 2>/dev/null
 			fi
+			if [[ -f /sys/kernel/debug/dynamic_debug/control ]]; then
+				log_entry $OF command "cp /sys/kernel/debug/dynamic_debug/control $PPC_DIR"
+				cp /sys/kernel/debug/dynamic_debug/control $PPC_DIR 2>/dev/null
+			fi
 			;;
 		"PowerNV")
 			log_entry $OF command "cp /proc/ppc64/eeh /proc/ppc64/systemcfg /proc/ppc64/topology_updates /sys/firmware/opal/msglog /var/log/opal-elog /dev/nvram $PPC_DIR"
