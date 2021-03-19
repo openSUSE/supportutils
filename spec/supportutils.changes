@@ -1,4 +1,9 @@
 -------------------------------------------------------------------
+Fri Mar 19 16:42:39 UTC 2021 - jason.record@gmail.com
+
+- [powerpc] Collect dynamic_debug log files for ibmvNIC #98
+
+-------------------------------------------------------------------
 Thu Mar 11 18:12:31 UTC 2021 - jason.record@gmail.com
 
 - Fixed mismatched taint flags (bsc#1178491)
