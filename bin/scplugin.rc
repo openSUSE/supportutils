@@ -89,7 +89,7 @@ plugin_command() {
 		EXIT_STATUS=$?
 	else
 		echo "# $CMDLINE_ORIG"
-		echo "ERROR: Command not found or not executible"
+		echo "ERROR: Command not found or not executable"
 		EXIT_STATUS=1
 	fi
 	echo

@@ -421,7 +421,7 @@ log_cmd() {
 		wait_trace_off
 	else
 		echo "# $CMDLINE_ORIG" >> $LOGFILE
-		echo "ERROR: Command not found or not executible" >> $LOGFILE
+		echo "ERROR: Command not found or not executable" >> $LOGFILE
 		EXIT_STATUS=1
 	fi
 	echo >> $LOGFILE
@@ -505,7 +505,7 @@ TEOF
 		wait_trace_off
 	else
 		echo "# $CMDLINE_ORIG" >> $LOGFILE
-		echo "ERROR: Command not found or not executible" >> $LOGFILE
+		echo "ERROR: Command not found or not executable" >> $LOGFILE
 		EXIT_STATUS=1
 	fi
 	echo >> $LOGFILE
@@ -758,7 +758,7 @@ exec_plugins() {
 					fi
 				fi
 			else
-				log_write $PLUGIN_LOG_FILE "ERROR: Missing or non-executible plugin"
+				log_write $PLUGIN_LOG_FILE "ERROR: Missing or non-executable plugin"
 				((PLUGIN_ERROR++))
 			fi
 			log_write $PLUGIN_LOG_FILE
