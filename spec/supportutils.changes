@@ -1,9 +1,10 @@
 -------------------------------------------------------------------
-Thu Apr 15 17:56:49 UTC 2021 - Jason Record <jason.record@suse.com>
+Thu Apr 15 18:14:10 UTC 2021 - Jason Record <jason.record@suse.com>
 
 - Additions to version 3.0.15
   + Added drbd-overview to drbd.txt
   + Added list-timers to systemd.txt (bsc#1169348)
+  + Including nfs4 in search (bsc#1184829)
 - Minor: Fix a typo (executible -> executable) #99
 - Changed minor wording to loaded module
 
