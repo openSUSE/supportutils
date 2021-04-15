@@ -1,6 +1,6 @@
 #!/bin/bash
 
-SVER='3.1.11-4_dev1'
+SVER='3.1.11-4_dev2'
 SDATE='2021 04 15'
 
 ##############################################################################
@@ -1121,6 +1121,7 @@ systemd_info() {
 	log_cmd $OF 'systemctl --no-pager --all list-sockets'
 	log_cmd $OF 'systemctl --no-pager list-unit-files'
 	log_cmd $OF 'systemctl --no-pager list-jobs'
+	log_cmd $OF 'systemctl --no-pager list-timers --all'
 	for i in $(systemctl --no-pager --all list-units | sed 's/^[^-_:\\a-zA-Z0-9]*//' | egrep -v '^UNIT |^LOAD |^ACTIVE |^SUB |^To |^[[:digit:]]* ' | awk '{print $1}')
 	do
 		if [[ -z "$i" ]]
