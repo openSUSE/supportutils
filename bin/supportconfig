@@ -1,11 +1,11 @@
 #!/bin/bash
 
-SVER='2.25-467'
-SDATE="2019 02 26"
+SVER='2.25-467_dev2'
+SDATE="2021 04 15"
 
 ##############################################################################
 #  supportconfig - Gathers system troubleshooting information for SUSE Support
-#  Copyright (C) 2001-2019 SUSE LLC
+#  Copyright (C) 2001-2021 SUSE LLC
 #
 #  Creates a tar ball to attach to the SR or send to support. Collects
 #  comprehensive troubleshooting information from the server.
@@ -32,7 +32,7 @@ SDATE="2019 02 26"
 #  along with this program; if not, see <http://www.gnu.org/licenses/>.
 #
 #  Authors/Contributors:
-#     Jason Record (jason.record@suse.com)
+#     Jason Record <jason.record@suse.com>
 #
 ##############################################################################
 # Default Options
@@ -135,13 +135,18 @@ VAR_OPTION_SILENT=0
 VAR_OPTION_SBM=0
 VAR_OPTION_UNIQUE_FILE=0
 VAR_OPTION_HEADER_FILE='/usr/lib/supportconfig/header.txt'
+VAR_OPTION_WAIT_TRACE=0
+
 SUSE_UPLOAD_NA_ASERVER='support-ftp.us.suse.com'
 SUSE_UPLOAD_EMEA_ASERVER='support-ftp.emea.suse.com'
+SUSE_UPLOAD_NA_HTTPS="https://${SUSE_UPLOAD_NA_ASERVER}/incoming/upload.php?file={tarball}"
+SUSE_UPLOAD_NA_FTPES="ftps://${SUSE_UPLOAD_NA_ASERVER}/incoming"
 SUSE_UPLOAD_NA_FTP="ftp://anonymous@${SUSE_UPLOAD_NA_ASERVER}/incoming"
+SUSE_UPLOAD_EMEA_HTTPS="https://${SUSE_UPLOAD_EMEA_ASERVER}/incoming/upload.php?file={tarball}"
+SUSE_UPLOAD_EMEA_FTPES="ftps://${SUSE_UPLOAD_EMEA_ASERVER}/incoming"
 SUSE_UPLOAD_EMEA_FTP="ftp://anonymous@${SUSE_UPLOAD_EMEA_ASERVER}/incoming"
-VAR_OPTION_UPLOAD_TARGET="${SUSE_UPLOAD_NA_FTP}"
-VAR_OPTION_UPLOAD_ALT="${SUSE_UPLOAD_EMEA_FTP}"
-VAR_OPTION_WAIT_TRACE=0
+VAR_OPTION_UPLOAD_TARGET="${SUSE_UPLOAD_NA_FTPES}"
+VAR_OPTION_UPLOAD_TARGET_ALT="${SUSE_UPLOAD_NA_HTTPS}"
 
 LANG=C
 PATH="/sbin:/usr/sbin:/bin:/usr/bin:$PATH"
@@ -5395,8 +5400,19 @@ upload_tarball() {
 		log2sys "Uploading Tar Ball"
 		TARBALL_FILE=$(basename $TARBALL)
 		UPLOAD_SERVICE=$(echo ${VAR_OPTION_UPLOAD_TARGET} | cut -d: -f1)
+		FTPES_OPTIONS="--ssl-reqd"
 		if (( VAR_OPTION_SILENT )); then
 			case $UPLOAD_SERVICE in
+			ftps|ftpes)
+				UPLOAD_URL=$(sed -e 's/ftpes:/ftp:/g;s/ftps:/ftp:/g' <<< ${VAR_OPTION_UPLOAD_TARGET})
+				if (( ENCRYPTED_TARBALL )); then
+					curl -sT ${TARBALL}.md5 ${FTPES_OPTIONS} ${UPLOAD_URL}/${TARBALL_FILE}.md5 &>/dev/null
+					curl -sT ${TARBALL}.gpg ${FTPES_OPTIONS} ${UPLOAD_URL}/${TARBALL_FILE}.gpg &>/dev/null
+				else
+					curl -sT ${TARBALL}.md5 ${FTPES_OPTIONS} ${UPLOAD_URL}/${TARBALL_FILE}.md5 &>/dev/null
+					curl -sT ${TARBALL} ${FTPES_OPTIONS} ${UPLOAD_URL}/${TARBALL_FILE} &>/dev/null
+				fi
+				;;
 			ftp)
 				UPLOAD_URL=${VAR_OPTION_UPLOAD_TARGET}
 				if (( ENCRYPTED_TARBALL )); then
@@ -5408,7 +5424,7 @@ upload_tarball() {
 				fi
 				;;
 			scp)
-				UPLOAD_URL=$(echo ${VAR_OPTION_UPLOAD_TARGET} | sed -e 's!scp://!!g;s!/!:/!')
+				UPLOAD_URL=$(sed -e 's!scp://!!g;s!/!:/!' <<< ${VAR_OPTION_UPLOAD_TARGET})
 				if (( ENCRYPTED_TARBALL )); then
 					scp -qp "${TARBALL}.md5" "${UPLOAD_URL}/${TARBALL_FILE}.md5" &>/dev/null
 					scp -qp "${TARBALL}.gpg" "${UPLOAD_URL}/${TARBALL_FILE}.gpg" &>/dev/null
@@ -5417,16 +5433,15 @@ upload_tarball() {
 					scp -qp "${TARBALL}" "${UPLOAD_URL}/${TARBALL_FILE}" &>/dev/null
 				fi
 				;;
-			http|https)
+			https)
+				UPLOAD_URL_MD5=$(sed -e "s/{[Tt][Aa][Rr][Bb][Aa][Ll][Ll]}/${TARBALL_FILE}.md5/g" <<< ${VAR_OPTION_UPLOAD_TARGET})
 				if (( ENCRYPTED_TARBALL )); then
-					UPLOAD_URL=$(echo $VAR_OPTION_UPLOAD_TARGET | sed -e "s/{[Tt][Aa][Rr][Bb][Aa][Ll][Ll]}/${TARBALL_FILE}.md5/g")
-					curl -s -L -A SupportConfig -T "${TARBALL}.md5" "${UPLOAD_URL}" &>/dev/null
-					UPLOAD_URL=$(echo $VAR_OPTION_UPLOAD_TARGET | sed -e "s/{[Tt][Aa][Rr][Bb][Aa][Ll][Ll]}/${TARBALL_FILE}.gpg/g")
+					UPLOAD_URL=$(sed -e "s/{[Tt][Aa][Rr][Bb][Aa][Ll][Ll]}/${TARBALL_FILE}.gpg/g" <<< ${VAR_OPTION_UPLOAD_TARGET})
+					curl -s -L -A SupportConfig -T "${TARBALL}.md5" "${UPLOAD_URL_MD5}" &>/dev/null
 					curl -s -L -A SupportConfig -T "${TARBALL}.gpg" "${UPLOAD_URL}" &>/dev/null
 				else
-					UPLOAD_URL=$(echo $VAR_OPTION_UPLOAD_TARGET | sed -e "s/{[Tt][Aa][Rr][Bb][Aa][Ll][Ll]}/${TARBALL_FILE}.md5/g")
-					curl -s -L -A SupportConfig -T "${TARBALL}.md5" "${UPLOAD_URL}" &>/dev/null
-					UPLOAD_URL=$(echo $VAR_OPTION_UPLOAD_TARGET | sed -e "s/{[Tt][Aa][Rr][Bb][Aa][Ll][Ll]}/${TARBALL_FILE}/g")
+					UPLOAD_URL=$(sed -e "s/{[Tt][Aa][Rr][Bb][Aa][Ll][Ll]}/${TARBALL_FILE}/g" <<< ${VAR_OPTION_UPLOAD_TARGET})
+					curl -s -L -A SupportConfig -T "${TARBALL}.md5" "${UPLOAD_URL_MD5}" &>/dev/null
 					curl -s -L -A SupportConfig -T "${TARBALL}" "${UPLOAD_URL}" &>/dev/null
 				fi
 				;;
@@ -5443,6 +5458,37 @@ upload_tarball() {
 			fi
 			echo
 			case $UPLOAD_SERVICE in
+			ftps|ftpes)
+				UPLOAD_URL=$(sed -e 's/ftpes:/ftp:/g;s/ftps:/ftp:/g' <<< ${VAR_OPTION_UPLOAD_TARGET})
+				if (( VAR_OPTION_SBM )); then
+					wait_trace_on -t "curl -sT ${TARBALL}.md5 ${FTPES_OPTIONS} ${UPLOAD_URL}/${TARBALL_FILE}.md5"
+					curl -sT ${TARBALL}.md5 ${FTPES_OPTIONS} ${UPLOAD_URL}/${TARBALL_FILE}.md5 &>/dev/null
+					wait_trace_off -t
+					if (( ENCRYPTED_TARBALL )); then
+						wait_trace_on -t "curl -sT ${TARBALL}.gpg ${FTPES_OPTIONS} ${UPLOAD_URL}/${TARBALL_FILE}.gpg"
+						curl -sT ${TARBALL}.gpg ${FTPES_OPTIONS} ${UPLOAD_URL}/${TARBALL_FILE}.gpg &>/dev/null
+						wait_trace_off -t
+					else
+						wait_trace_on -t "curl -sT ${TARBALL} ${FTPES_OPTIONS} ${UPLOAD_URL}/${TARBALL_FILE}"
+						curl -sT ${TARBALL} ${FTPES_OPTIONS} ${UPLOAD_URL}/${TARBALL_FILE} &>/dev/null
+						wait_trace_off -t
+					fi
+				else
+					echo "curl -#T ${TARBALL}.md5 ${FTPES_OPTIONS} ${UPLOAD_URL}/${TARBALL_FILE}.md5"
+					echo
+					curl -#T ${TARBALL}.md5 ${FTPES_OPTIONS} ${UPLOAD_URL}/${TARBALL_FILE}.md5
+					echo
+					if (( ENCRYPTED_TARBALL )); then
+						echo "curl -#T ${TARBALL}.gpg ${FTPES_OPTIONS} ${UPLOAD_URL}/${TARBALL_FILE}.gpg"
+						echo
+						curl -#T ${TARBALL}.gpg ${FTPES_OPTIONS} ${UPLOAD_URL}/${TARBALL_FILE}.gpg
+					else
+						echo "curl -#T ${TARBALL} ${FTPES_OPTIONS} ${UPLOAD_URL}/${TARBALL_FILE}"
+						echo
+						curl -#T ${TARBALL} ${FTPES_OPTIONS} ${UPLOAD_URL}/${TARBALL_FILE}
+					fi
+				fi
+				;;
 			ftp)
 				UPLOAD_URL=${VAR_OPTION_UPLOAD_TARGET}
 				if (( VAR_OPTION_SBM )); then
@@ -5505,36 +5551,35 @@ upload_tarball() {
 					fi
 				fi
 				;;
-			http|https)
+			https)
+				UPLOAD_URL_MD5=$(sed -e "s/{[Tt][Aa][Rr][Bb][Aa][Ll][Ll]}/${TARBALL_FILE}.md5/g" <<< ${VAR_OPTION_UPLOAD_TARGET})
 				if (( VAR_OPTION_SBM )); then
-					UPLOAD_URL=$(echo $VAR_OPTION_UPLOAD_TARGET | sed -e "s/{[Tt][Aa][Rr][Bb][Aa][Ll][Ll]}/${TARBALL_FILE}.md5/g")
-					wait_trace_on -t "curl -s -L -A SupportConfig -T \"${TARBALL}.md5\" \"${UPLOAD_URL}\""
-					curl -s -L -A SupportConfig -T "${TARBALL}.md5" "${UPLOAD_URL}" &>/dev/null
+					wait_trace_on -t "curl -s -L -A SupportConfig -T \"${TARBALL}.md5\" \"${UPLOAD_URL_MD5}\""
+					curl -s -L -A SupportConfig -T "${TARBALL}.md5" "${UPLOAD_URL_MD5}" &>/dev/null
 					wait_trace_off -t
 					if (( ENCRYPTED_TARBALL )); then
-						UPLOAD_URL=$(echo $VAR_OPTION_UPLOAD_TARGET | sed -e "s/{[Tt][Aa][Rr][Bb][Aa][Ll][Ll]}/${TARBALL_FILE}.gpg/g")
+						UPLOAD_URL=$(sed -e "s/{[Tt][Aa][Rr][Bb][Aa][Ll][Ll]}/${TARBALL_FILE}.gpg/g" <<< ${VAR_OPTION_UPLOAD_TARGET})
 						wait_trace_on -t "curl -s -L -A SupportConfig -T \"${TARBALL}.gpg\" \"${UPLOAD_URL}\""
 						curl -s -L -A SupportConfig -T "${TARBALL}.gpg" "${UPLOAD_URL}" &>/dev/null
 						wait_trace_off -t
 					else
-						UPLOAD_URL=$(echo $VAR_OPTION_UPLOAD_TARGET | sed -e "s/{[Tt][Aa][Rr][Bb][Aa][Ll][Ll]}/${TARBALL_FILE}/g")
+						UPLOAD_URL=$(sed -e "s/{[Tt][Aa][Rr][Bb][Aa][Ll][Ll]}/${TARBALL_FILE}/g" <<< ${VAR_OPTION_UPLOAD_TARGET})
 						wait_trace_on -t "curl -s -L -A SupportConfig -T \"${TARBALL}\" \"${UPLOAD_URL}\""
 						curl -s -L -A SupportConfig -T "${TARBALL}" "${UPLOAD_URL}" &>/dev/null
 						wait_trace_off -t
 					fi
 				else
-					UPLOAD_URL=$(echo $VAR_OPTION_UPLOAD_TARGET | sed -e "s/{[Tt][Aa][Rr][Bb][Aa][Ll][Ll]}/${TARBALL_FILE}.md5/g")
-					echo "curl -v -L -A SupportConfig -T \"${TARBALL}.md5\" \"${UPLOAD_URL}\""
+					echo "curl -v -L -A SupportConfig -T \"${TARBALL}.md5\" \"${UPLOAD_URL_MD5}\""
 					echo
-					curl -v -L -A SupportConfig -T "${TARBALL}.md5" "${UPLOAD_URL}"
+					curl -v -L -A SupportConfig -T "${TARBALL}.md5" "${UPLOAD_URL_MD5}"
 					echo
 					if (( ENCRYPTED_TARBALL )); then
-						UPLOAD_URL=$(echo $VAR_OPTION_UPLOAD_TARGET | sed -e "s/{[Tt][Aa][Rr][Bb][Aa][Ll][Ll]}/${TARBALL_FILE}.gpg/g")
+						UPLOAD_URL=$(sed -e "s/{[Tt][Aa][Rr][Bb][Aa][Ll][Ll]}/${TARBALL_FILE}.gpg/g" <<< ${VAR_OPTION_UPLOAD_TARGET})
 						echo "curl -v -L -A SupportConfig -T \"${TARBALL}.gpg\" \"${UPLOAD_URL}\""
 						echo
 						curl -v -L -A SupportConfig -T "${TARBALL}.gpg" "${UPLOAD_URL}"
 					else
-						UPLOAD_URL=$(echo $VAR_OPTION_UPLOAD_TARGET | sed -e "s/{[Tt][Aa][Rr][Bb][Aa][Ll][Ll]}/${TARBALL_FILE}/g")
+						UPLOAD_URL=$(sed -e "s/{[Tt][Aa][Rr][Bb][Aa][Ll][Ll]}/${TARBALL_FILE}/g" <<< ${VAR_OPTION_UPLOAD_TARGET})
 						echo "curl -v -L -A SupportConfig -T \"${TARBALL}\" \"${UPLOAD_URL}\""
 						echo
 						curl -v -L -A SupportConfig -T "${TARBALL}" "${UPLOAD_URL}"
@@ -5544,8 +5589,8 @@ upload_tarball() {
 			*)
 				echo "ERROR: Unsupported upload service type: ${UPLOAD_SERVICE}"
 				echo
-				echo "  Supported service types: ftp, scp"
-				echo "  Example URI: ${SUSE_UPLOAD_NA_FTP}"
+				echo "  Supported service types: ftp, ftps/ftpes, https, scp"
+				echo "  Example URI: ${SUSE_UPLOAD_NA_HTTPS}"
 				echo
 				echo "  VAR_OPTION_UPLOAD_TARGET=\"${VAR_OPTION_UPLOAD_TARGET}\""
 				;;
@@ -5772,7 +5817,7 @@ do
 	S) VAR_OPTION_SAR_FILES_LIMIT=$OPTARG ;;
 	U) VAR_OPTION_UPLOAD_TARGET="$OPTARG" && UPLOAD_TARBALL=1 ;;
 	W) VAR_OPTION_CONTACT_STOREID="$OPTARG" ;;
-	a) UPLOAD_TARBALL=1; VAR_OPTION_UPLOAD_TARGET=$VAR_OPTION_UPLOAD_ALT ;;
+	a) UPLOAD_TARBALL=1; VAR_OPTION_UPLOAD_TARGET=${VAR_OPTION_UPLOAD_TARGET_ALT} ;;
 	b) VAR_OPTION_SBM=1 ;;
 	d) ADD_OPTION_MINDISK=1 ;;
 	e) ADD_OPTION_EDIR=1 ;;
