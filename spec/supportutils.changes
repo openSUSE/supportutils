@@ -13,7 +13,8 @@ Mon Mar 16 16:13:27 UTC 2020 - jason.record@suse.com
 
 - Addition to version 3.0.8
   + Changes affecting getappcore
-    - Added -u for HTTPS and -f for FTPES uploads to SUSE FTP servers
+    - Added -u for HTTPS and -a for FTPES uploads to SUSE FTP servers
+	  (bsc#1051419)
     - Replaced Novell with SUSE FTP servers (bsc#1165475)
     - Uses /etc/getappcore.conf if present
     - Added core file validation (bsc#1166128)
