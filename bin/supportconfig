@@ -1,15 +1,15 @@
 #!/bin/bash
 
-SVER='3.0.8-1_dev1'
+SVER='3.0.8-1_dev2'
 SDATE='2021 04 15'
 
 ##############################################################################
 #  supportconfig - Gathers system troubleshooting information for SUSE Support
 #  Copyright (C) 2001-2021 SUSE LLC
 #
-#  Creates a tar ball to attach to the SR or send to support. Collects
-#  comprehensive system information for troubleshooting and reducing resolution
-#  time.
+#  Creates a tar ball to attach to the support case or send to support. 
+#  Collects comprehensive system information for troubleshooting and reducing
+#  resolution time.
 #
 #  Disclaimer:
 #  Detailed system information and logs are collected and organized in a
@@ -33,7 +33,7 @@ SDATE='2021 04 15'
 #  along with this program; if not, see <http://www.gnu.org/licenses/>.
 #
 #  Authors/Contributors:
-#     Jason Record (jason.record@suse.com)
+#     Jason Record <jason.record@suse.com>
 #
 ##############################################################################
 # Default Options
@@ -1741,6 +1741,8 @@ systemd_info() {
 	log_cmd $OF 'systemctl --no-pager --all list-units'
 	log_cmd $OF 'systemctl --no-pager --all list-sockets'
 	log_cmd $OF 'systemctl --no-pager list-unit-files'
+	log_cmd $OF 'systemctl --no-pager list-jobs'
+	log_cmd $OF 'systemctl --no-pager list-timers --all'
 	for i in $(systemctl --no-pager --all list-units | sed 's/^[^-_:\\a-zA-Z0-9]*//' | egrep -v '^UNIT |^LOAD |^ACTIVE |^SUB |^To |^[[:digit:]]* ' | awk '{print $1}')
 	do
 		if [[ -z "$i" ]]
