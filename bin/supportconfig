@@ -1,11 +1,11 @@
 #!/bin/bash
 
-SVER='3.0.8-1'
-SDATE='2020 03 16'
+SVER='3.0.8-1_dev1'
+SDATE='2021 04 15'
 
 ##############################################################################
 #  supportconfig - Gathers system troubleshooting information for SUSE Support
-#  Copyright (C) 2001-2020 SUSE LLC
+#  Copyright (C) 2001-2021 SUSE LLC
 #
 #  Creates a tar ball to attach to the SR or send to support. Collects
 #  comprehensive system information for troubleshooting and reducing resolution
@@ -3817,6 +3817,10 @@ drbd_info() {
 		log_write $OF
 		log_cmd $OF "lsmod | grep drbd"
 		log_cmd $OF "modinfo drbd"
+		log_cmd $OF "drbd-overview"
+		log_cmd $OF "drbdadm status" 
+		log_cmd $OF "drbdadm dump"
+		log_cmd $OF "cat /proc/drbd"
 		log_cmd $OF "ps aux | grep drbd | grep -v grep"
 		[[ -x /usr/bin/findmnt ]] && log_cmd $OF "findmnt" || log_cmd $OF "mount"
 		(( $IO_DELAYS )) || log_cmd $OF "df -h"
@@ -3825,8 +3829,11 @@ drbd_info() {
 			FILES=''
 			for DIR in $DIRLIST
 			do
+				# We need to add "/etc/" since $DIR will have dir inside /etc/ 
+				# However this find will find all files inside a specific folder It's okay
+				# Will end up with /etc/drbd.conf/nfs.res nfs.RES nfs.stop .... 
+				[[ -d "/etc/$DIR" ]] && FILES="$FILES $(find -L \"/etc/$DIR\" -type f)"
 				[[ -d $DIR ]] && FILES="$FILES $(find -L $DIR -type f)"
-				[[ -d /etc/$DIR ]] && FILES="$FILES $(find -L /etc/$DIR -type f)"
 			done
 			conf_files $OF "/etc/drbd.conf $FILES"
 		fi

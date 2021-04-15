@@ -1,4 +1,10 @@
 -------------------------------------------------------------------
+Thu Apr 15 17:14:08 UTC 2021 - Jason Record <jason.record@suse.com>
+
+- Additions to version 3.0.9
+  + Added drbd information and configuration details to drbd.txt (bsc#1063765)
+
+-------------------------------------------------------------------
 Mon Mar 16 16:13:27 UTC 2020 - jason.record@suse.com
 
 - Addition to version 3.0.8
