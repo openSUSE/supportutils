@@ -2059,7 +2059,7 @@ detectVirtualization() {
 		else
 			KVMID="Virtual Machine Server (No QEMU Virtual CPU)"
 		fi
-		log_write $OUT "Hypervisor:    KVM (kvm loaded)"
+		log_write $OUT "Hypervisor:    KVM (kvm kernel module loaded)"
 		log_write $OUT "Identity:      $KVMID"
 	elif echo $CPUMODEL | grep -i 'QEMU Virtual CPU' &>/dev/null; then
 		NO_HYPER=0
