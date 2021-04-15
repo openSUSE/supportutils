@@ -1,7 +1,7 @@
 #!/bin/bash
 
-SVER='3.1.11-4'
-SDATE='2021 03 11'
+SVER='3.1.11-4_dev1'
+SDATE='2021 04 15'
 
 ##############################################################################
 #  supportconfig - Gathers system troubleshooting information for SUSE Support
@@ -2917,6 +2917,7 @@ drbd_info() {
 		log_write $OF
 		log_cmd $OF "lsmod | grep drbd"
 		log_cmd $OF "modinfo drbd"
+		log_cmd $OF "drbd-overview" 
 		# Added By Ahmad Al Zayed - Feb 21, 2019 to get few drbd output & configuration 
 		log_cmd $OF "drbdadm status" 
 		log_cmd $OF "drbdadm dump"
@@ -2932,7 +2933,7 @@ drbd_info() {
 				# We need to add "/etc/" since $DIR will have dir inside /etc/ 
 				# However this find will find all files inside a specific folder It's okay
 				# Will end up with /etc/drbd.conf/nfs.res nfs.RES nfs.stop .... 
-				[[ -d "/etc/$DIR" ]] && FILES="$FILES $(find -L "/etc/$DIR" -type f)"
+				[[ -d "/etc/$DIR" ]] && FILES="$FILES $(find -L \"/etc/$DIR\" -type f)"
 				[[ -d $DIR ]] && FILES="$FILES $(find -L $DIR -type f)"
 			done
 			conf_files $OF "/etc/drbd.conf $FILES"

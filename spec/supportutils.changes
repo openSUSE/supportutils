@@ -1,6 +1,8 @@
 -------------------------------------------------------------------
-Thu Apr 15 16:55:38 UTC 2021 - Jason Record <jason.record@suse.com>
+Thu Apr 15 17:15:53 UTC 2021 - Jason Record <jason.record@suse.com>
 
+- Additions to version 3.0.15
+  + Added drbd-overview to drbd.txt
 - Minor: Fix a typo (executible -> executable) #99
 - Changed minor wording to loaded module
 
