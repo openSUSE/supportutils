@@ -1,6 +1,6 @@
 #!/bin/bash
 
-SVER='3.0.8-1_dev2'
+SVER='3.0.8-1_dev3'
 SDATE='2021 04 15'
 
 ##############################################################################
@@ -2713,7 +2713,7 @@ nfs_info() {
 				log_cmd $OF 'showmount -a'
 			fi
 			conf_files $OF /etc/exports /etc/sysconfig/nfs
-			log_cmd $OF "grep '[[:space:]]nfs[[:space:]]' /etc/fstab"
+			log_cmd $OF "egrep '[[:space:]]nfs[[:space:]]|[[:space:]]nfs4[[:space:]]' /etc/fstab"
 			IPADDRS=$(egrep '[[:space:]]nfs[[:space:]]|[[:space:]]nfs4[[:space:]]' /etc/fstab | egrep -v '^#|^;' | cut -d\: -f1 | sort | uniq)
 			for IPADDR in $IPADDRS
 			do
