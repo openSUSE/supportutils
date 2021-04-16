@@ -1,9 +1,10 @@
 -------------------------------------------------------------------
-Fri Apr 16 15:01:18 UTC 2021 - Jason Record <jason.record@suse.com>
+Fri Apr 16 18:35:16 UTC 2021 - Jason Record <jason.record@suse.com>
 
 - Additions to version 3.1.15
   + Checks package signatures in rpm.txt (bsc#1021918)
 - Using zypper --xmlout (bsc#1181351)
+- Error fix for sysfs.txt (bsc#1089870)
 
 -------------------------------------------------------------------
 Thu Apr 15 18:14:10 UTC 2021 - Jason Record <jason.record@suse.com>
