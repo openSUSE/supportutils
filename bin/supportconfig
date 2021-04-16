@@ -1,6 +1,6 @@
 #!/bin/bash
 
-SVER='3.0.8-1_dev7'
+SVER='3.0.8-1_dev8'
 SDATE='2021 04 16'
 
 ##############################################################################
@@ -4830,7 +4830,9 @@ sysfs_info() {
 	OF=sysfs.txt
 	addHeaderFile $OF
 	EXHAUSTIVE_MEM_LIMIT=16000000000
-	log_cmd $OF "find /sys | xargs ls -ld --time-style=long-iso"
+	log_entry $OF command "/bin/find /sys | sed -e 's/\\/\\\\/g' | xargs ls -ld --time-style=long-iso"
+	/bin/find /sys | sed -e 's/\\/\\\\/g' | xargs ls -ld --time-style=long-iso >> ${LOG}/${OF} 2>&1
+	log_write $OF
 	log_cmd $OF "systool"
 	for ITEM in $(systool)
 	do
