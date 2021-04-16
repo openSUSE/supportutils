@@ -1,12 +1,14 @@
 -------------------------------------------------------------------
-Fri Apr 16 14:14:10 UTC 2021 - Jason Record <jason.record@suse.com>
+Fri Apr 16 15:01:18 UTC 2021 - Jason Record <jason.record@suse.com>
 
+- Additions to version 3.1.15
+  + Checks package signatures in rpm.txt (bsc#1021918)
 - Using zypper --xmlout (bsc#1181351)
 
 -------------------------------------------------------------------
 Thu Apr 15 18:14:10 UTC 2021 - Jason Record <jason.record@suse.com>
 
-- Additions to version 3.0.15
+- Additions to version 3.1.15
   + Added drbd-overview to drbd.txt
   + Added list-timers to systemd.txt (bsc#1169348)
   + Including nfs4 in search (bsc#1184829)
