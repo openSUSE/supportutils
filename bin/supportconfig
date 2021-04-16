@@ -1,7 +1,7 @@
 #!/bin/bash
 
-SVER='3.1.11-4_dev3'
-SDATE='2021 04 15'
+SVER='3.1.11-4_dev6'
+SDATE='2021 04 16'
 
 ##############################################################################
 #  supportconfig - Gathers system troubleshooting information for SUSE Support
@@ -826,7 +826,7 @@ update_info() {
 		log_cmd $OF 'ls -lA --time-style=long-iso /etc/products.d/'
 		log_cmd $OF 'zypper locks'
 		log_cmd $OF 'zypper patterns --installed-only'
-		for CMDOPT in services 'repos -d' patch-check patches list-patches list-updates products '--xml products' 'packages --orphaned'
+		for CMDOPT in services 'repos -d' patch-check patches list-patches list-updates products '--xmlout products' 'packages --orphaned'
 		do
 			if [ $TIMEOUT -ge 10 ]; then
 				log_write $OF "#==[ Command ]======================================#"
