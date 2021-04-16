@@ -1,6 +1,6 @@
 #!/bin/bash
 
-SVER='3.0.8-1_dev6'
+SVER='3.0.8-1_dev7'
 SDATE='2021 04 16'
 
 ##############################################################################
@@ -1117,6 +1117,11 @@ rpm_info() {
 		rpm -qa --queryformat "%-35{NAME} %-35{DISTRIBUTION} %{VERSION}-%{RELEASE}\n" | sort -k 1,2 -t " " -i >> $LOGFILE 2>&1
 		log_write $RPMFILE
 		log_cmd $RPMFILE "rpm -qa --last"
+		log_write $RPMFILE "#==[ Command ]======================================#"
+		log_write $RPMFILE '# rpm -qa --queryformat "%{SIGPGP:pgpsig}  %-35{VENDOR}  %{NAME}-%{VERSION}-%{RELEASE}\n" | sort -k 11 -t " " -i'
+		printf "%-63s %-35s %s\n" SIGNATURE VENDOR PACKAGE >> $LOGFILE
+		rpm -qa --queryformat "%{SIGPGP:pgpsig}  %-35{VENDOR}  %{NAME}-%{VERSION}-%{RELEASE}\n" | sort -k 11 -t " " -i >> $LOGFILE 2>&1
+		log_write $RPMFILE
 	fi
 	echolog Done
 }
