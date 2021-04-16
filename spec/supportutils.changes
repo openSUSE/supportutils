@@ -1,4 +1,9 @@
 -------------------------------------------------------------------
+Fri Apr 16 14:07:53 UTC 2021 - Jason Record <jason.record@suse.com>
+
+- Using zypper --xmlout (bsc#1181351)
+
+-------------------------------------------------------------------
 Thu Apr 15 23:12:21 UTC 2021 - Jason Record <jason.record@suse.com>
 
 - Additions to version 3.0.9

@@ -1,7 +1,7 @@
 #!/bin/bash
 
-SVER='3.0.8-1_dev5'
-SDATE='2021 04 15'
+SVER='3.0.8-1_dev6'
+SDATE='2021 04 16'
 
 ##############################################################################
 #  supportconfig - Gathers system troubleshooting information for SUSE Support
@@ -1457,7 +1457,7 @@ update_info() {
 	if [ $SLES_VER -ge 110 ] && rpm_verify $OF zypper; then
 		log_cmd $OF 'date'
 		log_cmd $OF 'ls -lA --time-style=long-iso /etc/products.d/'
-		for CMDOPT in services 'repos -d' patch-check patches list-patches products '--xml products'
+		for CMDOPT in services 'repos -d' patch-check patches list-patches products '--xmlout products'
 		do
 			if [ $TIMEOUT -ge 10 ]; then
 				log_write $OF "#==[ Command ]======================================#"
