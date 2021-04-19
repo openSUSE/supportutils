@@ -1,6 +1,6 @@
 #!/bin/bash
 
-SVER='3.1.11-4_dev8'
+SVER='3.1.11-4_dev9'
 SDATE='2021 04 16'
 
 ##############################################################################
@@ -510,7 +510,7 @@ module_info() {
 		for FILE in $LIST
 		do
 			if [ -d $FILE ]; then
-				FILES="$FILES $(find -L $FILE -type f)"
+				FILES="$FILES $(find $FILE -type f)"
 			else
 				FILES="$FILES $FILE"
 			fi
@@ -612,7 +612,7 @@ audit_info() {
 				FILES="/etc/auditd.conf /etc/audit.rules"
 			fi
 			conf_files $OF $FILES
-			FILES=$(find -L /var/log/audit/ -type f | egrep -v "/ltaudit/" | grep log$)
+			FILES=$(find /var/log/audit/ -type f | egrep -v "/ltaudit/" | grep log$)
 			test $ADD_OPTION_LOGS -gt 0 && log_files $OF 0 $FILES || log_files $OF $VAR_OPTION_LINE_COUNT $FILES
 			echolog Done
 		else
@@ -645,7 +645,7 @@ yast_files() {
 	if rpm -q perl-Bootloader &> /dev/null; then
 		rpm_verify $OF perl-Bootloader
 	fi
-	test -d /var/log/YaST2 && FILES=$(find -L /var/log/YaST2/ -type f | egrep -v "_dev_|\.tbz$|\.tgz$|\.gz$|\.bz2$|\.zip$") || unset FILES
+	test -d /var/log/YaST2 && FILES=$(find /var/log/YaST2/ -type f | egrep -v "_dev_|\.tbz$|\.tgz$|\.gz$|\.bz2$|\.zip$") || unset FILES
 	conf_files $OF /etc/youservers /etc/sysconfig/onlineupdate /etc/wgetrc 
 	log_files $OF 0 /var/log/pbl.log
 	(( ADD_OPTION_MAXYAST > 0 )) && log_files $OF 0 $FILES || log_files $OF $VAR_OPTION_LINE_COUNT $FILES
@@ -687,9 +687,9 @@ boot_info() {
 		ELILOFILE=$(rpm -ql elilo | grep elilo.efi)
 		ELILODIR=$(dirname $ELILOFILE)
 		log_cmd $OF "ls -l --time-style=long-iso $ELILODIR"
-		FILES="$(find -L /boot/ -type f 2>/dev/null | grep elilo.[conf,cfg]) $(find -L /etc/ -type f 2>/dev/null | grep elilo.[conf,cfg])"
+		FILES="$(find /boot/ -type f 2>/dev/null | grep elilo.[conf,cfg]) $(find -L /etc/ -type f 2>/dev/null | grep elilo.[conf,cfg])"
 		conf_files $OF $FILES
-		log_cmd $OF "cksum $(ls -1 $ELILOFILE) $(find -L /boot/ -type f 2>/dev/null | grep elilo.efi)"
+		log_cmd $OF "cksum $(ls -1 $ELILOFILE) $(find /boot/ -type f -name 'elilo.efi' 2>/dev/null)"
 	fi
 	if [[ -x /usr/sbin/bootlist ]]; then
 		log_cmd $OF 'bootlist -m normal -o'
@@ -710,8 +710,8 @@ boot_info() {
 	conf_files $OF /proc/cmdline /etc/sysconfig/kernel $FILES /etc/init.d/boot.local /etc/init.d/before.local /etc/init.d/after.local /etc/init.d/halt.local
 
 	log_cmd $OF 'ls -lR --time-style=long-iso /boot/'
-	if [ $SLES_VER -gt 90 ]; then
-		for i in $(find -L /boot -maxdepth 1 -type f 2>/dev/null | grep initrd)
+	if (( $SLES_VER > 90 )); then
+		for i in $(find /boot/ -maxdepth 1 -type f -name \*initrd\* 2>/dev/null)
 		do
 			if file $i | grep -i "gzip compressed" &>/dev/null; then
 				log_cmd $OF "zcat $i | cpio -itv 2>/dev/null"
@@ -775,9 +775,9 @@ smt_info() {
 		log_cmd $OF 'smt-list-registrations'
 		log_cmd $OF 'smt-list-products'
 		if [ -d /srv/www/htdocs/repo ]; then
-			log_cmd $OF 'find -L /srv/www/htdocs/repo -print0 | sort -z | xargs -0 ls -ld --time-style=long-iso'
+			log_cmd $OF 'find /srv/www/htdocs/repo -print0 | sort -z | xargs -0 ls -ld --time-style=long-iso'
 		fi
-		FILES=$(find -L /var/log/ -type f | grep smt- | grep log$)
+		FILES=$(find /var/log/ -type f | grep smt- | grep log$)
 		test $ADD_OPTION_LOGS -gt 0 && log_files $OF 0 $FILES || log_files $OF $VAR_OPTION_LINE_COUNT $FILES
 		echolog Done
 	else
@@ -851,7 +851,7 @@ update_info() {
 		then
 			rpm_verify $OF ruby2.1-rubygem-suse-connect
 			log_cmd $OF "SUSEConnect --status"
-			FILES=$(find /etc/zypp/credentials.d/ -type f 2>/dev/null)
+			FILES=$(find -L /etc/zypp/credentials.d/ -type f 2>/dev/null)
 			conf_files $OF /etc/SUSEConnect $FILES
 		fi
 	fi
@@ -873,7 +873,7 @@ update_info() {
 		FILES='/etc/suseRegister.conf /etc/sysconfig/suse_register'
 		conf_files $OF $FILES
 		if [ -d /var/lib/suseRegister/ ]; then
-			FILES=$(find -L /var/lib/suseRegister/ -type f)
+			FILES=$(find /var/lib/suseRegister/ -type f)
 			conf_files $OF $FILES
 		fi
 	fi
@@ -927,7 +927,7 @@ update_info() {
 	fi
 
 #zypper
-	FILES=$(find -L /var/log/ -type f | grep zypp)
+	FILES=$(find /var/log/ -type f -name \*zypp\*)
 	test $ADD_OPTION_LOGS -gt 0 && log_files $OF 0 $FILES || log_files $OF $VAR_OPTION_LINE_COUNT $FILES
 
 #suseregister
@@ -1194,7 +1194,7 @@ cron_info() {
 		fi
 		conf_files $OF /var/spool/cron/allow /var/spool/cron/deny
 		log_write $OF "### Individual User Cron Jobs ###"
-		test -d /var/spool/cron/tabs && FILES=$(find -L /var/spool/cron/tabs/ -type f) || FILES=""
+		test -d /var/spool/cron/tabs && FILES=$(find /var/spool/cron/tabs/ -type f) || FILES=""
 		conf_files $OF $FILES
 		CRONS="cron.d cron.hourly cron.daily cron.weekly cron.monthly"
 		log_write $OF "### System Cron Job File List ###"
@@ -1224,9 +1224,9 @@ cron_info() {
 			check_service $OF atd
 		fi
 		log_write $OF "### System at Job File List ###"
-		log_cmd $OF "find -L /var/spool/atjobs/ -type f"
+		log_cmd $OF "find /var/spool/atjobs/ -type f"
 		log_write $OF "### System at Job File Content ###"
-		FILES=$(find -L /var/spool/atjobs/ -type f)
+		FILES=$(find /var/spool/atjobs/ -type f)
 		conf_files $OF $FILES
 		echolog Done
 	else
@@ -1810,7 +1810,7 @@ net_info_namespace() {
 		fi
 	done
 	if [[ -z "${NS}" ]] ; then
-		test -d /etc/sysconfig/network && FILES=$(find -L /etc/sysconfig/network/ -maxdepth 1 -type f) || FILES=""
+		test -d /etc/sysconfig/network && FILES=$(find /etc/sysconfig/network/ -maxdepth 1 -type f) || FILES=""
 		conf_files $OF /etc/sysconfig/proxy $FILES 
 		sed -i -e 's/.*_PASSWORD[[:space:]]*=.*/*REMOVED BY SUPPORTCONFIG*/g' $LOG/$OF
 		(( SLES_VER >= 120 )) && FILES=$(find /etc/wicked -type f 2>/dev/null | grep '\.xml$') || FILES=''
@@ -1998,7 +1998,7 @@ iscsi_info() {
 		log_cmd $OF 'systemctl status targetcli.service'
 		log_cmd $OF 'lsmod | grep target_'
 		log_cmd $OF 'targetcli ls'
-		[[ -d /etc/target ]] && FILES=$(find /etc/target -type f)
+		[[ -d /etc/target ]] && FILES=$(find -L /etc/target -type f)
 	fi
 	conf_files $OF $FILES
 
@@ -2172,7 +2172,7 @@ ntp_info() {
 				KEYNAME=logdir
 				LOGDIR=$(grep ^${KEYNAME} $CONFFILE | awk '{print $2}')
 				[[ -z "$LOGDIR" ]] && LOGDIR='/var/log/chrony/'
-				FILES=$(find -L $LOGDIR -type f)
+				FILES=$(find $LOGDIR -type f)
 				test $ADD_OPTION_LOGS -gt 0 && log_files $OF 0 $FILES || log_files $OF $VAR_OPTION_LINE_COUNT $FILES
 				FILES="/var/log/messages"
 				test $ADD_OPTION_LOGS -gt 0 && grep_log_files chrony $OF 0 $FILES || grep_log_files chrony $OF $VAR_OPTION_LINE_COUNT $FILES
@@ -2245,7 +2245,7 @@ udev_info() {
 			for UDEV_DIR in /usr/lib/udev/rules.d ${udev_rules:=/etc/udev/rules.d}
 			do
 				if [[ -d $UDEV_DIR ]]; then
-					FILES=$(find -L $UDEV_DIR/ -type f)
+					FILES=$(find $UDEV_DIR/ -type f)
 					conf_files $OF $FILES
 				fi
 			done
@@ -2291,7 +2291,7 @@ crash_info() {
 		if rpm -q kdump &>/dev/null; then
 			DUMPDIR=$(kdumptool dump_config | grep ^KDUMP_SAVEDIR | sed -e 's/"//g;s!file://!!g' | cut -d= -f2)
 			if [[ -d $DUMPDIR ]]; then
-				log_cmd $OF "find -L ${DUMPDIR}/"
+				log_cmd $OF "find ${DUMPDIR}/"
 			else
 				log_entry $OF conf "KDUMP_SAVEDIR not found: ${DUMPDIR}"
 			fi
@@ -2315,7 +2315,7 @@ crash_info() {
 			fi
 			log_cmd $OF "sysctl kernel.sysrq"
 			log_cmd $OF 'grep -A20 -i "saving lkcd dump" /var/log/boot.msg'
-			test -d /var/log/dump && FILES=$(find -L /var/log/dump/ -type f 2>/dev/null | grep analysis) || FILES=""
+			test -d /var/log/dump && FILES=$(find /var/log/dump/ -type f 2>/dev/null | grep analysis) || FILES=""
 			test -z "$FILES" || conf_files $OF $FILES
 		fi
 		if rpm -q kernel-kdump &>/dev/null; then
@@ -2330,7 +2330,7 @@ crash_info() {
 			if [ -f $DUMPCFG ]; then
 				DUMPDIR=$(grep ^KDUMP_SAVEDIR $DUMPCFG | sed -e 's/"//g;s!file://!!g' | cut -d= -f2)
 				if [ -d $DUMPDIR ]; then
-					log_cmd $OF "find -L ${DUMPDIR}/"
+					log_cmd $OF "find ${DUMPDIR}/"
 				else
 					log_entry $OF conf "KDUMP_SAVEDIR not found: ${DUMPDIR}"
 				fi
@@ -2348,7 +2348,7 @@ crash_info() {
 			if [ -f $DUMPCFG ]; then
 				DUMPDIR=$(grep ^KDUMP_SAVEDIR $DUMPCFG | sed -e 's/"//g;s!file://!!g' | cut -d= -f2)
 				if [ -d $DUMPDIR ]; then
-					log_cmd $OF "find -L ${DUMPDIR}/"
+					log_cmd $OF "find ${DUMPDIR}/"
 				else
 					log_entry $OF conf "KDUMP_SAVEDIR not found: ${DUMPDIR}"
 				fi
@@ -2658,15 +2658,15 @@ ha_info() {
 			CURRENT_CIB=''
 			FILES=''
 			if [[ -d /var/lib/heartbeat/ ]]; then
-				FILES=$(find -L /var/lib/heartbeat/ -type f | egrep -v "cores|pengine|hb_uuid|cib\.xml")
+				FILES=$(find /var/lib/heartbeat/ -type f | egrep -v "cores|pengine|hb_uuid|cib\.xml")
 				[[ -e /var/lib/heartbeat/crm/cib.xml ]] && CURRENT_CIB='/var/lib/heartbeat/crm/cib.xml'
-				for i in $(find -L /var/lib/heartbeat/cores -type f)
+				for i in $(find /var/lib/heartbeat/cores -type f)
 				do
 					log_cmd $OF "file $i"
 				done
 			fi
 			if [[ -d /var/lib/pacemaker/ ]]; then
-				TFILES=$(find -L /var/lib/pacemaker/ -type f | egrep -v "cores|pengine|hb_uuid|cib\.xml")
+				TFILES=$(find /var/lib/pacemaker/ -type f | egrep -v "cores|pengine|hb_uuid|cib\.xml")
 				FILES="$FILES $TFILES"
 				[[ -e /var/lib/pacemaker/cib/cib.xml ]] && CURRENT_CIB='/var/lib/pacemaker/cib/cib.xml'
 			fi
@@ -2738,15 +2738,15 @@ ha_info() {
 			CURRENT_CIB=''
 			FILES=''
 			if [[ -d /var/lib/heartbeat/ ]]; then
-				FILES=$(find -L /var/lib/heartbeat/ -type f | egrep -v "cores|pengine|hb_uuid|cib\.xml")
+				FILES=$(find /var/lib/heartbeat/ -type f | egrep -v "cores|pengine|hb_uuid|cib\.xml")
 				[[ -e /var/lib/heartbeat/crm/cib.xml ]] && CURRENT_CIB='/var/lib/heartbeat/crm/cib.xml'
-				for i in $(find -L /var/lib/heartbeat/cores -type f)
+				for i in $(find /var/lib/heartbeat/cores -type f)
 				do
 					log_cmd $OF "file $i"
 				done
 			fi
 			if [[ -d /var/lib/pacemaker/ ]]; then
-				TFILES=$(find -L /var/lib/pacemaker/ -type f | egrep -v "cores|pengine|hb_uuid|cib\.xml")
+				TFILES=$(find /var/lib/pacemaker/ -type f | egrep -v "cores|pengine|hb_uuid|cib\.xml")
 				FILES="$FILES $TFILES"
 				[[ -e /var/lib/pacemaker/cib/cib.xml ]] && CURRENT_CIB='/var/lib/pacemaker/cib/cib.xml'
 			fi
@@ -2855,12 +2855,12 @@ ocfs2_info() {
 		esac
 		CHECKDIR="/sys/o2cb"
 		if [ -d $CHECKDIR ]; then
-			FILES=$(find -L ${CHECKDIR}/ -type f)
+			FILES=$(find ${CHECKDIR}/ -type f)
 			conf_files $OF $FILES
 		fi
 		CHECKDIR="/sys/kernel/config/cluster"
 		if [ -d $CHECKDIR ]; then
-			FILES=$(find -L ${CHECKDIR}/ -type f)
+			FILES=$(find ${CHECKDIR}/ -type f)
 			conf_files $OF $FILES
 		fi
 		(( OCFS2_MODULES )) && DEVICES=$(/sbin/mounted.ocfs2 -d | grep ^/ | awk '{ print $1}') || DEVICES=''
@@ -3084,7 +3084,7 @@ samba_info() {
 	fi
 
 	if [ -d /var/log/samba ]; then
-		FILES=$(find -L /var/log/samba/ -type f | grep -v '/core')
+		FILES=$(find /var/log/samba/ -type f | grep -v '/core')
 		test $ADD_OPTION_LOGS -gt 0 && log_files $OF 0 $FILES || log_files $OF $VAR_OPTION_LINE_COUNT $FILES
 	fi
 	
@@ -3276,11 +3276,11 @@ sysconfig_info() {
 	test $OPTION_SYSCONFIG -eq 0 && { echolog Excluded; return 1; }
 	OF=sysconfig.txt
 	addHeaderFile $OF
-	for FILE in $(find -L /etc/sysconfig/ -maxdepth 1 -type f | sort -f)
+	for FILE in $(find /etc/sysconfig/ -maxdepth 1 -type f | sort -f)
 	do
 		conf_files $OF $FILE
 	done
-	for FDIR in $(find -L /etc/sysconfig/ -maxdepth 1 -type d | grep -v "/etc/sysconfig/$" | sort)
+	for FDIR in $(find /etc/sysconfig/ -maxdepth 1 -type d | grep -v "/etc/sysconfig/$" | sort)
 	do
 		for FILE in $(find -L ${FDIR}/ -type f | sort)
 		do
@@ -3759,7 +3759,7 @@ tuned_info() {
 		log_cmd $OF "tuned-adm profile_info"
 		FILES=$(find -L /etc/tuned/ -type f 2>/dev/null)
 		conf_files $OF $FILES
-		FILES=$(find -L /usr/lib/tuned/ -type f 2>/dev/null | grep '\.conf$')
+		FILES=$(find /usr/lib/tuned/ -type f 2>/dev/null | grep '\.conf$')
 		conf_files $OF $FILES
 		FILES="/var/log/tuned/tuned.log"
 		(( $ADD_OPTION_LOGS > 0 )) && log_files $OF 0 $FILES || log_files $OF $VAR_OPTION_LINE_COUNT $FILES
@@ -3832,7 +3832,7 @@ ib_info() {
 			log_cmd $OF 'lsmod'
 			log_cmd $OF 'ibv_devinfo -v'
 			log_cmd $OF 'ibdiagnet'
-			FILES=$(find -L /tmp/ -type f 2>/dev/null | grep ibdiagnet)
+			FILES=$(find /tmp/ -type f -name \*ibdiagnet\* 2>/dev/null)
 			test $ADD_OPTION_LOGS -gt 0 && log_files $OF 0 $FILES || log_files $OF $VAR_OPTION_LINE_COUNT $FILES
 			echolog Done
 		else
@@ -3887,7 +3887,7 @@ ib_info() {
 			log_cmd $OF 'lsmod'
 
 			FILES=''
-			(( CHK_DIAG )) && FILES="$FILES $(find -L /tmp/ -type f 2>/dev/null | grep ibdiagnet)"
+			(( CHK_DIAG )) && FILES="$FILES $(find /tmp/ -type f -name \*ibdiagnet\* 2>/dev/null)"
 			(( CHK_OPENSM )) && FILES="$FILES /var/log/osm.log"
 			(( CHK_ACM )) && FILES="$FILES /var/log/ibacm.log"
 			test $ADD_OPTION_LOGS -gt 0 && log_files $OF 0 $FILES || log_files $OF $VAR_OPTION_LINE_COUNT $FILES
@@ -3940,7 +3940,7 @@ ib_info() {
 			log_cmd $OF 'lsmod'
 
 			FILES=''
-			(( CHK_DIAG )) && FILES="$FILES $(find -L /tmp/ -type f 2>/dev/null | grep ibdiagnet)"
+			(( CHK_DIAG )) && FILES="$FILES $(find /tmp/ -type f -name \*ibdiagnet\* 2>/dev/null)"
 			(( CHK_OPENSM )) && FILES="$FILES /var/log/opensm.log"
 			(( CHK_ACM )) && FILES="$FILES /var/log/ibacm.log"
 			test $ADD_OPTION_LOGS -gt 0 && log_files $OF 0 $FILES || log_files $OF $VAR_OPTION_LINE_COUNT $FILES
@@ -3968,7 +3968,7 @@ web_info() {
 		conf_files $OF /etc/sysconfig/apache2 /etc/apache2/httpd.conf
 		FILES=$(find -L /etc/apache2/ -type f | grep 'conf$' | grep -v 'httpd.conf')
 		conf_files $OF $FILES
-		FILES=$(find -L /var/log/apache2/ -type f)
+		FILES=$(find /var/log/apache2/ -type f)
 		test $ADD_OPTION_LOGS -gt 0 && log_files $OF 0 $FILES || log_files $OF $VAR_OPTION_LINE_COUNT $FILES
 		TOMCAT=$(cat $LOG/$RPM_QA_FILE | grep '^tomcat')
 		for i in $TOMCAT
@@ -3999,7 +3999,7 @@ hppsp_info() {
 		PSPFILES="/var/log/hppldu.log"
 		test $ADD_OPTION_LOGS -gt 0 && log_files $OFPSP 0 $PSPFILES || log_files $OFPSP $VAR_OPTION_LINE_COUNT $PSPFILES
 		if [ -d /var/hp ]; then
-			PSPCFILES="$(find -L /var/hp/ -type f)"
+			PSPCFILES="$(find /var/hp/ -type f)"
 			conf_files $OFPSP $PSPCFILES
 		fi
 	fi
@@ -4067,7 +4067,7 @@ kernel_livepatch_info() {
 	test $OPTION_LIVEPATCH -eq 0 && { echolog Excluded; return 1; }
 	OF=kernel-livepatch.txt
 	addHeaderFile $OF
-	for FDIR in $(find -L /sys/kernel/livepatch/ -maxdepth 1 -type d | grep -v "/sys/kernel/livepatch/$")
+	for FDIR in $(find /sys/kernel/livepatch/ -maxdepth 1 -type d | grep -v "/sys/kernel/livepatch/$")
 	do
 		log_cmd $OF "find -L $FDIR -type d"
 		FILES=$(find -L $FDIR/ -type f)
