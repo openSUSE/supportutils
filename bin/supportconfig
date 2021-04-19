@@ -1,6 +1,6 @@
 #!/bin/bash
 
-SVER='3.0.8-1_dev8'
+SVER='3.0.8-1_dev9'
 SDATE='2021 04 16'
 
 ##############################################################################
@@ -1324,9 +1324,9 @@ boot_info() {
 		ELILOFILE=$(rpm -ql elilo | grep elilo.efi)
 		ELILODIR=$(dirname $ELILOFILE)
 		log_cmd $OF "ls -l --time-style=long-iso $ELILODIR"
-		FILES="$(find -L /boot/ -type f 2>/dev/null | grep elilo.[conf,cfg]) $(find -L /etc/ -type f 2>/dev/null | grep elilo.[conf,cfg])"
+		FILES="$(find /boot/ -type f 2>/dev/null | grep elilo.[conf,cfg]) $(find -L /etc/ -type f 2>/dev/null | grep elilo.[conf,cfg])"
 		conf_files $OF $FILES
-		log_cmd $OF "cksum $(ls -1 $ELILOFILE) $(find -L /boot/ -type f 2>/dev/null | grep elilo.efi)"
+		log_cmd $OF "cksum $(ls -1 $ELILOFILE) $(find /boot/ -type f -name 'elilo.efi' 2>/dev/null)"
 	fi
 	if rpm -q efibootmgr &> /dev/null; then
 		log_cmd $OF "efibootmgr -v"
@@ -1344,7 +1344,7 @@ boot_info() {
 
 	log_cmd $OF 'ls -lR --time-style=long-iso /boot/'
 	if [ $SLES_VER -gt 90 ]; then
-		for i in $(find -L /boot -maxdepth 1 -type f 2>/dev/null | grep initrd)
+		for i in $(find /boot/ -maxdepth 1 -type f -name \*initrd\* 2>/dev/null)
 		do
 			if file $i | grep -i "gzip compressed" &>/dev/null; then
 				log_cmd $OF "zcat $i | cpio -itv 2>/dev/null"
@@ -3299,15 +3299,15 @@ xen_info() {
 
 
 		if [ $ADD_OPTION_LOGS -gt 0 ]; then
-			test -d /root/.cache/virt-manager && FILES="$(find -L /root/.cache/virt-manager/ -type f)" || FILES=""
-			test -d /var/log/xen && FILES="$FILES $(find -L /var/log/xen/ -type f | sort)"
-			test -d /var/log/libvirt && FILES="$FILES $(find -L /var/log/libvirt/ -name libvirtd.log* -type f | sort)"
-			test -d /var/log/libvirt/libxl && FILES="$FILES $(find -L /var/log/libvirt/libxl/ -type f | sort)"
+			test -d /root/.cache/virt-manager && FILES="$(find /root/.cache/virt-manager/ -type f)" || FILES=""
+			test -d /var/log/xen && FILES="$FILES $(find /var/log/xen/ -type f | sort)"
+			test -d /var/log/libvirt && FILES="$FILES $(find /var/log/libvirt/ -name libvirtd.log* -type f | sort)"
+			test -d /var/log/libvirt/libxl && FILES="$FILES $(find /var/log/libvirt/libxl/ -type f | sort)"
 		else
 			test -d /root/.cache/virt-manager && FILES=/root/.cache/virt-manager/virt-manager.log || FILES=""
-			test -d /var/log/xen && FILES="$FILES $(find -L /var/log/xen/ -type f | grep 'log$' | sort)"
-			test -d /var/log/libvirt && FILES="$FILES $(find -L /var/log/libvirt/ -name libvirtd.log -type f)"
-			test -d /var/log/libvirt/libxl && FILES="$FILES $(find -L /var/log/libvirt/libxl/ -type f | grep 'log$' | sort)"
+			test -d /var/log/xen && FILES="$FILES $(find /var/log/xen/ -type f | grep 'log$' | sort)"
+			test -d /var/log/libvirt && FILES="$FILES $(find /var/log/libvirt/ -name libvirtd.log -type f)"
+			test -d /var/log/libvirt/libxl && FILES="$FILES $(find /var/log/libvirt/libxl/ -type f | grep 'log$' | sort)"
 		fi
 		test $ADD_OPTION_LOGS -gt 0 && log_files $OF 0 $FILES || log_files $OF $VAR_OPTION_LINE_COUNT $FILES
 
@@ -3399,13 +3399,13 @@ kvm_info() {
 		fi
 
 		if [ $ADD_OPTION_LOGS -gt 0 ]; then
-			test -d /root/.cache/virt-manager && FILES="$(find -L /root/.cache/virt-manager/ -type f)" || FILES=""
-			test -d /var/log/libvirt && FILES="$FILES $(find -L /var/log/libvirt/ -name libvirtd.log* -type f | sort)"
-			test -d /var/log/libvirt/qemu && FILES="$FILES $(find -L /var/log/libvirt/qemu/ -type f | sort)"
+			test -d /root/.cache/virt-manager && FILES="$(find /root/.cache/virt-manager/ -type f)" || FILES=""
+			test -d /var/log/libvirt && FILES="$FILES $(find /var/log/libvirt/ -name libvirtd.log* -type f | sort)"
+			test -d /var/log/libvirt/qemu && FILES="$FILES $(find /var/log/libvirt/qemu/ -type f | sort)"
 		else
 			test -d /root/.cache/virt-manager && FILES=/root/.cache/virt-manager/virt-manager.log || FILES=""
-			test -d /var/log/libvirt && FILES="$FILES $(find -L /var/log/libvirt/ -name libvirtd.log -type f)"
-			test -d /var/log/libvirt/qemu && FILES="$FILES $(find -L /var/log/libvirt/qemu/ -type f | grep 'log$' | sort)"
+			test -d /var/log/libvirt && FILES="$FILES $(find /var/log/libvirt/ -name libvirtd.log -type f)"
+			test -d /var/log/libvirt/qemu && FILES="$FILES $(find /var/log/libvirt/qemu/ -type f | grep 'log$' | sort)"
 		fi
 		test $ADD_OPTION_LOGS -gt 0 && log_files $OF 0 $FILES || log_files $OF $VAR_OPTION_LINE_COUNT $FILES
 
@@ -3455,13 +3455,13 @@ lxc_info() {
 			conf_text_files $OF $FILES
 
 			if [ $ADD_OPTION_LOGS -gt 0 ]; then
-				test -d /root/.cache/virt-manager && FILES="$(find -L /root/.cache/virt-manager/ -type f)" || FILES=""
-				test -d /var/log/libvirt && FILES="$FILES $(find -L /var/log/libvirt/ -name libvirtd.log* -type f | sort)"
-				test -d /var/log/libvirt/lxc && FILES="$FILES $(find -L /var/log/libvirt/lxc/ -type f | sort)"
+				test -d /root/.cache/virt-manager && FILES="$(find /root/.cache/virt-manager/ -type f)" || FILES=""
+				test -d /var/log/libvirt && FILES="$FILES $(find /var/log/libvirt/ -name libvirtd.log* -type f | sort)"
+				test -d /var/log/libvirt/lxc && FILES="$FILES $(find /var/log/libvirt/lxc/ -type f | sort)"
 			else
 				test -d /root/.cache/virt-manager && FILES=/root/.cache/virt-manager/virt-manager.log || FILES=""
-				test -d /var/log/libvirt && FILES="$FILES $(find -L /var/log/libvirt/ -name libvirtd.log -type f)"
-				test -d /var/log/libvirt/lxc && FILES="$FILES $(find -L /var/log/libvirt/lxc/ -type f | grep 'log$' | sort)"
+				test -d /var/log/libvirt && FILES="$FILES $(find /var/log/libvirt/ -name libvirtd.log -type f)"
+				test -d /var/log/libvirt/lxc && FILES="$FILES $(find /var/log/libvirt/lxc/ -type f | grep 'log$' | sort)"
 			fi
 			test $ADD_OPTION_LOGS -gt 0 && log_files $OF 0 $FILES || log_files $OF $VAR_OPTION_LINE_COUNT $FILES
 
@@ -4745,7 +4745,7 @@ ib_info() {
 			log_cmd $OF 'lsmod'
 			log_cmd $OF 'ibv_devinfo -v'
 			log_cmd $OF 'ibdiagnet'
-			FILES=$(find -L /tmp/ -type f 2>/dev/null | grep ibdiagnet)
+			FILES=$(find /tmp/ -type f -name \*ibdiagnet\* 2>/dev/null)
 			test $ADD_OPTION_LOGS -gt 0 && log_files $OF 0 $FILES || log_files $OF $VAR_OPTION_LINE_COUNT $FILES
 			echolog Done
 		else
@@ -4761,7 +4761,7 @@ ib_info() {
 			log_cmd $OF 'lsmod'
 			log_cmd $OF 'ibv_devinfo -v'
 			log_cmd $OF 'ibdiagnet'
-			FILES=$(find -L /tmp/ -type f 2>/dev/null | grep ibdiagnet)
+			FILES=$(find /tmp/ -type f -name \*ibdiagnet\* 2>/dev/null)
 			test $ADD_OPTION_LOGS -gt 0 && log_files $OF 0 $FILES || log_files $OF $VAR_OPTION_LINE_COUNT $FILES
 			echolog Done
 		else
