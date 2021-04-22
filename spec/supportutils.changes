@@ -1,4 +1,10 @@
 -------------------------------------------------------------------
+Thu Apr 22 17:28:28 UTC 2021 - Jason Record <jason.record@suse.com>
+
+- Additions to version 3.0.9
+  + prevent running 'systool -vb memory' by default on systems with 16TB or more #57 (bsc#1127734)
+
+-------------------------------------------------------------------
 Mon Apr 19 16:54:49 UTC 2021 - Jason Record <jason.record@suse.com>
 
 - Additions to version 3.0.9
