@@ -1,6 +1,6 @@
 #!/bin/bash
 
-SVER='1.51.2'
+SVER='1.52.8_dev2'
 SDATE="2020 03 12"
 SNAME=$(basename $0)
 
@@ -12,7 +12,7 @@ SNAME=$(basename $0)
 #  Please submit bug fixes or comments via:                             #
 #    http://en.opensuse.org/Supportutils#Reporting_Bugs                 #
 #                                                                       #
-#  Copyright (C) 2007,2008-2020 SUSE LINUX GmbH, Nuernberg, Germany     #
+#  Copyright (C) 2007-2021 SUSE LINUX GmbH, Nuernberg, Germany          #
 #                                                                       #
 # --------------------------------------------------------------------- #
 #                                                                       #
@@ -50,7 +50,9 @@ SNAME=$(basename $0)
 # --------------------------------------------------------------------- #
 # Changes:                                                              #
 #                                                                       #
+# 1.53 Release                                                          #
 #    - Check tar return code instead of existence of archive            #
+#    - Check for valid compression binary                               #
 # 1.52 Release                                                          #
 #    - Capture coredumpctl info in getappcore.log                       #
 #    - Changed nts_ to scc_ with ARCHIVE_PREFIX                         #
@@ -87,6 +89,8 @@ SUSE_RELEASE="/etc/SuSE-release"
 OS_RELEASE="/etc/os-release"
 ARCHIVE_PREFIX='scc_'
 JOURNAL_PID=''
+TAR_BIN_OPTIONS=''
+TAR_BIN_EXT=''
 UPLOAD=0
 VERBOSE=0
 CLEANUP_CORE=0
@@ -241,6 +245,18 @@ check_binaries() {
 			fi
 		fi
 	done
+	if [[ -x /usr/bin/xz ]]; then
+		TAR_BIN_OPTIONS='-Jhvcvf'
+		TAR_BIN_EXT='txz'
+	elif [[ -x /usr/bin/bzip2 ]]; then
+		TAR_BIN_OPTIONS='-jhvcvf'
+		TAR_BIN_EXT='tbz'
+	elif [[ -x /usr/bin/gzip ]]; then
+		TAR_BIN_OPTIONS='-zhvcvf'
+		TAR_BIN_EXT='tgz'
+	else
+		MISSING_BINS="/usr/bin/xz or /usr/bin/bzip2 or /usr/bin/gzip $MISSING_BINS"
+	fi
 	if ! [ -z "$MISSING_BINS" ]; then
 		echo "The following required binaries were not found!"
 		echo
@@ -368,17 +384,18 @@ create_archive() {
 	echo -n "Creating core archive... "
 	ORIGINAL_DIR=$PWD
 	cd $GETAPPCORE_TMP_DIR
-	FINAL_ARCHIVE_FILE="${CORE_ARCHIVE_NAME}.tbz"
+	FINAL_ARCHIVE_FILE="${CORE_ARCHIVE_NAME}.${TAR_BIN_EXT}"
 	FINAL_ARCHIVE_NAME="${ARCHIVE_PATH}/${FINAL_ARCHIVE_FILE}"
 	verbose ''
-	verbose "Executing: $TAR_BIN -jhvcvf $FINAL_ARCHIVE_NAME $CORE_ARCHIVE_NAME 1>/dev/null 2>&1"
-	$TAR_BIN -jhvcvf $FINAL_ARCHIVE_NAME $CORE_ARCHIVE_NAME 1>/dev/null 2>&1
-	if [ $? -eq 0 ]; then
+	verbose "Executing: $TAR_BIN $TAR_BIN_OPTIONS $FINAL_ARCHIVE_NAME $CORE_ARCHIVE_NAME 1>/dev/null 2>&1"
+	$TAR_BIN $TAR_BIN_OPTIONS $FINAL_ARCHIVE_NAME $CORE_ARCHIVE_NAME 1>/dev/null 2>&1
+	if [[ $? -eq 0 ]]; then
 		echo "Done"
 		verbose "Created archive as:  $FINAL_ARCHIVE_NAME"
 	else
 		echo "ERROR"
 		echo "+ Unable to create $FINAL_ARCHIVE_NAME!"
+		exit 5
 	fi
 	cd $ORIGINAL_DIR
 }
