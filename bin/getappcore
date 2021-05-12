@@ -517,6 +517,8 @@ while getopts b:hr:ufvj: opt
 do
 	case $opt in
 	\?)
+		get_server_release
+		show_title
 		show_help
 		cleanup
 		exit 0
@@ -542,6 +544,8 @@ do
 		JOURNAL_PID=$OPTARG
 		;;
 	h)
+		get_server_release
+		show_title
 		show_help
 		cleanup
 		exit 0
