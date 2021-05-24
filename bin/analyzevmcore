@@ -1,6 +1,6 @@
 #!/bin/bash
 
-SVER='1.34_dev1'
+SVER='1.38'
 SDATE="2021 05 24"
 SNAME="analyzevmcore"
 
@@ -52,6 +52,8 @@ SNAME="analyzevmcore"
 # --------------------------------------------------------------------- #
 # Changes:                                                              #
 #                                                                       #
+# 1.38 Release                                                          #
+#    - Fixed local directory KDUMP_SAVEDIR support                      #
 # 1.33 Release                                                          #
 #    - Changed filename prefix from nts_ to scc_ with FILENAME_PREFIX   #
 #    - Processes all available crash dumps                              #
