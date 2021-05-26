@@ -1,7 +1,7 @@
 #!/bin/bash
 
 SVER='1.38'
-SDATE="2021 05 24"
+SDATE="2021 05 25"
 SNAME="analyzevmcore"
 
 # --------------------------------------------------------------------- #
@@ -543,7 +543,7 @@ if [[ -z "$COREDIR" ]]; then
 		else
 			echo "Unsupported KDUMP_SAVEDIR specified in /etc/sysconfig/kdump!"
 			echo "  Only local directories are supported"
-			echo "  Supported syntax:  file:///var/crash or /var/crash"
+			echo '  Supported syntax:  [file://]/var/crash'
 			echo "  Current setting:   $KDUMP_SAVEDIR"
 			echo
 			exit -1
