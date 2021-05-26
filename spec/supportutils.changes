@@ -1,4 +1,9 @@
 -------------------------------------------------------------------
+Wed May 26 00:51:04 UTC 2021 - Jason Record <jason.record@suse.com>
+
+- analyzevmcore supports local directories (bsc#1186397)
+
+-------------------------------------------------------------------
 Thu Apr 22 17:28:28 UTC 2021 - Jason Record <jason.record@suse.com>
 
 - Additions to version 3.0.9
