@@ -1,7 +1,7 @@
 #!/bin/bash
 
-SVER='3.1.11-14'
-SDATE='2021 04 19'
+SVER='3.1.11-15'
+SDATE='2021 05 27'
 
 ##############################################################################
 #  supportconfig - Gathers system troubleshooting information for SUSE Support
@@ -3265,7 +3265,7 @@ etc_info() {
 	addHeaderFile $OF
 	# Let us get alternatives output
 	log_cmd $OF "update-alternatives --get-selections"
-	conf_files $OF $(find -L /etc/ -type f | egrep "conf$|cfg$")
+	conf_files $OF $(find -L /etc/ -type f | egrep "conf$|cfg$" | egrep -v "rhn/rhn.conf$")
 	[ -d /etc/logrotate.d ] && conf_files $OF /etc/logrotate.d/*
 	conf_files $OF /etc/rc.dialout /etc/ppp/options /etc/ppp/ioptions /etc/ppp/peers/pppoe /etc/motd
 	echolog Done
