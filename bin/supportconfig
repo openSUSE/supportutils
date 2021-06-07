@@ -1,7 +1,7 @@
 #!/bin/bash
 
-SVER='3.1.11-15'
-SDATE='2021 05 27'
+SVER='3.1.11-16'
+SDATE='2021 06 07'
 
 ##############################################################################
 #  supportconfig - Gathers system troubleshooting information for SUSE Support
@@ -1038,15 +1038,15 @@ sssd_info() {
 				log_cmd $OF "ps axwwo user,pid,ppid,%cpu,%mem,vsz,rss,stat,time,cmd | egrep \"${SSSD_PID}|PPID\" | grep -v grep"
 				for THISPID in $SSSD_PIDS
 				do
-					log_cmd $OF "lsof -p $THISPID"
+					log_cmd $OF "lsof -b +M -n -l -p $THISPID 2>/dev/null"
 				done
 			else
 				log_cmd $OF "ps axwwo user,pid,ppid,%cpu,%mem,vsz,rss,stat,time,cmd | egrep \"sssd|PPID\" | grep -v grep"
-				log_cmd $OF "lsof | grep sssd"
+				log_cmd $OF "lsof -b +M -n -l +fg 2>/dev/null | grep sssd"
 			fi
 		else
 			log_cmd $OF "ps axwwo user,pid,ppid,%cpu,%mem,vsz,rss,stat,time,cmd | egrep \"sssd|PPID\" | grep -v grep"
-			log_cmd $OF "lsof | grep sssd"
+			log_cmd $OF "lsof -b +M -n -l +fg 2>/dev/null | grep sssd"
 		fi
 		log_cmd $OF 'grep pam_sss /etc/pam.d/*'
 		FILES="/var/log/sssd/*"
@@ -3244,7 +3244,7 @@ ldap_info() {
 			conf_files $OF $SLAPD_DIR/DB_CONFIG
 			log_cmd $OF "ls -al $SLAPD_DIR"
 		fi
-		log_cmd $OF "lsof -p $SLAPD_PID"
+		log_cmd $OF "lsof -b +M -n -l -p $SLAPD_PID"
 		log_write $OF "#___________________________________________________________#"
 		log_write $OF "#____[ Schema Files Included in LDAP Server ]_______________#"
 		log_write $OF
