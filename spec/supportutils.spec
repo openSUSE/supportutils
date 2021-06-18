@@ -15,7 +15,7 @@
 
 
 Name:           supportutils
-Version:        3.0.9
+Version:        3.0.10
 Release:        0
 Summary:        Support Troubleshooting Tools
 License:        GPL-2.0

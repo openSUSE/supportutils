@@ -1,7 +1,7 @@
 #!/bin/bash
 
-SVER='3.0.9-10'
-SDATE='2021 04 19'
+SVER='3.0.9-11'
+SDATE='2021 06 18'
 
 ##############################################################################
 #  supportconfig - Gathers system troubleshooting information for SUSE Support
@@ -2373,14 +2373,18 @@ net_info_namespace() {
 			done
 		fi
 	fi
-	NICS=$(IFS="@: ";${NS}ip -o l | while read number nic dummy ; do echo $nic ; done)
-	for NIC in ${NICS}
-	do
-		log_cmd $OF "${NS}ethtool ${NIC}"
-		log_cmd $OF "${NS}ethtool -k ${NIC}"
-		log_cmd $OF "${NS}ethtool -i ${NIC}"
-		log_cmd $OF "${NS}ethtool -S ${NIC}"
-	done
+	ETHTOOL_BIN=$(which ethtool 2>/dev/null)
+	if [[ -x $ETHTOOL_BIN ]]; then
+		NICS=$(IFS="@: ";${NS}ip -o l | while read number nic dummy ; do echo $nic ; done)
+		for NIC in ${NICS}
+		do
+			log_cmd $OF "${NS}${ETHTOOL_BIN} ${NIC}"
+			for OPTION in k i S g l m
+			do
+				log_cmd $OF "${NS}${ETHTOOL_BIN} -${OPTION} ${NIC}"
+			done
+		done
+	fi
 	if [ -z "${NS}" ] ; then
 		log_cmd $OF "nscd -g"
 		conf_files $OF /etc/hosts /etc/host.conf /etc/resolv.conf /etc/nsswitch.conf /etc/nscd.conf /etc/hosts.allow /etc/hosts.deny
