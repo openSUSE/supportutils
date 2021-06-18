@@ -1659,15 +1659,15 @@ sssd_info() {
 				log_cmd $OF "ps axwwo user,pid,ppid,%cpu,%mem,vsz,rss,stat,time,cmd | egrep \"${SSSD_PID}|PPID\" | grep -v grep"
 				for THISPID in $SSSD_PIDS
 				do
-					log_cmd $OF "lsof -p $THISPID"
+					log_cmd $OF "lsof -b +M -n -l -p $THISPID 2>/dev/null"
 				done
 			else
 				log_cmd $OF "ps axwwo user,pid,ppid,%cpu,%mem,vsz,rss,stat,time,cmd | egrep \"sssd|PPID\" | grep -v grep"
-				log_cmd $OF "lsof | grep sssd"
+				log_cmd $OF "lsof -b +M -n -l +fg 2>/dev/null | grep sssd"
 			fi
 		else
 			log_cmd $OF "ps axwwo user,pid,ppid,%cpu,%mem,vsz,rss,stat,time,cmd | egrep \"sssd|PPID\" | grep -v grep"
-			log_cmd $OF "lsof | grep sssd"
+			log_cmd $OF "lsof -b +M -n -l +fg 2>/dev/null | grep sssd"
 		fi
 		log_cmd $OF 'grep pam_sss /etc/pam.d/*'
 		FILES="/var/log/sssd/*"
@@ -2996,7 +2996,7 @@ crash_info() {
 		COREDIR=''
 		COREFILE='core'
 	elif echo "$CORE" | grep '|' &>/dev/null; then
-		log_write $OF "# Core Files Found in lsof-cwd, \$PATH, ld.so.conf: skipping pipped core_pattern: $CORE"
+		log_write $OF "# Core Files Found in lsof-cwd, \$PATH, ld.so.conf: skipping piped core_pattern: $CORE"
 		COREDIR=''
 		COREFILE='core'
 	elif echo "$CORE" | grep '/' &>/dev/null; then
@@ -3916,7 +3916,7 @@ open_files() {
 	addHeaderFile $OF
 	if rpm_verify $OF lsof
 	then
-		log_cmd $OF "lsof -b +M -n -l 2>/dev/null"
+		log_cmd $OF "lsof -b +M -n -l +fg 2>/dev/null"
 		echolog Done
 	else
 		echolog Skipped
@@ -4140,7 +4140,7 @@ ldap_info() {
 			conf_files $OF $SLAPD_DIR/DB_CONFIG
 			log_cmd $OF "ls -al $SLAPD_DIR"
 		fi
-		log_cmd $OF "lsof -p $SLAPD_PID"
+		log_cmd $OF "lsof -b +M -n -l -p $SLAPD_PID"
 		log_write $OF "#___________________________________________________________#"
 		log_write $OF "#____[ Schema Files Included in LDAP Server ]_______________#"
 		log_write $OF

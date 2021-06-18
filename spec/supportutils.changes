@@ -1,8 +1,9 @@
 -------------------------------------------------------------------
-Fri Jun 18 14:01:09 UTC 2021 - Jason Record <jason.record@suse.com>
+Fri Jun 18 14:10:32 UTC 2021 - Jason Record <jason.record@suse.com>
 
  - Changes to version 3.0.10
    + Adding ethtool options g l m to network.txt (PM-2703)
+   + lsof options to improve performance (bsc#1186687)
 
 -------------------------------------------------------------------
 Wed May 26 17:54:24 UTC 2021 - Jason Record <jason.record@suse.com>
