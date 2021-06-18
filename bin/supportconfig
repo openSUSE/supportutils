@@ -1,7 +1,7 @@
 #!/bin/bash
 
-SVER='3.1.11-16'
-SDATE='2021 06 07'
+SVER='3.1.11-16_dev1'
+SDATE='2021 06 11'
 
 ##############################################################################
 #  supportconfig - Gathers system troubleshooting information for SUSE Support
@@ -1761,14 +1761,15 @@ net_info_namespace() {
 		fi
 	fi
 	ETHTOOL_BIN=$(which ethtool 2>/dev/null)
-	if [[ -n $ETHTOOL_BIN ]]; then
+	if [[ -x $ETHTOOL_BIN ]]; then
 		NICS=$(IFS="@: ";${NS}ip -o l | while read number nic dummy ; do echo $nic ; done)
 		for NIC in ${NICS}
 		do
 			log_cmd $OF "${NS}${ETHTOOL_BIN} ${NIC}"
-			log_cmd $OF "${NS}${ETHTOOL_BIN} -k ${NIC}"
-			log_cmd $OF "${NS}${ETHTOOL_BIN} -i ${NIC}"
-			log_cmd $OF "${NS}${ETHTOOL_BIN} -S ${NIC}"
+			for OPTION in k i S g l m
+			do
+				log_cmd $OF "${NS}${ETHTOOL_BIN} -${OPTION} ${NIC}"
+			done
 		done
 	fi
 	if [[ -z "${NS}" ]] ; then
