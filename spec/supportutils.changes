@@ -1,8 +1,8 @@
 -------------------------------------------------------------------
-Fri Jun 18 15:17:03 UTC 2021 - Jason Record <jason.record@suse.com>
+Tue Jul  6 17:49:19 UTC 2021 - Jason Record <jason.record@suse.com>
 
  - Changes to version 3.0.10
-   + Adding ethtool options g l m to network.txt (PM-2703)
+   + Adding ethtool options g l m to network.txt (jsc#SLE-18239)
    + lsof options to improve performance (bsc#1186687)
    + Exclude rhn.conf from etc.txt (bsc#1186347)
 
