@@ -1,4 +1,10 @@
 -------------------------------------------------------------------
+Wed Jul 28 13:40:38 UTC 2021 - Jason Record <jason.record@suse.com>
+
+- Changes to versino 3.1.18
+  + Include 'multipath -t' output in mpio.txt #105
+
+-------------------------------------------------------------------
 Tue Jul  6 17:58:52 UTC 2021 - Jason Record <jason.record@suse.com>
 
 - Changes to version 3.1.17
