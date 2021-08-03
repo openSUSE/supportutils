@@ -1,7 +1,8 @@
 -------------------------------------------------------------------
-Wed Jul 28 13:55:33 UTC 2021 - Jason Record <jason.record@suse.com>
+Tue Aug  3 19:05:23 UTC 2021 - Jason Record <jason.record@suse.com>
 
-- Changes to versino 3.1.18
+- Changes to version 3.1.18
+  + Added email.txt based on OPTION_EMAIL #108 (bsc#1189028)
   + Include 'multipath -t' output in mpio.txt #105
   + Improved lsblk readability with --ascsi #106
 

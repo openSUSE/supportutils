@@ -1,7 +1,7 @@
 #!/bin/bash
 
-SVER='3.1.11-18'
-SDATE='2021 07 28'
+SVER='3.1.11-18.dev1'
+SDATE='2021 07 29'
 
 ##############################################################################
 #  supportconfig - Gathers system troubleshooting information for SUSE Support
@@ -4079,6 +4079,29 @@ kernel_livepatch_info() {
 	echolog Done
 }
 
+email_info() {
+	printlog "Email..."
+	test $OPTION_EMAIL -eq 0 && { echolog Excluded; return 1; }
+	OF=email.txt
+	addHeaderFile $OF
+	if rpm_verify $OF postfix; then
+		log_cmd $OF "systemctl status postfix.service"
+		log_cmd $OF "postconf -n"
+		log_cmd $OF "postconf -d"
+		log_cmd $OF "postqueue -p"
+		log_cmd $OF "postqueue -j"
+		log_cmd $OF 'bash -c "comm -23 <(postconf -n) <(postconf -d)"'
+		#FILES="/etc/sysconfig/postfix /etc/postfix/master.cf /etc/postfix/main.cf /etc/postfix/aliases /etc/postfix/openssl_postfix.conf.in"
+		FILES=$(find /etc/postfix/ ! -name '*.rpmnew' -type f -exec sh -c 'f=$1; file -bL --mime $f | grep -q "^text/plain" && echo $f' {} {} \; | sort)
+		conf_files $OF $FILES
+		FILES="/var/log/mail.err /var/log/mail.warn /var/log/mail.info /var/log/mail"
+		(( $ADD_OPTION_LOGS > 0 )) && log_files $OF 0 $FILES || log_files $OF $VAR_OPTION_LINE_COUNT $FILES
+		echolog Done
+	else
+		echolog Skipped
+	fi
+}
+
 ##############################################################################
 #  main 
 ##############################################################################
@@ -4326,6 +4349,7 @@ if [ "$USE_SAVED_LOGS_ONLY" != "1" ]; then
 	fslist_info
 	audit_info
 	crash_info
+	email_info
 	ntp_info
 	proc_info
 	boot_info
