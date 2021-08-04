@@ -1,10 +1,11 @@
 -------------------------------------------------------------------
-Tue Aug  3 19:05:23 UTC 2021 - Jason Record <jason.record@suse.com>
+Wed Aug  4 17:23:03 UTC 2021 - Jason Record <jason.record@suse.com>
 
 - Changes to version 3.1.18
   + Added email.txt based on OPTION_EMAIL #108 (bsc#1189028)
   + Include 'multipath -t' output in mpio.txt #105
   + Improved lsblk readability with --ascsi #106
+  + Removed duplicate commands in network.txt
 
 -------------------------------------------------------------------
 Tue Jul  6 17:58:52 UTC 2021 - Jason Record <jason.record@suse.com>

@@ -1,7 +1,7 @@
 #!/bin/bash
 
-SVER='3.1.11-18.dev1'
-SDATE='2021 07 29'
+SVER='3.1.11-18.dev2'
+SDATE='2021 08 04'
 
 ##############################################################################
 #  supportconfig - Gathers system troubleshooting information for SUSE Support
@@ -1675,7 +1675,8 @@ net_info_namespace() {
 	log_cmd $OF "${NS}ip addr"
 	log_cmd $OF "${NS}ip route"
 	log_cmd $OF "${NS}ip -6 route"
-	log_cmd $OF "${NS}ip -s link"
+	log_cmd $OF "${NS}ip -stats link"
+	log_cmd $OF "${NS}ip -stats neighbor"
 	if [ -z "${NS}" ] ; then
 		if [[ $MIN_OPTION_AUTOMOD -ne 0 ]]; then
 			timed_log_cmd $OF 'hwinfo --netcard'
@@ -1729,10 +1730,6 @@ net_info_namespace() {
 		log_cmd $OF "${NS}tc -s -d filter show dev ${NIC}"
 	done
 	log_cmd $OF "${NS}ss -nlp"
-	log_cmd $OF "${NS}ip route list"
-	log_cmd $OF "${NS}ip -6 route list"
-	log_cmd $OF "${NS}ip -stats link"
-	log_cmd $OF "${NS}ip -stats neighbor"
 	log_cmd $OF "${NS}ip ntable show"
 	log_cmd $OF "${NS}nstat -az"
 	if [[ $MIN_OPTION_AUTOMOD -eq 0 ]]; then
