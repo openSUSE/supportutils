@@ -1,7 +1,7 @@
 #
 # spec file for package supportutils
 #
-# Copyright (c) 2018-2020 SUSE LINUX GmbH, Nuernberg, Germany.
+# Copyright (c) 2018-2021 SUSE LINUX GmbH, Nuernberg, Germany.
 #
 # All modifications and additions to the file contributed by third parties
 # remain the property of their copyright owners, unless otherwise agreed
@@ -19,7 +19,7 @@
 %define support_libdir /usr/lib/supportconfig
 
 Name:           supportutils
-Version:        3.1.13
+Version:        3.1.18
 Release:        0
 Summary:        Support Troubleshooting Tools
 License:        GPL-2.0-only
@@ -29,13 +29,12 @@ Source:         %{name}-%{version}.tar.gz
 Requires:       iproute2
 Requires:       kmod-compat
 Requires:       ncurses-utils
-Requires:       net-tools
 Requires:       sysfsutils
 Requires:       tar
 Requires:       util-linux-systemd
-Requires:       which
-Requires:       sed
-Requires:       gawk
+Requires:       /usr/bin/which
+Requires:       /usr/bin/sed
+Requires:       /usr/bin/awk
 Provides:       supportconfig-plugin-icommand
 Provides:       supportconfig-plugin-resource
 Provides:       supportconfig-plugin-tag

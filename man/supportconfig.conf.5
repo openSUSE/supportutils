@@ -1,4 +1,4 @@
-.TH SUPPORTCONFIG.CONF 5 "12 Mar 2020" "supportutils" "Support Utilities Manual"
+.TH SUPPORTCONFIG.CONF 5 "10 Feb 2021" "supportutils" "Support Utilities Manual"
 .SH NAME
 supportconfig.conf \- 
 .BR supportconfig (8)
@@ -117,14 +117,14 @@ Network File System related information. \fBnfs.txt\fR (1)
 OPTION_NTP
 Network Time Protocol related information. \fBntp.txt\fR (1)
 .TP
+OPTION_NVME
+Non-Volatile Memory Express (NVMe) information. \fBnvme.txt\fR (1)
+.TP
 OPTION_OCFS2
 OCFS2 file system related information. \fBocfs2.txt\fR (1)
 .TP
 OPTION_OFILES
 List of all open files using lsof. \fBopen-files.txt\fR (1)
-.TP
-OPTION_PAM
-Pluggable Authentication Module related information, including user account information. \fBpam.txt\fR (1)
 .TP
 OPTION_PRINT
 Printing and CUPS related information. \fBprint.txt\fR (1)
@@ -189,6 +189,9 @@ X graphical system related information. \fBx.txt\fR (1)
 .TP
 OPTION_XEN
 XEN virtualization related information. \fBxen.txt\fR (1)
+.TP
+FORCE_OPTION_PAM
+Pluggable Authentication Module related information, including user account information. It is disabled in compliance with General Data Protection Regulation (GDPR). To consent to supportconfig collecting this information, set FORCE_OPTION_PAM=1. \fBpam.txt\fR (0)
 .PD
 .SS Additional Regular Options
 .TP

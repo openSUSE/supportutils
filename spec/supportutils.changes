@@ -1,4 +1,105 @@
 -------------------------------------------------------------------
+Wed Jul 28 13:40:38 UTC 2021 - Jason Record <jason.record@suse.com>
+
+- Changes to versino 3.1.18
+  + Include 'multipath -t' output in mpio.txt #105
+
+-------------------------------------------------------------------
+Tue Jul  6 17:58:52 UTC 2021 - Jason Record <jason.record@suse.com>
+
+- Changes to version 3.1.17
+  + Adding ethtool options g l m to network.txt (jsc#SLE-18240)
+
+-------------------------------------------------------------------
+Mon Jun  7 17:38:22 UTC 2021 - Jason Record <jason.record@suse.com>
+
+- Changes to version 3.1.16
+  + lsof options to improve performance (bsc#1186687)
+
+-------------------------------------------------------------------
+Thu May 27 15:15:04 UTC 2021 - Jason Record <jason.record@suse.com>
+
+- Fixes to supportconfig
+  + Exclude rhn.conf from etc.txt (bsc#1186347)
+
+-------------------------------------------------------------------
+Mon May 24 22:01:43 UTC 2021 - Jason Record <jason.record@suse.com>
+
+- analyzevmcore supports local directories (bsc#1186397)
+
+-------------------------------------------------------------------
+Wed May 12 20:43:16 UTC 2021 - Jason Record <jason.record@suse.com>
+
+- getappcore checks for valid compression binary (bsc#1185991)
+- getappcore does not trigger errors with help message (bsc#1185993)
+
+-------------------------------------------------------------------
+Mon Apr 19 17:05:13 UTC 2021 - Jason Record <jason.record@suse.com>
+
+- Additions to version 3.1.15
+  + Checks package signatures in rpm.txt (bsc#1021918)
+  + Optimize find (bsc#1184912)
+- Using zypper --xmlout (bsc#1181351)
+- Error fix for sysfs.txt (bsc#1089870)
+
+-------------------------------------------------------------------
+Thu Apr 15 18:14:10 UTC 2021 - Jason Record <jason.record@suse.com>
+
+- Additions to version 3.1.15
+  + Added drbd-overview to drbd.txt
+  + Added list-timers to systemd.txt (bsc#1169348)
+  + Including nfs4 in search (bsc#1184829)
+- Minor: Fix a typo (executible -> executable) #99
+- Changed minor wording to loaded module
+
+-------------------------------------------------------------------
+Mon Mar 22 17:25:12 UTC 2021 - jason.record@gmail.com
+
+- [powerpc] Collect dynamic_debug log files for ibmvNIC #98 (bsc#1183826)
+
+-------------------------------------------------------------------
+Thu Mar 11 18:12:31 UTC 2021 - jason.record@gmail.com
+
+- Fixed mismatched taint flags (bsc#1178491)
+- Removed redundant fdisk code that can cause timeout issues (bsc#1181679)
+- Supportconfig processes -f without hanging (bsc#1182904)
+
+-------------------------------------------------------------------
+Wed Mar  3 14:12:42 UTC 2021 - Thorsten Kukuk <kukuk@suse.com>
+
+- Remove net-tools from requires, it does not contain any tool
+  anymore used by supportutils pr#96
+
+-------------------------------------------------------------------
+Tue Mar  2 14:45:38 UTC 2021 - Mike Latimer mlatimer@suse.com
+
+- Collect logs for power specific components (using iprconfig) pr#94 (bsc#1182950)
+  + Additional nvme information
+  + Additional kdump configuration and logs
+
+-------------------------------------------------------------------
+Tue Feb 16 20:10:28 UTC 2021 - jason.record@gmail.com
+
+- Additions to version 3.1.14
+  + [powerpc] Collect logs for power specific components (HNV) pr#88 (bsc#1181911)
+  + Updated pam.txt documentation explaining GDPR
+  + ha.txt: Fix pacemaker.log location for SLE15 pr#90
+  + supportconfig: use readlink /proc/<pid>/cwd to get cwd list instead of lsof pr#91
+  + supportconfig: sssd_info consistency pr#93
+  + Includes NVMe information with OPTION_NVME=1 in nvme.txt (bsc#1176370, SLE-15932)
+
+-------------------------------------------------------------------
+Thu Feb  4 18:44:12 UTC 2021 - jason.record@gmail.com
+
+- No longer truncates boot log (bsc#1181610)
+
+-------------------------------------------------------------------
+Tue Jan 19 12:28:49 UTC 2021 - Thorsten Kukuk <kukuk@suse.com>
+
+- Require the awk, which and sed commands instead of packages to
+  allow alternate implementations on embedded/Edge systems
+
+-------------------------------------------------------------------
 Thu Dec 31 17:15:30 UTC 2020 - jason.record@suse.com
 
 - Additions to version 3.1.13
@@ -27,7 +128,7 @@ Tue Nov 10 17:25:36 UTC 2020 - jason.record@suse.com
 Thu Sep  3 14:51:50 UTC 2020 - jason.record@suse.com
 
 - Additions to version 3.1.12
-  + [powerpc] Collect logs for power specific components #72
+  + [powerpc] Collect logs for power specific components #72 (bscn#1176895)
   + supportconfig: fs-btrfs: Add "btrfs device stats" output #73
 
 -------------------------------------------------------------------

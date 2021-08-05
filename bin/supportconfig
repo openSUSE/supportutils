@@ -1,15 +1,15 @@
 #!/bin/bash
 
-SVER='3.1.10-5'
-SDATE='2020 12 31'
+SVER='3.1.11-18'
+SDATE='2021 07 28'
 
 ##############################################################################
 #  supportconfig - Gathers system troubleshooting information for SUSE Support
-#  Copyright (C) 2001-2020 SUSE LLC
+#  Copyright (C) 2001-2021 SUSE LLC
 #
-#  Creates a tar ball to attach to the SR or send to support. Collects
-#  comprehensive system information for troubleshooting and reducing resolution
-#  time.
+#  Creates a tar ball to attach to the support case or send to support. 
+#  Collects comprehensive system information for troubleshooting and reducing
+#  resolution time.
 #
 #  Disclaimer:
 #  Detailed system information and logs are collected and organized in a
@@ -33,7 +33,7 @@ SDATE='2020 12 31'
 #  along with this program; if not, see <http://www.gnu.org/licenses/>.
 #
 #  Authors/Contributors:
-#     Jason Record (jason.record@suse.com)
+#     Jason Record <jason.record@suse.com>
 #
 ##############################################################################
 
@@ -91,7 +91,7 @@ show_help() {
 	echo "  -b Screen buffer mode"
 	echo "  -c Disables curl checks to SUSE update servers"
 	echo "  -d Exclude detailed disk info and scans"
-	echo "  -f From directory. Don't collect report files, just use files in that"
+	echo "  -f From directory. Don't collect report files, just use the directory or files in that"
 	echo "     directory."
 	echo "  -g Use gzip instead of the default xz compression"
 	echo "  -i <keyword list>"
@@ -244,12 +244,13 @@ basic_healthcheck() {
 	log_cmd $OF 'free -k'
 	timed_log_cmd $OF 'df -h' || IO_DELAYS=1
 	(( $IO_DELAYS )) || log_cmd $OF 'df -i'
-	conf_files $OF '/proc/sys/kernel/tainted'
-	TAINT=$(cat /proc/sys/kernel/tainted)
+	TAINT_SRC='/proc/sys/kernel/tainted'
+	conf_files $OF $TAINT_SRC
+	TAINT=$(cat $TAINT_SRC)
 	TAINTED=0
-	if [ ${#TAINT} -gt 1 ]; then
+	if (( ${#TAINT} > 1 )); then
 		TAINTED=1
-	elif [ ${TAINT} -gt 0 ]; then
+	elif (( ${TAINT} > 0 )); then
 		TAINTED=1
 	fi
 	if (( TAINTED )); then
@@ -257,56 +258,68 @@ basic_healthcheck() {
 		# Refer to /usr/src/linux/include/linux/kernel.h and /usr/src/linux/kernel/panic.c (print_tainted function)
 		TAINT_STRING=""
 
-		# common to all versions
-		test $((TAINT & 1))   -ne 0 && TAINT_STRING="${TAINT_STRING}P" || TAINT_STRING="${TAINT_STRING} "
-		test $((TAINT & 2))   -ne 0 && TAINT_STRING="${TAINT_STRING}F" || TAINT_STRING="${TAINT_STRING} "
-		test $((TAINT & 4))   -ne 0 && TAINT_STRING="${TAINT_STRING}S" || TAINT_STRING="${TAINT_STRING} "
-		test $((TAINT & 8))   -ne 0 && TAINT_STRING="${TAINT_STRING}R" || TAINT_STRING="${TAINT_STRING} "
-		test $((TAINT & 16))  -ne 0 && TAINT_STRING="${TAINT_STRING}M" || TAINT_STRING="${TAINT_STRING} "
-		test $((TAINT & 32))  -ne 0 && TAINT_STRING="${TAINT_STRING}B" || TAINT_STRING="${TAINT_STRING} "
+		# common to all versions SLES15 and higher
+		test $((TAINT & 1))     -ne 0 && TAINT_STRING="${TAINT_STRING}P" || TAINT_STRING="${TAINT_STRING} "
+		test $((TAINT & 2))     -ne 0 && TAINT_STRING="${TAINT_STRING}F" || TAINT_STRING="${TAINT_STRING} "
+		test $((TAINT & 4))     -ne 0 && TAINT_STRING="${TAINT_STRING}S" || TAINT_STRING="${TAINT_STRING} "
+		test $((TAINT & 8))     -ne 0 && TAINT_STRING="${TAINT_STRING}R" || TAINT_STRING="${TAINT_STRING} "
+		test $((TAINT & 16))    -ne 0 && TAINT_STRING="${TAINT_STRING}M" || TAINT_STRING="${TAINT_STRING} "
+		test $((TAINT & 32))    -ne 0 && TAINT_STRING="${TAINT_STRING}B" || TAINT_STRING="${TAINT_STRING} "
+		test $((TAINT & 64))    -ne 0 && TAINT_STRING="${TAINT_STRING}U" || TAINT_STRING="${TAINT_STRING} "
+		test $((TAINT & 128))   -ne 0 && TAINT_STRING="${TAINT_STRING}D" || TAINT_STRING="${TAINT_STRING} "
+		test $((TAINT & 256))   -ne 0 && TAINT_STRING="${TAINT_STRING}A" || TAINT_STRING="${TAINT_STRING} "
+		test $((TAINT & 512))   -ne 0 && TAINT_STRING="${TAINT_STRING}W" || TAINT_STRING="${TAINT_STRING} "
+		test $((TAINT & 1024))  -ne 0 && TAINT_STRING="${TAINT_STRING}C" || TAINT_STRING="${TAINT_STRING} "
+		test $((TAINT & 2048))  -ne 0 && TAINT_STRING="${TAINT_STRING}I" || TAINT_STRING="${TAINT_STRING} "
+		test $((TAINT & 4096))  -ne 0 && TAINT_STRING="${TAINT_STRING}O" || TAINT_STRING="${TAINT_STRING} "
+		test $((TAINT & 8192))  -ne 0 && TAINT_STRING="${TAINT_STRING}E" || TAINT_STRING="${TAINT_STRING} "
+		test $((TAINT & 16384)) -ne 0 && TAINT_STRING="${TAINT_STRING}L" || TAINT_STRING="${TAINT_STRING} "
+		test $((TAINT & 32768)) -ne 0 && TAINT_STRING="${TAINT_STRING}K" || TAINT_STRING="${TAINT_STRING} "
 
 		case $SLES_VER in
-		15*|999)
-		test $((TAINT & 64))         -ne 0 && TAINT_STRING="${TAINT_STRING}U" || TAINT_STRING="${TAINT_STRING} "
-		test $((TAINT & 128))        -ne 0 && TAINT_STRING="${TAINT_STRING}D" || TAINT_STRING="${TAINT_STRING} "
-		test $((TAINT & 256))        -ne 0 && TAINT_STRING="${TAINT_STRING}A" || TAINT_STRING="${TAINT_STRING} "
-		test $((TAINT & 512))        -ne 0 && TAINT_STRING="${TAINT_STRING}W" || TAINT_STRING="${TAINT_STRING} "
-		test $((TAINT & 1024))       -ne 0 && TAINT_STRING="${TAINT_STRING}C" || TAINT_STRING="${TAINT_STRING} "
-		test $((TAINT & 2048))       -ne 0 && TAINT_STRING="${TAINT_STRING}I" || TAINT_STRING="${TAINT_STRING} "
-		test $((TAINT & 4096))       -ne 0 && TAINT_STRING="${TAINT_STRING}O" || TAINT_STRING="${TAINT_STRING} "
-		test $((TAINT & 8192))       -ne 0 && TAINT_STRING="${TAINT_STRING}E" || TAINT_STRING="${TAINT_STRING} "
-		test $((TAINT & 16384))      -ne 0 && TAINT_STRING="${TAINT_STRING}L" || TAINT_STRING="${TAINT_STRING} "
-		test $((TAINT & 32768))      -ne 0 && TAINT_STRING="${TAINT_STRING}K" || TAINT_STRING="${TAINT_STRING} "
+		150|151)
 		test $((TAINT & 65536))      -ne 0 && TAINT_STRING="${TAINT_STRING}H" || TAINT_STRING="${TAINT_STRING} "
 		test $((TAINT & 1073741824)) -ne 0 && TAINT_STRING="${TAINT_STRING}N" || TAINT_STRING="${TAINT_STRING} "
 		test $((TAINT & 2147483648)) -ne 0 && TAINT_STRING="${TAINT_STRING}X" || TAINT_STRING="${TAINT_STRING} "
 		;;
+		15*|999)
+		test $((TAINT & 65536))      -ne 0 && TAINT_STRING="${TAINT_STRING}X" || TAINT_STRING="${TAINT_STRING} "
+		test $((TAINT & 131072))     -ne 0 && TAINT_STRING="${TAINT_STRING}T" || TAINT_STRING="${TAINT_STRING} "
+		test $((TAINT & 262144))     -ne 0 && TAINT_STRING="${TAINT_STRING}H" || TAINT_STRING="${TAINT_STRING} "
+		test $((TAINT & 2147483648)) -ne 0 && TAINT_STRING="${TAINT_STRING}N" || TAINT_STRING="${TAINT_STRING} "
+		;;
 		esac
 		log_write $OF "Kernel Status -- Tainted: $TAINT_STRING"
 
-		# common to all versions
-		test $((TAINT & 1))   -ne 0 && log_write $OF "  TAINT: (P) Proprietary module has been loaded"
-		test $((TAINT & 2))   -ne 0 && log_write $OF "  TAINT: (F) Module was forcibly loaded"
-		test $((TAINT & 4))   -ne 0 && log_write $OF "  TAINT: (S) SMP with CPUs not designed for SMP"
-		test $((TAINT & 8))   -ne 0 && log_write $OF "  TAINT: (R) Module was forcibly unloaded"
-		test $((TAINT & 16))  -ne 0 && log_write $OF "  TAINT: (M) Machine check exception"
-		test $((TAINT & 32))  -ne 0 && log_write $OF "  TAINT: (B) System has hit bad_page"
+		# common to all versions SLES15 and higher
+		test $((TAINT & 1))     -ne 0 && log_write $OF "  TAINT: (P) Proprietary module has been loaded"
+		test $((TAINT & 2))     -ne 0 && log_write $OF "  TAINT: (F) Module was forcibly loaded"
+		test $((TAINT & 4))     -ne 0 && log_write $OF "  TAINT: (S) SMP with CPUs not designed for SMP"
+		test $((TAINT & 8))     -ne 0 && log_write $OF "  TAINT: (R) Module was forcibly unloaded"
+		test $((TAINT & 16))    -ne 0 && log_write $OF "  TAINT: (M) Machine check exception"
+		test $((TAINT & 32))    -ne 0 && log_write $OF "  TAINT: (B) System has hit bad_page"
+		test $((TAINT & 64))    -ne 0 && log_write $OF "  TAINT: (U) Userspace-defined problems"
+		test $((TAINT & 128))   -ne 0 && log_write $OF "  TAINT: (D) Kernel has oopsed before"
+		test $((TAINT & 256))   -ne 0 && log_write $OF "  TAINT: (A) ACPI table overridden"
+		test $((TAINT & 512))   -ne 0 && log_write $OF "  TAINT: (W) Taint on warning"
+		test $((TAINT & 1024))  -ne 0 && log_write $OF "  TAINT: (C) Modules from drivers/staging are loaded"
+		test $((TAINT & 2048))  -ne 0 && log_write $OF "  TAINT: (I) Working around severe firmware bug"
+		test $((TAINT & 4096))  -ne 0 && log_write $OF "  TAINT: (O) Out-of-tree module has been loaded"
+		test $((TAINT & 8192))  -ne 0 && log_write $OF "  TAINT: (E) Unsigned module has been loaded"
+		test $((TAINT & 16384)) -ne 0 && log_write $OF "  TAINT: (L) A soft lockup has previously occurred"
+		test $((TAINT & 32768)) -ne 0 && log_write $OF "  TAINT: (K) Kernel has been live patched"
 
 		case $SLES_VER in
-		15*|999)
-		test $((TAINT & 64))         -ne 0 && log_write $OF "  TAINT: (U) Userspace-defined problems"
-		test $((TAINT & 128))        -ne 0 && log_write $OF "  TAINT: (D) Kernel has oopsed before"
-		test $((TAINT & 256))        -ne 0 && log_write $OF "  TAINT: (A) ACPI table overridden"
-		test $((TAINT & 512))        -ne 0 && log_write $OF "  TAINT: (W) Taint on warning"
-		test $((TAINT & 1024))       -ne 0 && log_write $OF "  TAINT: (C) Modules from drivers/staging are loaded"
-		test $((TAINT & 2048))       -ne 0 && log_write $OF "  TAINT: (I) Working around severe firmware bug"
-		test $((TAINT & 4096))       -ne 0 && log_write $OF "  TAINT: (O) Out-of-tree module has been loaded"
-		test $((TAINT & 8192))       -ne 0 && log_write $OF "  TAINT: (E) Unsigned module has been loaded"
-		test $((TAINT & 16384))      -ne 0 && log_write $OF "  TAINT: (L) A soft lockup has previously occurred"
-		test $((TAINT & 32768))      -ne 0 && log_write $OF "  TAINT: (K) Kernel has been live patched"
+		150|151)
 		test $((TAINT & 65536))      -ne 0 && log_write $OF "  TAINT: (H) System restored from unsafe hibernate snapshot image"
 		test $((TAINT & 1073741824)) -ne 0 && log_write $OF "  TAINT: (N) Unsupported modules loaded"
 		test $((TAINT & 2147483648)) -ne 0 && log_write $OF "  TAINT: (X) Modules with external support loaded"
+		;;
+		15*|999)
+		test $((TAINT & 65536))      -ne 0 && log_write $OF "  TAINT: (X) Modules with external support loaded"
+		test $((TAINT & 131072))     -ne 0 && log_write $OF "  TAINT: (T) Kernel built with randstruct plugin"
+		test $((TAINT & 262144))     -ne 0 && log_write $OF "  TAINT: (H) System restored from unsafe hibernate snapshot image"
+		test $((TAINT & 2147483648)) -ne 0 && log_write $OF "  TAINT: (N) Unsupported modules loaded"
 		;;
 		esac
 
@@ -451,6 +464,11 @@ rpm_info() {
 		rpm -qa --queryformat "%-35{NAME} %-35{DISTRIBUTION} %{VERSION}-%{RELEASE}\n" | sort -k 1,2 -t " " -i >> $LOGFILE 2>&1
 		log_write $RPMFILE
 		log_cmd $RPMFILE "rpm -qa --last"
+		log_write $RPMFILE "#==[ Command ]======================================#"
+		log_write $RPMFILE '# rpm -qa --queryformat "%{SIGPGP:pgpsig}  %-35{VENDOR}  %{NAME}-%{VERSION}-%{RELEASE}\n" | sort -k 11 -t " " -i'
+		printf "%-63s %-35s %s\n" SIGNATURE VENDOR PACKAGE >> $LOGFILE
+		rpm -qa --queryformat "%{SIGPGP:pgpsig}  %-35{VENDOR}  %{NAME}-%{VERSION}-%{RELEASE}\n" | sort -k 11 -t " " -i >> $LOGFILE 2>&1
+		log_write $RPMFILE
 		# Jul 12, 2018 ; Added by Ahmad AL Zayed to get a list of RPM DB Backups 
 		RETURN=$(grep RPMDB_BACKUP_DIR /etc/sysconfig/backup 2>/dev/null | grep -v "^#" | cut -d= -f2 | tr -d "\"")
 		[[ -d $RETURN ]] && { log_cmd $RPMFILE "ls -ltr $RETURN" ;} 
@@ -492,7 +510,7 @@ module_info() {
 		for FILE in $LIST
 		do
 			if [ -d $FILE ]; then
-				FILES="$FILES $(find -L $FILE -type f)"
+				FILES="$FILES $(find $FILE -type f)"
 			else
 				FILES="$FILES $FILE"
 			fi
@@ -637,7 +655,7 @@ audit_info() {
 				FILES="/etc/auditd.conf /etc/audit.rules"
 			fi
 			conf_files $OF $FILES
-			FILES=$(find -L /var/log/audit/ -type f | egrep -v "/ltaudit/" | grep log$)
+			FILES=$(find /var/log/audit/ -type f | egrep -v "/ltaudit/" | grep log$)
 			test $ADD_OPTION_LOGS -gt 0 && log_files $OF 0 $FILES || log_files $OF $VAR_OPTION_LINE_COUNT $FILES
 			echolog Done
 		else
@@ -670,7 +688,7 @@ yast_files() {
 	if rpm -q perl-Bootloader &> /dev/null; then
 		rpm_verify $OF perl-Bootloader
 	fi
-	test -d /var/log/YaST2 && FILES=$(find -L /var/log/YaST2/ -type f | egrep -v "_dev_|\.tbz$|\.tgz$|\.gz$|\.bz2$|\.zip$") || unset FILES
+	test -d /var/log/YaST2 && FILES=$(find /var/log/YaST2/ -type f | egrep -v "_dev_|\.tbz$|\.tgz$|\.gz$|\.bz2$|\.zip$") || unset FILES
 	conf_files $OF /etc/youservers /etc/sysconfig/onlineupdate /etc/wgetrc 
 	log_files $OF 0 /var/log/pbl.log
 	(( ADD_OPTION_MAXYAST > 0 )) && log_files $OF 0 $FILES || log_files $OF $VAR_OPTION_LINE_COUNT $FILES
@@ -712,9 +730,9 @@ boot_info() {
 		ELILOFILE=$(rpm -ql elilo | grep elilo.efi)
 		ELILODIR=$(dirname $ELILOFILE)
 		log_cmd $OF "ls -l --time-style=long-iso $ELILODIR"
-		FILES="$(find -L /boot/ -type f 2>/dev/null | grep elilo.[conf,cfg]) $(find -L /etc/ -type f 2>/dev/null | grep elilo.[conf,cfg])"
+		FILES="$(find /boot/ -type f 2>/dev/null | grep elilo.[conf,cfg]) $(find -L /etc/ -type f 2>/dev/null | grep elilo.[conf,cfg])"
 		conf_files $OF $FILES
-		log_cmd $OF "cksum $(ls -1 $ELILOFILE) $(find -L /boot/ -type f 2>/dev/null | grep elilo.efi)"
+		log_cmd $OF "cksum $(ls -1 $ELILOFILE) $(find /boot/ -type f -name 'elilo.efi' 2>/dev/null)"
 	fi
 	if [[ -x /usr/sbin/bootlist ]]; then
 		log_cmd $OF 'bootlist -m normal -o'
@@ -735,8 +753,8 @@ boot_info() {
 	conf_files $OF /proc/cmdline /etc/sysconfig/kernel $FILES /etc/init.d/boot.local /etc/init.d/before.local /etc/init.d/after.local /etc/init.d/halt.local
 
 	log_cmd $OF 'ls -lR --time-style=long-iso /boot/'
-	if [ $SLES_VER -gt 90 ]; then
-		for i in $(find -L /boot -maxdepth 1 -type f 2>/dev/null | grep initrd)
+	if (( $SLES_VER > 90 )); then
+		for i in $(find /boot/ -maxdepth 1 -type f -name \*initrd\* 2>/dev/null)
 		do
 			if file $i | grep -i "gzip compressed" &>/dev/null; then
 				log_cmd $OF "zcat $i | cpio -itv 2>/dev/null"
@@ -771,7 +789,7 @@ boot_info() {
 			fi
 		else
 			if (( VAR_OPTION_JOURNALCTL_LINE_COUNT > 0 )); then
-				log_cmd $OF "journalctl --no-pager --boot 0 | head -n ${VAR_OPTION_JOURNALCTL_LINE_COUNT}"
+				log_cmd $OF "journalctl --no-pager --boot 0 | tail -n ${VAR_OPTION_JOURNALCTL_LINE_COUNT}"
 			else
 				log_cmd $OF "journalctl --no-pager --boot 0"
 			fi
@@ -800,9 +818,9 @@ smt_info() {
 		log_cmd $OF 'smt-list-registrations'
 		log_cmd $OF 'smt-list-products'
 		if [ -d /srv/www/htdocs/repo ]; then
-			log_cmd $OF 'find -L /srv/www/htdocs/repo -print0 | sort -z | xargs -0 ls -ld --time-style=long-iso'
+			log_cmd $OF 'find /srv/www/htdocs/repo -print0 | sort -z | xargs -0 ls -ld --time-style=long-iso'
 		fi
-		FILES=$(find -L /var/log/ -type f | grep smt- | grep log$)
+		FILES=$(find /var/log/ -type f | grep smt- | grep log$)
 		test $ADD_OPTION_LOGS -gt 0 && log_files $OF 0 $FILES || log_files $OF $VAR_OPTION_LINE_COUNT $FILES
 		echolog Done
 	else
@@ -856,7 +874,7 @@ update_info() {
 		log_cmd $OF 'ls -lA --time-style=long-iso /etc/products.d/'
 		log_cmd $OF 'zypper locks'
 		log_cmd $OF 'zypper patterns --installed-only'
-		for CMDOPT in services 'repos -d' patch-check patches list-patches list-updates products '--xml products' 'packages --orphaned'
+		for CMDOPT in services 'repos -d' patch-check patches list-patches list-updates products '--xmlout products' 'packages --orphaned'
 		do
 			if [ $TIMEOUT -ge 10 ]; then
 				log_write $OF "#==[ Command ]======================================#"
@@ -876,7 +894,7 @@ update_info() {
 		then
 			rpm_verify $OF ruby2.1-rubygem-suse-connect
 			log_cmd $OF "SUSEConnect --status"
-			FILES=$(find /etc/zypp/credentials.d/ -type f 2>/dev/null)
+			FILES=$(find -L /etc/zypp/credentials.d/ -type f 2>/dev/null)
 			conf_files $OF /etc/SUSEConnect $FILES
 		fi
 	fi
@@ -898,7 +916,7 @@ update_info() {
 		FILES='/etc/suseRegister.conf /etc/sysconfig/suse_register'
 		conf_files $OF $FILES
 		if [ -d /var/lib/suseRegister/ ]; then
-			FILES=$(find -L /var/lib/suseRegister/ -type f)
+			FILES=$(find /var/lib/suseRegister/ -type f)
 			conf_files $OF $FILES
 		fi
 	fi
@@ -952,7 +970,7 @@ update_info() {
 	fi
 
 #zypper
-	FILES=$(find -L /var/log/ -type f | grep zypp)
+	FILES=$(find /var/log/ -type f -name \*zypp\*)
 	test $ADD_OPTION_LOGS -gt 0 && log_files $OF 0 $FILES || log_files $OF $VAR_OPTION_LINE_COUNT $FILES
 
 #suseregister
@@ -987,25 +1005,35 @@ update_info() {
 
 pam_info() {
 	printlog "PAM..."
-	test $FORCE_OPTION_PAM -eq 0 && { echolog Excluded; return 1; }
 	OF=pam.txt
 	addHeaderFile $OF
-	rpm_verify $OF pam
-	rpm_verify $OF pam-modules
-	conf_files $OF /etc/nsswitch.conf /etc/nologin
-	conf_files $OF /etc/passwd
-	log_cmd $OF 'getent passwd'
-	conf_files $OF /etc/group
-	log_cmd $OF 'getent group'
-	conf_files $OF /etc/sudoers
-	(( SLES_VER >= 120 )) && log_cmd $OF 'loginctl --no-pager list-sessions'
-	log_write $OF "#==[ Files in /etc/security ]=======================#"
-	test -d /etc/security && FILES="$(find -L /etc/security/ -type f -name \*conf)" || FILES=""
-	conf_files $OF $FILES
-	log_write $OF "#==[ Files in /etc/pam.d ]==========================#"
-	test -d /etc/pam.d && FILES="$(find -L /etc/pam.d/ -type f)" || FILES=""
-	conf_files $OF $FILES
-	echolog Done
+	if (( $FORCE_OPTION_PAM > 0 )); then
+		rpm_verify $OF pam
+		rpm_verify $OF pam-modules
+		conf_files $OF /etc/nsswitch.conf /etc/nologin
+		conf_files $OF /etc/passwd
+		log_cmd $OF 'getent passwd'
+		conf_files $OF /etc/group
+		log_cmd $OF 'getent group'
+		conf_files $OF /etc/sudoers
+		(( SLES_VER >= 120 )) && log_cmd $OF 'loginctl --no-pager list-sessions'
+		log_write $OF "#==[ Files in /etc/security ]=======================#"
+		test -d /etc/security && FILES="$(find -L /etc/security/ -type f -name \*conf)" || FILES=""
+		conf_files $OF $FILES
+		log_write $OF "#==[ Files in /etc/pam.d ]==========================#"
+		test -d /etc/pam.d && FILES="$(find -L /etc/pam.d/ -type f)" || FILES=""
+		conf_files $OF $FILES
+		echolog Done
+	else
+		log_entry $OF note "Restricted"
+		echo "PAM module is disabled in compliance with General Data Protection Regulation (GDPR)." >> $LOG/$OF
+		echo "To consent to supportconfig collecting this information, run:" >> $LOG/$OF
+		echo "# FORCE_OPTION_PAM=1 supportconfig" >> $LOG/$OF
+		echo >> $LOG/$OF
+		echo 'Additional info: https://www.suse.com/support/kb/doc/?id=000019695' >> $LOG/$OF
+		echo >> $LOG/$OF
+		echolog Restricted
+	fi
 }
 
 sssd_info() {
@@ -1053,15 +1081,15 @@ sssd_info() {
 				log_cmd $OF "ps axwwo user,pid,ppid,%cpu,%mem,vsz,rss,stat,time,cmd | egrep \"${SSSD_PID}|PPID\" | grep -v grep"
 				for THISPID in $SSSD_PIDS
 				do
-					log_cmd $OF "lsof -p $THISPID"
+					log_cmd $OF "lsof -b +M -n -l -p $THISPID 2>/dev/null"
 				done
 			else
 				log_cmd $OF "ps axwwo user,pid,ppid,%cpu,%mem,vsz,rss,stat,time,cmd | egrep \"sssd|PPID\" | grep -v grep"
-				log_cmd $OF "lsof | grep sssd"
+				log_cmd $OF "lsof -b +M -n -l +fg 2>/dev/null | grep sssd"
 			fi
 		else
 			log_cmd $OF "ps axwwo user,pid,ppid,%cpu,%mem,vsz,rss,stat,time,cmd | egrep \"sssd|PPID\" | grep -v grep"
-			log_cmd $OF "lsof | grep sssd"
+			log_cmd $OF "lsof -b +M -n -l +fg 2>/dev/null | grep sssd"
 		fi
 		log_cmd $OF 'grep pam_sss /etc/pam.d/*'
 		FILES="/var/log/sssd/*"
@@ -1141,6 +1169,7 @@ systemd_info() {
 	log_cmd $OF 'systemctl --no-pager --all list-sockets'
 	log_cmd $OF 'systemctl --no-pager list-unit-files'
 	log_cmd $OF 'systemctl --no-pager list-jobs'
+	log_cmd $OF 'systemctl --no-pager list-timers --all'
 	for i in $(systemctl --no-pager --all list-units | sed 's/^[^-_:\\a-zA-Z0-9]*//' | egrep -v '^UNIT |^LOAD |^ACTIVE |^SUB |^To |^[[:digit:]]* ' | awk '{print $1}')
 	do
 		if [[ -z "$i" ]]
@@ -1208,7 +1237,7 @@ cron_info() {
 		fi
 		conf_files $OF /var/spool/cron/allow /var/spool/cron/deny
 		log_write $OF "### Individual User Cron Jobs ###"
-		test -d /var/spool/cron/tabs && FILES=$(find -L /var/spool/cron/tabs/ -type f) || FILES=""
+		test -d /var/spool/cron/tabs && FILES=$(find /var/spool/cron/tabs/ -type f) || FILES=""
 		conf_files $OF $FILES
 		CRONS="cron.d cron.hourly cron.daily cron.weekly cron.monthly"
 		log_write $OF "### System Cron Job File List ###"
@@ -1238,9 +1267,9 @@ cron_info() {
 			check_service $OF atd
 		fi
 		log_write $OF "### System at Job File List ###"
-		log_cmd $OF "find -L /var/spool/atjobs/ -type f"
+		log_cmd $OF "find /var/spool/atjobs/ -type f"
 		log_write $OF "### System at Job File Content ###"
-		FILES=$(find -L /var/spool/atjobs/ -type f)
+		FILES=$(find /var/spool/atjobs/ -type f)
 		conf_files $OF $FILES
 		echolog Done
 	else
@@ -1360,6 +1389,7 @@ mpio_info() {
 			FILES=$(find ${SDIR}/ -maxdepth 1 -type f 2>/dev/null)
 			conf_files $OF $FILES
 		done
+		log_cmd $OF 'multipath -t'
 		log_cmd $OF 'multipath -v3 -d'
 	else
 		((SKIP++))
@@ -1435,7 +1465,7 @@ detectVirtualization() {
 		else
 			KVMID="Virtual Machine Server (No QEMU Virtual CPU)"
 		fi
-		log_write $OUT "Hypervisor:    KVM (kvm loaded)"
+		log_write $OUT "Hypervisor:    KVM (kvm kernel module loaded)"
 		log_write $OUT "Identity:      $KVMID"
 	elif echo $CPUMODEL | grep -i 'QEMU Virtual CPU' &>/dev/null; then
 		NO_HYPER=0
@@ -1561,12 +1591,28 @@ hardware_info() {
 			log_cmd $OF "diag_encl -v"
 		fi
 
+		if rpm -q iprutils &>/dev/null; then
+			rpm_verify $OF iprutils
+			log_cmd $OF "iprconfig -c show-config"
+			log_cmd $OF "iprconfig -c show-alt-config"
+			log_cmd $OF "iprconfig -c show-arrays"
+			log_cmd $OF "iprconfig -c show-jbod-disks"
+			log_cmd $OF "iprconfig -c show-ioas"
+			log_cmd $OF "iprconfig -c show-hot-spares"
+			log_cmd $OF "iprconfig -c show-af-disks"
+			log_cmd $OF "iprconfig -c show-all-af-disks"
+			log_cmd $OF "iprconfig -c show-slots"
+			log_cmd $OF "iprconfig -c dump"
+		fi
 		if [ $platform == "pSeries" ]; then
 			if rpm -q servicelog &>/dev/null; then
 				rpm_verify $OF servicelog
 				log_cmd $OF "servicelog --dump"
 				log_cmd $OF "servicelog_notify --list"
 			fi
+			log_cmd $OF 'lsdevinfo'
+			log_cmd $OF 'systemctl is-enabled hcn-init.service'
+			log_files $OF 0 /var/log/hcnmgr /var/ct/IBM.DRM.stderr /var/ct/IW/log/mc/IBM.DRM/trace*
 		fi
 
 		PPC_DIR="${LOG}/ppc64"
@@ -1589,6 +1635,10 @@ hardware_info() {
 			if [[ -f /var/log/drmgr.0 ]]; then
 				log_entry $OF command "cp /var/log/drmgr.0 $PPC_DIR"
 				cp /var/log/drmgr.0 $PPC_DIR 2>/dev/null
+			fi
+			if [[ -f /sys/kernel/debug/dynamic_debug/control ]]; then
+				log_entry $OF command "cp /sys/kernel/debug/dynamic_debug/control $PPC_DIR"
+				cp /sys/kernel/debug/dynamic_debug/control $PPC_DIR 2>/dev/null
 			fi
 			;;
 		"PowerNV")
@@ -1755,14 +1805,15 @@ net_info_namespace() {
 		fi
 	fi
 	ETHTOOL_BIN=$(which ethtool 2>/dev/null)
-	if [[ -n $ETHTOOL_BIN ]]; then
+	if [[ -x $ETHTOOL_BIN ]]; then
 		NICS=$(IFS="@: ";${NS}ip -o l | while read number nic dummy ; do echo $nic ; done)
 		for NIC in ${NICS}
 		do
 			log_cmd $OF "${NS}${ETHTOOL_BIN} ${NIC}"
-			log_cmd $OF "${NS}${ETHTOOL_BIN} -k ${NIC}"
-			log_cmd $OF "${NS}${ETHTOOL_BIN} -i ${NIC}"
-			log_cmd $OF "${NS}${ETHTOOL_BIN} -S ${NIC}"
+			for OPTION in k i S g l m
+			do
+				log_cmd $OF "${NS}${ETHTOOL_BIN} -${OPTION} ${NIC}"
+			done
 		done
 	fi
 	if [[ -z "${NS}" ]] ; then
@@ -1804,7 +1855,7 @@ net_info_namespace() {
 		fi
 	done
 	if [[ -z "${NS}" ]] ; then
-		test -d /etc/sysconfig/network && FILES=$(find -L /etc/sysconfig/network/ -maxdepth 1 -type f) || FILES=""
+		test -d /etc/sysconfig/network && FILES=$(find /etc/sysconfig/network/ -maxdepth 1 -type f) || FILES=""
 		conf_files $OF /etc/sysconfig/proxy $FILES 
 		sed -i -e 's/.*_PASSWORD[[:space:]]*=.*/*REMOVED BY SUPPORTCONFIG*/g' $LOG/$OF
 		(( SLES_VER >= 120 )) && FILES=$(find /etc/wicked -type f 2>/dev/null | grep '\.xml$') || FILES=''
@@ -1825,10 +1876,9 @@ disk_info() {
 	printlog "Disk I/O..."
 	test $OPTION_DISK -eq 0 && { echolog Excluded; return 1; }
 	OF=fs-diskio.txt
-	local DISK_IO_DELAYS=0
 	addHeaderFile $OF
-	timed_log_cmd $OF 'fdisk -l 2>/dev/null | grep Disk' || DISK_IO_DELAYS=1
 	conf_files $OF /proc/partitions /etc/fstab
+	log_cmd $OF "lsblk -o 'NAME,KNAME,MAJ:MIN,FSTYPE,LABEL,RO,RM,MODEL,SIZE,OWNER,GROUP,MODE,ALIGNMENT,MIN-IO,OPT-IO,PHY-SEC,LOG-SEC,ROTA,SCHED,MOUNTPOINT,DISC-ALN,DISC-GRAN,DISC-MAX,DISC-ZERO'"
 	[[ -x /usr/bin/findmnt ]] && log_cmd $OF "findmnt"
 	log_cmd $OF "mount"
 	conf_files $OF /proc/mounts /etc/mtab
@@ -1895,7 +1945,6 @@ disk_info() {
 			log_write $OF "#---------------------------------------------------#"
 			log_cmd $OF 'lsscsi'
 			log_cmd $OF 'lsscsi -H'
-			(( $DISK_IO_DELAYS )) || log_cmd $OF "lsblk -o 'NAME,KNAME,MAJ:MIN,FSTYPE,LABEL,RO,RM,MODEL,SIZE,OWNER,GROUP,MODE,ALIGNMENT,MIN-IO,OPT-IO,PHY-SEC,LOG-SEC,ROTA,SCHED,MOUNTPOINT,DISC-ALN,DISC-GRAN,DISC-MAX,DISC-ZERO'"
 			if log_cmd $OF 'scsiinfo -l'
 			then
 				FILES=$(scsiinfo -l)
@@ -1944,20 +1993,20 @@ btrfs_info() {
 		[[ -x /usr/bin/findmnt ]] && log_cmd $OF "findmnt" || log_cmd $OF "mount"
 		(( $IO_DELAYS )) || log_cmd $OF "df -h"
 		log_cmd $OF "modinfo btrfs"
-                for DEVICE in $(btrfs filesystem show | awk 'NF{ print $NF }' | grep ^/)
-                #TODO For multi-device btrfs filesysems only use one device
-                do
-                        for FILESYS in $(findmnt -S $DEVICE --types btrfs --list --output target --first-only --noheadings)
-                        do
-                                log_cmd $OF "btrfs filesystem usage $FILESYS"
-                                log_cmd $OF "btrfs scrub status $FILESYS"
-                                log_cmd $OF "btrfs balance status -v $FILESYS"
-                                log_cmd $OF "btrfs subvolume get-default $FILESYS"
-                                log_cmd $OF "btrfs subvolume list $FILESYS"
+		for DEVICE in $(btrfs filesystem show | awk 'NF{ print $NF }' | grep ^/)
+		#TODO For multi-device btrfs filesysems only use one device
+		do
+			for FILESYS in $(findmnt -S $DEVICE --types btrfs --list --output target --first-only --noheadings)
+			do
+				log_cmd $OF "btrfs filesystem usage $FILESYS"
+				log_cmd $OF "btrfs scrub status $FILESYS"
+				log_cmd $OF "btrfs balance status -v $FILESYS"
+				log_cmd $OF "btrfs subvolume get-default $FILESYS"
+				log_cmd $OF "btrfs subvolume list $FILESYS"
 				log_cmd $OF "btrfs qgroup show -prce $FILESYS"
 				log_cmd $OF "btrfs device stats $FILESYS"
-                        done
-                done
+			done
+		done
 
 		if rpm_verify $OF snapper; then
 			log_cmd $OF "snapper list-configs"
@@ -1994,7 +2043,7 @@ iscsi_info() {
 		log_cmd $OF 'systemctl status targetcli.service'
 		log_cmd $OF 'lsmod | grep target_'
 		log_cmd $OF 'targetcli ls'
-		[[ -d /etc/target ]] && FILES=$(find /etc/target -type f)
+		[[ -d /etc/target ]] && FILES=$(find -L /etc/target -type f)
 	fi
 	conf_files $OF $FILES
 
@@ -2049,7 +2098,7 @@ nfs_info() {
 				log_cmd $OF 'showmount -a'
 			fi
 			conf_files $OF /etc/exports /etc/sysconfig/nfs
-			log_cmd $OF "grep '[[:space:]]nfs[[:space:]]' /etc/fstab"
+			log_cmd $OF "egrep '[[:space:]]nfs[[:space:]]|[[:space:]]nfs4[[:space:]]' /etc/fstab"
 			IPADDRS=$(egrep '[[:space:]]nfs[[:space:]]|[[:space:]]nfs4[[:space:]]' /etc/fstab | egrep -v '^#|^;' | cut -d\: -f1 | sort | uniq)
 			for IPADDR in $IPADDRS
 			do
@@ -2168,7 +2217,7 @@ ntp_info() {
 				KEYNAME=logdir
 				LOGDIR=$(grep ^${KEYNAME} $CONFFILE | awk '{print $2}')
 				[[ -z "$LOGDIR" ]] && LOGDIR='/var/log/chrony/'
-				FILES=$(find -L $LOGDIR -type f)
+				FILES=$(find $LOGDIR -type f)
 				test $ADD_OPTION_LOGS -gt 0 && log_files $OF 0 $FILES || log_files $OF $VAR_OPTION_LINE_COUNT $FILES
 				FILES="/var/log/messages"
 				test $ADD_OPTION_LOGS -gt 0 && grep_log_files chrony $OF 0 $FILES || grep_log_files chrony $OF $VAR_OPTION_LINE_COUNT $FILES
@@ -2179,6 +2228,43 @@ ntp_info() {
 		fi
 		;;
 	esac
+}
+
+nvme_info() {
+	printlog "NVMe..."
+	test $OPTION_NVME -eq 0 && { echolog Excluded; return 1; }
+	OF=nvme.txt
+	addHeaderFile $OF
+	NVME_PKG='nvme-cli'
+	if lsmod | grep nvme &> /dev/null; then
+		if rpm_verify $OF $NVME_PKG
+		then
+			log_cmd $OF "nvme list"
+			log_cmd $OF "nvme list-subsys"
+			FILES="/etc/nvme/*"
+			[[ -d /etc/nvme/ ]] && conf_files $OF $FILES
+			[[ -f /etc/nvme/discovery.conf ]] && log_cmd $OF "nvme discover"
+			NVME_DEVICES=$(nvme list | grep /dev | awk '{print $1}')
+			for NVME_DEVICE in $NVME_DEVICES
+			do
+				log_entry $OF note "Processing: $NVME_DEVICE"
+				log_cmd $OF "nvme id-ctrl -H $NVME_DEVICE"
+				log_cmd $OF "nvme fw-log $NVME_DEVICE"
+				log_cmd $OF "nvme smart-log $NVME_DEVICE"
+				log_entry $OF note "Done: $NVME_DEVICE"
+				log_cmd $OF "smartctl --all $NVME_DEVICE"
+				log_cmd $OF "nvme list-ns $NVME_DEVICE"
+				log_cmd $OF "nvme list-ctrl $NVME_DEVICE"
+				log_cmd $OF "nvme id-ns -H $NVME_DEVICE"
+				log_cmd $OF "nvme error-log $NVME_DEVICE"
+				log_cmd $OF "nvme show-regs $NVME_DEVICE"
+			done
+			log_cmd $OF "lspci -tv"
+		fi
+		echolog Done
+	else
+		echolog Skipped
+	fi
 }
 
 udev_info() {
@@ -2204,7 +2290,7 @@ udev_info() {
 			for UDEV_DIR in /usr/lib/udev/rules.d ${udev_rules:=/etc/udev/rules.d}
 			do
 				if [[ -d $UDEV_DIR ]]; then
-					FILES=$(find -L $UDEV_DIR/ -type f)
+					FILES=$(find $UDEV_DIR/ -type f)
 					conf_files $OF $FILES
 				fi
 			done
@@ -2242,10 +2328,15 @@ crash_info() {
 		conf_files $OF /sys/kernel/fadump/mem_reserved
 		conf_files $OF /sys/kernel/kexec_crash_loaded
 		conf_files $OF /sys/kernel/kexec_crash_size
+		conf_files $OF /etc/kdump.conf
+		conf_files $OF /etc/udev/rules.d/*kexec.rules
+		conf_files $OF /var/crash/*/vmcore-dmesg.txt
+		conf_files $OF /var/crash/*/kexec-dmesg.log
+		conf_files $OF /var/log/kdump.log
 		if rpm -q kdump &>/dev/null; then
 			DUMPDIR=$(kdumptool dump_config | grep ^KDUMP_SAVEDIR | sed -e 's/"//g;s!file://!!g' | cut -d= -f2)
 			if [[ -d $DUMPDIR ]]; then
-				log_cmd $OF "find -L ${DUMPDIR}/"
+				log_cmd $OF "find ${DUMPDIR}/"
 			else
 				log_entry $OF conf "KDUMP_SAVEDIR not found: ${DUMPDIR}"
 			fi
@@ -2269,7 +2360,7 @@ crash_info() {
 			fi
 			log_cmd $OF "sysctl kernel.sysrq"
 			log_cmd $OF 'grep -A20 -i "saving lkcd dump" /var/log/boot.msg'
-			test -d /var/log/dump && FILES=$(find -L /var/log/dump/ -type f 2>/dev/null | grep analysis) || FILES=""
+			test -d /var/log/dump && FILES=$(find /var/log/dump/ -type f 2>/dev/null | grep analysis) || FILES=""
 			test -z "$FILES" || conf_files $OF $FILES
 		fi
 		if rpm -q kernel-kdump &>/dev/null; then
@@ -2284,7 +2375,7 @@ crash_info() {
 			if [ -f $DUMPCFG ]; then
 				DUMPDIR=$(grep ^KDUMP_SAVEDIR $DUMPCFG | sed -e 's/"//g;s!file://!!g' | cut -d= -f2)
 				if [ -d $DUMPDIR ]; then
-					log_cmd $OF "find -L ${DUMPDIR}/"
+					log_cmd $OF "find ${DUMPDIR}/"
 				else
 					log_entry $OF conf "KDUMP_SAVEDIR not found: ${DUMPDIR}"
 				fi
@@ -2302,7 +2393,7 @@ crash_info() {
 			if [ -f $DUMPCFG ]; then
 				DUMPDIR=$(grep ^KDUMP_SAVEDIR $DUMPCFG | sed -e 's/"//g;s!file://!!g' | cut -d= -f2)
 				if [ -d $DUMPDIR ]; then
-					log_cmd $OF "find -L ${DUMPDIR}/"
+					log_cmd $OF "find ${DUMPDIR}/"
 				else
 					log_entry $OF conf "KDUMP_SAVEDIR not found: ${DUMPDIR}"
 				fi
@@ -2612,15 +2703,15 @@ ha_info() {
 			CURRENT_CIB=''
 			FILES=''
 			if [[ -d /var/lib/heartbeat/ ]]; then
-				FILES=$(find -L /var/lib/heartbeat/ -type f | egrep -v "cores|pengine|hb_uuid|cib\.xml")
+				FILES=$(find /var/lib/heartbeat/ -type f | egrep -v "cores|pengine|hb_uuid|cib\.xml")
 				[[ -e /var/lib/heartbeat/crm/cib.xml ]] && CURRENT_CIB='/var/lib/heartbeat/crm/cib.xml'
-				for i in $(find -L /var/lib/heartbeat/cores -type f)
+				for i in $(find /var/lib/heartbeat/cores -type f)
 				do
 					log_cmd $OF "file $i"
 				done
 			fi
 			if [[ -d /var/lib/pacemaker/ ]]; then
-				TFILES=$(find -L /var/lib/pacemaker/ -type f | egrep -v "cores|pengine|hb_uuid|cib\.xml")
+				TFILES=$(find /var/lib/pacemaker/ -type f | egrep -v "cores|pengine|hb_uuid|cib\.xml")
 				FILES="$FILES $TFILES"
 				[[ -e /var/lib/pacemaker/cib/cib.xml ]] && CURRENT_CIB='/var/lib/pacemaker/cib/cib.xml'
 			fi
@@ -2692,15 +2783,15 @@ ha_info() {
 			CURRENT_CIB=''
 			FILES=''
 			if [[ -d /var/lib/heartbeat/ ]]; then
-				FILES=$(find -L /var/lib/heartbeat/ -type f | egrep -v "cores|pengine|hb_uuid|cib\.xml")
+				FILES=$(find /var/lib/heartbeat/ -type f | egrep -v "cores|pengine|hb_uuid|cib\.xml")
 				[[ -e /var/lib/heartbeat/crm/cib.xml ]] && CURRENT_CIB='/var/lib/heartbeat/crm/cib.xml'
-				for i in $(find -L /var/lib/heartbeat/cores -type f)
+				for i in $(find /var/lib/heartbeat/cores -type f)
 				do
 					log_cmd $OF "file $i"
 				done
 			fi
 			if [[ -d /var/lib/pacemaker/ ]]; then
-				TFILES=$(find -L /var/lib/pacemaker/ -type f | egrep -v "cores|pengine|hb_uuid|cib\.xml")
+				TFILES=$(find /var/lib/pacemaker/ -type f | egrep -v "cores|pengine|hb_uuid|cib\.xml")
 				FILES="$FILES $TFILES"
 				[[ -e /var/lib/pacemaker/cib/cib.xml ]] && CURRENT_CIB='/var/lib/pacemaker/cib/cib.xml'
 			fi
@@ -2809,12 +2900,12 @@ ocfs2_info() {
 		esac
 		CHECKDIR="/sys/o2cb"
 		if [ -d $CHECKDIR ]; then
-			FILES=$(find -L ${CHECKDIR}/ -type f)
+			FILES=$(find ${CHECKDIR}/ -type f)
 			conf_files $OF $FILES
 		fi
 		CHECKDIR="/sys/kernel/config/cluster"
 		if [ -d $CHECKDIR ]; then
-			FILES=$(find -L ${CHECKDIR}/ -type f)
+			FILES=$(find ${CHECKDIR}/ -type f)
 			conf_files $OF $FILES
 		fi
 		(( OCFS2_MODULES )) && DEVICES=$(/sbin/mounted.ocfs2 -d | grep ^/ | awk '{ print $1}') || DEVICES=''
@@ -2877,6 +2968,7 @@ drbd_info() {
 		log_write $OF
 		log_cmd $OF "lsmod | grep drbd"
 		log_cmd $OF "modinfo drbd"
+		log_cmd $OF "drbd-overview" 
 		# Added By Ahmad Al Zayed - Feb 21, 2019 to get few drbd output & configuration 
 		log_cmd $OF "drbdadm status" 
 		log_cmd $OF "drbdadm dump"
@@ -2892,7 +2984,7 @@ drbd_info() {
 				# We need to add "/etc/" since $DIR will have dir inside /etc/ 
 				# However this find will find all files inside a specific folder It's okay
 				# Will end up with /etc/drbd.conf/nfs.res nfs.RES nfs.stop .... 
-				[[ -d "/etc/$DIR" ]] && FILES="$FILES $(find -L "/etc/$DIR" -type f)"
+				[[ -d "/etc/$DIR" ]] && FILES="$FILES $(find -L \"/etc/$DIR\" -type f)"
 				[[ -d $DIR ]] && FILES="$FILES $(find -L $DIR -type f)"
 			done
 			conf_files $OF "/etc/drbd.conf $FILES"
@@ -3037,7 +3129,7 @@ samba_info() {
 	fi
 
 	if [ -d /var/log/samba ]; then
-		FILES=$(find -L /var/log/samba/ -type f | grep -v '/core')
+		FILES=$(find /var/log/samba/ -type f | grep -v '/core')
 		test $ADD_OPTION_LOGS -gt 0 && log_files $OF 0 $FILES || log_files $OF $VAR_OPTION_LINE_COUNT $FILES
 	fi
 	
@@ -3197,7 +3289,7 @@ ldap_info() {
 			conf_files $OF $SLAPD_DIR/DB_CONFIG
 			log_cmd $OF "ls -al $SLAPD_DIR"
 		fi
-		log_cmd $OF "lsof -p $SLAPD_PID"
+		log_cmd $OF "lsof -b +M -n -l -p $SLAPD_PID"
 		log_write $OF "#___________________________________________________________#"
 		log_write $OF "#____[ Schema Files Included in LDAP Server ]_______________#"
 		log_write $OF
@@ -3218,7 +3310,7 @@ etc_info() {
 	addHeaderFile $OF
 	# Let us get alternatives output
 	log_cmd $OF "update-alternatives --get-selections"
-	conf_files $OF $(find -L /etc/ -type f | egrep "conf$|cfg$")
+	conf_files $OF $(find -L /etc/ -type f | egrep "conf$|cfg$" | egrep -v "rhn/rhn.conf$")
 	[ -d /etc/logrotate.d ] && conf_files $OF /etc/logrotate.d/*
 	conf_files $OF /etc/rc.dialout /etc/ppp/options /etc/ppp/ioptions /etc/ppp/peers/pppoe /etc/motd
 	echolog Done
@@ -3229,11 +3321,11 @@ sysconfig_info() {
 	test $OPTION_SYSCONFIG -eq 0 && { echolog Excluded; return 1; }
 	OF=sysconfig.txt
 	addHeaderFile $OF
-	for FILE in $(find -L /etc/sysconfig/ -maxdepth 1 -type f | sort -f)
+	for FILE in $(find /etc/sysconfig/ -maxdepth 1 -type f | sort -f)
 	do
 		conf_files $OF $FILE
 	done
-	for FDIR in $(find -L /etc/sysconfig/ -maxdepth 1 -type d | grep -v "/etc/sysconfig/$" | sort)
+	for FDIR in $(find /etc/sysconfig/ -maxdepth 1 -type d | grep -v "/etc/sysconfig/$" | sort)
 	do
 		for FILE in $(find -L ${FDIR}/ -type f | sort)
 		do
@@ -3712,7 +3804,7 @@ tuned_info() {
 		log_cmd $OF "tuned-adm profile_info"
 		FILES=$(find -L /etc/tuned/ -type f 2>/dev/null)
 		conf_files $OF $FILES
-		FILES=$(find -L /usr/lib/tuned/ -type f 2>/dev/null | grep '\.conf$')
+		FILES=$(find /usr/lib/tuned/ -type f 2>/dev/null | grep '\.conf$')
 		conf_files $OF $FILES
 		FILES="/var/log/tuned/tuned.log"
 		(( $ADD_OPTION_LOGS > 0 )) && log_files $OF 0 $FILES || log_files $OF $VAR_OPTION_LINE_COUNT $FILES
@@ -3785,7 +3877,7 @@ ib_info() {
 			log_cmd $OF 'lsmod'
 			log_cmd $OF 'ibv_devinfo -v'
 			log_cmd $OF 'ibdiagnet'
-			FILES=$(find -L /tmp/ -type f 2>/dev/null | grep ibdiagnet)
+			FILES=$(find /tmp/ -type f -name \*ibdiagnet\* 2>/dev/null)
 			test $ADD_OPTION_LOGS -gt 0 && log_files $OF 0 $FILES || log_files $OF $VAR_OPTION_LINE_COUNT $FILES
 			echolog Done
 		else
@@ -3840,7 +3932,7 @@ ib_info() {
 			log_cmd $OF 'lsmod'
 
 			FILES=''
-			(( CHK_DIAG )) && FILES="$FILES $(find -L /tmp/ -type f 2>/dev/null | grep ibdiagnet)"
+			(( CHK_DIAG )) && FILES="$FILES $(find /tmp/ -type f -name \*ibdiagnet\* 2>/dev/null)"
 			(( CHK_OPENSM )) && FILES="$FILES /var/log/osm.log"
 			(( CHK_ACM )) && FILES="$FILES /var/log/ibacm.log"
 			test $ADD_OPTION_LOGS -gt 0 && log_files $OF 0 $FILES || log_files $OF $VAR_OPTION_LINE_COUNT $FILES
@@ -3893,7 +3985,7 @@ ib_info() {
 			log_cmd $OF 'lsmod'
 
 			FILES=''
-			(( CHK_DIAG )) && FILES="$FILES $(find -L /tmp/ -type f 2>/dev/null | grep ibdiagnet)"
+			(( CHK_DIAG )) && FILES="$FILES $(find /tmp/ -type f -name \*ibdiagnet\* 2>/dev/null)"
 			(( CHK_OPENSM )) && FILES="$FILES /var/log/opensm.log"
 			(( CHK_ACM )) && FILES="$FILES /var/log/ibacm.log"
 			test $ADD_OPTION_LOGS -gt 0 && log_files $OF 0 $FILES || log_files $OF $VAR_OPTION_LINE_COUNT $FILES
@@ -3921,7 +4013,7 @@ web_info() {
 		conf_files $OF /etc/sysconfig/apache2 /etc/apache2/httpd.conf
 		FILES=$(find -L /etc/apache2/ -type f | grep 'conf$' | grep -v 'httpd.conf')
 		conf_files $OF $FILES
-		FILES=$(find -L /var/log/apache2/ -type f)
+		FILES=$(find /var/log/apache2/ -type f)
 		test $ADD_OPTION_LOGS -gt 0 && log_files $OF 0 $FILES || log_files $OF $VAR_OPTION_LINE_COUNT $FILES
 		TOMCAT=$(cat $LOG/$RPM_QA_FILE | grep '^tomcat')
 		for i in $TOMCAT
@@ -3952,7 +4044,7 @@ hppsp_info() {
 		PSPFILES="/var/log/hppldu.log"
 		test $ADD_OPTION_LOGS -gt 0 && log_files $OFPSP 0 $PSPFILES || log_files $OFPSP $VAR_OPTION_LINE_COUNT $PSPFILES
 		if [ -d /var/hp ]; then
-			PSPCFILES="$(find -L /var/hp/ -type f)"
+			PSPCFILES="$(find /var/hp/ -type f)"
 			conf_files $OFPSP $PSPCFILES
 		fi
 	fi
@@ -3963,7 +4055,9 @@ sysfs_info() {
 	test $OPTION_SYSFS -eq 0 && { echolog Excluded; return 1; }
 	OF=sysfs.txt
 	addHeaderFile $OF
-	log_cmd $OF "find /sys | xargs ls -ld --time-style=long-iso"
+	log_entry $OF command "/bin/find /sys | sed -e 's/\\/\\\\/g' | xargs ls -ld --time-style=long-iso"
+	/bin/find /sys | sed -e 's/\\/\\\\/g' | xargs ls -ld --time-style=long-iso >> ${LOG}/${OF} 2>&1
+	log_write $OF
 	log_cmd $OF "systool"
 	for ITEM in $(systool)
 	do
@@ -4018,7 +4112,7 @@ kernel_livepatch_info() {
 	test $OPTION_LIVEPATCH -eq 0 && { echolog Excluded; return 1; }
 	OF=kernel-livepatch.txt
 	addHeaderFile $OF
-	for FDIR in $(find -L /sys/kernel/livepatch/ -maxdepth 1 -type d | grep -v "/sys/kernel/livepatch/$")
+	for FDIR in $(find /sys/kernel/livepatch/ -maxdepth 1 -type d | grep -v "/sys/kernel/livepatch/$")
 	do
 		log_cmd $OF "find -L $FDIR -type d"
 		FILES=$(find -L $FDIR/ -type f)
@@ -4160,38 +4254,56 @@ if (( VAR_OPTION_UNIQUE_FILE )); then
 	test -z "$NOTFOUND" && BASE="${BASE}_%u" #add UID if not present already
 fi
 
-if [ -n "$FROM_DIRECTORY" ]; then
-	VAR_OPTION_LOG_DIRS=$FROM_DIRECTORY
-	BASE=$(ls -t $FROM_DIRECTORY | grep nts | head -n1)
+if [[ -n "$FROM_DIRECTORY" ]]; then
+	if [[ -s ${FROM_DIRECTORY}/${BASIC_ENVF} ]]; then
+		VAR_OPTION_LOG_DIRS=$(dirname ${FROM_DIRECTORY} 2>/dev/null)
+		BASE=$(basename ${FROM_DIRECTORY} 2>/dev/null)
+	else
+		VAR_OPTION_LOG_DIRS=$FROM_DIRECTORY
+		TBASE=$(ls -1td ${FROM_DIRECTORY}/*/ 2>/dev/null | egrep 'scc_|nts_' | head -n1)
+		BASE=$(basename $TBASE 2>/dev/null)
+	fi
 fi
 
 for LOG in $VAR_OPTION_LOG_DIRS
 do
 	# If a full path was not assigned, the cwd will be prepended to the LOG path
 	VALID_LOG=$(echo $LOG | grep '^/')
-	if [ -z "$VALID_LOG" ]; then
+	if [[ -z "$VALID_LOG" ]]; then
 		VALID_LOG=$(echo $LOG | grep '^\./')
 		CURRENT_PATH="$(pwd)"
-		if [ -n "$VALID_LOG" ]; then
+		if [[ -n "$VALID_LOG" ]]; then
 			LOG="${CURRENT_PATH}/${LOG:2}"
 		else
 			LOG="${CURRENT_PATH}/${LOG}"
 		fi
 	fi
-	# Create the paths
 	normalize_base
-	[ $USE_SAVED_LOGS_ONLY -eq 0 ] && check_log_dir
-	LOG=${LOG}/${BASE}
-	if mkdir -p $LOG &>/dev/null; then 
-		unset LOGERROR
-		break
+	# Create the paths
+	if (( USE_SAVED_LOGS_ONLY )); then
+		if [[ -n $BASE ]]; then
+			LOG=${LOG}/${BASE}
+		else
+			echo "ERROR: Missing or invalid supportconfig directory in -f $LOG"
+			LOGERROR=1
+		fi
 	else
-		echo "ERROR: Cannot create $LOG"
-		LOGERROR=1
+		check_log_dir
+		LOG=${LOG}/${BASE}
+		if mkdir -p $LOG &>/dev/null; then 
+			unset LOGERROR
+			break
+		else
+			echo "ERROR: Cannot create $LOG"
+			LOGERROR=1
+		fi
 	fi
 done
 
-test $LOGERROR && { echo; exit_code 3; }
+if (( $LOGERROR )); then
+	echo
+	exit_code 3
+fi
 export LOG
 
 if [ "$USE_SAVED_LOGS_ONLY" != "1" ]; then
@@ -4262,6 +4374,7 @@ if [ "$USE_SAVED_LOGS_ONLY" != "1" ]; then
 	boot_info
 	slert_info
 	update_info
+	nvme_info
 	smt_info
 	ha_info
 	ocfs2_info
