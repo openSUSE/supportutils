@@ -164,9 +164,6 @@ basic_environment() {
 				wait_trace_on "systemctl status firewalld.service"
 				log_write $BASIC_ENVF "$(systemctl status firewalld.service)"
 				wait_trace_off
-				wait_trace_on "systemctl status firewalld.service"
-				log_write $BASIC_ENVF "$(systemctl status firewalld.service)"
-				wait_trace_off
 				IPBIN="/usr/sbin/iptables"
 				if [[ -x $IPBIN ]]; then
 					TOTAL_FIREWALL_RULES=0
