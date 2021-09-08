@@ -1,7 +1,8 @@
 -------------------------------------------------------------------
-Wed Sep  8 18:10:14 UTC 2021 - Jason Record <jason.record@suse.com>
+Wed Sep  8 18:18:08 UTC 2021 - Jason Record <jason.record@suse.com>
 
 - Fixed cron package for RPM validation (bsc#1190315)
+- Updated spec file with correct URL
 
 -------------------------------------------------------------------
 Mon Aug 16 14:40:50 UTC 2021 - Jason Record <jason.record@suse.com>
