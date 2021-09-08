@@ -1,7 +1,7 @@
 #!/bin/bash
 
-SVER='3.1.11-18.dev2'
-SDATE='2021 08 04'
+SVER='3.1.11-21'
+SDATE='2021 09 08'
 
 ##############################################################################
 #  supportconfig - Gathers system troubleshooting information for SUSE Support
@@ -1181,14 +1181,9 @@ cron_info() {
 	test $OPTION_CRON -eq 0 && { echolog Excluded; return 1; }
 	OF=cron.txt
 	addHeaderFile $OF
-	if rpm_verify $OF cron
+	if rpm_verify $OF cronie
 	then
-		if (( SLES_VER >= 120 ))
-		then
-			log_cmd $OF "systemctl status cron.service"
-		else
-			check_service $OF cron
-		fi
+		log_cmd $OF "systemctl status cron.service"
 		conf_files $OF /var/spool/cron/allow /var/spool/cron/deny
 		log_write $OF "### Individual User Cron Jobs ###"
 		test -d /var/spool/cron/tabs && FILES=$(find /var/spool/cron/tabs/ -type f) || FILES=""
@@ -1214,12 +1209,7 @@ cron_info() {
 	log_write $OF "#----------------------------------------------------------------#"
 	if rpm_verify $OF at
 	then
-		if (( SLES_VER >= 120 ))
-		then
-			log_cmd $OF "systemctl status atd.service"
-		else
-			check_service $OF atd
-		fi
+		log_cmd $OF "systemctl status atd.service"
 		log_write $OF "### System at Job File List ###"
 		log_cmd $OF "find /var/spool/atjobs/ -type f"
 		log_write $OF "### System at Job File Content ###"
