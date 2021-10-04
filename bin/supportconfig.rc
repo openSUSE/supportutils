@@ -1,5 +1,32 @@
 #!/bin/bash
 ##############################################################################
+#  supportconfig.rc - Resource file for supportconfig
+#  Copyright (C) 2001-2021 SUSE LLC
+#
+#  Contains supporting functions and variables used by supportconfig and
+#  supportconfig plugins.
+#
+##############################################################################
+#
+#  This program is free software; you can redistribute it and/or modify
+#  it under the terms of the GNU General Public License as published by
+#  the Free Software Foundation; version 2 of the License.
+#
+#  This program is distributed in the hope that it will be useful,
+#  but WITHOUT ANY WARRANTY; without even the implied warranty of
+#  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+#  GNU General Public License for more details.
+#
+#  You should have received a copy of the GNU General Public License
+#  along with this program; if not, see <http://www.gnu.org/licenses/>.
+#
+#  Modified: 2021 Oct 04
+#  Authors/Contributors:
+#     Jason Record <jason.record@suse.com>
+#
+##############################################################################
+
+##############################################################################
 # Supportconfig Supporting Functions
 ##############################################################################
 
@@ -84,7 +111,7 @@ VAR_OPTION_HBREPORT_DIRS='/var/log /root'
 # reports must have the format hb_report.*\.tar\.bz2 in each directory
 VAR_OPTION_JOURNALCTL_LINE_COUNT=0
 VAR_OPTION_JOURNALCTL_MAX_BOOTS=10
-VAR_OPTION_LOG_DIRS='/var/log /tmp'
+VAR_OPTION_LOG_DIRS='/var/log /tmp / /dev/shm'
 VAR_OPTION_LINE_COUNT=500
 VAR_OPTION_MSG_MAXSIZE=26214400
 VAR_OPTION_MSG_LINE_COUNT=200000

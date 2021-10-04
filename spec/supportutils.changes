@@ -1,7 +1,8 @@
 -------------------------------------------------------------------
-Mon Oct  4 17:09:57 UTC 2021 - Jason Record <jason.record@suse.com>
+Mon Oct  4 17:38:56 UTC 2021 - Jason Record <jason.record@suse.com>
 
 - Installing to /usr/sbin instead of /sbin (bsc#1191096)
+- Added shared memory as a log directory for emergency use (bsc#1190943)
 
 -------------------------------------------------------------------
 Wed Sep  8 18:18:08 UTC 2021 - Jason Record <jason.record@suse.com>
