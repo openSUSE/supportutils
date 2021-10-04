@@ -1,7 +1,7 @@
 #!/bin/bash
 
-SVER='1.52.8_dev2'
-SDATE="2020 03 12"
+SVER='1.52.10'
+SDATE="2021 10 02"
 SNAME=$(basename $0)
 
 # --------------------------------------------------------------------- #
@@ -29,8 +29,8 @@ SNAME=$(basename $0)
 #  along with this program; if not, see <http://www.gnu.org/licenses/>. #
 #                                                                       #
 #  Authors/Contributors:                                                #
-#     Mike Latimer (mlatimer@suse.com)                                  #
-#     Jason Record (jason.record@suse.com)                              #
+#     Mike Latimer <mlatimer@suse.com>                                  #
+#     Jason Record <jason.record@suse.com>                              #
 #                                                                       #
 #  Additional credit to Paul Hardwick (phardwick@novell.com) for his    #
 #  novell-getcore, which was inspiration for this (more generic) script #
@@ -51,6 +51,7 @@ SNAME=$(basename $0)
 # Changes:                                                              #
 #                                                                       #
 # 1.53 Release                                                          #
+#    - Updated chkbin location to /usr/sbin                             #
 #    - Check tar return code instead of existence of archive            #
 #    - Check for valid compression binary                               #
 # 1.52 Release                                                          #
@@ -109,7 +110,7 @@ UPLOAD_TARGET="${DEFAULT_HTTPS}"
 AWK_BIN=/usr/bin/awk
 BASENAME_BIN=/usr/bin/basename
 CAT_BIN=/bin/cat
-CHKBIN_BIN=/sbin/chkbin
+CHKBIN_BIN=/usr/sbin/chkbin
 CHMOD_BIN=/bin/chmod
 COREDUMP_BIN=/usr/bin/coredumpctl
 CURL_BIN=/usr/bin/curl

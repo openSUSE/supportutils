@@ -1,4 +1,9 @@
 -------------------------------------------------------------------
+Mon Oct  4 17:09:57 UTC 2021 - Jason Record <jason.record@suse.com>
+
+- Installing to /usr/sbin instead of /sbin (bsc#1191096)
+
+-------------------------------------------------------------------
 Wed Sep  8 18:18:08 UTC 2021 - Jason Record <jason.record@suse.com>
 
 - Fixed cron package for RPM validation (bsc#1190315)
