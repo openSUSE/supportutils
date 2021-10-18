@@ -1,7 +1,7 @@
 #!/bin/bash
 
-SVER='1.52.10'
-SDATE="2021 10 02"
+SVER='1.53.01'
+SDATE="2021 10 18"
 SNAME=$(basename $0)
 
 # --------------------------------------------------------------------- #
@@ -47,35 +47,7 @@ SNAME=$(basename $0)
 # the output of that check, along with a log detailing the RPM versions #
 # required to fully analyze the application core.                       #
 #                                                                       #
-# --------------------------------------------------------------------- #
-# Changes:                                                              #
-#                                                                       #
-# 1.53 Release                                                          #
-#    - Updated chkbin location to /usr/sbin                             #
-#    - Check tar return code instead of existence of archive            #
-#    - Check for valid compression binary                               #
-# 1.52 Release                                                          #
-#    - Capture coredumpctl info in getappcore.log                       #
-#    - Changed nts_ to scc_ with ARCHIVE_PREFIX                         #
-# 1.51 Release                                                          #
-#    - Added journal core dump processing                               #
-#    - Check for valid core file                                        #
-#    - Updated documentation and messages                               #
-#    - Creates ARCHIVE_PATH as needed                                   #
-# 1.46 Release                                                          #
-#    - Replaced Novell with SUSE FTP servers                            #
-#    - Uses /etc/getappcore.conf if present                             #
-#    - Added -u for HTTPS and -f for FTPES uploads to SUSE FTP servers  #
-# 1.30 Release                                                          #
-#    - Added /etc/os-release processing                                 #
-# 1.28 Release                                                          #
-#    - Changed upload process to use curl instead of ftp                #
-# 1.27 Release                                                          #
-#    - Additional check to ensure binary is executable                  #
-# 1.26 Release                                                          #
-#    - Better binary checking                                           #
-# 1.25 Release                                                          #
-#    - Initial public release in supportutils                           #
+# Changes: Moved to the supportutils changelog                          #
 # --------------------------------------------------------------------- #
 
 
@@ -581,16 +553,38 @@ fi
 
 if [ ! -z $COREFILE -a -e $COREFILE ]; then
 	echo -n "Validating core file... "
-	if [[ -f $COREFILE ]]; then
-		echo Done
-		verbose "$(file $COREFILE)"
-	else
-		echo Invalid
-		echo " + $(file $COREFILE)"
-		cleanup
-		exit -5
-	fi
 	COREFILE=$($READLINK_BIN -f $COREFILE)
+	verbose ''
+	MIME_TYPE=$(file --mime-type --brief $COREFILE)
+	TYPE=$(cut -d/ -f2 <<< $MIME_TYPE)
+	ERROR=1
+	CCMD=''
+	verbose "Core file path: $COREFILE"
+	verbose "File type: $MIME_TYPE"
+	case $TYPE in
+	x-coredump) echo Done; ERROR=0 ;;
+	x-zstd) CCMD='zstd -d'; PKG='zstd' ;;
+	x-lz4) CCMD='lz4 -d'; PKG='lz4' ;;
+	x-xz) CCMD='xz -d'; PKG='xz' ;;
+	x-bzip2) CCMD='bzip2 -d'; PKG='bzip2' ;;
+	x-gzip) CCMD='gzip -d'; PKG='gzip' ;;
+	esac
+	if (( $ERROR )); then
+		if [[ -n $CCMD ]]; then
+			echo "ERROR: Core file compressed -- $MIME_TYPE"
+			echo
+			if rpm -q $PKG &> /dev/null; then
+				echo "  Try: $CCMD $COREFILE"
+			else
+				echo "  Try: zypper in $PKG; $CCMD $COREFILE"
+			fi
+		else
+			echo "ERROR: Invalid core file type -- $MIME_TYPE"
+		fi
+		echo
+		cleanup
+		exit 5
+	fi
 	echo -n "Validating binary file... "
 	verbose ''
 	if [ -z $COREFILE_BIN ]; then

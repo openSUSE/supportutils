@@ -1,4 +1,9 @@
 -------------------------------------------------------------------
+Mon Oct 18 21:20:28 UTC 2021 - Jason Record <jason.record@suse.com>
+
+- getappcore identifies compressed core files (bsc#1191794)
+
+-------------------------------------------------------------------
 Mon Oct  4 17:38:56 UTC 2021 - Jason Record <jason.record@suse.com>
 
 - Installing to /usr/sbin instead of /sbin (bsc#1191096)
