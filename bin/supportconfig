@@ -1,7 +1,7 @@
 #!/bin/bash
 
-SVER='3.1.11-22'
-SDATE='2021 10 04'
+SVER='3.1.11-24'
+SDATE='2021 11 16'
 
 ##############################################################################
 #  supportconfig - Gathers system troubleshooting information for SUSE Support
@@ -576,9 +576,9 @@ messages_file() {
 }
 
 localwarn_file() {
-        printlog "Localmessages/Warn Logs..."
+        printlog "Local/Warn Logs..."
         test $MIN_OPTION_SYSLOGS -eq 0 && { echolog EXCLUDED; return 1; }
-        OF=localwarn.txt
+        OF=messages_localwarn.txt
         addHeaderFile $OF
         if [[ $ADD_OPTION_LOGS -gt 0 ]]; then
                 FILES="$(ls -1 /var/log/warn-[[:digit:]]* 2>/dev/null) $(ls -1 /var/log/localmessages-[[:digit:]]* 2>/dev/null)"

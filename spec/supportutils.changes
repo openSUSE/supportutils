@@ -1,4 +1,9 @@
 -------------------------------------------------------------------
+Tue Nov 16 15:48:03 UTC 2021 - Jason Record <jason.record@suse.com>
+
+- Merged Move localmessage/warm logs out of messages.txt to new localwarn.txt #87
+
+-------------------------------------------------------------------
 Mon Oct 18 21:20:28 UTC 2021 - Jason Record <jason.record@suse.com>
 
 - getappcore identifies compressed core files (bsc#1191794)
