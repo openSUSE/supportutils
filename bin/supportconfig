@@ -2271,7 +2271,7 @@ udev_info() {
 		esac 
 		if [[ -f $UDEV_CONF ]]; then
 			. $UDEV_CONF
-			for UDEV_DIR in /usr/lib/udev/rules.d ${udev_rules:=/etc/udev/rules.d}
+			for UDEV_DIR in /lib/udev/rules.d /usr/lib/udev/rules.d ${udev_rules:=/etc/udev/rules.d}
 			do
 				if [[ -d $UDEV_DIR ]]; then
 					FILES=$(find $UDEV_DIR/ -type f)
