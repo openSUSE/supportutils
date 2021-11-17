@@ -1,6 +1,7 @@
 -------------------------------------------------------------------
-Tue Nov 16 15:48:03 UTC 2021 - Jason Record <jason.record@suse.com>
+Wed Nov 17 13:56:16 UTC 2021 - Jason Record <jason.record@suse.com>
 
+- Merged Include udev rules in /lib/udev/rules.d/ #113
 - Merged Move localmessage/warm logs out of messages.txt to new localwarn.txt #87
 
 -------------------------------------------------------------------
