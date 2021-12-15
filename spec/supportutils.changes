@@ -1,4 +1,10 @@
 -------------------------------------------------------------------
+Wed Dec 15 13:28:40 UTC 2021 - Jason Record <jason.record@suse.com>
+
+- Changes to version 3.1.19
+  + Removed chronyc DNS lookups with -n switch (bsc#1193732)
+
+-------------------------------------------------------------------
 Wed Nov 17 13:56:16 UTC 2021 - Jason Record <jason.record@suse.com>
 
 - Merged Include udev rules in /lib/udev/rules.d/ #113

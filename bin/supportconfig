@@ -1,7 +1,7 @@
 #!/bin/bash
 
-SVER='3.1.11-25'
-SDATE='2021 11 17'
+SVER='3.1.11-26'
+SDATE='2021 12 15'
 
 ##############################################################################
 #  supportconfig - Gathers system troubleshooting information for SUSE Support
@@ -2169,10 +2169,10 @@ ntp_info() {
 			log_cmd $OF "systemctl status chronyd.service"
 			FILES="$CONFFILE /etc/chrony.keys"
 			conf_files $OF $FILES
-			if log_cmd $OF "chronyc sources -v"
+			if log_cmd $OF "chronyc -n sources -v"
 			then
-				log_cmd $OF "chronyc sourcestats -v"
-				log_cmd $OF "chronyc tracking"
+				log_cmd $OF "chronyc -n sourcestats -v"
+				log_cmd $OF "chronyc -n tracking"
 				log_cmd $OF "chronyc activity"
 			else
 				NTP_DAEMON=0
