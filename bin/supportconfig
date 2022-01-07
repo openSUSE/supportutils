@@ -1,6 +1,6 @@
 #!/bin/bash
 
-SVER='3.1.11-28.1'
+SVER='3.1.11-28.2'
 SDATE='2022 01 07'
 
 ##############################################################################
@@ -1658,12 +1658,16 @@ hardware_info() {
 net_info() {
 	printlog "Networking..."
 	test $OPTION_NET -eq 0 && { echolog Excluded; return 1; }
-	NAMESPACES=$(ip netns list)
-	if [[ -n "${NAMESPACES}" ]] ; then
-		net_info_namespace "network.txt" 
-		ip netns list | while read NAMESPACE rest; do
-			net_info_namespace "network-${NAMESPACE}.txt" "${NAMESPACE}"
-		done
+	if (( $INCLUDE_NETWORK_NAMESPACES )); then
+		NAMESPACES=$(ip netns list)
+		if [[ -n "${NAMESPACES}" ]] ; then
+			net_info_namespace "network.txt" 
+			ip netns list | while read NAMESPACE rest; do
+				net_info_namespace "network-${NAMESPACE}.txt" "${NAMESPACE}"
+			done
+		else
+			net_info_namespace "network.txt" 
+		fi
 	else
 		net_info_namespace "network.txt" 
 	fi
@@ -1688,6 +1692,7 @@ net_info_namespace() {
 			log_cmd $OF "systemctl status network.service"
 			log_cmd $OF "systemctl status nscd.service"
 			log_cmd $OF "wicked ifstatus --verbose all"
+			log_cmd $OF "ip netns list"
 			log_cmd $OF "wicked show-config"
 		elif (( SLES_VER >= 120 )) ; then
 			rpm_verify $OF wicked
@@ -3338,7 +3343,7 @@ proc_info() {
 		conf_files $OF $FILES
 	done
 
-	if (( SLES_VER >= 120 )); then
+	if (( SLES_VER >= 120 && ${INCLUDE_NETWORK_NAMESPACES} )); then
 		# Check process name space against the default name space
 		log_write $OF "#==[ Processes with a Different Default Name Space ]==#"
 		log_write $OF "# name_space : process_id : command"

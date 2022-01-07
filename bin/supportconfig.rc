@@ -185,6 +185,8 @@ PROC_DIRS_DEPTH_FULL="/proc/irq/ /proc/sys/"
 PROC_DIRS_DEPTH_ONE_FILTER_OUT="rt_acct$|/sched_domain/"
 PROC_DIRS_DEPTH_FULL_FILTER_OUT="fs/binfmt_misc/register|net/ipv4/route/flush|net/ipv6/route/flush|vm/compact_memory|base_reachable_time|scan_unevictable_pages|/sched_domain/"
 
+INCLUDE_NETWORK_NAMESPACES=1
+
 # These are minimum options and should never be unset.
 MIN_OPTION_RPM=1
 MIN_OPTION_ENV=1
