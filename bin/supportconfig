@@ -1,11 +1,11 @@
 #!/bin/bash
 
-SVER='3.1.11-26'
-SDATE='2021 12 15'
+SVER='3.1.11-28.1'
+SDATE='2022 01 07'
 
 ##############################################################################
 #  supportconfig - Gathers system troubleshooting information for SUSE Support
-#  Copyright (C) 2001-2021 SUSE LLC
+#  Copyright (C) 2001-2022 SUSE LLC
 #
 #  Creates a tar ball to attach to the support case or send to support. 
 #  Collects comprehensive system information for troubleshooting and reducing
@@ -3326,6 +3326,18 @@ proc_info() {
 	OF=proc.txt
 	addHeaderFile $OF
 
+	conf_files $OF $PROC_FILES
+	for PROCDIR in $PROC_DIRS_DEPTH_ONE
+	do
+		FILES=$(find $PROCDIR -maxdepth 1 -type f 2>/dev/null | egrep -iv "${PROC_DIRS_DEPTH_ONE_FILTER_OUT}" | sort -f)
+		conf_files $OF $FILES
+	done
+	for PROCDIR in $PROC_DIRS_DEPTH_FULL
+	do
+		FILES=$(find $PROCDIR -type f 2>/dev/null | egrep -iv "${PROC_DIRS_DEPTH_FULL_FILTER_OUT}" | sort -f)
+		conf_files $OF $FILES
+	done
+
 	if (( SLES_VER >= 120 )); then
 		# Check process name space against the default name space
 		log_write $OF "#==[ Processes with a Different Default Name Space ]==#"
@@ -3362,22 +3374,6 @@ proc_info() {
 		log_write $OF
 	fi	
 
-	FILES=$(find /proc/ -maxdepth 1 -type f 2>/dev/null | egrep -iv "kcore$|kpagecount$|kpageflags$|kpagecgroup$|vmcore$|config.gz$|kmsg$|sysrq-trigger$|kallsyms$|mm$|ssstm|pagetypeinfo$" | sort -f)
-	conf_files $OF $FILES
-	conf_files $OF /proc/mounts /proc/zoneinfo
-	ADDPROCS="/proc/sys/kernel/ /proc/scsi/ /proc/net/ /proc/dasd/"
-	for PROCDIR in $ADDPROCS
-	do
-		FILES=$(find $PROCDIR -maxdepth 1 -type f 2>/dev/null | egrep -iv "rt_acct$|/sched_domain/" | sort -f)
-		conf_files $OF $FILES
-	done
-	FULLPROCS="/proc/irq/ /proc/sys/"
-	FILTER="fs/binfmt_misc/register|net/ipv4/route/flush|net/ipv6/route/flush|vm/compact_memory|base_reachable_time|scan_unevictable_pages|/sched_domain/"
-	for PROCDIR in $FULLPROCS
-	do
-		FILES=$(find $PROCDIR -type f 2>/dev/null | egrep -iv "$FILTER" | sort -f)
-		conf_files $OF $FILES
-	done
 	# only include cpu0 sched_domain information, all others are excluded
 	SCHED_DOMAIN='/proc/sys/kernel/sched_domain/cpu0'
 	if [[ -d ${SCHED_DOMAIN} ]]; then

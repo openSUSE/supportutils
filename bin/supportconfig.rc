@@ -1,7 +1,7 @@
 #!/bin/bash
 ##############################################################################
 #  supportconfig.rc - Resource file for supportconfig
-#  Copyright (C) 2001-2021 SUSE LLC
+#  Copyright (C) 2001-2022 SUSE LLC
 #
 #  Contains supporting functions and variables used by supportconfig and
 #  supportconfig plugins.
@@ -20,7 +20,7 @@
 #  You should have received a copy of the GNU General Public License
 #  along with this program; if not, see <http://www.gnu.org/licenses/>.
 #
-#  Modified: 2021 Oct 04
+#  Modified: 2022 Jan 07
 #  Authors/Contributors:
 #     Jason Record <jason.record@suse.com>
 #
@@ -179,6 +179,12 @@ eval $(cat /etc/sysconfig/bootloader | grep LOADER_TYPE)
 # If environment is systemd, /sbin/init should be a symlink to systemd
 file /sbin/init | grep "systemd" &>/dev/null && SYSTEMD=1 || SYSTEMD=0
 IO_DELAYS=0
+
+PROC_FILES="/proc/mounts /proc/zoneinfo"
+PROC_DIRS_DEPTH_ONE="/proc/sys/kernel/ /proc/scsi/ /proc/net/ /proc/dasd/"
+PROC_DIRS_DEPTH_FULL="/proc/irq/ /proc/sys/"
+PROC_DIRS_DEPTH_ONE_FILTER_OUT="rt_acct$|/sched_domain/"
+PROC_DIRS_DEPTH_FULL_FILTER_OUT="fs/binfmt_misc/register|net/ipv4/route/flush|net/ipv6/route/flush|vm/compact_memory|base_reachable_time|scan_unevictable_pages|/sched_domain/"
 
 # These are minimum options and should never be unset.
 MIN_OPTION_RPM=1
