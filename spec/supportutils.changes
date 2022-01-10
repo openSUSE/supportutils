@@ -1,4 +1,10 @@
 -------------------------------------------------------------------
+Mon Jan 10 22:35:23 UTC 2022 - Jason Record <jason.record@suse.com>
+
+- Changes to version 3.1.19
+  + Made /proc directory and network names spaces configurable (bsc#1193868)
+
+-------------------------------------------------------------------
 Wed Dec 15 13:28:40 UTC 2021 - Jason Record <jason.record@suse.com>
 
 - Changes to version 3.1.19
