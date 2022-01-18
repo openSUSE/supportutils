@@ -1868,6 +1868,7 @@ disk_info() {
 	addHeaderFile $OF
 	conf_files $OF /proc/partitions /etc/fstab
 	log_cmd $OF "lsblk -i -o 'NAME,KNAME,MAJ:MIN,FSTYPE,LABEL,RO,RM,MODEL,SIZE,OWNER,GROUP,MODE,ALIGNMENT,MIN-IO,OPT-IO,PHY-SEC,LOG-SEC,ROTA,SCHED,MOUNTPOINT,DISC-ALN,DISC-GRAN,DISC-MAX,DISC-ZERO'"
+	log_cmd $OF "blkid"
 	[[ -x /usr/bin/findmnt ]] && log_cmd $OF "findmnt"
 	log_cmd $OF "mount"
 	conf_files $OF /proc/mounts /etc/mtab
