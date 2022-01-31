@@ -19,7 +19,7 @@
 #  You should have received a copy of the GNU General Public License
 #  along with this program; if not, see <http://www.gnu.org/licenses/>.
 #
-#  Modified: 2022 Jan 07
+#  Modified: 2022 Jan 26
 #  Authors/Contributors:
 #     Jason Record <jason.record@suse.com>
 #
@@ -252,10 +252,12 @@ wait_trace_off() {
 conf_text_files() {
 	LOGFILE=$LOG/$1
 	shift
-	for CONF in $@
+	FILES=$@
+	set dummy-argument
+	for CONF in $FILES
 	do
 		echo "#==[ Configuration File ]===========================#" >> $LOGFILE
-		if [ -f $CONF ]; then
+		if [[ -f $CONF ]]; then
 			echo "# $CONF" >> $LOGFILE
 			TEXTFILE=$(file -L $CONF | egrep -i "text|empty|XML")
 			if [ -z "$TEXTFILE" ]; then
@@ -264,9 +266,9 @@ conf_text_files() {
 			else
 				wait_trace_on "$CONF"
 				if (( ADD_OPTION_LOGS )); then
-					cat $CONF 2>> $LOG/$CSFILE | sed -e 's/\r//g' >> $LOGFILE 2>> $LOG/$CSFILE
+					sed -e 's/\r//g' $CONF >> $LOGFILE 2>> $LOG/$CSFILE
 				else
-					cat $CONF 2>> $LOG/$CSFILE | sed -e '/^[[:space:]]*#/d' -e '/^[[:space:]]*;/d' -e '/^[[:space:]]*\/\//d' -e 's/\r//g' -e '/^$/d' >> $LOGFILE 2>> $LOG/$CSFILE
+					sed -e '/^[[:space:]]*#/d' -e '/^[[:space:]]*;/d' -e '/^[[:space:]]*\/\//d' -e 's/\r//g' -e '/^$/d' $CONF >> $LOGFILE 2>> $LOG/$CSFILE
 				fi
 				wait_trace_off
 			fi
@@ -282,16 +284,18 @@ conf_text_files() {
 conf_files() {
 	LOGFILE=$LOG/$1
 	shift
-	for CONF in $@
+	FILES=$@
+	set dummy-argument
+	for CONF in $FILES
 	do
 		echo "#==[ Configuration File ]===========================#" >> $LOGFILE
-		if [ -f $CONF ]; then
+		if [[ -f $CONF ]]; then
 			echo "# $CONF" >> $LOGFILE
 			wait_trace_on "$CONF"
 			if (( ADD_OPTION_LOGS )); then
-				cat $CONF 2>> $LOG/$CSFILE | sed -e 's/\r//g' >> $LOGFILE 2>> $LOG/$CSFILE
+				sed -e 's/\r//g' $CONF >> $LOGFILE 2>> $LOG/$CSFILE
 			else
-				cat $CONF 2>> $LOG/$CSFILE | sed -e '/^[[:space:]]*#/d;/^[[:space:]]*;/d;s/\r//g;/^[[:space:]]*$/d' >> $LOGFILE 2>> $LOG/$CSFILE
+				sed -e '/^[[:space:]]*#/d;/^[[:space:]]*;/d;s/\r//g;/^[[:space:]]*$/d' $CONF >> $LOGFILE 2>> $LOG/$CSFILE
 			fi
 			echo >> $LOGFILE
 			wait_trace_off
