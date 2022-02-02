@@ -739,7 +739,7 @@ boot_info() {
 		log_cmd $OF "efibootmgr -v"
 	fi
 	if rpm -q s390-tools &> /dev/null; then
-		conf_files $OF /etc/zipl.conf
+		conf_files $OF /etc/zipl.conf /boot/zipl/active_devices.txt /boot/zipl/config
 	fi
 
 	test -e /usr/sbin/mcelog && log_cmd $OF "/usr/sbin/mcelog --ignorenodev --filter --dmi"
@@ -1969,6 +1969,14 @@ disk_info() {
 			fi
 		fi
 	fi
+        if [ $(uname -i) = "s390x" ] ; then
+               log_write $OF "#==[ s390x and DASD Info ]==========================#"
+               log_write $OF "#---------------------------------------------------#"
+               log_cmd $OF 'lsdasd -a'
+               log_cmd $OF 'lsdasd --long'
+               log_cmd $OF 'rpm -V s390-tools'
+        fi
+
 	echolog Done
 }
 
