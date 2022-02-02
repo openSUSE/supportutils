@@ -1,6 +1,7 @@
 ##############################################################################
 #  supportconfig.rc - Resource file for supportconfig
 #  Copyright (C) 2001-2022 SUSE LLC
+RCVER='3.1.11-29.2'
 #
 #  Contains supporting functions and variables used by supportconfig and
 #  supportconfig plugins.
@@ -19,7 +20,7 @@
 #  You should have received a copy of the GNU General Public License
 #  along with this program; if not, see <http://www.gnu.org/licenses/>.
 #
-#  Modified: 2022 Jan 26
+#  Modified: 2022 Feb 02
 #  Authors/Contributors:
 #     Jason Record <jason.record@suse.com>
 #
@@ -464,29 +465,34 @@ printvrpmlog() {
 	test $VAR_OPTION_SILENT -gt 0 && printf "  %-40s %12s ... " "$1" "$2" >> $CSLOGFILE || printf "  %-40s %12s ... " "$1" "$2" | tee -a $CSLOGFILE
 }
 
-# Input: logfilename command
-log_cmd() {
+_log_cmd() {
 	EXIT_STATUS=0
-	LOGFILE=$LOG/$1
 	shift
-	CMDLINE_ORIG="$@"
-	CMDBIN=$(echo $CMDLINE_ORIG | awk '{print $1}')
-	CMD=$(\which $CMDBIN 2>/dev/null | awk '{print $1}')
-	echo "#==[ Command ]======================================#" >> $LOGFILE
-	if [ -x "$CMD" ]; then
-		CMDLINE=$(echo $CMDLINE_ORIG | sed -e "s!${CMDBIN}!${CMD}!")
-		echo "# $CMDLINE" >> $LOGFILE
-		wait_trace_on "$CMDLINE"
-		echo "$CMDLINE" | bash  >> $LOGFILE 2>&1
+	CMDLINE=($@)
+	CMDBIN=${CMDLINE[0]}
+	CMD=($(command -v $CMDBIN))
+	echo "#==[ Command ]======================================#"
+	if [[ -x "${CMD[0]}" ]]; then
+		CMDLINE[0]="${CMD[0]}"
+		echo "# ${CMDLINE[@]}"
+		wait_trace_on "${CMDLINE[@]}"
+		bash -c "${CMDLINE[*]}" 2>&1
 		EXIT_STATUS=$?
 		wait_trace_off
 	else
-		echo "# $CMDLINE_ORIG" >> $LOGFILE
-		echo "ERROR: Command not found or not executable" >> $LOGFILE
+		echo "# ${CMDLINE[@]}"
+		echo "ERROR: Command not found or not executable"
 		EXIT_STATUS=1
 	fi
-	echo >> $LOGFILE
+	echo
 	return $EXIT_STATUS
+}
+
+ 
+
+log_cmd() {
+	LOGFILE=$LOG/$1
+	_log_cmd "$@" >> $LOGFILE
 }
 
 # Input: logfilename command

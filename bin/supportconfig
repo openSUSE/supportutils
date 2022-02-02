@@ -1,7 +1,7 @@
 #!/bin/bash
 
-SVER='3.1.11-29'
-SDATE='2022 01 10'
+SVER='3.1.11-29.1'
+SDATE='2022 02 02'
 
 ##############################################################################
 #  supportconfig - Gathers system troubleshooting information for SUSE Support
@@ -45,6 +45,7 @@ title() {
 	echo "============================================================================="
 	echo "                     Support Utilities - Supportconfig"
 	echo "                          Script Version: $SVER"
+	echo "                         Library Version: $RCVER"
 	echo "                          Script Date: $SDATE"
 	echo 
 	echo " Detailed system information and logs are collected and organized in a"
