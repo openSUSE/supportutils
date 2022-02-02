@@ -1130,7 +1130,7 @@ environment_info() {
 		log_cmd $OF 'vmcp query files'
 		log_cmd $OF 'vmcp query userid'
 	else
-		case $(uname -i) in
+		case $ARCH in
 		s390x) 
 			log_write $OF "#==[ s390x Hardware Detected ]======================#"
 			log_write $OF "# Consider loading vmcp for more info: modprobe vmcp"
@@ -1537,7 +1537,7 @@ hardware_info() {
 			log_files $OF 0 /tmp/alsa-info.txt
 		fi
 	fi
-	if uname -i | grep ppc64 &> /dev/null #Readded from previous commit, including it now.
+	if grep ppc64 <<< $ARCH &> /dev/null #Readded from previous commit, including it now.
 	then
 		platform=""
 		if grep PowerNV /proc/cpuinfo &> /dev/null; then
@@ -1724,7 +1724,7 @@ net_info_namespace() {
 			log_cmd $OF "vmcp query lan details"
 			log_cmd $OF "vmcp query vswitch detail"
 		else
-			case $(uname -i) in
+			case $ARCH in
 			s390x) 
 				log_write $OF "#==[ s390x Hardware Detected ]======================#"
 				log_write $OF "# Consider loading vmcp for more info: modprobe vmcp"
@@ -1914,7 +1914,7 @@ disk_info() {
 		fi
 
 
-		if [[ -n "$IDE_DISKS" -a -d /proc/ide ]]; then
+		if [[ -n "$IDE_DISKS" ]] && [[ -d /proc/ide ]]; then
 			log_write $OF "#==[ IDE Detailed Info ]============================#"
 			log_write $OF "#---------------------------------------------------#"
 			FILES=$(find /proc/ide/ -maxdepth 1 -type f 2>/dev/null)
@@ -1953,7 +1953,7 @@ disk_info() {
 			done
 		fi
 
-		if [[ -n "$CCISS_DISKS" -a -d /proc/driver/cciss ]]; then
+		if [[ -n "$CCISS_DISKS" ]] && [[ -d /proc/driver/cciss ]]; then
 			log_write $OF "#==[ CCISS Detailed Info ]==========================#"
 			log_write $OF "#---------------------------------------------------#"
 			FILES=$(find /proc/driver/cciss/ -maxdepth 1 -type f 2>/dev/null)
@@ -1969,7 +1969,7 @@ disk_info() {
 			fi
 		fi
 	fi
-        if [[ $(uname -i) = "s390x" ]] ; then
+        if [[ "$ARCH" == "s390x" ]] ; then
                log_write $OF "#==[ s390x and DASD Info ]==========================#"
                log_write $OF "#---------------------------------------------------#"
                log_cmd $OF 'lsdasd -a'
