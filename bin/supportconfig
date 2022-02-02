@@ -2088,6 +2088,7 @@ nfs_info() {
 				check_service $OF nfsserver
 				NFS_STATUS=$?
 			fi
+			timed_log_cmd $OF 'rpcinfo -p'
 			log_cmd $OF 'exportfs -v'
 			log_cmd $OF 'nfsstat'
 			if timed_log_cmd $OF 'showmount'
