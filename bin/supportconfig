@@ -1900,7 +1900,7 @@ disk_info() {
 	log_cmd $OF 'ls -l --time-style=long-iso /sys/block/'
 	log_cmd $OF 'lslocks'
 
-	if [ $ADD_OPTION_MINDISK -eq 0 ]; then
+	if [[ $ADD_OPTION_MINDISK -eq 0 ]]; then
 		log_cmd $OF 'iostat -x 1 4'
 		log_cmd $OF 'sg_map -i -x'
 		if [ -d /sys/block ]; then
@@ -1914,7 +1914,7 @@ disk_info() {
 		fi
 
 
-		if [ -n "$IDE_DISKS" -a -d /proc/ide ]; then
+		if [[ -n "$IDE_DISKS" -a -d /proc/ide ]]; then
 			log_write $OF "#==[ IDE Detailed Info ]============================#"
 			log_write $OF "#---------------------------------------------------#"
 			FILES=$(find /proc/ide/ -maxdepth 1 -type f 2>/dev/null)
@@ -1930,7 +1930,7 @@ disk_info() {
 			fi
 		fi
 
-		if [ -n "$SCSI_DISKS" ]; then
+		if [[ -n "$SCSI_DISKS" ]]; then
 			log_write $OF "#==[ SCSI Detailed Info ]===========================#"
 			log_write $OF "#---------------------------------------------------#"
 			log_cmd $OF 'lsscsi'
@@ -1953,7 +1953,7 @@ disk_info() {
 			done
 		fi
 
-		if [ -n "$CCISS_DISKS" -a -d /proc/driver/cciss ]; then
+		if [[ -n "$CCISS_DISKS" -a -d /proc/driver/cciss ]]; then
 			log_write $OF "#==[ CCISS Detailed Info ]==========================#"
 			log_write $OF "#---------------------------------------------------#"
 			FILES=$(find /proc/driver/cciss/ -maxdepth 1 -type f 2>/dev/null)
@@ -1969,7 +1969,7 @@ disk_info() {
 			fi
 		fi
 	fi
-        if [ $(uname -i) = "s390x" ] ; then
+        if [[ $(uname -i) = "s390x" ]] ; then
                log_write $OF "#==[ s390x and DASD Info ]==========================#"
                log_write $OF "#---------------------------------------------------#"
                log_cmd $OF 'lsdasd -a'
