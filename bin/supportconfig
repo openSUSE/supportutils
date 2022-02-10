@@ -1013,8 +1013,13 @@ sssd_info() {
 			check_service $OF sssd
 		fi
 		conf_files $OF "/etc/nsswitch.conf /etc/sssd/sssd.conf"
+		log_cmd $OF 'ls -lR --time-style=long-iso /etc/sssd/conf.d/'
+		if [[ -d /etc/sssd/conf.d ]]; then
+			FILES=$(find -L /etc/sssd/conf.d/ -type f | egrep "\.conf$")
+			conf_files $OF "$FILES"
+		fi
 		SRVS_LDAP=$(grep "^[[:space:]]*ldap_uri" /etc/sssd/sssd.conf | cut -d= -f2 | sed -e 's/ *//g;s/,/ /g')
-		if [ -n "$SRVS_LDAP" ]; then
+		if [[ -n "$SRVS_LDAP" ]]; then
 			for URI in $SRVS_LDAP
 			do
 				ADDR=$(echo $URI | awk -F\/ '{print $NF}' | cut -d\: -f1)
@@ -1022,7 +1027,7 @@ sssd_info() {
 			done
 		fi
 		SRVS_KRB5=$(egrep "^[[:space:]]*krb5_server|^[[:space:]]*krb5_kdcip" /etc/sssd/sssd.conf | cut -d= -f2 | sed -e 's/ *//g;s/,/ /g')
-		if [ -n "$SRVS_KRB5" ]; then
+		if [[ -n "$SRVS_KRB5" ]]; then
 			for URI in $SRVS_KRB5
 			do
 				ADDR=$(echo $URI | awk -F\/ '{print $NF}' | cut -d\: -f1)
@@ -1032,14 +1037,14 @@ sssd_info() {
 		log_cmd $OF 'date +"%Y-%m-%d %H:%M"'
 		log_cmd $OF 'ls -lR --time-style=long-iso /var/lib/sss/'
 		if (( SLES_VER < 120 )); then
-			[ -s /etc/init.d/sssd ] && SSSD_PIDF=$(grep '^PID_FILE' /etc/init.d/sssd | sed -e 's/ *//g' | cut -d= -f2)
+			[[ -s /etc/init.d/sssd ]] && SSSD_PIDF=$(grep '^PID_FILE' /etc/init.d/sssd | sed -e 's/ *//g' | cut -d= -f2)
 			test -z "$SSSD_PIDF" && SLAPD_PIDF="/var/run/sssd.pid"
-			if [ -f $SSSD_PIDF ]; then
+			if [[ -f $SSSD_PIDF ]]; then
 				SSSD_PID=$(cat $SSSD_PIDF)
 			else
 				SSSD_PID=""
 			fi
-			if [ -n "$SSSD_PID" ]; then
+			if [[ -n "$SSSD_PID" ]]; then
 				SSSD_PIDS=$(ps axwwo pid,ppid,cmd | grep ${SSSD_PID} | grep -v grep | awk '{print $1}' | sort -n)
 				log_cmd $OF "ps axwwo user,pid,ppid,%cpu,%mem,vsz,rss,stat,time,cmd | egrep \"${SSSD_PID}|PPID\" | grep -v grep"
 				for THISPID in $SSSD_PIDS
@@ -1056,9 +1061,9 @@ sssd_info() {
 		fi
 		log_cmd $OF 'grep pam_sss /etc/pam.d/*'
 		FILES="/var/log/sssd/*"
-		[ $ADD_OPTION_LOGS -gt 0 ] && log_files $OF 0 $FILES || log_files $OF $VAR_OPTION_LINE_COUNT $FILES
+		(( ADD_OPTION_LOGS > 0 )) && log_files $OF 0 $FILES || log_files $OF $VAR_OPTION_LINE_COUNT $FILES
 		FILES="/var/log/messages"
-		[ $ADD_OPTION_LOGS -gt 0 ] && grep_log_files ' sssd' $OF 0 $FILES || grep_log_files ' sssd' $OF $VAR_OPTION_LINE_COUNT $FILES
+		(( ADD_OPTION_LOGS > 0 )) && grep_log_files ' sssd' $OF 0 $FILES || grep_log_files ' sssd' $OF $VAR_OPTION_LINE_COUNT $FILES
 		echolog Done
 	else
 		echolog Skipped
