@@ -2019,8 +2019,7 @@ iscsi_info() {
 		log_cmd $OF 'systemctl status iscsi.service'
 		log_cmd $OF 'systemctl status iscsid.service'
 		log_cmd $OF 'systemctl status iscsid.socket'
-		log_cmd $OF 'iscsi-iname'
-		conf_files $OF /etc/iscsid.conf
+		conf_files $OF "/etc/iscsi/initiatorname.iscsi /etc/iscsi/iscsid.conf"
 		log_cmd $OF 'iscsiadm -m session'
 		if log_cmd $OF 'iscsiadm -m node'
 		then
