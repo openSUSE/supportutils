@@ -832,41 +832,7 @@ update_info() {
 	SKIP=0
 	TIMEOUT=0
 	addHeaderFile $OF
-	if [ $SLES_VER -lt 110 ] && rpm_verify $OF rug
-	then
-		rpm_verify $OF lsb
-		RUG_VER=$(rpm -q rug | tail -1 | cut -d- -f2 | cut -d\. -f1)
-		log_cmd $OF 'date'
-		if [ $RUG_VER -gt 6 ]; then
-			# Time out as a group, if one rug command fails, all remaining rug commands fail
-			for CMDOPT in prefs '--no-abbrev sl' ca lu pch
-			do
-				if [ $TIMEOUT -ge 10 ]; then
-					log_write $OF "#==[ Command ]======================================#"
-					log_write $OF "# Skipped \"rug $CMDOPT\" due to previous timeout"
-					log_write $OF
-				else
-					timed_log_cmd $OF "rug $CMDOPT"
-					TIMEOUT=$?
-				fi
-			done
-		elif [ $RUG_VER -gt 1 ]; then
-			for CMDOPT in prefs '--no-abbrev sl' ch pl
-			do
-				if [ $TIMEOUT -ge 10 ]; then
-					log_write $OF "#==[ Command ]======================================#"
-					log_write $OF "# Skipped \"rug $CMDOPT\" due to previous timeout"
-					log_write $OF
-				else
-					timed_log_cmd $OF "rug $CMDOPT"
-					TIMEOUT=$?
-				fi
-			done
-		fi
-	fi
-
-	TIMEOUT=0
-	if [ $SLES_VER -ge 110 ] && rpm_verify $OF zypper; then
+	if (( SLES_VER >= 110 )) && rpm_verify $OF zypper; then
 		log_cmd $OF 'date'
 		log_cmd $OF 'ls -lA --time-style=long-iso /etc/products.d/'
 		log_cmd $OF 'zypper locks'
@@ -909,10 +875,9 @@ update_info() {
 	fi
 
 	if rpm_verify $OF suseRegister; then
-		[ $SLES_VER -lt 110 ] && log_cmd $OF 'chkconfig suseRegister --list'
 		FILES='/etc/suseRegister.conf /etc/sysconfig/suse_register'
 		conf_files $OF $FILES
-		if [ -d /var/lib/suseRegister/ ]; then
+		if [[ -d /var/lib/suseRegister/ ]]; then
 			FILES=$(find /var/lib/suseRegister/ -type f)
 			conf_files $OF $FILES
 		fi
@@ -920,7 +885,7 @@ update_info() {
 
 	log_cmd $OF "env | grep -i proxy | grep -v CMDLINE"
 	conf_files $OF /etc/sysconfig/proxy
-	if [ -s /root/.curlrc ]; then
+	if [[ -s /root/.curlrc ]]; then
 		conf_files $OF /root/.curlrc
 		SC_PROXY_PASS=$(grep -i "^proxy-user" /root/.curlrc | sed -e 's/"//g' | awk '{print $3}' | cut -d\: -f2)
 		sed -i -e "s/:${SC_PROXY_PASS}$/:*REMOVED BY SUPPORTCONFIG*/g;s/:${SC_PROXY_PASS}\"$/:*REMOVED BY SUPPORTCONFIG*\"/g" $LOG/$OF
@@ -968,19 +933,19 @@ update_info() {
 
 #zypper
 	FILES=$(find /var/log/ -type f -name \*zypp\*)
-	test $ADD_OPTION_LOGS -gt 0 && log_files $OF 0 $FILES || log_files $OF $VAR_OPTION_LINE_COUNT $FILES
+	(( ADD_OPTION_LOGS > 0 )) && log_files $OF 0 $FILES || log_files $OF $VAR_OPTION_LINE_COUNT $FILES
 
 #suseregister
 	log_files $OF 0 '/root/.suse_register.log'
 	FILES="/var/log/messages"
-	[ $ADD_OPTION_LOGS -gt 0 ] && grep_log_files suse_register $OF 0 $FILES || grep_log_files suse_register $OF $VAR_OPTION_LINE_COUNT $FILES
+	(( ADD_OPTION_LOGS > 0 )) && grep_log_files suse_register $OF 0 $FILES || grep_log_files suse_register $OF $VAR_OPTION_LINE_COUNT $FILES
 
 	if (( SLES_VER >= 120 ))
 	then
 		conf_files $OF '/proc/kgr_in_progress'
 		log_entry $OF note "Processes blocking kGraft patching"
 		FOUND=0
-		for i in $(find /proc -type f | grep -i kgr_in_progress)
+		for i in $(find /proc -type f 2> /dev/null | grep -i kgr_in_progress)
 		do
 			VAL=$(cat $i 2>/dev/null)
 			if [[ -n "$VAL" ]]
