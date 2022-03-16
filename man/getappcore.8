@@ -9,7 +9,8 @@ required to analyze it - including the binary which created the core,
 and all required shared libraries. Included in the archive is a logfile
 containing RPM version information for further investigation by SUSE. 
 You must specify the filename or the journal PID of the application core 
-you want to submit.
+you want to submit. The core file must be provided uncompressed. The PID
+can be determined by the command "coredumpctl list".
 
 
 .SH OPTIONS
@@ -41,6 +42,9 @@ Enable verbose messages
 .RE
 .RS
 .B getappcore -ur 00123456 -b /bin/rpm -j 2344
+.RE
+.RS
+.B getappcore -b /bin/rpm -j 1345
 .RE
 .SH AUTHORS
 .RE
