@@ -570,11 +570,11 @@ if [ ! -z $COREFILE -a -e $COREFILE ]; then
 	verbose "File type: $MIME_TYPE"
 	case $TYPE in
 	x-coredump) echo Done; ERROR=0 ;;
-	x-zstd) CCMD='zstd -d'; PKG='zstd' ;;
+	x-zstd|zstd) CCMD='zstd -d'; PKG='zstd' ;;
 	x-lz4) CCMD='lz4 -d'; PKG='lz4' ;;
 	x-xz) CCMD='xz -d'; PKG='xz' ;;
 	x-bzip2) CCMD='bzip2 -d'; PKG='bzip2' ;;
-	x-gzip) CCMD='gzip -d'; PKG='gzip' ;;
+	x-gzip|gzip) CCMD='gzip -d'; PKG='gzip' ;;
 	esac
 	if (( $ERROR )); then
 		if [[ -n $CCMD ]]; then
