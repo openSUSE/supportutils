@@ -137,7 +137,7 @@ show_title() {
 # Display program help screen                               #
 # --------------------------------------------------------- #
 show_help() {
-	echo "Usage: $0 [OPTION] < -j PID | /path/to/corefile >"
+	echo "Usage: $0 [OPTION] -j PID | /path/to/corefile"
 	echo
 	echo "$SNAME creates an archive containing an application core, and all files"
 	echo "required to analyze the application core - including the binary which"
