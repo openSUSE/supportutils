@@ -62,6 +62,8 @@ SUSE_RELEASE="/etc/SuSE-release"
 OS_RELEASE="/etc/os-release"
 ARCHIVE_PREFIX='scc_'
 JOURNAL_PID=''
+CONTAINER_IMAGE=''
+PODMAN_BIN='/usr/bin/podman'
 TAR_BIN_OPTIONS=''
 TAR_BIN_EXT=''
 UPLOAD=0
@@ -82,7 +84,7 @@ UPLOAD_TARGET="${DEFAULT_HTTPS}"
 AWK_BIN=/usr/bin/awk
 BASENAME_BIN=/usr/bin/basename
 CAT_BIN=/bin/cat
-CHKBIN_BIN=/usr/sbin/chkbin
+CHKBIN_BIN=/sbin/chkbin
 CHMOD_BIN=/bin/chmod
 COREDUMP_BIN=/usr/bin/coredumpctl
 CURL_BIN=/usr/bin/curl
@@ -158,6 +160,7 @@ show_help() {
 	echo "  -r [SR Number]  SUSE Service Request number associated with this issue"
 	echo "  -u              Automatically upload archive to the SUSE FTP server using HTTPS"
 	echo "  -f              Automatically upload archive to the SUSE FTP server using FTPES"
+	echo "  -c [IMAGE]      Runs inside the container image [IMAGE]"
 	echo "  -v              Enable verbose messages"
 	echo
 	echo "For example:"
@@ -481,12 +484,49 @@ upload_archive() {
 	echo
 }
 
+# --------------------------------------------------------- #
+# prepare_run_script_for_container ()                       #
+# Creates a temporary script for running getappcore inside  #
+# a container.                                              #
+# It installs the getappcore basic dependencies and runs    #
+# getappcore with the given core file                       #
+# --------------------------------------------------------- #
+prepare_run_script_for_container() {
+cat <<- EOF > ${GETAPPCORE_TMP_DIR}/runincontainer
+#!/bin/bash
+COREFILE=$1
+zypper in -y supportutils gdb curl file systemd-coredump
+/sbin/getappcore $COREFILE
+EOF
+chmod +x ${GETAPPCORE_TMP_DIR}/runincontainer
+}
+
+# --------------------------------------------------------- #
+# run_in_container ()                                       #
+# Creates a temporary script for running getappcore inside  #
+# a container.                                              #
+# It installs the getappcore basic dependencies and runs    #
+# getappcore with the given core file                       #
+# --------------------------------------------------------- #
+run_in_container() {
+	if ! [ -e $PODMAN_BIN ]; then
+		echo "podman is required for running getappcore inside a container."
+		echo "Please install podman and try again."
+		exit 1
+	fi
+	CONTAINER_IMAGE=$1
+	[[ $JOURNAL_PID ]] && get_journal_coredump $JOURNAL_PID
+	if [ ! -z $COREFILE -a -e $COREFILE ]; then
+		prepare_run_script_for_container
+		$PODMAN_BIN run -it --entrypoint=/tmp/sbin/runincontainer -v ${ARCHIVE_PATH}:${ARCHIVE_PATH} -v ${GETAPPCORE_TMP_DIR}:/tmp/sbin $CONTAINER_IMAGE $COREFILE
+	fi
+}
 
 # --------------------------------------------------------- #
 # main ()                                                   #
 # Main script function                                      #
 # --------------------------------------------------------- #
-while getopts b:hr:ufvj: opt
+while getopts b:hr:ufvj:c: opt
 do
 	case $opt in
 	\?)
@@ -515,6 +555,9 @@ do
 		;;
 	j)
 		JOURNAL_PID=$OPTARG
+		;;
+	c)
+		CONTAINER_IMAGE=$OPTARG
 		;;
 	h)
 		get_server_release
@@ -548,6 +591,12 @@ else
 fi
 
 [[ -d ${ARCHIVE_PATH} ]] || mkdir -p ${ARCHIVE_PATH}
+
+if [[ ! -z $CONTAINER_IMAGE ]]; then
+	echo "Running getappcore in container image: ${CONTAINER_IMAGE}"
+	run_in_container $CONTAINER_IMAGE
+	exit 0
+fi
 
 [[ $JOURNAL_PID ]] && get_journal_coredump $JOURNAL_PID
 
