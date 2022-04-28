@@ -2,7 +2,7 @@
 .SH NAME
 getappcore - Get Application Core File
 .SH SYNOPSIS
-getappcore [OPTIONS] < -j PID | /path/to/core/file >
+getappcore [OPTIONS] -j PID | /path/to/core/file
 .SH DESCRIPTION
 Creates an archive containing an application core, and all files
 required to analyze it - including the binary which created the core, 
@@ -10,7 +10,9 @@ and all required shared libraries. Included in the archive is a logfile
 containing RPM version information for further investigation by SUSE. 
 You must specify the filename or the journal PID of the application core 
 you want to submit. The core file must be provided uncompressed. The PID
-can be determined by the command "coredumpctl list".
+can be determined by the command "coredumpctl list". Since systemd creates
+compressed core files by default, you should almost always prefer '-j <PID>'
+nowadays. You can safely omit the '-b' option then.
 
 
 .SH OPTIONS
@@ -38,13 +40,13 @@ Enable verbose messages
 .SH EXAMPLES
 .RE
 .RS
+.B getappcore -j 1345
+.RE
+.RS
+.B getappcore -ur 00123456 -j 2344
+.RE
+.RS
 .B getappcore -ur 00123456 -b /bin/rpm /core.15832
-.RE
-.RS
-.B getappcore -ur 00123456 -b /bin/rpm -j 2344
-.RE
-.RS
-.B getappcore -b /bin/rpm -j 1345
 .RE
 .SH AUTHORS
 .RE

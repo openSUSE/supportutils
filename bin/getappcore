@@ -139,7 +139,7 @@ show_title() {
 # Display program help screen                               #
 # --------------------------------------------------------- #
 show_help() {
-	echo "Usage: $0 [OPTION] < -j PID | /path/to/corefile >"
+	echo "Usage: $0 [OPTION] -j PID | /path/to/corefile"
 	echo
 	echo "$SNAME creates an archive containing an application core, and all files"
 	echo "required to analyze the application core - including the binary which"
@@ -149,15 +149,22 @@ show_help() {
 	echo
 	echo "Required parameter:"
 	echo
-	echo "  COREFILE        The application core file, typically found in the working"
-	echo "                  directory of the application, or /"
+	echo "  -j <PID>        PID of coredump from 'coredumpctl list' to extract"
+	echo 
+	echo "  or" 
+	echo
+	echo "  COREFILE        The application core file"
+	echo "                  Note: the corefile must be provided uncompressed."
+	echo "                  Since systemd creates compressed core files by default,"
+	echo "                  you should almost always prefer '-j <PID>' nowadays."
+	echo "                  In pre-systemd times, the core files could be found in the"
+	echo "                  working directory of the application, or /."
 	echo
 	echo "Optional parameters:"
 	echo
 	echo "  -h              This screen"
-	echo "  -b [BINARY]     Binary which generated [COREFILE]"
-	echo "  -j [PID]        PID of coredump from coredumpctl list to extract"
-	echo "  -r [SR Number]  SUSE Service Request number associated with this issue"
+	echo "  -b <BINARY>     Binary which generated <COREFILE>, unnecessary with '-j'"
+	echo "  -r <SR Number>  SUSE Service Request number associated with this issue"
 	echo "  -u              Automatically upload archive to the SUSE FTP server using HTTPS"
 	echo "  -f              Automatically upload archive to the SUSE FTP server using FTPES"
 	echo "  -c [IMAGE]      Runs inside the container image [IMAGE]"
@@ -165,7 +172,7 @@ show_help() {
 	echo
 	echo "For example:"
 	echo
-	echo "   $SNAME -ur 00123456 -b /bin/rpm -j 2344"
+	echo "   $SNAME -ur 00123456 -j 2344"
 	echo "   $SNAME -ur 00123456 -b /bin/rpm /core.15832"
 	echo
 	echo "$SNAME version $SVER ($SDATE)"
@@ -612,11 +619,11 @@ if [ ! -z $COREFILE -a -e $COREFILE ]; then
 	verbose "File type: $MIME_TYPE"
 	case $TYPE in
 	x-coredump) echo Done; ERROR=0 ;;
-	x-zstd) CCMD='zstd -d'; PKG='zstd' ;;
+	x-zstd|zstd) CCMD='zstd -d'; PKG='zstd' ;;
 	x-lz4) CCMD='lz4 -d'; PKG='lz4' ;;
 	x-xz) CCMD='xz -d'; PKG='xz' ;;
 	x-bzip2) CCMD='bzip2 -d'; PKG='bzip2' ;;
-	x-gzip) CCMD='gzip -d'; PKG='gzip' ;;
+	x-gzip|gzip) CCMD='gzip -d'; PKG='gzip' ;;
 	esac
 	if (( $ERROR )); then
 		if [[ -n $CCMD ]]; then
