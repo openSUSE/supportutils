@@ -1,0 +1,30 @@
+#!/bin/bash
+
+RC="/usr/lib/supportconfig/resources/supportconfig.rc"
+if [[ -s $RC ]]; then
+. $RC
+else
+echo "ERROR: File not found - $RC"
+exit 1
+fi
+
+OF=plymouth.txt
+
+plymouth_configs=("/etc/plymouth/plymouthd.conf" "/usr/share/plymouth/plymouthd.defaults" "/etc/logrotate.d/bootlog")
+plymouth_themes=("bgrt" "breeze-text" "breeze" "details" "fade-in" "script" "solar" "spinfinity" "spinner" "text" "tribar")
+plymouth_logs=("/var/log/plymouth-debug.log" "/var/log/plymouth-shutdown-debug.log" "/var/lib/plymouth/boot-duration" "/var/log/boot.log")
+
+for plymouth_pkgs in `rpm -qa |grep 'plymouth\|libply' |xargs echo`
+do
+rpm_verify $OF $plymouth_pkgs
+done
+for file in ${plymouth_configs[@]}; do
+test -e $file && conf_files $OF $file
+done
+for theme in ${plymouth_themes[@]}; do
+theme_config=/usr/share/plymouth/themes/$theme/$theme.plymouth
+test -e $theme_config && conf_files $OF $theme_config
+done
+for file in ${plymouth_logs[@]}; do
+test -e $file && log_cmd $OF "cat $file"
+done
