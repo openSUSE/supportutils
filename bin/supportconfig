@@ -1897,6 +1897,7 @@ disk_info() {
 	done
 
 	log_cmd $OF 'ls -lR --time-style=long-iso /dev/disk/'
+        log_cmd $OF 'ls -l --time-style=long-iso /dev/mapper/'
 	log_cmd $OF 'ls -l --time-style=long-iso /sys/block/'
 	log_cmd $OF 'lslocks'
 
