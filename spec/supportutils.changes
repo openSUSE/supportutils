@@ -1,4 +1,9 @@
 -------------------------------------------------------------------
+Thu Jun  2 18:07:07 UTC 2022 - Jason Record <jason.record@suse.com>
+
+- Added a listing to /dev/mapper/. #129
+
+-------------------------------------------------------------------
 Tue Mar 15 16:48:09 UTC 2022 - Jason Record <jason.record@suse.com>
 
 - Spec file adjusted for usr-merge
