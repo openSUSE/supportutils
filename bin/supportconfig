@@ -1814,6 +1814,25 @@ net_info_namespace() {
 			log_write $OF
 		fi
 	done
+
+	if rpm_verify $OF nftables
+	then
+		log_cmd $OF "${NS}nft list tables"
+
+		# playing around with IFS is unfortunately necessary here for
+		# properly parsing the 'nft list tables' output and the standard
+		# IFS must be used to avoid breaking the namespace passed to log_cmd
+		SAVEIFS=$IFS
+		IFS=$(echo -ne "\n\b")
+		for NF_TABLE in $(${NS}nft list tables | cut -d\  -f2,3)
+		do
+			IFS=$SAVEIFS
+			log_cmd $OF "${NS}nft list table $NF_TABLE"
+			IFS=$(echo -ne "\n\b")
+		done
+		IFS=$SAVEIFS
+	fi
+
 	if [[ -z "${NS}" ]] ; then
 		test -d /etc/sysconfig/network && FILES=$(find /etc/sysconfig/network/ -maxdepth 1 -type f) || FILES=""
 		conf_files $OF /etc/sysconfig/proxy $FILES 
