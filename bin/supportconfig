@@ -2064,43 +2064,39 @@ nfs_info() {
 	test $OPTION_NFS -eq 0 && { echolog Excluded; return 1; }
 	OF=nfs.txt
 	addHeaderFile $OF
-	if rpm -q nfs-client &>/dev/null; then
-		if rpm_verify $OF nfs-client
+	if rpm_verify $OF nfs-client
+	then
+		rpm_verify $OF rpcbind
+		check_service $OF nfs
+		check_service $OF rpcbind
+		conf_files $OF /etc/sysconfig/nfs
+		log_cmd $OF 'nfsstat'
+		timed_log_cmd $OF 'rpcinfo -p'
+
+		log_cmd $OF "egrep '[[:space:]]nfs[[:space:]]|[[:space:]]nfs4[[:space:]]' /etc/fstab"
+		IPADDRS=$(egrep '[[:space:]]nfs[[:space:]]|[[:space:]]nfs4[[:space:]]' /etc/fstab | egrep -v '^#|^;' | cut -d\: -f1 | sort | uniq)
+		for IPADDR in $IPADDRS
+		do
+			ping_addr $OF 'NFS Server' $IPADDR
+		done
+		for IPADDR in $IPADDRS
+		do
+			log_cmd $OF "showmount -e $IPADDR"
+		done
+
+		if rpm_verify $OF nfs-kernel-server
 		then
-			rpm_verify $OF nfs-kernel-server
-			if (( SLES_VER >= 120 ))
-			then
-				log_cmd $OF "systemctl status nfs.service"
-				log_cmd $OF "systemctl status nfsserver.service"
-				NFS_STATUS=$?
-			else
-				check_service $OF nfs
-				check_service $OF nfsserver
-				NFS_STATUS=$?
-			fi
-			timed_log_cmd $OF 'rpcinfo -p'
+			check_service $OF nfsserver
 			log_cmd $OF 'exportfs -v'
-			log_cmd $OF 'nfsstat'
+			conf_files $OF /etc/exports
 			if timed_log_cmd $OF 'showmount'
 			then
 				log_cmd $OF 'showmount -e'
 				log_cmd $OF 'showmount -a'
 			fi
-			conf_files $OF /etc/exports /etc/sysconfig/nfs
-			log_cmd $OF "egrep '[[:space:]]nfs[[:space:]]|[[:space:]]nfs4[[:space:]]' /etc/fstab"
-			IPADDRS=$(egrep '[[:space:]]nfs[[:space:]]|[[:space:]]nfs4[[:space:]]' /etc/fstab | egrep -v '^#|^;' | cut -d\: -f1 | sort | uniq)
-			for IPADDR in $IPADDRS
-			do
-				ping_addr $OF 'NFS Server' $IPADDR
-			done
-			for IPADDR in $IPADDRS
-			do
-				log_cmd $OF "showmount -e $IPADDR"
-			done
-			echolog Done
-		else
-			echolog Skipped
 		fi
+
+		echolog Done
 	else
 		if rpm_verify $OF nfs-utils
 		then
