@@ -1890,6 +1890,9 @@ disk_info() {
         log_cmd $OF 'ls -l --time-style=long-iso /dev/mapper/'
 	log_cmd $OF 'ls -l --time-style=long-iso /sys/block/'
 	log_cmd $OF 'lslocks'
+	log_cmd $OF 'ls -l /dev/disk/by-path/'
+	log_cmd $OF 'ls -l /dev/disk/by-id/'
+	log_cmd $OF 'ls -l /dev/disk/by-uuid/'
 
 	if [[ $ADD_OPTION_MINDISK -eq 0 ]]; then
 		log_cmd $OF 'iostat -x 1 4'
