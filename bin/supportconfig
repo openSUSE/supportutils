@@ -1190,6 +1190,33 @@ docker_info() {
 	echolog Done
 }
 
+podman_info() {
+	printlog "Podman..."
+	test $OPTION_PODMAN -eq 0 && { echolog Excluded; return 1; }
+	OF=podman.txt
+	addHeaderFile $OF
+	PODMANSCDIR=$LOG/podman
+	[[ -e /usr/bin/podman ]] && PODMAN_PKG=`rpm -q --whatprovides /usr/bin/podman 2>/dev/null`
+	[[ -z $PODMAN_PKG ]] && PODMAN_PKG='podman'
+	if rpm_verify $OF $PODMAN_PKG
+	then
+		log_cmd $OF 'podman version'
+		log_cmd $OF 'podman info'
+		log_cmd $OF 'podman images'
+		log_cmd $OF 'podman ps --all'
+		log_cmd $OF 'podman network ls'
+		mkdir -p $PODMANSCDIR
+		for container in $(podman ps -a --format "{{.ID}}" 2>/dev/null);
+		do
+			CONTAINEROF=podman/"$container".txt
+			log_cmd $CONTAINEROF "podman top $container"
+			log_cmd $CONTAINEROF "podman inspect $container"
+			log_cmd $CONTAINEROF "podman logs $container"
+		done
+	fi
+	echolog Done
+}
+
 cron_info() {
 	printlog "CRON..."
 	test $OPTION_CRON -eq 0 && { echolog Excluded; return 1; }
@@ -4397,6 +4424,7 @@ if [ "$USE_SAVED_LOGS_ONLY" != "1" ]; then
 	sysfs_info
 	systemd_info
 	docker_info
+	podman_info
 	cron_info
 	udev_info
 	lvm_info
