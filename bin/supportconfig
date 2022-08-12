@@ -1917,6 +1917,9 @@ disk_info() {
         log_cmd $OF 'ls -l --time-style=long-iso /dev/mapper/'
 	log_cmd $OF 'ls -l --time-style=long-iso /sys/block/'
 	log_cmd $OF 'lslocks'
+	log_cmd $OF 'ls -l /dev/disk/by-path/'
+	log_cmd $OF 'ls -l /dev/disk/by-id/'
+	log_cmd $OF 'ls -l /dev/disk/by-uuid/'
 
 	if [[ $ADD_OPTION_MINDISK -eq 0 ]]; then
 		log_cmd $OF 'iostat -x 1 4'
@@ -2256,6 +2259,8 @@ nvme_info() {
 			FILES="/etc/nvme/*"
 			[[ -d /etc/nvme/ ]] && conf_files $OF $FILES
 			[[ -f /etc/nvme/discovery.conf ]] && log_cmd $OF "nvme discover"
+			[[ -f /etc/nvme/hostnqn ]] && log_cmd $OF "nvme hostnqn"
+			[[ -f /sys/module/nvme_core/parameters/multipath ]] && log_cmd $OF "nvme core"
 			NVME_DEVICES=$(nvme list | grep /dev | awk '{print $1}')
 			for NVME_DEVICE in $NVME_DEVICES
 			do
