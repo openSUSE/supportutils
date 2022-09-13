@@ -745,7 +745,7 @@ boot_info() {
 
 	test -e /usr/sbin/mcelog && log_cmd $OF "/usr/sbin/mcelog --ignorenodev --filter --dmi"
 	test -s /var/log/mcelog && { log_cmd $OF "ls -l --time-style=long-iso /var/log/mcelog"; conf_files $OF /var/log/mcelog; }
-	log_cmd $OF 'last -xF | egrep "reboot|shutdown|runlevel|system"'
+	log_cmd $OF 'last -wxF | egrep "reboot|shutdown|runlevel|system"'
 
 	(( SLES_VER >= 120 )) && FILES='/var/log/boot.log' || FILES='/etc/inittab'
 	conf_files $OF /proc/cmdline /etc/sysconfig/kernel $FILES /etc/init.d/boot.local /etc/init.d/before.local /etc/init.d/after.local /etc/init.d/halt.local
