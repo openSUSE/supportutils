@@ -2342,7 +2342,7 @@ net_info_namespace() {
 		log_cmd $OF "${NS}tc -s -d filter show dev ${NIC}"
 	done
 	log_cmd $OF "${NS}netstat -as"
-	log_cmd $OF "${NS}netstat -nlp"
+	log_cmd $OF "${NS}netstat -nap"
 	log_cmd $OF "${NS}netstat -nr"
 	log_cmd $OF "${NS}netstat -i"
 	log_cmd $OF "${NS}arp -v"
