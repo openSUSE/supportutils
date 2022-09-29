@@ -1762,7 +1762,7 @@ net_info_namespace() {
 		log_cmd $OF "${NS}tc -s -d class show dev ${NIC}"
 		log_cmd $OF "${NS}tc -s -d filter show dev ${NIC}"
 	done
-	log_cmd $OF "${NS}ss -nlp"
+	log_cmd $OF "${NS}ss -nap"
 	log_cmd $OF "${NS}ip ntable show"
 	log_cmd $OF "${NS}nstat -az"
 	if [[ $MIN_OPTION_AUTOMOD -eq 0 ]]; then
