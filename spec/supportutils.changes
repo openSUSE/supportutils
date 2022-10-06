@@ -1,7 +1,8 @@
 -------------------------------------------------------------------
-Thu Oct  6 17:31:26 UTC 2022 - jason.record@suse.com
+Thu Oct  6 17:54:13 UTC 2022 - jason.record@suse.com
 
 - Changes to version 3.1.21
+  + Get current sar data before collecting files (bsc#1192648)
   + Collects everything in /etc/multipath/ (bsc#1192252)
   + Collects power management information in hardware.txt (bsc#1197428)
   + Checks for suseconnect-ng or SUSEConnect packages (bsc#1202337)

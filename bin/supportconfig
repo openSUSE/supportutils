@@ -1,6 +1,6 @@
 #!/bin/bash
 
-SVER='3.1.11-30.1_dev3'
+SVER='3.1.11-30.1_dev4'
 SDATE='2022 10 06'
 
 ##############################################################################
@@ -3755,6 +3755,7 @@ sar_info() {
 	SARSCDIR=$LOG/sar
 	if rpm_verify $OF sysstat; then
 		if [ -d $SARDIR ]; then
+			log_cmd $OF '/usr/lib64/sa/sa1 1 1'
 			FOUND=$(ls -A1 $SARDIR)
 			if [ -n "$FOUND" ]; then
 				mkdir -p $SARSCDIR
