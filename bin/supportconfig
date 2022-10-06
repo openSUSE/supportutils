@@ -1,6 +1,6 @@
 #!/bin/bash
 
-SVER='3.1.11-30.1_dev1'
+SVER='3.1.11-30.1_dev2'
 SDATE='2022 10 06'
 
 ##############################################################################
@@ -1525,6 +1525,9 @@ hardware_info() {
 	detectVirtualization $OF
 	conf_files $OF /proc/cpuinfo /proc/cmdline /proc/ioports /proc/dma /proc/devices /proc/bus/usb/devices
 	log_cmd $OF 'lspci -b'
+	log_cmd $OF 'cpupower frequency-info'
+	log_cmd $OF 'cpupower idle-info'
+	log_cmd $OF 'cpupower info'
 	if [ $MIN_OPTION_AUTOMOD -eq 0 ]; then
 		log_write $OF "#==[ Warning ]======================================#"
 		log_write $OF "# Autoloading kernel modules disabled. Don't use -k."
