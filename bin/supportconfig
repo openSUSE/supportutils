@@ -1,6 +1,6 @@
 #!/bin/bash
 
-SVER='3.1.11-30.1_dev2'
+SVER='3.1.11-30.1_dev3'
 SDATE='2022 10 06'
 
 ##############################################################################
@@ -1369,7 +1369,8 @@ mpio_info() {
 		log_cmd $OF 'lspci -b'
 		log_cmd $OF 'multipath -ll'
 		log_cmd $OF 'ls -lR --time-style=long-iso /dev/disk/'
-		conf_files $OF /etc/multipath.conf /etc/multipath/wwids /etc/modprobe.conf.local /etc/sysconfig/hotplug /etc/sysconfig/kernel /etc/fstab
+		MPIO_FILES=$(find /etc/multipath/ -type f 2>/dev/null)
+		conf_files $OF /etc/multipath.conf $MPIO_FILES /etc/modprobe.conf.local /etc/sysconfig/hotplug /etc/sysconfig/kernel /etc/fstab
 		log_cmd $OF 'lsscsi -g'
 		log_cmd $OF 'dmsetup ls --tree'
 		log_cmd $OF 'dmsetup table'
