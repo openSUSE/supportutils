@@ -1,8 +1,9 @@
 -------------------------------------------------------------------
-Thu Oct  6 14:44:50 UTC 2022 - jason.record@suse.com
+Thu Oct  6 14:58:11 UTC 2022 - jason.record@suse.com
 
 - Changes to version 3.1.21
   + Update to nvme_info and block_info #133 (bsc#1202417)
+  + Add includedir directories from /etc/sudoers (bsc#1188086)
 
 -------------------------------------------------------------------
 Thu Jun  2 18:07:07 UTC 2022 - Jason Record <jason.record@suse.com>

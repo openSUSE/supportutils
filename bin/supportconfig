@@ -1,7 +1,7 @@
 #!/bin/bash
 
-SVER='3.1.11-29.1'
-SDATE='2022 02 02'
+SVER='3.1.11-30.1'
+SDATE='2022 10 06'
 
 ##############################################################################
 #  supportconfig - Gathers system troubleshooting information for SUSE Support
@@ -978,7 +978,12 @@ pam_info() {
 		log_cmd $OF 'getent passwd'
 		conf_files $OF /etc/group
 		log_cmd $OF 'getent group'
+		EXTRA_DIRS=$(egrep '^#includedir |^@includedir ' /etc/sudoers | awk '{print $NF}')
 		conf_files $OF /etc/sudoers
+		for EXTRA in $EXTRA_DIRS
+		do
+			conf_files $OF ${EXTRA}/*
+		done
 		(( SLES_VER >= 120 )) && log_cmd $OF 'loginctl --no-pager list-sessions'
 		log_write $OF "#==[ Files in /etc/security ]=======================#"
 		test -d /etc/security && FILES="$(find -L /etc/security/ -type f -name \*conf)" || FILES=""
