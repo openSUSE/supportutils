@@ -1,8 +1,8 @@
 -------------------------------------------------------------------
-Thu Oct  6 15:50:58 UTC 2022 - jason.record@suse.com
+Thu Oct  6 15:59:27 UTC 2022 - jason.record@suse.com
 
 - Changes to version 3.1.21
-  + Fixed conf_files and conf_text_files so y2log is gathered #134
+  + Fixed conf_files and conf_text_files so y2log is gathered #134 (bsc#1202269)
   + Update to nvme_info and block_info #133 (bsc#1202417)
   + Add includedir directories from /etc/sudoers (bsc#1188086)
 
