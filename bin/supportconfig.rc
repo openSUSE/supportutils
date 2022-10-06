@@ -1,7 +1,7 @@
 ##############################################################################
 #  supportconfig.rc - Resource file for supportconfig
 #  Copyright (C) 2001-2022 SUSE LLC
-RCVER='3.1.11-29.2'
+RCVER='3.1.11-29.5'
 #
 #  Contains supporting functions and variables used by supportconfig and
 #  supportconfig plugins.
@@ -20,7 +20,7 @@ RCVER='3.1.11-29.2'
 #  You should have received a copy of the GNU General Public License
 #  along with this program; if not, see <http://www.gnu.org/licenses/>.
 #
-#  Modified: 2022 Feb 02
+#  Modified: 2022 Oct 06
 #  Authors/Contributors:
 #     Jason Record <jason.record@suse.com>
 #
@@ -254,9 +254,9 @@ wait_trace_off() {
 conf_text_files() {
 	LOGFILE=$LOG/$1
 	shift
-	FILES=$@
+	CONF_TEXT_FILES_INCLUDED=$@
 	set dummy-argument
-	for CONF in $FILES
+	for CONF in $CONF_TEXT_FILES_INCLUDED
 	do
 		echo "#==[ Configuration File ]===========================#" >> $LOGFILE
 		if [[ -f $CONF ]]; then
@@ -286,9 +286,9 @@ conf_text_files() {
 conf_files() {
 	LOGFILE=$LOG/$1
 	shift
-	FILES=$@
+	CONF_FILES_INCLUDED=$@
 	set dummy-argument
-	for CONF in $FILES
+	for CONF in $CONF_FILES_INCLUDED
 	do
 		echo "#==[ Configuration File ]===========================#" >> $LOGFILE
 		if [[ -f $CONF ]]; then
