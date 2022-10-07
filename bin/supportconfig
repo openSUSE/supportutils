@@ -1,6 +1,6 @@
 #!/bin/bash
 
-SVER='3.1.11-30.1_dev9'
+SVER='3.1.11-30.1_dev10'
 SDATE='2022 10 07'
 
 ##############################################################################
@@ -523,7 +523,23 @@ messages_file() {
 	printlog "System Logs..."
 	test $MIN_OPTION_SYSLOGS -eq 0 && { echolog EXCLUDED; return 1; }
 	OF=messages.txt
+	OF2=messages_config.txt
 	addHeaderFile $OF
+	addHeaderFile $OF2
+	if rpm_verify $OF2 rsyslog; then
+		log_cmd $OF2 "systemctl status rsyslog.service"
+		conf_files $OF2 /etc/rsyslog.conf
+		log_cmd $OF2 "rsyslogd -N 1"
+	fi
+	rpm_verify $OF2 systemd
+	log_cmd $OF2 "systemctl status systemd-journald.service"
+	JDIRS=''
+	for JDIR in /etc/systemd/journald.conf.d/ /run/systemd/journald.conf.d/ /usr/lib/systemd/journald.conf.d/
+	do
+		[[ -d $JDIR ]] && JDIRS="$JDIRS $(find $JDIR -type f | grep 'conf$')"
+	done
+	conf_files $OF2 /etc/systemd/journald.conf $JDIRS
+
 	MESSAGES_FILE="/var/log/messages"
 	if [[ -s $MESSAGES_FILE ]]; then
 		if [[ $ADD_OPTION_LOGS -gt 0 ]]; then

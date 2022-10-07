@@ -1,7 +1,8 @@
 -------------------------------------------------------------------
-Fri Oct  7 19:31:16 UTC 2022 - jason.record@suse.com
+Fri Oct  7 20:06:38 UTC 2022 - jason.record@suse.com
 
 - Changes to version 3.1.21
+  + Added system logging configuration and checking in messages_config.txt (issue#103)
   + If rsyslog not installed collect more from journalctl (issue#120)
   + Added systemd-status.txt for the status of all service units (issue#125)
   + autofs includes files in (+dir:<path>) (issue#111)
