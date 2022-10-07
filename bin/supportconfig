@@ -1,6 +1,6 @@
 #!/bin/bash
 
-SVER='3.1.11-30.1_dev5'
+SVER='3.1.11-30.1_dev6'
 SDATE='2022 10 06'
 
 ##############################################################################
@@ -2573,19 +2573,23 @@ printlog "AUTOFS..."
 			log_write $OF "#--[ Automount Scheme: $SCHEME ]--#"
 			case "$SCHEME" in
 			files)
-				if [ -f /etc/auto.master ]; then
+				if [[ -f /etc/auto.master ]]; then
 					AFSMAPS=$(cat /etc/auto.master | grep -v ^# | awk '{print $2}' | cut -d\: -f2)
 					FILES=''
 					for MAP in $AFSMAPS
 					do
-						if [ -e $MAP ]; then
+						if [[ -e $MAP ]]; then
 							FILES="$FILES $MAP"
-						elif [ -e /etc/$MAP ]; then
+						elif [[ -e /etc/$MAP ]]; then
 							FILES="$FILES /etc/$MAP"
 						else
 							FILES="$FILES $MAP"
 						fi
 					done
+					if [[ -d /etc/auto.master.d ]]; then
+						MASTER_FILES=$(find /etc/auto.master.d/ -type f)
+						FILES="$FILES $MASTER_FILES"
+					fi
 					conf_files $OF /etc/auto.master $FILES
 				else
 					log_write $OF "Missing /etc/auto.master"
