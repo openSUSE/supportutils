@@ -1,7 +1,8 @@
 -------------------------------------------------------------------
-Fri Oct  7 18:04:34 UTC 2022 - jason.record@suse.com
+Fri Oct  7 19:31:16 UTC 2022 - jason.record@suse.com
 
 - Changes to version 3.1.21
+  + If rsyslog not installed collect more from journalctl (issue#120)
   + Added systemd-status.txt for the status of all service units (issue#125)
   + autofs includes files in (+dir:<path>) (issue#111)
   + Get current sar data before collecting files (bsc#1192648)

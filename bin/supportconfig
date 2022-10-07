@@ -1,6 +1,6 @@
 #!/bin/bash
 
-SVER='3.1.11-30.1_dev8'
+SVER='3.1.11-30.1_dev9'
 SDATE='2022 10 07'
 
 ##############################################################################
@@ -524,53 +524,57 @@ messages_file() {
 	test $MIN_OPTION_SYSLOGS -eq 0 && { echolog EXCLUDED; return 1; }
 	OF=messages.txt
 	addHeaderFile $OF
-	if [[ $ADD_OPTION_LOGS -gt 0 ]]; then
-		FILES="$(ls -1 /var/log/messages-[[:digit:]]* 2>/dev/null)"
-		[[ -n "$FILES" ]] && log_entry $OF note "Additional Rotated Logs Included in the Tar Ball"
-		log_files $OF 0 /var/log/messages
-		for CMPLOG in $FILES
-		do
-			FILE=$(basename $CMPLOG)
-			FILEROOT=${LOG}/$(cut -d\. -f1 <<< ${FILE})
-			cp $CMPLOG ${LOG}
-			FILE_TYPE=$(file --brief --mime-type $CMPLOG 2>/dev/null)
-			case $FILE_TYPE in
-			"text/plain")
-			;;
-			"application/x-xz")
-				wait_trace_on "xz -d ${LOG}/$FILE"
-				xz -d ${LOG}/$FILE
-			;;
-			"application/x-bzip2")
-				wait_trace_on "bzip2 -d ${LOG}/$FILE"
-				bzip2 -d ${LOG}/$FILE
-			;;
-			"application/x-gzip")
-				wait_trace_on "gzip -d ${LOG}/$FILE"
-				gzip -d ${LOG}/$FILE
-			;;
- 			*)
-				continue
-			;;
-			esac
-			mv ${FILEROOT} ${FILEROOT}.txt
-			wait_trace_off
-		done
-	else
-		LOGFILE="/var/log/messages"
-		if [[ -e $LOGFILE ]]; then
+	MESSAGES_FILE="/var/log/messages"
+	if [[ -s $MESSAGES_FILE ]]; then
+		if [[ $ADD_OPTION_LOGS -gt 0 ]]; then
+			FILES="$(ls -1 /var/log/messages-[[:digit:]]* 2>/dev/null)"
+			[[ -n "$FILES" ]] && log_entry $OF note "Additional Rotated Logs Included in the Tar Ball"
+			log_files $OF 0 /var/log/messages
+			for CMPLOG in $FILES
+			do
+				FILE=$(basename $CMPLOG)
+				FILEROOT=${LOG}/$(cut -d\. -f1 <<< ${FILE})
+				cp $CMPLOG ${LOG}
+				FILE_TYPE=$(file --brief --mime-type $CMPLOG 2>/dev/null)
+				case $FILE_TYPE in
+				"text/plain")
+				;;
+				"application/x-xz")
+					wait_trace_on "xz -d ${LOG}/$FILE"
+					xz -d ${LOG}/$FILE
+				;;
+				"application/x-bzip2")
+					wait_trace_on "bzip2 -d ${LOG}/$FILE"
+					bzip2 -d ${LOG}/$FILE
+				;;
+				"application/x-gzip")
+					wait_trace_on "gzip -d ${LOG}/$FILE"
+					gzip -d ${LOG}/$FILE
+				;;
+	 			*)
+					continue
+				;;
+				esac
+				mv ${FILEROOT} ${FILEROOT}.txt
+				wait_trace_off
+			done
+		else
 			if [[ $VAR_OPTION_MSG_MAXSIZE -eq 0 ]]; then
-				log_files $OF 0 $LOGFILE  # override and get the entire file
+				log_files $OF 0 $MESSAGES_FILE  # override and get the entire file
 			else
-				MSGSIZE=$(stat -c%s $LOGFILE)
+				MSGSIZE=$(stat -c%s $MESSAGES_FILE)
 				if [[ $MSGSIZE -gt $VAR_OPTION_MSG_MAXSIZE ]]; then
-					log_files $OF $VAR_OPTION_MSG_LINE_COUNT $LOGFILE # the file exceeded the max size allowed, get specified lines of the file
+					log_files $OF $VAR_OPTION_MSG_LINE_COUNT $MESSAGES_FILE # the file exceeded the max size allowed, get specified lines of the file
 				else
-					log_files $OF 0 $LOGFILE # get the whole file
+					log_files $OF 0 $MESSAGES_FILE # get the whole file
 				fi
 			fi
+		fi
+	else
+		if (( $ADD_OPTION_LOGS > 0 )); then
+			log_cmd $OF "journalctl --no-pager --output=short-iso"
 		else
-			log_cmd $OF "journalctl --no-pager --lines $VAR_OPTION_MSG_LINE_COUNT"
+			log_cmd $OF "journalctl --no-pager --output=short-iso --lines $VAR_OPTION_MSG_LINE_COUNT"
 		fi
 	fi
 	echolog Done
