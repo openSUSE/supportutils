@@ -1,7 +1,7 @@
 ##############################################################################
 #  supportconfig.rc - Resource file for supportconfig
 #  Copyright (C) 2001-2022 SUSE LLC
-RCVER='3.1.11-29.5'
+RCVER='3.1.11-29.5_dev1'
 #
 #  Contains supporting functions and variables used by supportconfig and
 #  supportconfig plugins.
@@ -464,6 +464,15 @@ printlog() {
 printvrpmlog() {
 	CSLOGFILE=$LOG/${CSFILE}
 	test $VAR_OPTION_SILENT -gt 0 && printf "  %-40s %12s ... " "$1" "$2" >> $CSLOGFILE || printf "  %-40s %12s ... " "$1" "$2" | tee -a $CSLOGFILE
+}
+
+_sanitize_file() {
+	CLEAN_FILE=${LOG}/$1
+	REPLACED='*REMOVED BY SUPPORTCONFIG*'
+	sed -i -e 's/\(.*[P|p]ass"\?:\).*/\1 *REMOVED BY SUPPORTCONFIG*/g;s/\(.*[P|p]assword"\?:\).*/\1 *REMOVED BY SUPPORTCONFIG*/g;s/\(.*[P|p]ass[[:space:]]*=\).*/\1 *REMOVED BY SUPPORTCONFIG*/g' $CLEAN_FILE
+	sed -i -e 's/\(.*[P|p]assword[[:space:]]*=\).*/\1 *REMOVED BY SUPPORTCONFIG*/g;s/\(.*PASS=\).*/\1*REMOVED BY SUPPORTCONFIG*/g;s/\(.*_PASSWORD[[:space:]]*=\).*/\1 *REMOVED BY SUPPORTCONFIG*/g' $CLEAN_FILE
+	sed -i -e 's!\(<user_password>\).*\(</user_password>\)!\1*REMOVED BY SUPPORTCONFIG*\2!g;s/\(^ProxyUser[[:space:]]*=\).*/\1 *REMOVED BY SUPPORTCONFIG*/g' $CLEAN_FILE
+	sed -i -e 's/\(^credentials[[:space:]]*=\).*/\1 *REMOVED BY SUPPORTCONFIG*/g;s/\(secret[[:space:]]*=\).*/\1 *REMOVED BY SUPPORTCONFIG*/g' $CLEAN_FILE
 }
 
 _log_cmd() {

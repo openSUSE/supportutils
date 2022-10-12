@@ -1,7 +1,8 @@
 -------------------------------------------------------------------
-Fri Oct  7 20:06:38 UTC 2022 - jason.record@suse.com
+Wed Oct 12 02:02:14 UTC 2022 - jason.record@suse.com
 
 - Changes to version 3.1.21
+  + Passwords correctly removed from email.txt, updates.txt and fs-iscsi.txt (bsc#1203818)
   + Added system logging configuration and checking in messages_config.txt (issue#103)
   + If rsyslog not installed collect more from journalctl (issue#120)
   + Added systemd-status.txt for the status of all service units (issue#125)
