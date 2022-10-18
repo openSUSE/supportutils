@@ -1,7 +1,7 @@
 #!/bin/bash
 
-SVER='3.1.11-43.1'
-SDATE='2022 10 13'
+SVER='3.1.11-44.2'
+SDATE='2022 10 18'
 
 ##############################################################################
 #  supportconfig - Gathers system troubleshooting information for SUSE Support
@@ -1448,56 +1448,75 @@ detectProducts() {
 }
 
 detectVirtualization() {
-	if echo $ARCH | egrep -v "i386|i586|i686|x86_64" &>/dev/null; then
-		return 5
-	fi
 	OUT=$1
 	log_write $OUT "#==[ System ]=======================================#"
 	log_write $OUT "# Virtualization"
 	NO_HYPER=1
-	if [ -x /usr/sbin/dmidecode ]; then
+	if [[ -x /usr/sbin/dmidecode ]]; then
 		MANUFACTURERNAME=$(/usr/sbin/dmidecode -s system-manufacturer 2>/dev/null)
 		SYSPRODNAME=$(/usr/sbin/dmidecode -s system-product-name 2>/dev/null)
-		if [ -n "$MANUFACTURERNAME" ]; then
+		if [[ -n "$MANUFACTURERNAME" ]]; then
 			log_write $OUT "Manufacturer:  $MANUFACTURERNAME"
 			log_write $OUT "Hardware:      $SYSPRODNAME"
 		else
 			log_write $OUT "Hardware:      See hardware.txt"
 		fi
+	else
+		log_write $OUT "Hardware:      See hardware.txt"
+	fi
+	if [[ -x /usr/bin/lscpu ]]; then
+		LSCPU_OUT=$(/usr/bin/lscpu 2>/dev/null | egrep -i "virtualization|hypervisor")
+	else
+		LSCPU_OUT=''
 	fi
 
 	# Xen Hypervisor
-	if [ -d /proc/xen ]; then
+	if egrep -iq "Hypervisor vendor.*Xen" <<< $LSCPU_OUT; then
 		NO_HYPER=0
-		if [ -e /proc/xen/xsd_port ]; then
-			log_write $OUT "Hypervisor:    Xen (/proc/xen)"
-			log_write $OUT "Identity:      Virtual Machine Server - Dom0 (/proc/xen/xsd_port)"
-		else
-			log_write $OUT "Hypervisor:    Xen (/proc/xen)"
-			log_write $OUT "Identity:      Virtual Machine - DomU (No /proc/xen/xsd_port)"
-			if uname -r | grep -vi xen &>/dev/null; then
-				log_write $OUT "Type:          Fully Virtualized (no xen kernel)"
+		IDENT=$(egrep -i "Virtualization type" <<< $LSCPU_OUT | awk '{print $NF}')
+		log_write $OUT "Hypervisor:    Xen"
+		case $IDENT in
+		'none')
+			if systemctl is-enabled libvirtd.service &>/dev/null; then
+				log_write $OUT "Identity:      Virtual Machine Server - Dom0"
 			else
-				log_write $OUT "Type:          Para Virtualized (xen kernel)"
+				log_write $OUT "Identity:      libvirtd Disabled"
 			fi
-		fi
+			;;
+		'full')
+			log_write $OUT "Identity:      Virtual Machine - DomU"
+			log_write $OUT "Type:          Fully Virtualized"
+			;;
+		'para')
+			log_write $OUT "Identity:      Virtual Machine - DomU"
+			log_write $OUT "Type:          Para Virtualized"
+			;;
+		*)
+			log_write $OUT "Identity:      Unknown"
+			;;
+		esac
 	fi
 
 	# KVM Hypervisor
-	CPUMODEL=$(grep -i '^model name' /proc/cpuinfo | head -1)
-	if grep '^kvm' /proc/modules &>/dev/null; then
-		NO_HYPER=0
-		if echo $CPUMODEL | grep -i 'QEMU Virtual CPU' &>/dev/null; then
-			KVMID="Virtual Machine (QEMU Virtual CPU)"
-		else
-			KVMID="Virtual Machine Server (No QEMU Virtual CPU)"
+	if grep -iq "Virtualization:" <<< $LSCPU_OUT; then
+		if grep -iq "Hypervisor vendor.*KVM" <<< $LSCPU_OUT; then
+			NO_HYPER=0
+			log_write $OUT "Hypervisor:    KVM"
+			log_write $OUT "Identity:      Virtual Machine - DomU"
+			IDENT=$(egrep -i "Virtualization type" <<< $LSCPU_OUT | awk '{print $NF}')
+			case $IDENT in
+			'full')
+				log_write $OUT "Type:          Fully Virtualized"
+				;;
+			*)
+				log_write $OUT "Identity:      Unknown"
+				;;
+			esac
+		elif systemctl is-enabled libvirtd.service &>/dev/null; then
+			NO_HYPER=0
+			log_write $OUT "Hypervisor:    KVM"
+			log_write $OUT "Identity:      Virtual Machine Server - Dom0"
 		fi
-		log_write $OUT "Hypervisor:    KVM (kvm kernel module loaded)"
-		log_write $OUT "Identity:      $KVMID"
-	elif echo $CPUMODEL | grep -i 'QEMU Virtual CPU' &>/dev/null; then
-		NO_HYPER=0
-		log_write $OUT "Hypervisor:    KVM (QEMU Virtual CPU)"
-		log_write $OUT "Identity:      Virtual Machine (QEMU Virtual CPU)"
 	fi
 
 	# VMware Hypervisor

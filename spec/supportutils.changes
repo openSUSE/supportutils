@@ -1,7 +1,8 @@
 -------------------------------------------------------------------
-Thu Oct 13 00:40:02 UTC 2022 - jason.record@suse.com
+Tue Oct 18 17:15:07 UTC 2022 - jason.record@suse.com
 
 - Changes to version 3.1.21
+  + Fixed KVM virtualization detection on bare metal (bsc#1184689)
   + Added logging using journalctl (bsc#1200330)
   + Passwords correctly removed from email.txt, updates.txt and fs-iscsi.txt (bsc#1203818)
   + Added system logging configuration and checking in messages_config.txt (issue#103)
