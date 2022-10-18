@@ -891,6 +891,10 @@ update_info() {
 			fi
 		fi
 	fi
+	
+	if rpm -q zypper-lifecycle-plugin &> /dev/null; then
+                log_cmd $OF 'zypper lifecycle'
+        fi
 
 	if rpm -q libzypp &> /dev/null; then
 		QPBIN=$(rpm -ql libzypp | grep query-pool)
