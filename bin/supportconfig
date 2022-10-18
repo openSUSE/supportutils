@@ -1,7 +1,7 @@
 #!/bin/bash
 
-SVER='3.1.11-29.1'
-SDATE='2022 02 02'
+SVER='3.1.11-46.1'
+SDATE='2022 10 18'
 
 ##############################################################################
 #  supportconfig - Gathers system troubleshooting information for SUSE Support
@@ -523,54 +523,74 @@ messages_file() {
 	printlog "System Logs..."
 	test $MIN_OPTION_SYSLOGS -eq 0 && { echolog EXCLUDED; return 1; }
 	OF=messages.txt
+	OF2=messages_config.txt
 	addHeaderFile $OF
-	if [[ $ADD_OPTION_LOGS -gt 0 ]]; then
-		FILES="$(ls -1 /var/log/messages-[[:digit:]]* 2>/dev/null)"
-		[[ -n "$FILES" ]] && log_entry $OF note "Additional Rotated Logs Included in the Tar Ball"
-		log_files $OF 0 /var/log/messages
-		for CMPLOG in $FILES
-		do
-			FILE=$(basename $CMPLOG)
-			FILEROOT=${LOG}/$(cut -d\. -f1 <<< ${FILE})
-			cp $CMPLOG ${LOG}
-			FILE_TYPE=$(file --brief --mime-type $CMPLOG 2>/dev/null)
-			case $FILE_TYPE in
-			"text/plain")
-			;;
-			"application/x-xz")
-				wait_trace_on "xz -d ${LOG}/$FILE"
-				xz -d ${LOG}/$FILE
-			;;
-			"application/x-bzip2")
-				wait_trace_on "bzip2 -d ${LOG}/$FILE"
-				bzip2 -d ${LOG}/$FILE
-			;;
-			"application/x-gzip")
-				wait_trace_on "gzip -d ${LOG}/$FILE"
-				gzip -d ${LOG}/$FILE
-			;;
- 			*)
-				continue
-			;;
-			esac
-			mv ${FILEROOT} ${FILEROOT}.txt
-			wait_trace_off
-		done
-	else
-		LOGFILE="/var/log/messages"
-		if [[ -e $LOGFILE ]]; then
+	addHeaderFile $OF2
+	if rpm_verify $OF2 rsyslog; then
+		log_cmd $OF2 "systemctl status rsyslog.service"
+		conf_files $OF2 /etc/rsyslog.conf
+		log_cmd $OF2 "rsyslogd -N 1"
+	fi
+	rpm_verify $OF2 systemd
+	log_cmd $OF2 "systemctl status systemd-journald.service"
+	JDIRS=''
+	for JDIR in /etc/systemd/journald.conf.d/ /run/systemd/journald.conf.d/ /usr/lib/systemd/journald.conf.d/
+	do
+		[[ -d $JDIR ]] && JDIRS="$JDIRS $(find $JDIR -type f | grep 'conf$')"
+	done
+	conf_files $OF2 /etc/systemd/journald.conf $JDIRS
+
+	MESSAGES_FILE="/var/log/messages"
+	if [[ -s $MESSAGES_FILE ]]; then
+		if [[ $ADD_OPTION_LOGS -gt 0 ]]; then
+			FILES="$(ls -1 /var/log/messages-[[:digit:]]* 2>/dev/null)"
+			[[ -n "$FILES" ]] && log_entry $OF note "Additional Rotated Logs Included in the Tar Ball"
+			log_files $OF 0 /var/log/messages
+			for CMPLOG in $FILES
+			do
+				FILE=$(basename $CMPLOG)
+				FILEROOT=${LOG}/$(cut -d\. -f1 <<< ${FILE})
+				cp $CMPLOG ${LOG}
+				FILE_TYPE=$(file --brief --mime-type $CMPLOG 2>/dev/null)
+				case $FILE_TYPE in
+				"text/plain")
+				;;
+				"application/x-xz")
+					wait_trace_on "xz -d ${LOG}/$FILE"
+					xz -d ${LOG}/$FILE
+				;;
+				"application/x-bzip2")
+					wait_trace_on "bzip2 -d ${LOG}/$FILE"
+					bzip2 -d ${LOG}/$FILE
+				;;
+				"application/x-gzip")
+					wait_trace_on "gzip -d ${LOG}/$FILE"
+					gzip -d ${LOG}/$FILE
+				;;
+	 			*)
+					continue
+				;;
+				esac
+				mv ${FILEROOT} ${FILEROOT}.txt
+				wait_trace_off
+			done
+		else
 			if [[ $VAR_OPTION_MSG_MAXSIZE -eq 0 ]]; then
-				log_files $OF 0 $LOGFILE  # override and get the entire file
+				log_files $OF 0 $MESSAGES_FILE  # override and get the entire file
 			else
-				MSGSIZE=$(stat -c%s $LOGFILE)
+				MSGSIZE=$(stat -c%s $MESSAGES_FILE)
 				if [[ $MSGSIZE -gt $VAR_OPTION_MSG_MAXSIZE ]]; then
-					log_files $OF $VAR_OPTION_MSG_LINE_COUNT $LOGFILE # the file exceeded the max size allowed, get specified lines of the file
+					log_files $OF $VAR_OPTION_MSG_LINE_COUNT $MESSAGES_FILE # the file exceeded the max size allowed, get specified lines of the file
 				else
-					log_files $OF 0 $LOGFILE # get the whole file
+					log_files $OF 0 $MESSAGES_FILE # get the whole file
 				fi
 			fi
+		fi
+	else
+		if (( $ADD_OPTION_LOGS > 0 )); then
+			log_cmd $OF "journalctl --no-pager --output=short-iso"
 		else
-			log_cmd $OF "journalctl --no-pager --lines $VAR_OPTION_MSG_LINE_COUNT"
+			log_cmd $OF "journalctl --no-pager --output=short-iso --lines $VAR_OPTION_MSG_LINE_COUNT"
 		fi
 	fi
 	echolog Done
@@ -692,7 +712,7 @@ yast_files() {
 	(( ADD_OPTION_MAXYAST > 0 )) && log_files $OF 0 $FILES || log_files $OF $VAR_OPTION_LINE_COUNT $FILES
 	[[ -s /root/autoupg.xml ]] && FILES="/root/autoupg*xml" || FILES=''
 	conf_files $OF /root/autoinst.xml $FILES /var/adm/autoinstall/cache/installedSystem.xml
-	sed -i -e 's!<user_password>.*</user_password>!<user_password>*REMOVED BY SUPPORTCONFIG*</user_password>!g' $LOG/$OF
+	_sanitize_file $OF
 	echolog Done
 }
 
@@ -808,7 +828,6 @@ smt_info() {
 		check_service $OF smt
 		CONF=/etc/smt.conf
 		conf_files $OF /etc/smt.conf
-		sed -i -e 's/^NUPass[[:space:]]*=.*/NUPass=*REMOVED BY SUPPORTCONFIG*/;s/^pass[[:space:]]*=.*/pass=*REMOVED BY SUPPORTCONFIG*/;s/^ProxyUser[[:space:]]*=.*/ProxyUser=*REMOVED BY SUPPORTCONFIG*/;s/^mailServerPassword[[:space:]]*=.*/mailServerPassword=*REMOVED BY SUPPORTCONFIG*/;s/^credentials[[:space:]]*=.*/credentials=*REMOVED BY SUPPORTCONFIG*/' $LOG/$OF
 		FILES=$(find -L /etc/smt.d/ -type f 2>/dev/null)
 		conf_files $OF $FILES
 		log_cmd $OF 'smt-catalogs'
@@ -820,6 +839,7 @@ smt_info() {
 		fi
 		FILES=$(find /var/log/ -type f | grep smt- | grep log$)
 		test $ADD_OPTION_LOGS -gt 0 && log_files $OF 0 $FILES || log_files $OF $VAR_OPTION_LINE_COUNT $FILES
+		_sanitize_file $OF
 		echolog Done
 	else
 		echolog Skipped
@@ -854,12 +874,21 @@ update_info() {
 	fi
 	if (( SLES_VER >= 120 ))
 	then
-		if rpm_verify $OF SUSEConnect
-		then
-			rpm_verify $OF ruby2.1-rubygem-suse-connect
-			log_cmd $OF "SUSEConnect --status"
-			FILES=$(find -L /etc/zypp/credentials.d/ -type f 2>/dev/null)
-			conf_files $OF /etc/SUSEConnect $FILES
+		if rpm -q suseconnect-ng &> /dev/null; then
+			if rpm_verify $OF suseconnect-ng
+			then
+				log_cmd $OF "SUSEConnect --status"
+				FILES=$(find -L /etc/zypp/credentials.d/ -type f 2>/dev/null)
+				conf_files $OF /etc/SUSEConnect $FILES
+			fi
+		elif rpm -q SUSEConnect &> /dev/null; then
+			if rpm_verify $OF SUSEConnect
+			then
+				rpm_verify $OF ruby2.1-rubygem-suse-connect
+				log_cmd $OF "SUSEConnect --status"
+				FILES=$(find -L /etc/zypp/credentials.d/ -type f 2>/dev/null)
+				conf_files $OF /etc/SUSEConnect $FILES
+			fi
 		fi
 	fi
 
@@ -963,6 +992,7 @@ update_info() {
 		done
 		(( FOUND )) && log_write $OF
 	fi
+	_sanitize_file $OF
 	echolog Done
 }
 
@@ -978,7 +1008,12 @@ pam_info() {
 		log_cmd $OF 'getent passwd'
 		conf_files $OF /etc/group
 		log_cmd $OF 'getent group'
+		EXTRA_DIRS=$(egrep '^#includedir |^@includedir ' /etc/sudoers | awk '{print $NF}')
 		conf_files $OF /etc/sudoers
+		for EXTRA in $EXTRA_DIRS
+		do
+			conf_files $OF ${EXTRA}/*
+		done
 		(( SLES_VER >= 120 )) && log_cmd $OF 'loginctl --no-pager list-sessions'
 		log_write $OF "#==[ Files in /etc/security ]=======================#"
 		test -d /etc/security && FILES="$(find -L /etc/security/ -type f -name \*conf)" || FILES=""
@@ -1119,7 +1154,9 @@ systemd_info() {
 	printlog "SystemD..."
 	test $OPTION_DAEMONS -eq 0 && { echolog Excluded; return 1; }
 	OF=systemd.txt
+	OF2=systemd-status.txt
 	addHeaderFile $OF
+	addHeaderFile $OF2
 	rpm_verify $OF systemd
 	log_cmd $OF 'hostnamectl status'
 	log_cmd $OF 'systemctl --failed'
@@ -1146,6 +1183,10 @@ systemd_info() {
 		else
 			log_cmd $OF "systemctl show '$i' | sort"
 		fi
+	done
+	for i in $(systemctl --no-pager list-units --type=service | grep -v "not-found" | sed 's/^[^-_:\\a-zA-Z0-9]*//' | egrep -v '^UNIT |^LOAD |^ACTIVE |^SUB |^To |^[[:digit:]]* ' | awk '{print $1}')
+	do
+		log_cmd $OF2 "systemctl status '$i'"
 	done
 	log_cmd $OF 'ls -alR /etc/systemd/'
 	log_cmd $OF 'ls -alR /usr/lib/systemd/'
@@ -1355,7 +1396,8 @@ mpio_info() {
 		log_cmd $OF 'lspci -b'
 		log_cmd $OF 'multipath -ll'
 		log_cmd $OF 'ls -lR --time-style=long-iso /dev/disk/'
-		conf_files $OF /etc/multipath.conf /etc/multipath/wwids /etc/modprobe.conf.local /etc/sysconfig/hotplug /etc/sysconfig/kernel /etc/fstab
+		MPIO_FILES=$(find /etc/multipath/ -type f 2>/dev/null)
+		conf_files $OF /etc/multipath.conf $MPIO_FILES /etc/modprobe.conf.local /etc/sysconfig/hotplug /etc/sysconfig/kernel /etc/fstab
 		log_cmd $OF 'lsscsi -g'
 		log_cmd $OF 'dmsetup ls --tree'
 		log_cmd $OF 'dmsetup table'
@@ -1406,56 +1448,75 @@ detectProducts() {
 }
 
 detectVirtualization() {
-	if echo $ARCH | egrep -v "i386|i586|i686|x86_64" &>/dev/null; then
-		return 5
-	fi
 	OUT=$1
 	log_write $OUT "#==[ System ]=======================================#"
 	log_write $OUT "# Virtualization"
 	NO_HYPER=1
-	if [ -x /usr/sbin/dmidecode ]; then
+	if [[ -x /usr/sbin/dmidecode ]]; then
 		MANUFACTURERNAME=$(/usr/sbin/dmidecode -s system-manufacturer 2>/dev/null)
 		SYSPRODNAME=$(/usr/sbin/dmidecode -s system-product-name 2>/dev/null)
-		if [ -n "$MANUFACTURERNAME" ]; then
+		if [[ -n "$MANUFACTURERNAME" ]]; then
 			log_write $OUT "Manufacturer:  $MANUFACTURERNAME"
 			log_write $OUT "Hardware:      $SYSPRODNAME"
 		else
 			log_write $OUT "Hardware:      See hardware.txt"
 		fi
+	else
+		log_write $OUT "Hardware:      See hardware.txt"
+	fi
+	if [[ -x /usr/bin/lscpu ]]; then
+		LSCPU_OUT=$(/usr/bin/lscpu 2>/dev/null | egrep -i "virtualization|hypervisor")
+	else
+		LSCPU_OUT=''
 	fi
 
 	# Xen Hypervisor
-	if [ -d /proc/xen ]; then
+	if egrep -iq "Hypervisor vendor.*Xen" <<< $LSCPU_OUT; then
 		NO_HYPER=0
-		if [ -e /proc/xen/xsd_port ]; then
-			log_write $OUT "Hypervisor:    Xen (/proc/xen)"
-			log_write $OUT "Identity:      Virtual Machine Server - Dom0 (/proc/xen/xsd_port)"
-		else
-			log_write $OUT "Hypervisor:    Xen (/proc/xen)"
-			log_write $OUT "Identity:      Virtual Machine - DomU (No /proc/xen/xsd_port)"
-			if uname -r | grep -vi xen &>/dev/null; then
-				log_write $OUT "Type:          Fully Virtualized (no xen kernel)"
+		IDENT=$(egrep -i "Virtualization type" <<< $LSCPU_OUT | awk '{print $NF}')
+		log_write $OUT "Hypervisor:    Xen"
+		case $IDENT in
+		'none')
+			if systemctl is-enabled libvirtd.service &>/dev/null; then
+				log_write $OUT "Identity:      Virtual Machine Server - Dom0"
 			else
-				log_write $OUT "Type:          Para Virtualized (xen kernel)"
+				log_write $OUT "Identity:      libvirtd Disabled"
 			fi
-		fi
+			;;
+		'full')
+			log_write $OUT "Identity:      Virtual Machine - DomU"
+			log_write $OUT "Type:          Fully Virtualized"
+			;;
+		'para')
+			log_write $OUT "Identity:      Virtual Machine - DomU"
+			log_write $OUT "Type:          Para Virtualized"
+			;;
+		*)
+			log_write $OUT "Identity:      Unknown"
+			;;
+		esac
 	fi
 
 	# KVM Hypervisor
-	CPUMODEL=$(grep -i '^model name' /proc/cpuinfo | head -1)
-	if grep '^kvm' /proc/modules &>/dev/null; then
-		NO_HYPER=0
-		if echo $CPUMODEL | grep -i 'QEMU Virtual CPU' &>/dev/null; then
-			KVMID="Virtual Machine (QEMU Virtual CPU)"
-		else
-			KVMID="Virtual Machine Server (No QEMU Virtual CPU)"
+	if grep -iq "Virtualization:" <<< $LSCPU_OUT; then
+		if grep -iq "Hypervisor vendor.*KVM" <<< $LSCPU_OUT; then
+			NO_HYPER=0
+			log_write $OUT "Hypervisor:    KVM"
+			log_write $OUT "Identity:      Virtual Machine - DomU"
+			IDENT=$(egrep -i "Virtualization type" <<< $LSCPU_OUT | awk '{print $NF}')
+			case $IDENT in
+			'full')
+				log_write $OUT "Type:          Fully Virtualized"
+				;;
+			*)
+				log_write $OUT "Identity:      Unknown"
+				;;
+			esac
+		elif systemctl is-enabled libvirtd.service &>/dev/null; then
+			NO_HYPER=0
+			log_write $OUT "Hypervisor:    KVM"
+			log_write $OUT "Identity:      Virtual Machine Server - Dom0"
 		fi
-		log_write $OUT "Hypervisor:    KVM (kvm kernel module loaded)"
-		log_write $OUT "Identity:      $KVMID"
-	elif echo $CPUMODEL | grep -i 'QEMU Virtual CPU' &>/dev/null; then
-		NO_HYPER=0
-		log_write $OUT "Hypervisor:    KVM (QEMU Virtual CPU)"
-		log_write $OUT "Identity:      Virtual Machine (QEMU Virtual CPU)"
 	fi
 
 	# VMware Hypervisor
@@ -1511,6 +1572,9 @@ hardware_info() {
 	detectVirtualization $OF
 	conf_files $OF /proc/cpuinfo /proc/cmdline /proc/ioports /proc/dma /proc/devices /proc/bus/usb/devices
 	log_cmd $OF 'lspci -b'
+	log_cmd $OF 'cpupower frequency-info'
+	log_cmd $OF 'cpupower idle-info'
+	log_cmd $OF 'cpupower info'
 	if [ $MIN_OPTION_AUTOMOD -eq 0 ]; then
 		log_write $OF "#==[ Warning ]======================================#"
 		log_write $OF "# Autoloading kernel modules disabled. Don't use -k."
@@ -1863,7 +1927,6 @@ net_info_namespace() {
 	if [[ -z "${NS}" ]] ; then
 		test -d /etc/sysconfig/network && FILES=$(find /etc/sysconfig/network/ -maxdepth 1 -type f) || FILES=""
 		conf_files $OF /etc/sysconfig/proxy $FILES 
-		sed -i -e 's/.*_PASSWORD[[:space:]]*=.*/*REMOVED BY SUPPORTCONFIG*/g' $LOG/$OF
 		(( SLES_VER >= 120 )) && FILES=$(find /etc/wicked -type f 2>/dev/null | grep '\.xml$') || FILES=''
 		conf_files $OF $FILES
 		if [ -d /proc/net/bonding ]; then
@@ -1876,6 +1939,7 @@ net_info_namespace() {
 		FILES="$FILES /var/log/NetworkManager"
 		test $ADD_OPTION_LOGS -gt 0 && log_files $OF 0 $FILES || log_files $OF $VAR_OPTION_LINE_COUNT $FILES
 	fi
+	_sanitize_file $OF
 }
 
 disk_info() {
@@ -1884,6 +1948,7 @@ disk_info() {
 	OF=fs-diskio.txt
 	addHeaderFile $OF
 	conf_files $OF /proc/partitions /etc/fstab
+	(( $IO_DELAYS )) || log_cmd $OF "df -Th"
 	log_cmd $OF "lsblk -i -o 'NAME,KNAME,MAJ:MIN,FSTYPE,LABEL,RO,RM,MODEL,SIZE,OWNER,GROUP,MODE,ALIGNMENT,MIN-IO,OPT-IO,PHY-SEC,LOG-SEC,ROTA,SCHED,MOUNTPOINT,DISC-ALN,DISC-GRAN,DISC-MAX,DISC-ZERO'"
 	log_cmd $OF "blkid"
 	[[ -x /usr/bin/findmnt ]] && log_cmd $OF "findmnt"
@@ -1920,6 +1985,7 @@ disk_info() {
 	log_cmd $OF 'ls -l /dev/disk/by-path/'
 	log_cmd $OF 'ls -l /dev/disk/by-id/'
 	log_cmd $OF 'ls -l /dev/disk/by-uuid/'
+	log_cmd $OF "grep '' /sys/block/*/queue/scheduler"
 
 	if [[ $ADD_OPTION_MINDISK -eq 0 ]]; then
 		log_cmd $OF 'iostat -x 1 4'
@@ -2010,7 +2076,7 @@ btrfs_info() {
 		log_cmd $OF "btrfs filesystem show"
 		conf_files $OF /etc/fstab
 		[[ -x /usr/bin/findmnt ]] && log_cmd $OF "findmnt" || log_cmd $OF "mount"
-		(( $IO_DELAYS )) || log_cmd $OF "df -h"
+		(( $IO_DELAYS )) || log_cmd $OF "df -Th"
 		log_cmd $OF "modinfo btrfs"
 		for DEVICE in $(btrfs filesystem show | awk 'NF{ print $NF }' | grep ^/)
 		#TODO For multi-device btrfs filesysems only use one device
@@ -2086,6 +2152,7 @@ iscsi_info() {
 			done
 		fi
 	fi
+	_sanitize_file $OF
 	echolog Done
 }
 
@@ -2434,6 +2501,10 @@ crash_info() {
 	log_cmd $OF "sysctl kernel.core_uses_pid"
 	log_cmd $OF "sysctl kernel.core_pattern"
 	conf_files $OF "/etc/sysconfig/ulimit /etc/security/limits.conf"
+	if [[ -d /etc/security/limits.d/ ]]; then
+		LIMITS_FILES=$(find /etc/security/limits.d/ -type f -name \*.conf)
+		conf_files $OF $LIMITS_FILES
+	fi
 	log_cmd $OF "grep -n 'ulimit -c' /etc/init.d/* 2>/dev/null"
 
 	if [[ -x /usr/bin/coredumpctl ]]; then
@@ -2554,19 +2625,23 @@ printlog "AUTOFS..."
 			log_write $OF "#--[ Automount Scheme: $SCHEME ]--#"
 			case "$SCHEME" in
 			files)
-				if [ -f /etc/auto.master ]; then
+				if [[ -f /etc/auto.master ]]; then
 					AFSMAPS=$(cat /etc/auto.master | grep -v ^# | awk '{print $2}' | cut -d\: -f2)
 					FILES=''
 					for MAP in $AFSMAPS
 					do
-						if [ -e $MAP ]; then
+						if [[ -e $MAP ]]; then
 							FILES="$FILES $MAP"
-						elif [ -e /etc/$MAP ]; then
+						elif [[ -e /etc/$MAP ]]; then
 							FILES="$FILES /etc/$MAP"
 						else
 							FILES="$FILES $MAP"
 						fi
 					done
+					if [[ -d /etc/auto.master.d ]]; then
+						MASTER_FILES=$(find /etc/auto.master.d/ -type f)
+						FILES="$FILES $MASTER_FILES"
+					fi
 					conf_files $OF /etc/auto.master $FILES
 				else
 					log_write $OF "Missing /etc/auto.master"
@@ -2587,7 +2662,6 @@ printlog "AUTOFS..."
 				;;
 			ldap)
 				conf_files $OF /etc/autofs_ldap_auth.conf
-				sed -i -e 's/secret[[:space:]]*=.*/secret=*REMOVED BY SUPPORTCONFIG*/g' $LOG/$OF
 				log_cmd $OF "ldapsearch -x \"(&(objectclass=automountMap))\""
 				log_cmd $OF "ldapsearch -x \"(&(objectclass=automount))\""
 				log_cmd $OF "ldapsearch -x \"(&(objectclass=nisMap))\""
@@ -2595,6 +2669,7 @@ printlog "AUTOFS..."
 				;;
 			esac
 		done
+		_sanitize_file $OF
 		FILES="/var/log/messages"
 		test $ADD_OPTION_LOGS -gt 0 && grep_log_files automount $OF 0 $FILES || grep_log_files automount $OF $VAR_OPTION_LINE_COUNT $FILES
 		echolog Done
@@ -2992,7 +3067,7 @@ drbd_info() {
 		log_cmd $OF "cat /proc/drbd"
 		log_cmd $OF "ps aux | grep drbd | grep -v grep"
 		[[ -x /usr/bin/findmnt ]] && log_cmd $OF "findmnt" || log_cmd $OF "mount"
-		(( $IO_DELAYS )) || log_cmd $OF "df -h"
+		(( $IO_DELAYS )) || log_cmd $OF "df -Th"
 		if [[ -s /etc/drbd.conf ]]; then
 			DIRLIST=$(cat /etc/drbd.conf | grep ^include | cut -d\" -f2 | sed 's!\(.*\)/.*!\1/!' | sort | uniq)
 			FILES=''
@@ -3328,9 +3403,9 @@ etc_info() {
 	# Let us get alternatives output
 	log_cmd $OF "update-alternatives --get-selections"
 	conf_files $OF $(find -L /etc/ -type f | egrep "conf$|cfg$" | egrep -v "rhn/rhn.conf$")
-	[ -d /etc/logrotate.d ] && conf_files $OF /etc/logrotate.d/*
+	[[ -d /etc/logrotate.d ]] && conf_files $OF /etc/logrotate.d/*
 	conf_files $OF /etc/rc.dialout /etc/ppp/options /etc/ppp/ioptions /etc/ppp/peers/pppoe /etc/motd
-        sed -i -e 's/\(.*pass:\).*/\1 *REMOVED BY SUPPORTCONFIG*/g;s/\(.*password:\).*/\1 *REMOVED BY SUPPORTCONFIG*/g;s/\(.*pass[[:space:]]*=\).*/\1 *REMOVED BY SUPPORTCONFIG*/g;s/\(.*password[[:space:]]*=\).*/\1 *REMOVED BY SUPPORTCONFIG*/g;s/\(.*GPGPASS=\).*/\1*REMOVED BY SUPPORTCONFIG*/g' $LOG/$OF
+        _sanitize_file $OF
 	echolog Done
 }
 
@@ -3350,8 +3425,7 @@ sysconfig_info() {
 			conf_files $OF $FILE
 		done
 	done
-	sed -i -e 's/.*_PASSWORD[[:space:]]*=.*/*REMOVED BY SUPPORTCONFIG*/g;s/.*_password[[:space:]]*=.*/*REMOVED BY SUPPORTCONFIG*/g' $LOG/$OF
-        sed -i -e 's/\(.*pass:\).*/\1 *REMOVED BY SUPPORTCONFIG*/g;s/\(.*password:\).*/\1 *REMOVED BY SUPPORTCONFIG*/g;s/\(.*pass[[:space:]]*=\).*/\1 *REMOVED BY SUPPORTCONFIG*/g;s/\(.*password[[:space:]]*=\).*/\1 *REMOVED BY SUPPORTCONFIG*/g;s/\(.*GPGPASS=\).*/\1*REMOVED BY SUPPORTCONFIG*/g' $LOG/$OF
+	_sanitize_file $OF
 	echolog Done
 }
 
@@ -3449,8 +3523,7 @@ drm_sub_info() {
 
 x_info() {
 	local verify_list
-	local xserver_present=n
-	local drm_present=n
+	local CONTENT_FOUND=0
 
 	printlog "X..."
 	test $OPTION_X -eq 0 && { echolog Excluded; return 1; }
@@ -3464,7 +3537,7 @@ x_info() {
 		done
 		if rpm_verify $OF xorg-x11-server
 		then
-			xserver_present=y
+			CONTENT_FOUND=1
 			rpm_verify $OF Mesa
 			if rpm_verify $OF sax2
 			then
@@ -3490,7 +3563,7 @@ x_info() {
 		fi
 		if [ -d /sys/class/drm ]
 		then
-			drm_present=y
+			CONTENT_FOUND=1
 			if [ "$xserver_present" = "n" ]
 			then
 			[ $SLES_VER -ge 113 ] && log_cmd $OF 'mokutil --sb-state'
@@ -3498,7 +3571,7 @@ x_info() {
 			fi
 			drm_sub_info
 		fi
-		if [ "$xserver_present" = "y" -o "$drm_present" = "y" ]
+		if (( $CONTENT_FOUND > 0 ))
 		then
 			echolog Done
 		else
@@ -3573,7 +3646,7 @@ x_info() {
 		[ -n "$verify_list" ] && rpm_verify $OF "$verify_list"
 		if rpm -q xorg-x11-server &>/dev/null
 		then
-			xserver_present=y
+			CONTENT_FOUND=1
 			log_cmd $OF 'bash -c "for i in /sys/class/input/input*; do echo -n \"\$i: \"; echo -n \$i/event* \"  \" | sed -e \"s#\$i/##\"; cat \$i/name; done"'
 			log_cmd $OF 'ls -al /dev | egrep "video.*"'
 			[ $SLES_VER -ge 1130 ] && log_cmd $OF 'mokutil --sb-state'
@@ -3592,13 +3665,10 @@ x_info() {
 			TMPLOG=0
 			fi
 			[ -n "$xorg_conf" ] && ADD_OPTION_LOGS=$TMPLOG conf_files $OF $xorg_conf
-
-			FILES="/var/log/Xorg.[0,1].log /var/log/Xorg.0.log.old /var/log/xdm.errors /root/.X.err /root/.xsession-errors"
-			test $ADD_OPTION_LOGS -gt 0 && log_files $OF 0 $FILES || log_files $OF $VAR_OPTION_LINE_COUNT $FILES
 		fi
 		if [[ -d /sys/class/drm ]]
 		then
-			drm_present=y
+			CONTENT_FOUND=1
 			if [ "$xserver_present" == "n" ]
 			then
 			log_cmd $OF 'mokutil --sb-state'
@@ -3606,9 +3676,13 @@ x_info() {
 			fi
 			drm_sub_info
 		fi
-
-		if [ "$xserver_present" = "y" -o "$drm_present" = "y" ]
+		if (( $CONTENT_FOUND > 0 ))
 		then
+			if (( $ADD_OPTION_LOGS )); then
+				log_cmd $OF "journalctl --no-pager --output=short-iso | egrep -e 'gnome|gdm|plasma|kde'"
+			else
+				log_cmd $OF "journalctl --no-pager --output=short-iso | egrep -e 'gnome|gdm|plasma|kde' | tail -${VAR_OPTION_LINE_COUNT}"
+			fi
 			echolog Done
 		else
 			echolog Skipped
@@ -3737,6 +3811,7 @@ sar_info() {
 	SARSCDIR=$LOG/sar
 	if rpm_verify $OF sysstat; then
 		if [ -d $SARDIR ]; then
+			log_cmd $OF '/usr/lib64/sa/sa1 1 1'
 			FOUND=$(ls -A1 $SARDIR)
 			if [ -n "$FOUND" ]; then
 				mkdir -p $SARSCDIR
@@ -4143,17 +4218,18 @@ email_info() {
 	OF=email.txt
 	addHeaderFile $OF
 	if rpm_verify $OF postfix; then
+		EXCLUDE_LIST="/etc/postfix/sasl_passwd"
 		log_cmd $OF "systemctl status postfix.service"
 		log_cmd $OF "postconf -n"
 		log_cmd $OF "postconf -d"
 		log_cmd $OF "postqueue -p"
 		log_cmd $OF "postqueue -j"
 		log_cmd $OF 'bash -c "comm -23 <(postconf -n) <(postconf -d)"'
-		#FILES="/etc/sysconfig/postfix /etc/postfix/master.cf /etc/postfix/main.cf /etc/postfix/aliases /etc/postfix/openssl_postfix.conf.in"
-		FILES=$(find /etc/postfix/ ! -name '*.rpmnew' -type f -exec sh -c 'f=$1; file -bL --mime $f | grep -q "^text/plain" && echo $f' {} {} \; | sort)
+		FILES=$(find /etc/postfix/ ! -name '*.rpmnew' -type f -exec sh -c 'f=$1; file -bL --mime $f | grep -q "^text/plain" && echo $f' {} {} \; | egrep -v "${EXCLUDE_LIST}" | sort)
 		conf_files $OF $FILES
 		FILES="/var/log/mail.err /var/log/mail.warn /var/log/mail.info /var/log/mail"
 		(( $ADD_OPTION_LOGS > 0 )) && log_files $OF 0 $FILES || log_files $OF $VAR_OPTION_LINE_COUNT $FILES
+		_sanitize_file $OF
 		echolog Done
 	else
 		echolog Skipped
