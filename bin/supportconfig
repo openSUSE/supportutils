@@ -1,6 +1,6 @@
 #!/bin/bash
 
-SVER='3.1.11-45.1'
+SVER='3.1.11-46.1'
 SDATE='2022 10 18'
 
 ##############################################################################
@@ -1948,6 +1948,7 @@ disk_info() {
 	OF=fs-diskio.txt
 	addHeaderFile $OF
 	conf_files $OF /proc/partitions /etc/fstab
+	(( $IO_DELAYS )) || log_cmd $OF "df -Th"
 	log_cmd $OF "lsblk -i -o 'NAME,KNAME,MAJ:MIN,FSTYPE,LABEL,RO,RM,MODEL,SIZE,OWNER,GROUP,MODE,ALIGNMENT,MIN-IO,OPT-IO,PHY-SEC,LOG-SEC,ROTA,SCHED,MOUNTPOINT,DISC-ALN,DISC-GRAN,DISC-MAX,DISC-ZERO'"
 	log_cmd $OF "blkid"
 	[[ -x /usr/bin/findmnt ]] && log_cmd $OF "findmnt"
@@ -2075,7 +2076,7 @@ btrfs_info() {
 		log_cmd $OF "btrfs filesystem show"
 		conf_files $OF /etc/fstab
 		[[ -x /usr/bin/findmnt ]] && log_cmd $OF "findmnt" || log_cmd $OF "mount"
-		(( $IO_DELAYS )) || log_cmd $OF "df -h"
+		(( $IO_DELAYS )) || log_cmd $OF "df -Th"
 		log_cmd $OF "modinfo btrfs"
 		for DEVICE in $(btrfs filesystem show | awk 'NF{ print $NF }' | grep ^/)
 		#TODO For multi-device btrfs filesysems only use one device
@@ -3066,7 +3067,7 @@ drbd_info() {
 		log_cmd $OF "cat /proc/drbd"
 		log_cmd $OF "ps aux | grep drbd | grep -v grep"
 		[[ -x /usr/bin/findmnt ]] && log_cmd $OF "findmnt" || log_cmd $OF "mount"
-		(( $IO_DELAYS )) || log_cmd $OF "df -h"
+		(( $IO_DELAYS )) || log_cmd $OF "df -Th"
 		if [[ -s /etc/drbd.conf ]]; then
 			DIRLIST=$(cat /etc/drbd.conf | grep ^include | cut -d\" -f2 | sed 's!\(.*\)/.*!\1/!' | sort | uniq)
 			FILES=''
