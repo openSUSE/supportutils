@@ -1,7 +1,8 @@
 -------------------------------------------------------------------
-Tue Oct 18 17:15:07 UTC 2022 - jason.record@suse.com
+Tue Oct 18 17:28:42 UTC 2022 - jason.record@suse.com
 
 - Changes to version 3.1.21
+  + Gather all files in /etc/security/limits.d/ (issue#142)
   + Fixed KVM virtualization detection on bare metal (bsc#1184689)
   + Added logging using journalctl (bsc#1200330)
   + Passwords correctly removed from email.txt, updates.txt and fs-iscsi.txt (bsc#1203818)

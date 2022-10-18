@@ -1,6 +1,6 @@
 #!/bin/bash
 
-SVER='3.1.11-44.2'
+SVER='3.1.11-45.1'
 SDATE='2022 10 18'
 
 ##############################################################################
@@ -2500,6 +2500,10 @@ crash_info() {
 	log_cmd $OF "sysctl kernel.core_uses_pid"
 	log_cmd $OF "sysctl kernel.core_pattern"
 	conf_files $OF "/etc/sysconfig/ulimit /etc/security/limits.conf"
+	if [[ -d /etc/security/limits.d/ ]]; then
+		LIMITS_FILES=$(find /etc/security/limits.d/ -type f -name \*.conf)
+		conf_files $OF $LIMITS_FILES
+	fi
 	log_cmd $OF "grep -n 'ulimit -c' /etc/init.d/* 2>/dev/null"
 
 	if [[ -x /usr/bin/coredumpctl ]]; then
