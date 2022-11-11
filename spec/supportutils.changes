@@ -1,7 +1,7 @@
 -------------------------------------------------------------------
-Fri Nov 11 18:08:06 UTC 2022 - jason.record@suse.com
+Fri Nov 11 18:10:50 UTC 2022 - jason.record@suse.com
 
-- Changes to supportconfig version 3.0.10
+- Changes to supportconfig version 3.0.11
   + Added _sanitize_file and applied it as needed (bsc#1203818)
 
 -------------------------------------------------------------------
