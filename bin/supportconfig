@@ -1,11 +1,11 @@
 #!/bin/bash
 
-SVER='2.25-471'
-SDATE="2021 04 19"
+SVER='2.25-471_dev1'
+SDATE="2022 11 11"
 
 ##############################################################################
 #  supportconfig - Gathers system troubleshooting information for SUSE Support
-#  Copyright (C) 2001-2021 SUSE LLC
+#  Copyright (C) 2001-2022 SUSE LLC
 #
 #  Creates a tar ball to attach to the SR or send to support. Collects
 #  comprehensive troubleshooting information from the server.
@@ -665,6 +665,16 @@ log_icmd() {
 	echo >> $LOGFILE
 }
 
+_sanitize_file() {
+	CLEAN_FILE=${LOG}/$1
+	REPLACED='*REMOVED BY SUPPORTCONFIG*'
+	sed -i -e "s/\(.*[P|p]ass\"\?:\).*/\1 $REPLACED/g;s/\(.*[P|p]assword\"\?:\).*/\1 $REPLACED/g;s/\(.*[P|p]ass[[:space:]]*=\).*/\1 $REPLACED/g" $CLEAN_FILE
+	sed -i -e "s/\(.*[P|p]assword[[:space:]]*=\).*/\1 $REPLACED/g;s/\(.*PASS=\).*/\1$REPLACED/g;s/\(.*_PASSWORD[[:space:]]*=\).*/\1 $REPLACED/g" $CLEAN_FILE
+	sed -i -e "s!\(<user_password>\).*\(</user_password>\)!\1$REPLACED\2!g;s/\(^ProxyUser[[:space:]]*=\).*/\1 $REPLACED/g" $CLEAN_FILE
+	sed -i -e "s/\(^credentials[[:space:]]*=\).*/\1 $REPLACED/g;s/\(secret[[:space:]]*=\).*/\1 $REPLACED/g" $CLEAN_FILE
+	sed -i -e "s/\(.*password.*}[[:space:]]*=\).*/\1 $REPLACED/g" $CLEAN_FILE
+}
+
 ping_addr() {
 	OF=$1
 	ADDR_STRING="$2"
@@ -1226,7 +1236,7 @@ yast_files() {
 	test $ADD_OPTION_MAXYAST -eq 1 && log_files $OF 0 $FILES || log_files $OF $VAR_OPTION_LINE_COUNT $FILES
 	[[ -s /root/autoupg.xml ]] && FILES="/root/autoupg*xml" || FILES=''
 	conf_files $OF /root/autoinst.xml $FILES /var/adm/autoinstall/cache/installedSystem.xml
-	sed -i -e 's!<user_password>.*</user_password>!<user_password>*REMOVED BY SUPPORTCONFIG*</user_password>!g' $LOG/$OF
+	_sanitize_file $OF
 	echolog Done
 }
 
@@ -1297,7 +1307,6 @@ smt_info() {
 		check_service $OF smt
 		CONF=/etc/smt.conf
 		conf_files $OF /etc/smt.conf
-		sed -i -e 's/^NUPass[[:space:]]*=.*/NUPass=*REMOVED BY SUPPORTCONFIG*/;s/^pass[[:space:]]*=.*/pass=*REMOVED BY SUPPORTCONFIG*/;s/^ProxyUser[[:space:]]*=.*/ProxyUser=*REMOVED BY SUPPORTCONFIG*/;s/^mailServerPassword[[:space:]]*=.*/mailServerPassword=*REMOVED BY SUPPORTCONFIG*/;s/^credentials[[:space:]]*=.*/credentials=*REMOVED BY SUPPORTCONFIG*/' $LOG/$OF
 		FILES=$(find -L /etc/smt.d/ -type f 2>/dev/null)
 		conf_files $OF $FILES
 		log_cmd $OF 'smt-catalogs'
@@ -1309,6 +1318,7 @@ smt_info() {
 		fi
 		FILES=$(find -L /var/log/ -type f | grep smt- | grep log$)
 		test $ADD_OPTION_LOGS -gt 0 && log_files $OF 0 $FILES || log_files $OF $VAR_OPTION_LINE_COUNT $FILES
+		_sanitize_file $OF
 		echolog Done
 	else
 		echolog Skipped
@@ -1456,6 +1466,7 @@ update_info() {
 	FILES="/var/log/messages"
 	[ $ADD_OPTION_LOGS -gt 0 ] && grep_log_files suse_register $OF 0 $FILES || grep_log_files suse_register $OF $VAR_OPTION_LINE_COUNT $FILES
 
+	_sanitize_file $OF
 	echolog Done
 }
 
@@ -1481,7 +1492,6 @@ update_d_info() {
 	then
 		check_service $OF novell-zmd
 		conf_files $OF /etc/zmd/zmd.conf /etc/zmd/deviceid /etc/zmd/secret /etc/sysconfig/zmd
-		sed -i -e 's/.*proxy-password[[:space:]]*=/*REMOVED BY SUPPORTCONFIG*/g' $LOG/$OF
 		[ $ADD_OPTION_LOGS -gt 0 ] && FILES="/var/log/zmd-messages.log*" || FILES="/var/log/zmd-messages.log"
 		[ $ADD_OPTION_LOGS -gt 0 ] && log_files $OF 0 $FILES || log_files $OF $VAR_OPTION_LINE_COUNT $FILES
 		FILES="/var/log/messages"
@@ -1490,7 +1500,7 @@ update_d_info() {
 		((SKIP++))
 	fi
 
-	test $SKIP -lt 2 && echolog Done || echolog Skipped
+	test $SKIP -lt 2 && { _sanitize_file $OF; echolog Done; } || echolog Skipped
 }
 
 novell_edir_info() {
@@ -3061,7 +3071,6 @@ net_info() {
 	done
 	test -d /etc/sysconfig/network && FILES=$(find -L /etc/sysconfig/network/ -maxdepth 1 -type f) || FILES=""
 	conf_files $OF /etc/sysconfig/proxy $FILES 
-	sed -i -e 's/.*_PASSWORD[[:space:]]*=.*/*REMOVED BY SUPPORTCONFIG*/g' $LOG/$OF
 	if [ -d /proc/net/bonding ]; then
 		FILES=$(find /proc/net/bonding/ -type f)
 		conf_files $OF $FILES 
@@ -3070,6 +3079,7 @@ net_info() {
 	test -n "$FILES" || FILES="/var/log/nscd.log"
 	FILES="$FILES /var/log/NetworkManager"
 	test $ADD_OPTION_LOGS -gt 0 && log_files $OF 0 $FILES || log_files $OF $VAR_OPTION_LINE_COUNT $FILES
+	_sanitize_file $OF
 	echolog Done
 }
 
@@ -3271,6 +3281,7 @@ iscsi_info() {
 		fi
 		;;
 	esac
+	_sanitize_file $OF
 	echolog Done
 }
 
@@ -3598,7 +3609,8 @@ crash_info() {
 		cat $i >> $LOG/$OF
 		log_write $OF
 	done
-echolog Done
+	_sanitize_file $OF
+	echolog Done
 }
 
 autofs_info() {
@@ -3651,7 +3663,6 @@ printlog "AUTOFS..."
 				;;
 			ldap)
 				conf_files $OF /etc/autofs_ldap_auth.conf
-				sed -i -e 's/secret[[:space:]]*=.*/secret=*REMOVED BY SUPPORTCONFIG*/g' $LOG/$OF
 				log_cmd $OF "ldapsearch -x \"(&(objectclass=automountMap))\""
 				log_cmd $OF "ldapsearch -x \"(&(objectclass=automount))\""
 				log_cmd $OF "ldapsearch -x \"(&(objectclass=nisMap))\""
@@ -3661,6 +3672,7 @@ printlog "AUTOFS..."
 		done
 		FILES="/var/log/messages"
 		test $ADD_OPTION_LOGS -gt 0 && grep_log_files automount $OF 0 $FILES || grep_log_files automount $OF $VAR_OPTION_LINE_COUNT $FILES
+		_sanitize_file $OF
 		echolog Done
 	else
 		echolog Skipped
@@ -4502,6 +4514,7 @@ etc_info() {
 	conf_files $OF $(find -L /etc/ -type f | grep conf$)
 	[ -d /etc/logrotate.d ] && conf_files $OF /etc/logrotate.d/*
 	conf_files $OF /etc/rc.dialout /etc/ppp/options /etc/ppp/ioptions /etc/ppp/peers/pppoe
+	_sanitize_file $OF
 	echolog Done
 }
 
@@ -4521,7 +4534,7 @@ sysconfig_info() {
 			conf_files $OF $FILE
 		done
 	done
-	sed -i -e 's/.*_PASSWORD[[:space:]]*=.*/*REMOVED BY SUPPORTCONFIG*/g' $LOG/$OF
+	_sanitize_file $OF
 	echolog Done
 }
 
