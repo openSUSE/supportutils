@@ -1,7 +1,7 @@
 ##############################################################################
 #  supportconfig.rc - Resource file for supportconfig
 #  Copyright (C) 2001-2022 SUSE LLC
-RCVER='3.1.11-29.6'
+RCVER='3.1.11-30'
 #
 #  Contains supporting functions and variables used by supportconfig and
 #  supportconfig plugins.
@@ -20,7 +20,7 @@ RCVER='3.1.11-29.6'
 #  You should have received a copy of the GNU General Public License
 #  along with this program; if not, see <http://www.gnu.org/licenses/>.
 #
-#  Modified: 2022 Oct 06
+#  Modified: 2022 Nov 11
 #  Authors/Contributors:
 #     Jason Record <jason.record@suse.com>
 #
@@ -469,10 +469,11 @@ printvrpmlog() {
 _sanitize_file() {
 	CLEAN_FILE=${LOG}/$1
 	REPLACED='*REMOVED BY SUPPORTCONFIG*'
-	sed -i -e 's/\(.*[P|p]ass"\?:\).*/\1 *REMOVED BY SUPPORTCONFIG*/g;s/\(.*[P|p]assword"\?:\).*/\1 *REMOVED BY SUPPORTCONFIG*/g;s/\(.*[P|p]ass[[:space:]]*=\).*/\1 *REMOVED BY SUPPORTCONFIG*/g' $CLEAN_FILE
-	sed -i -e 's/\(.*[P|p]assword[[:space:]]*=\).*/\1 *REMOVED BY SUPPORTCONFIG*/g;s/\(.*PASS=\).*/\1*REMOVED BY SUPPORTCONFIG*/g;s/\(.*_PASSWORD[[:space:]]*=\).*/\1 *REMOVED BY SUPPORTCONFIG*/g' $CLEAN_FILE
-	sed -i -e 's!\(<user_password>\).*\(</user_password>\)!\1*REMOVED BY SUPPORTCONFIG*\2!g;s/\(^ProxyUser[[:space:]]*=\).*/\1 *REMOVED BY SUPPORTCONFIG*/g' $CLEAN_FILE
-	sed -i -e 's/\(^credentials[[:space:]]*=\).*/\1 *REMOVED BY SUPPORTCONFIG*/g;s/\(secret[[:space:]]*=\).*/\1 *REMOVED BY SUPPORTCONFIG*/g' $CLEAN_FILE
+	sed -i -e "s/\(.*[P|p]ass\"\?:\).*/\1 $REPLACED/g;s/\(.*[P|p]assword\"\?:\).*/\1 $REPLACED/g;s/\(.*[P|p]ass[[:space:]]*=\).*/\1 $REPLACED/g" $CLEAN_FILE
+	sed -i -e "s/\(.*[P|p]assword[[:space:]]*=\).*/\1 $REPLACED/g;s/\(.*PASS=\).*/\1$REPLACED/g;s/\(.*_PASSWORD[[:space:]]*=\).*/\1 $REPLACED/g" $CLEAN_FILE
+	sed -i -e "s!\(<user_password>\).*\(</user_password>\)!\1$REPLACED\2!g;s/\(^ProxyUser[[:space:]]*=\).*/\1 $REPLACED/g" $CLEAN_FILE
+	sed -i -e "s/\(^credentials[[:space:]]*=\).*/\1 $REPLACED/g;s/\(secret[[:space:]]*=\).*/\1 $REPLACED/g" $CLEAN_FILE
+	sed -i -e "s/\(.*password.*}[[:space:]]*=\).*/\1 $REPLACED/g" $CLEAN_FILE
 }
 
 _log_cmd() {
