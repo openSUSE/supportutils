@@ -1,4 +1,11 @@
 -------------------------------------------------------------------
+Thu Nov 17 18:06:47 UTC 2022 - jason.record@suse.com
+
+- Changes to getappcore version 1.53.02
+  + The location of chkbin was updated earlier. This documents that
+    change (bsc#1205533, bsc#1204942)
+
+-------------------------------------------------------------------
 Fri Nov 11 18:01:33 UTC 2022 - jason.record@suse.com
 
 - Changes to supportconfig version 3.1.11-46.3

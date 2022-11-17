@@ -1,7 +1,7 @@
 #!/bin/bash
 
-SVER='1.53.01'
-SDATE="2021 10 18"
+SVER='1.53.02'
+SDATE="2021 11 17"
 SNAME=$(basename $0)
 
 # --------------------------------------------------------------------- #
@@ -12,7 +12,7 @@ SNAME=$(basename $0)
 #  Please submit bug fixes or comments via:                             #
 #    http://en.opensuse.org/Supportutils#Reporting_Bugs                 #
 #                                                                       #
-#  Copyright (C) 2007-2021 SUSE LINUX GmbH, Nuernberg, Germany          #
+#  Copyright (C) 2007-2022 SUSE LINUX GmbH, Nuernberg, Germany          #
 #                                                                       #
 # --------------------------------------------------------------------- #
 #                                                                       #
