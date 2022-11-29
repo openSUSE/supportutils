@@ -1,7 +1,7 @@
 #!/bin/bash
 
-SVER='3.1.11-46.3'
-SDATE='2022 11 11'
+SVER='3.1.11-46.4'
+SDATE='2022 11 28'
 
 ##############################################################################
 #  supportconfig - Gathers system troubleshooting information for SUSE Support
@@ -1232,6 +1232,30 @@ docker_info() {
 		log_cmd $OF 'ls -alR --time-style=long-iso /sys/fs/cgroup/*/system.slice/docker*'
 		log_cmd $OF 'journalctl -u docker'
 	fi
+	echolog Done
+}
+
+plymouth_info() {
+	printlog "Plymouth..."
+	test $OPTION_PLYMOUTH -eq 0 && { echolog Excluded; return 1; }
+	OF=plymouth.txt
+	addHeaderFile $OF
+	plymouth_configs="/etc/plymouth/plymouthd.conf /usr/share/plymouth/plymouthd.defaults /etc/logrotate.d/bootlog"
+	plymouth_themes=("bgrt" "breeze-text" "breeze" "details" "fade-in" "script" "solar" "spinfinity" "spinner" "text" "tribar")
+	plymouth_logs="/var/log/plymouth-debug.log /var/log/plymouth-shutdown-debug.log /var/lib/plymouth/boot-duration /var/log/boot.log"
+
+	for plymouth_pkgs in `rpm -qa | grep 'plymouth\|libply' | xargs echo`
+	do
+		rpm_verify $OF $plymouth_pkgs
+	done
+	conf_files $OF $plymouth_configs
+
+	for theme in ${plymouth_themes[@]}; do
+		theme_config=/usr/share/plymouth/themes/$theme/$theme.plymouth
+		[[ -e $theme_config ]] && conf_files $OF $theme_config
+	done
+
+	test $ADD_OPTION_LOGS -gt 0 && log_files $OF 0 $plymouth_logs || log_files $OF $VAR_OPTION_LINE_COUNT $plymouth_logs
 	echolog Done
 }
 
@@ -4492,6 +4516,7 @@ if [ "$USE_SAVED_LOGS_ONLY" != "1" ]; then
 	ntp_info
 	proc_info
 	boot_info
+	plymouth_info
 	slert_info
 	update_info
 	nvme_info

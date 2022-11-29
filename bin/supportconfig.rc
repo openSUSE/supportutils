@@ -1,7 +1,7 @@
 ##############################################################################
 #  supportconfig.rc - Resource file for supportconfig
 #  Copyright (C) 2001-2022 SUSE LLC
-RCVER='3.1.11-30'
+RCVER='3.1.11-31'
 #
 #  Contains supporting functions and variables used by supportconfig and
 #  supportconfig plugins.
@@ -20,7 +20,7 @@ RCVER='3.1.11-30'
 #  You should have received a copy of the GNU General Public License
 #  along with this program; if not, see <http://www.gnu.org/licenses/>.
 #
-#  Modified: 2022 Nov 11
+#  Modified: 2022 Nov 28
 #  Authors/Contributors:
 #     Jason Record <jason.record@suse.com>
 #
@@ -66,6 +66,7 @@ OPTION_NTP=1
 OPTION_NVME=1
 OPTION_OCFS2=1
 OPTION_OFILES=1
+OPTION_PLYMOUTH=1
 OPTION_PODMAN=1
 OPTION_PRINT=1
 OPTION_PROC=1
