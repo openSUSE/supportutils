@@ -1,7 +1,7 @@
 ##############################################################################
 #  supportconfig.rc - Resource file for supportconfig
 #  Copyright (C) 2001-2023 SUSE LLC
-RCVER='3.1.11-35'
+RCVER='3.1.11-35.1'
 #
 #  Contains supporting functions and variables used by supportconfig and
 #  supportconfig plugins.
@@ -481,6 +481,7 @@ _sanitize_file() {
 	s/\(^ProxyUser[[:space:]]*=\).*/\1 $REPLACED/g;\
 	s/\(^credentials[[:space:]]*=\).*/\1 $REPLACED/g;\
 	s/\(secret[[:space:]]*=\).*/\1 $REPLACED/g;\
+	s/\($Param{'[s]*password'}[[:space:]]*=[[:space:]]*'\).*\(';\)/\1$REPLACED\2/g;\
 	s/\(.*password[[:space:]]*=\).*/\1 $REPLACED/g;\
 	s/\(.*password_in[[:space:]]*=\).*/\1 $REPLACED/g" \
 	$CLEAN_FILE
