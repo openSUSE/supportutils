@@ -1,4 +1,10 @@
 -------------------------------------------------------------------
+Thu Jan 26 15:58:24 UTC 2023 - jason.record@suse.com
+
+- Changes to supportconfig.rc version 3.1.11-35
+  + Corrected _sanitize_file to include iscsi.conf and others (bsc#1206402)
+
+-------------------------------------------------------------------
 Fri Dec  2 14:25:03 UTC 2022 - jason.record@suse.com
 
 - Changes to supportconfig version 3.1.11-46.4
