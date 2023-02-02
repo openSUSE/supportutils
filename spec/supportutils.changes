@@ -1,3 +1,9 @@
+Thu Feb 02 16:53:23 UTC 2023 - hp.jansen@suse.com
+-------------------------------------------------------------------
+
+- Add dependency to `numactl` on ppc64le and `s390x`, this enforces
+  that `numactl --hardware` data is provided in supportconfigs
+
 -------------------------------------------------------------------
 Thu Jan 26 15:58:24 UTC 2023 - jason.record@suse.com
 
