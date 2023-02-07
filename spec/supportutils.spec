@@ -33,6 +33,9 @@ Source:         %{name}-%{version}.tar.gz
 Requires:       iproute2
 Requires:       kmod-compat
 Requires:       ncurses-utils
+%ifarch ppc64le s390x
+Requires:       numactl
+%endif
 Requires:       sysfsutils
 Requires:       tar
 Requires:       util-linux-systemd
