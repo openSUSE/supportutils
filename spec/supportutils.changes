@@ -1,4 +1,9 @@
 -------------------------------------------------------------------
+Tue Feb 21 13:27:29 UTC 2023 - jason.record@suse.com
+
+- Changed _sanitize_file to include lio_setup.sh (bsc#1206350)
+
+-------------------------------------------------------------------
 Fri Nov 11 18:10:50 UTC 2022 - jason.record@suse.com
 
 - Changes to supportconfig version 3.0.11
