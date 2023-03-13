@@ -1649,6 +1649,9 @@ hardware_info() {
 				log_cmd $OF "serv_config -l"
 				log_cmd $OF "bootlist -m both -r"
 				log_cmd $OF "lparstat -i"
+				log_cmd $OF "lparnumascore"
+				log_cmd $OF "lparnumascore -c cpu -d 4"
+				log_cmd $OF "lparnumascore -c mem -d 3"
 			fi
 		fi
 		if rpm -q lsvpd &>/dev/null; then
