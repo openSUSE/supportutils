@@ -1,7 +1,7 @@
 #!/bin/bash
 
-SVER='3.0.11-1_test_230221_01'
-SDATE='2023 02 21'
+SVER='3.0.11-5'
+SDATE='2023 03 20'
 
 ##############################################################################
 #  supportconfig - Gathers system troubleshooting information for SUSE Support
@@ -1839,7 +1839,6 @@ docker_info() {
 			log_cmd $OF "docker inspect $i"
 		done
 		log_cmd $OF 'ls -al --time-style=long-iso /var/lib/docker/containers'
-		log_cmd $OF 'ls -alR --time-style=long-iso /sys/fs/cgroup/*/system.slice/docker*'
 		log_cmd $OF 'journalctl -u docker'
 	fi
 	echolog Done
