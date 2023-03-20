@@ -1,6 +1,7 @@
 -------------------------------------------------------------------
-Mon Mar 20 20:08:58 UTC 2023 - jason.record@suse.com
+Mon Mar 20 22:51:05 UTC 2023 - jason.record@suse.com
 
+- Fixed missing status detail for apparmor (bsc#1196933)
 - Corrected invalid argument list in docker.txt (bsc#1206608)
 - Applies limit equally to sar data and text files (bsc#1207543)
 - Collects hwinfo hardware logs (bsc#1208928)

@@ -1,6 +1,6 @@
 #!/bin/bash
 
-SVER='3.1.11-46.12'
+SVER='3.1.11-46.13'
 SDATE='2023 03 20'
 
 ##############################################################################
@@ -2763,8 +2763,9 @@ apparmor_info() {
 			log_cmd $OF "systemctl status apparmor.service"
 		fi
 		log_cmd $OF 'unconfined'
-		log_cmd $OF 'aa-status' 
-		test -d /etc/apparmor && FILES=$(find -L /etc/apparmor/ | grep conf) || FILES=""
+		log_cmd $OF 'aa-status'
+		log_cmd $OF 'aa-notify -l'
+		[[ /etc/apparmor ]] && FILES=$(find -L /etc/apparmor/ | grep '\.conf$') || FILES=""
 		conf_files $OF $FILES
 		log_files $OF 0 /var/log/audit/audit.log
 	else
