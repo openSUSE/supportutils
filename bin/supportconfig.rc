@@ -1,7 +1,7 @@
 ##############################################################################
 #  supportconfig.rc - Resource file for supportconfig
 #  Copyright (C) 2001-2023 SUSE LLC
-RCVER='3.1.11-35.1'
+RCVER='3.1.11-35.1_dev2'
 #
 #  Contains supporting functions and variables used by supportconfig and
 #  supportconfig plugins.
@@ -20,7 +20,7 @@ RCVER='3.1.11-35.1'
 #  You should have received a copy of the GNU General Public License
 #  along with this program; if not, see <http://www.gnu.org/licenses/>.
 #
-#  Modified: 2023 Jan 26
+#  Modified: 2023 Mar 20
 #  Authors/Contributors:
 #     Jason Record <jason.record@suse.com>
 #
@@ -151,6 +151,7 @@ unset CONTACT_SRNUM
 UPLOAD_TARBALL=0
 CSFILE=${CURRENT_SCRIPT}.txt
 RPMFILE=rpm.txt
+HWINFO_FILE="hwinfo.log"
 FSLIST_FILE=fs-files.txt
 FSLIST_ADD_FILE="${LIB_DIR}/additional-files.list"
 BASIC_ENVF=basic-environment.txt
@@ -761,6 +762,7 @@ timed_cmd_cleanup() {
 			wait_trace_off
 		done
 	fi
+	rm -f ${LOG}/${HWINFO_FILE}
 }
 
 ascii_plugin() {
