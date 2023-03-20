@@ -1,7 +1,7 @@
 -------------------------------------------------------------------
-Mon Mar 20 20:05:36 UTC 2023 - jason.record@suse.com
+Mon Mar 20 20:08:36 UTC 2023 - jason.record@suse.com
 
-- Corrected invalid arguement list in docker.txt (bsc#1206608)
+- Corrected invalid argument list in docker.txt (bsc#1206608)
 
 -------------------------------------------------------------------
 Tue Feb 21 13:27:29 UTC 2023 - jason.record@suse.com
