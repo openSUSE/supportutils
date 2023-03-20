@@ -1,6 +1,6 @@
 #!/bin/bash
 
-SVER='3.0.11-5'
+SVER='3.0.11-6'
 SDATE='2023 03 20'
 
 ##############################################################################
@@ -3530,11 +3530,17 @@ apparmor_info() {
 		rpm_verify $OF apparmor-utils
 		rpm_verify $OF apparmor-profiles
 		test -f $AARPTMP && cat $AARPTMP >> $LOG/$OF
-		log_cmd $OF "/etc/init.d/boot.apparmor status"
+		if [[ -x /etc/init.d/boot.apparmor ]]; then
+			log_cmd $OF "/etc/init.d/boot.apparmor status"
+		else
+			log_cmd $OF "systemctl status apparmor.service"
+		fi
 		log_cmd $OF 'unconfined'
-		log_files $OF 0 /var/log/audit/audit.log
-		test -d /etc/apparmor && FILES=$(find -L /etc/apparmor/ | grep conf) || FILES=""
+		log_cmd $OF 'aa-status'
+		log_cmd $OF 'aa-notify -l'
+		[[ /etc/apparmor ]] && FILES=$(find -L /etc/apparmor/ | grep '\.conf$') || FILES=""
 		conf_files $OF $FILES
+		log_files $OF 0 /var/log/audit/audit.log
 	else
 		((SKIP++))
 	fi

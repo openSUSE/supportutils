@@ -1,6 +1,7 @@
 -------------------------------------------------------------------
-Mon Mar 20 20:08:36 UTC 2023 - jason.record@suse.com
+Mon Mar 20 22:49:29 UTC 2023 - jason.record@suse.com
 
+- Fixed missing status detail for apparmor (bsc#1196933)
 - Corrected invalid argument list in docker.txt (bsc#1206608)
 
 -------------------------------------------------------------------
