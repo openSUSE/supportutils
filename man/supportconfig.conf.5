@@ -1,4 +1,4 @@
-.TH SUPPORTCONFIG.CONF 5 "10 Feb 2021" "supportutils" "Support Utilities Manual"
+.TH SUPPORTCONFIG.CONF 5 "20 Mar 2023" "supportutils" "Support Utilities Manual"
 .SH NAME
 supportconfig.conf \- 
 .BR supportconfig (8)
@@ -350,7 +350,7 @@ VAR_OPTION_SBM
 Screen buffer mode. Useful for third party applications running supportconfig. No status or progress is displayed on screen, just the current supportconfig gathering action. All status information is logged in supportconfig.txt. \fB\-b\fR (0)
 .TP
 VAR_OPTION_SAR_FILES_LIMIT
-The maximum number of SAR data files to include in the supportconfig tar ball. \fB\-S\fR (30)
+The maximum number of SAR data and text files to include in the supportconfig tar ball. This number applies to the data and text files separately, 30 data and 30 text sar files. \fB\-S\fR (30)
 .TP
 VAR_OPTION_SILENT
 When set to 1, supportconfig runs in quiet mode. This option is useful if you plan on running regular supportconfigs in a cron job for example. \fB\-Q\fR (0)

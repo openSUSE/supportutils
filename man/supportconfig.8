@@ -1,4 +1,4 @@
-.TH SUPPORTCONFIG 8 "09 Mar 2021" "supportutils" "Support Utilities Manual"
+.TH SUPPORTCONFIG 8 "20 Mar 2023" "supportutils" "Support Utilities Manual"
 .SH NAME
 supportconfig - Gathers system troubleshooting information
 .SH SYNOPSIS
@@ -75,7 +75,7 @@ Run in quiet mode, no output
 Directory path for supportconfig output files
 .TP
 \fB\-S\fR \fInumber\fR
-Limit number of included SAR files
+Limit number of included SAR data and text files. This number applies to the data and text files separately, 30 data and 30 text sar files. Default: 30
 .TP
 \fB\-T\fR \fIseconds\fR
 Binary execution timeout. Some binaries are executed with a timeout value. If the timeout value is exceeded, supportconfig assumes the binary is unresponsive and continues gathering information.

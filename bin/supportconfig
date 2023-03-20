@@ -1,6 +1,6 @@
 #!/bin/bash
 
-SVER='3.1.11-46.4_dev5'
+SVER='3.1.11-46.4_dev7'
 SDATE='2023 03 20'
 
 ##############################################################################
@@ -3857,9 +3857,10 @@ sar_info() {
 				else
 					log_write $OF "# NOTE: Only the newest $VAR_OPTION_SAR_FILES_LIMIT files are copied"
 					log_write $OF "# Use sar -f filename to read included sar files"
-					for i in $(\ls -A1 $SARDIR/sa* 2>/dev/null | tail -$VAR_OPTION_SAR_FILES_LIMIT)
+					for i in $(ls -A1 $SARDIR/sa* 2>/dev/null | grep -Po '^'$SARDIR'/sar?\K([^\.]+)(?=.*)' | sort -u | tail -$VAR_OPTION_SAR_FILES_LIMIT)
 					do
-						cp $i $SARSCDIR &>/dev/null
+						# copy both binary and plaintext sar files for X files limit pattern
+						cp $SARDIR/sa{,r}$i{,.*} $SARSCDIR &>/dev/null
 					done
 				fi
 				echolog Done

@@ -1,6 +1,7 @@
 -------------------------------------------------------------------
-Mon Mar 20 16:47:43 UTC 2023 - jason.record@suse.com
+Mon Mar 20 19:43:35 UTC 2023 - jason.record@suse.com
 
+- Applies limit equally to sar data and text files (bsc#1207543)
 - Collects hwinfo hardware logs (bsc#1208928)
 - Collects lparnumascore logs (issue#148)
 
