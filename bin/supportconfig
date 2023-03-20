@@ -1,6 +1,6 @@
 #!/bin/bash
 
-SVER='3.1.11-46.4_dev7'
+SVER='3.1.11-46.12'
 SDATE='2023 03 20'
 
 ##############################################################################
@@ -1229,7 +1229,6 @@ docker_info() {
 			log_cmd $CONTAINEROF "docker logs $container"
 		done
 		log_cmd $OF 'ls -al --time-style=long-iso /var/lib/docker/containers'
-		log_cmd $OF 'ls -alR --time-style=long-iso /sys/fs/cgroup/*/system.slice/docker*'
 		log_cmd $OF 'journalctl -u docker'
 	fi
 	echolog Done

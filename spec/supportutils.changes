@@ -1,6 +1,7 @@
 -------------------------------------------------------------------
-Mon Mar 20 19:43:35 UTC 2023 - jason.record@suse.com
+Mon Mar 20 20:04:45 UTC 2023 - jason.record@suse.com
 
+- Corrected invalid arguement list in docker.txt (bsc#1206608)
 - Applies limit equally to sar data and text files (bsc#1207543)
 - Collects hwinfo hardware logs (bsc#1208928)
 - Collects lparnumascore logs (issue#148)
