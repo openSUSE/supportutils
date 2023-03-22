@@ -1,4 +1,10 @@
 -------------------------------------------------------------------
+Mon Mar 20 23:11:56 UTC 2023 - jason.record@suse.com
+
+- Changes for supportutils version 3.1.25
+  + Removed dependency on sysfstools
+
+-------------------------------------------------------------------
 Mon Mar 20 22:51:05 UTC 2023 - jason.record@suse.com
 
 - Fixed missing status detail for apparmor (bsc#1196933)
