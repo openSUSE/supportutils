@@ -1,6 +1,6 @@
 #!/bin/bash
 
-SVER='3.1.15-10'
+SVER='3.1.15-11'
 SDATE='2023 03 31'
 
 ##############################################################################
@@ -4227,33 +4227,34 @@ sysfs_info() {
 	log_entry $OF command "/bin/find /sys | sed -e 's/\\/\\\\/g' | xargs ls -ld --time-style=long-iso"
 	/bin/find /sys | sed -e 's/\\/\\\\/g' | xargs ls -ld --time-style=long-iso >> ${LOG}/${OF} 2>&1
 	log_write $OF
-	log_cmd $OF "systool"
-	for ITEM in $(systool)
-	do
-		case $ITEM in
-		Supported) SBUS=0; SCLS=0; SDEV=0; SMOD=0 ;;
-		buses:) SBUS=1; continue ;;
-		classes:) SCLS=1; continue ;;
-		devices:) SDEV=1; continue ;;
-		modules:) SMOD=1; continue ;;
-		esac
-		if (( SBUS )); then
-			# collecting memory info from sysfs can be time consuming
-			# skip it on systems with 16TB  or ram or more unless exhaustive
-			# option is used
-			if [ $ITEM == "memory" ]; then
-				mem=$(grep 'MemTotal' /proc/meminfo | awk '{print $2}')
-				test $mem -gt 16000000000 -a $VAR_OPTION_EXHAUSTIVE_MEM -eq 0 && continue
-				echonlog "Please Wait..."
-				echonlog "Memory"
+	if log_cmd $OF "systool"; then
+		for ITEM in $(systool)
+		do
+			case $ITEM in
+			Supported) SBUS=0; SCLS=0; SDEV=0; SMOD=0 ;;
+			buses:) SBUS=1; continue ;;
+			classes:) SCLS=1; continue ;;
+			devices:) SDEV=1; continue ;;
+			modules:) SMOD=1; continue ;;
+			esac
+			if (( SBUS )); then
+				# collecting memory info from sysfs can be time consuming
+				# skip it on systems with 16TB  or ram or more unless exhaustive
+				# option is used
+				if [ $ITEM == "memory" ]; then
+					mem=$(grep 'MemTotal' /proc/meminfo | awk '{print $2}')
+					test $mem -gt 16000000000 -a $VAR_OPTION_EXHAUSTIVE_MEM -eq 0 && continue
+					echonlog "Please Wait..."
+					echonlog "Memory"
+				fi
+				log_cmd $OF "systool -vb $ITEM"
+			elif (( SCLS )); then
+				log_cmd $OF "systool -vc $ITEM"
+			elif (( SMOD )); then
+				log_cmd $OF "systool -vm $ITEM"
 			fi
-			log_cmd $OF "systool -vb $ITEM"
-		elif (( SCLS )); then
-			log_cmd $OF "systool -vc $ITEM"
-		elif (( SMOD )); then
-			log_cmd $OF "systool -vm $ITEM"
-		fi
-	done
+		done
+	fi
 	echolog Done
 }
 

@@ -1,8 +1,9 @@
 -------------------------------------------------------------------
-Fri Mar 31 15:50:42 UTC 2023 - jason.record@suse.com
+Fri Mar 31 16:27:21 UTC 2023 - jason.record@suse.com
 
 - Changes for supportutils version 3.1.25
   + Removed dependency on sysfstools
+  + Check for systool use (bsc#1210015)
   + Added selinux checking (bsc#1209979)
 
 -------------------------------------------------------------------
