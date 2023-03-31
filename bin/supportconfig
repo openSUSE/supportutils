@@ -1,7 +1,7 @@
 #!/bin/bash
 
-SVER='3.1.15-1_dev1'
-SDATE='2023 03 20'
+SVER='3.1.15-10'
+SDATE='2023 03 31'
 
 ##############################################################################
 #  supportconfig - Gathers system troubleshooting information for SUSE Support
@@ -2776,6 +2776,47 @@ apparmor_info() {
 	test $SKIP -lt 2 && echolog Done || echolog Skipped
 }
 
+selinux_info() {
+	printlog "SELinux..."
+	(( $OPTION_SELINUX )) || { echolog Excluded; return 1; }
+	OF=security-selinux.txt
+	addHeaderFile $OF
+	if rpm_verify $OF selinux-policy
+	then
+		for i in policycoreutils $(rpm -qa | grep selinux | grep -v "selinux-policy-[0-9]")
+		do
+			rpm_verify $OF "$i"
+		done
+		log_cmd $OF "zypper info selinux-policy"
+		log_cmd $OF "selinux-ready"
+		log_cmd $OF "sestatus"
+		conf_files $OF '/proc/cmdline'
+		for SERVICE in auditd restorecond
+		do
+			log_cmd $OF "systemctl status ${SERVICE}.service"
+		done
+		SEMANAGE_BIN=$(which semanage 2>/dev/null)
+		if [[ -n $SEMANAGE_BIN ]]; then
+			log_cmd $OF "sestatus -v"
+			log_cmd $OF "$SEMANAGE_BIN boolean --list"
+			log_cmd $OF "$SEMANAGE_BIN fcontext --list"
+		else
+			log_cmd $OF "sestatus -bv"
+		fi
+		log_cmd $OF "ps auxZww"
+		if [[ -d /etc/selinux/ ]]; then
+			ALL_FILES=$(find -L /etc/selinux/ -type f | sort)
+			CFILES=$(grep "\.conf$" <<< "$ALL_FILES")
+			NFILES=$(grep -v "\.conf$" <<< "$ALL_FILES")
+			conf_text_files $OF $CFILES $NFILES
+		fi
+		log_cmd $OF "ausearch -m AVC,USER_AVC,SELINUX_ERR,USER_SELINUX_ERR -i"
+		echolog Done
+	else
+		echolog Skipped
+	fi
+}
+
 ha_info() {
 	printlog "HA Cluster..."
 	test $OPTION_HA -eq 0 && { echolog Excluded; return 1; }
@@ -4285,8 +4326,6 @@ else
 	exit 1
 fi
 
-log2sys "BEGIN Version: $SVER"
-
 CURRENTUID=$(id -u)
 if [ $CURRENTUID -ne 0 ]; then
 	echo "ERROR: You must be logged in as root."
@@ -4305,6 +4344,7 @@ if [ -s ${SC_CONF:="/etc/${CURRENT_SCRIPT}.conf"} ]; then
 	. ${SC_CONF}
 fi
 
+log2sys "BEGIN Version: $SVER"
 init_plugins on
 get_sles_ver
 NSA_CHECK=0
@@ -4565,6 +4605,7 @@ if [ "$USE_SAVED_LOGS_ONLY" != "1" ]; then
 	autofs_info
 	sar_info
 	apparmor_info
+	selinux_info
 	x_info
 	print_info
 	smartmon_info

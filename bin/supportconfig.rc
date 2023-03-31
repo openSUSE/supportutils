@@ -1,7 +1,7 @@
 ##############################################################################
 #  supportconfig.rc - Resource file for supportconfig
 #  Copyright (C) 2001-2023 SUSE LLC
-RCVER='3.1.11-35.3'
+RCVER='3.1.11-35.4'
 #
 #  Contains supporting functions and variables used by supportconfig and
 #  supportconfig plugins.
@@ -20,7 +20,7 @@ RCVER='3.1.11-35.3'
 #  You should have received a copy of the GNU General Public License
 #  along with this program; if not, see <http://www.gnu.org/licenses/>.
 #
-#  Modified: 2023 Mar 20
+#  Modified: 2023 Mar 22
 #  Authors/Contributors:
 #     Jason Record <jason.record@suse.com>
 #
@@ -71,6 +71,7 @@ OPTION_PODMAN=1
 OPTION_PRINT=1
 OPTION_PROC=1
 OPTION_SAR=1
+OPTION_SELINUX=1
 OPTION_SLERT=1
 OPTION_SLP=1
 OPTION_SMT=1
@@ -263,7 +264,7 @@ conf_text_files() {
 		echo "#==[ Configuration File ]===========================#" >> $LOGFILE
 		if [[ -f $CONF ]]; then
 			echo "# $CONF" >> $LOGFILE
-			TEXTFILE=$(file -L $CONF | egrep -i "text|empty|XML")
+			TEXTFILE=$(file -L $CONF | cut -d \: -f2 | egrep -i "text|empty|XML")
 			if [ -z "$TEXTFILE" ]; then
 				echo "file $(file -L $CONF)" >> $LOGFILE
 				echo "ERROR: Not a normal text file, excluding it." >> $LOGFILE
