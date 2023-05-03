@@ -1,7 +1,7 @@
 ##############################################################################
 #  supportconfig.rc - Resource file for supportconfig
 #  Copyright (C) 2001-2023 SUSE LLC
-RCVER='3.1.11-35.4'
+RCVER='3.1.11-35.4.1'
 #
 #  Contains supporting functions and variables used by supportconfig and
 #  supportconfig plugins.
@@ -20,7 +20,7 @@ RCVER='3.1.11-35.4'
 #  You should have received a copy of the GNU General Public License
 #  along with this program; if not, see <http://www.gnu.org/licenses/>.
 #
-#  Modified: 2023 Mar 22
+#  Modified: 2023 May 03
 #  Authors/Contributors:
 #     Jason Record <jason.record@suse.com>
 #
@@ -1451,10 +1451,15 @@ write_xml_file() {
 
 get_sles_ver() {
 	if [[ -s /etc/os-release ]]; then
-		VID=$(grep VERSION_ID /etc/os-release | cut -d\= -f2)
-#		echo "VID=$VID"
-		VID=${VID//\"/}
-		SLES_VER=${VID//\./}
+		ID=$(grep '^ID=' /etc/os-release | cut -d\= -f2 | tr -d \")
+		VID=$(grep VERSION_ID /etc/os-release | cut -d\= -f2 | tr -d \")
+		VID=${VID//\./}
+#		echo "ID=${ID}, VID=${VID}" > /dev/kmsg
+		if [[ "${ID}" == "alp" ]]; then
+			SLES_VER=2${VID}
+		else
+			SLES_VER=$VID
+		fi
 		if (( ${#SLES_VER} < 3 )); then
 			SLES_VER=${SLES_VER}0
 		# tumbleweed versions are yyyymmdd
