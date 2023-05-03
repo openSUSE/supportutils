@@ -1,6 +1,6 @@
 #!/bin/bash
 
-SVER='3.1.15-11.1'
+SVER='3.1.15-11.2'
 SDATE='2023 05 03'
 
 ##############################################################################
@@ -3602,7 +3602,7 @@ x_info() {
 	OF=x.txt
 	addHeaderFile $OF
 	case $SLES_VER in
-	11*|12*|15*|999)
+	11*|12*|15*|2*|999)
 		MESA="Mesa Mesa-32bit Mesa-demo-x Mesa-libEGL1 Mesa-libEGL1-32bit Mesa-libGL1 \
 		Mesa-libGL1-32bit Mesa-libGLESv2-2 Mesa-libGLESv2-2-32bit Mesa-libglapi0 \
                 Mesa-libglapi0-32bit"
