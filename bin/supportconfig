@@ -1693,7 +1693,13 @@ hardware_info() {
 				log_cmd $OF "servicelog --dump"
 				log_cmd $OF "servicelog_notify --list"
 			fi
+
+			log_cmd $OF 'lssrc -a'
 			log_cmd $OF 'lsdevinfo'
+			log_cmd $OF 'lsrsrc IBM.MCP'
+			log_cmd $OF 'rmcdomainstatus -s ctrmc'
+			log_cmd $OF 'rmcdomainstatus -s ctrmc -a ip'
+			log_cmd $OF 'systemctl status ctrmc.service -l'
 			log_cmd $OF 'systemctl is-enabled hcn-init.service'
 			log_files $OF 0 /var/log/hcnmgr /var/ct/IBM.DRM.stderr /var/ct/IW/log/mc/IBM.DRM/trace*
 		fi
@@ -1709,6 +1715,11 @@ hardware_info() {
 				CTSNAP_DIR="${PPC_DIR}/ctsnap"
 				mkdir -p $CTSNAP_DIR
 				log_cmd $OF "ctsnap -xrunrpttr -d $CTSNAP_DIR"
+			fi
+
+			if [[ -f /etc/ct_node_id ]]; then
+				log_entry $OF command "cp /etc/ct_node_id $PPC_DIR"
+				cp /etc/ct_node_id $PPC_DIR 2>/dev/null
 			fi
 
 			if [[ -f /var/log/drmgr ]]; then
