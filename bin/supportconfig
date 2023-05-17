@@ -1,7 +1,7 @@
 #!/bin/bash
 
-SVER='3.1.15-11.2'
-SDATE='2023 05 03'
+SVER='3.1.15-11.2_dev9'
+SDATE='2023 05 17'
 
 ##############################################################################
 #  supportconfig - Gathers system troubleshooting information for SUSE Support
@@ -1256,26 +1256,96 @@ plymouth_info() {
 podman_info() {
 	printlog "Podman..."
 	test $OPTION_PODMAN -eq 0 && { echolog Excluded; return 1; }
-	OF=podman.txt
+	OF=podman-root.txt
 	addHeaderFile $OF
 	PODMANSCDIR=$LOG/podman
 	[[ -e /usr/bin/podman ]] && PODMAN_PKG=`rpm -q --whatprovides /usr/bin/podman 2>/dev/null`
 	[[ -z $PODMAN_PKG ]] && PODMAN_PKG='podman'
 	if rpm_verify $OF $PODMAN_PKG
 	then
+		mkdir -p $PODMANSCDIR
 		log_cmd $OF 'podman version'
 		log_cmd $OF 'podman info'
 		log_cmd $OF 'podman images'
 		log_cmd $OF 'podman ps --all'
-		log_cmd $OF 'podman network ls'
-		mkdir -p $PODMANSCDIR
 		for container in $(podman ps -a --format "{{.ID}}" 2>/dev/null);
 		do
-			CONTAINEROF=podman/"$container".txt
+			CONTAINEROF=podman/"${container}-root".txt
+			log_entry $OF note "Processing $CONTAINEROF"
 			log_cmd $CONTAINEROF "podman top $container"
 			log_cmd $CONTAINEROF "podman inspect $container"
 			log_cmd $CONTAINEROF "podman logs $container"
 		done
+		log_cmd $OF 'podman network ls'
+		for podnet in $(podman network ls --format "{{.Name}}")
+		do
+			log_cmd $OF "podman network inspect ${podnet}"
+		done
+		log_cmd $OF 'podman volume ls'
+		for podvol in $(podman volume ls --format "{{.Name}}")
+		do
+			log_cmd $OF "podman volume inspect ${podvol}"
+		done
+		FILES=$(find -L /etc/containers -type f)
+		if [[ -d /root/.config/containers ]]; then
+			FILES="${FILES} $(find -L /root/.config/containers -type f)"
+		fi
+		conf_files $OF $FILES
+		log_cmd $OF 'podman events --since 0 --stream=false'
+
+		# Identify all non-root users currently running at least one container
+		PODMAN_USERS=$(ps axwwo user,cmd | grep conmon | grep -v grep | cut -d\  -f1 | sort | uniq | grep -v root)
+
+		# Include any LOCAL_PODMAN_USERS defined in /etc/supportconfig.conf
+		if [[ -n $LOCAL_PODMAN_USERS ]]; then
+			PODMAN_USERS="${PODMAN_USERS} ${LOCAL_PODMAN_USERS}"
+		fi
+		CURRENT_DIR=$(pwd)
+		cd /tmp
+		for PODMAN_USER in $PODMAN_USERS
+		do
+			OF=podman-${PODMAN_USER}.txt
+			addHeaderFile $OF
+			if id ${PODMAN_USER} &> /dev/null; then
+				PODACC="sudo -u ${PODMAN_USER}"
+				log_cmd $OF "${PODACC} podman version"
+				log_cmd $OF "${PODACC} podman info"
+				log_cmd $OF "${PODACC} podman images"
+				log_cmd $OF "${PODACC} podman ps --all"
+				for container in $(${PODACC} podman ps -a --format "{{.ID}}" 2>/dev/null);
+				do
+					CONTAINEROF=podman/"${container}-${PODMAN_USER}".txt
+					log_entry $OF note "Processing $CONTAINEROF"
+					log_cmd $CONTAINEROF "${PODACC} podman top $container"
+					log_cmd $CONTAINEROF "${PODACC} podman inspect $container"
+					log_cmd $CONTAINEROF "${PODACC} podman logs $container"
+				done
+				log_cmd $OF "${PODACC} podman network ls"
+				for podnet in $(${PODACC} podman network ls --format "{{.Name}}")
+				do
+					log_cmd $OF "${PODDACC} podman network inspect ${podnet}"
+				done
+				log_cmd $OF "${PODACC} podman volume ls"
+				for podvol in $(${PODACC} podman volume ls --format "{{.Name}}")
+				do
+					log_cmd $OF "${PODACC} podman volume inspect ${podvol}"
+				done
+
+				PODMAN_USER_HOME=''
+				PODMAN_USER_HOME=$(${PODACC} env | grep "^HOME" | cut -d= -f2)
+				[[ -n $PODMAN_USER_HOME ]] && PODMAN_USER_CONFIG="${PODMAN_USER_HOME}/.config/containers" || PODMAN_USER_CONFIG=''
+				if [[ -d $PODMAN_USER_CONFIG ]]; then
+					FILES=$(find -L $PODMAN_USER_CONFIG -type f)
+					conf_files $OF $FILES
+				fi
+				log_cmd $OF "${PODACC} podman events --since 0 --stream=false"
+			else
+				log_cmd $OF "id ${PODMAN_USER}"
+			fi
+		done
+		cd $CURRENT_PATH
+	else
+		echolog Skipped
 	fi
 	echolog Done
 }
