@@ -1,7 +1,7 @@
 #!/bin/bash
 
-SVER='3.1.15-11.2_dev13'
-SDATE='2023 05 26'
+SVER='3.1.15-11.4'
+SDATE='2023 05 31'
 
 ##############################################################################
 #  supportconfig - Gathers system troubleshooting information for SUSE Support
@@ -2454,11 +2454,21 @@ nvme_info() {
 		then
 			log_cmd $OF "nvme list"
 			log_cmd $OF "nvme list-subsys"
-			FILES="/etc/nvme/*"
-			[[ -d /etc/nvme/ ]] && conf_files $OF $FILES
-			[[ -f /etc/nvme/discovery.conf ]] && log_cmd $OF "nvme discover"
-			[[ -f /etc/nvme/hostnqn ]] && log_cmd $OF "nvme hostnqn"
-			[[ -f /sys/module/nvme_core/parameters/multipath ]] && log_cmd $OF "nvme core"
+			log_cmd $OF "nvme discover"
+			if (( $SLES_VER == 155 )); then
+				log_cmd $OF "nvme show-nbft -H"
+				log_cmd $OF "nvme show-nbft -s"
+				log_cmd $OF "nvme show-nbft -d"
+			fi
+
+			FILES=''
+			if [[ -d /etc/nvme/ ]]; then
+				FILES=$(find /etc/nvme/ -type f)
+			fi
+			if [[ -e /etc/wicked/extensions/nbft ]]; then
+				FILES="/etc/wicked/extensions/nbft ${FILES}"
+			fi
+			conf_files $OF $FILES
 			NVME_DEVICES=$(nvme list | grep /dev | awk '{print $1}')
 			for NVME_DEVICE in $NVME_DEVICES
 			do
