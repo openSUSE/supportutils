@@ -1,6 +1,6 @@
 #!/bin/bash
 
-SVER='3.1.15-11.4'
+SVER='3.1.15-11.6'
 SDATE='2023 05 31'
 
 ##############################################################################
@@ -1275,9 +1275,9 @@ podman_info() {
 			PODMAN_USERS="${PODMAN_USERS} ${LOCAL_PODMAN_USERS}"
 		fi
 		if [[ -n $PODMAN_USERS ]]; then
-			log_entry $OF note "Non-Root Podman Users: ${PODMAN_USERS}"
+			log_entry $OF note "Rootless Podman Users: ${PODMAN_USERS}"
 		else
-			log_entry $OF note "Non-Root Podman Users: None"
+			log_entry $OF note "Rootless Podman Users: N/A"
 		fi
 
 		log_cmd $OF 'podman images'
@@ -1288,7 +1288,7 @@ podman_info() {
 			log_cmd $IMAGEOF "podman images | grep ${image}"
 			log_cmd $IMAGEOF "podman inspect ${image}"
 		done
-		log_cmd $OF 'podman ps --all'
+		log_cmd $OF 'podman ps --all --pod'
 		for container in $(podman ps -a --format "{{.ID}}" 2>/dev/null)
 		do
 			CONTAINEROF=podman/"root-container-${container}".txt
@@ -1298,15 +1298,21 @@ podman_info() {
 			log_cmd $CONTAINEROF "podman logs $container"
 		done
 		log_cmd $OF 'podman network ls'
-		for podnet in $(podman network ls --format "{{.Name}}")
+		for podnet in $(podman network ls --format "{{.ID}}")
 		do
 			log_cmd $OF "podman network inspect ${podnet}"
 		done
 		log_cmd $OF 'podman volume ls'
-		for podvol in $(podman volume ls --format "{{.Name}}")
+		for podvol in $(podman volume ls --format "{{.ID}}")
 		do
 			log_cmd $OF "podman volume inspect ${podvol}"
 		done
+		log_cmd $OF 'podman pod list'
+		for this_pod in $(podman pod list --format "{{.ID}}")
+		do
+			log_cmd $OF "podman pod inspect ${this_pod}"
+		done
+
 		FILES=$(find -L /etc/containers -type f)
 		if [[ -d /root/.config/containers ]]; then
 			FILES="${FILES} $(find -L /root/.config/containers -type f)"
@@ -1336,7 +1342,7 @@ podman_info() {
 						log_cmd $IMAGEOF "${PODACC} podman inspect ${image}"
 					done
 
-					log_cmd $OF "${PODACC} podman ps --all"
+					log_cmd $OF "${PODACC} podman ps --all --pod"
 					for container in $(${PODACC} podman ps -a --format "{{.ID}}" 2>/dev/null)
 					do
 						CONTAINEROF=podman/"${PODMAN_USER}-container-${container}".txt
@@ -1346,16 +1352,20 @@ podman_info() {
 						log_cmd $CONTAINEROF "${PODACC} podman logs $container"
 					done
 					log_cmd $OF "${PODACC} podman network ls"
-					for podnet in $(${PODACC} podman network ls --format "{{.Name}}")
+					for podnet in $(${PODACC} podman network ls --format "{{.ID}}")
 					do
-						log_cmd $OF "${PODDACC} podman network inspect ${podnet}"
+						log_cmd $OF "${PODACC} podman network inspect ${podnet}"
 					done
 					log_cmd $OF "${PODACC} podman volume ls"
-					for podvol in $(${PODACC} podman volume ls --format "{{.Name}}")
+					for podvol in $(${PODACC} podman volume ls --format "{{.ID}}")
 					do
 						log_cmd $OF "${PODACC} podman volume inspect ${podvol}"
 					done
-
+					log_cmd $OF "${PODACC} podman pod list"
+					for this_pod in $(${PODACC} podman pod list --format "{{.ID}}")
+					do
+						log_cmd $OF "${PODACC} podman pod inspect ${this_pod}"
+					done
 				else
 					ACCESS_PODMAN_USER=0
 				fi
