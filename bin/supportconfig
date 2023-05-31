@@ -1769,6 +1769,9 @@ hardware_info() {
 			log_cmd $OF "usysattn"
 			log_cmd $OF "usysident"
 			log_cmd $OF "diag_encl -v"
+			log_cmd $OF "opal-elog-parse -s"
+			log_cmd $OF "opal-elog-parse -a"
+			log_cmd $OF "opal-elog-parse -l"
 		fi
 
 		if rpm -q iprutils &>/dev/null; then
@@ -1793,6 +1796,8 @@ hardware_info() {
 
 			log_cmd $OF 'lssrc -a'
 			log_cmd $OF 'lsdevinfo'
+			log_cmd $OF 'lsslot'
+			log_cmd $OF 'amsstat'
 			log_cmd $OF 'lsrsrc IBM.MCP'
 			log_cmd $OF 'rmcdomainstatus -s ctrmc'
 			log_cmd $OF 'rmcdomainstatus -s ctrmc -a ip'
