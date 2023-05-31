@@ -2454,19 +2454,20 @@ nvme_info() {
 		then
 			log_cmd $OF "nvme list"
 			log_cmd $OF "nvme list-subsys"
+			if (( $SLES_VER >= 154 )); then
+				log_cmd $OF "nvme show-topology"
+			fi
 			log_cmd $OF "nvme discover"
 			if (( $SLES_VER == 155 )); then
-				log_cmd $OF "nvme show-nbft -H"
-				log_cmd $OF "nvme show-nbft -s"
-				log_cmd $OF "nvme show-nbft -d"
+				log_cmd $OF "nvme show-nbft -o json"
 			fi
 
-			FILES=''
+			log_cmd $OF "/etc/wicked/extensions/nbft"
+
+			FILES='/etc/nvme/discovery.conf /etc/nvme/config.json'
 			if [[ -d /etc/nvme/ ]]; then
-				FILES=$(find /etc/nvme/ -type f)
-			fi
-			if [[ -e /etc/wicked/extensions/nbft ]]; then
-				FILES="/etc/wicked/extensions/nbft ${FILES}"
+				TFILES=$(find /etc/nvme/ -type f | egrep -v "discovery.conf|config.json")
+				[[ -n $TFILES ]] && FILES="${FILES} ${TFILES}"
 			fi
 			conf_files $OF $FILES
 			NVME_DEVICES=$(nvme list | grep /dev | awk '{print $1}')
