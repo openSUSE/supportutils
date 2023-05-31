@@ -1820,6 +1820,12 @@ hardware_info() {
 				log_entry $OF command "cp /sys/kernel/debug/dynamic_debug/control $PPC_DIR"
 				cp /sys/kernel/debug/dynamic_debug/control $PPC_DIR 2>/dev/null
 			fi
+			if rpm -q IBMinvscout &>/dev/null; then
+				log_cmd $OF "invscout"
+				log_cmd $OF "invscout -v"
+				log_entry $OF command "cp -r /var/adm/invscout $PPC_DIR"
+				cp -r /var/adm/invscout $PPC_DIR 2>/dev/null
+			fi
 			;;
 		"PowerNV")
 			log_entry $OF command "cp /proc/ppc64/eeh /proc/ppc64/systemcfg /proc/ppc64/topology_updates /sys/firmware/opal/msglog /var/log/opal-elog /dev/nvram $PPC_DIR"
