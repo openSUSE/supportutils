@@ -23,8 +23,8 @@
 %define support_libdir /usr/lib/supportconfig
 
 Name:           supportutils
-Version:        3.1.21
-Release:        0
+Version:        3.1.24
+Release:        0.0.test.230531.7
 Summary:        Support Troubleshooting Tools
 License:        GPL-2.0-only
 Group:          System/Monitoring
@@ -36,7 +36,6 @@ Requires:       ncurses-utils
 %ifarch ppc64le s390x
 Requires:       numactl
 %endif
-Requires:       sysfsutils
 Requires:       tar
 Requires:       util-linux-systemd
 Requires:       /usr/bin/which
