@@ -1,7 +1,10 @@
 -------------------------------------------------------------------
-Wed May 31 13:27:29 UTC 2023 - jason.record@suse.com
+Wed May 31 15:16:33 UTC 2023 - jason.record@suse.com
 
 - Changes for supportutils version 3.1.25
+  + powerpc: Collect lsslot,amsstat, and opal elogs (pr#149)
+  + powerpc: collect invscout logs (pr#150)
+  + powerpc: collect RMC status logs (pr#151)
   + Added missing nvme nbft commands (bsc#1211599)
   + Fixed invalid nvme commands (bsc#1211598)
   + Added missing podman information (PED-1703, bsc#1181477)

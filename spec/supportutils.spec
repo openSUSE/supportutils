@@ -24,7 +24,7 @@
 
 Name:           supportutils
 Version:        3.1.24
-Release:        0.0.test.230531.7
+Release:        0.0.test.230531.8
 Summary:        Support Troubleshooting Tools
 License:        GPL-2.0-only
 Group:          System/Monitoring
