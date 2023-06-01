@@ -1,7 +1,8 @@
 -------------------------------------------------------------------
-Wed May 31 15:16:33 UTC 2023 - jason.record@suse.com
+Thu Jun  1 04:29:14 UTC 2023 - jason.record@suse.com
 
 - Changes for supportutils version 3.1.25
+  + Removed iSCSI passwords CVE-2022-45154 (bsc#1207598)
   + powerpc: Collect lsslot,amsstat, and opal elogs (pr#149)
   + powerpc: collect invscout logs (pr#150)
   + powerpc: collect RMC status logs (pr#151)
