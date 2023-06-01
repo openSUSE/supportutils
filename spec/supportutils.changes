@@ -1,4 +1,9 @@
 -------------------------------------------------------------------
+Thu Jun  1 04:58:44 UTC 2023 - jason.record@suse.com
+
+- Removed iSCSI passwords CVE-2022-45154 (bsc#1207598)
+
+-------------------------------------------------------------------
 Mon Mar 20 22:49:29 UTC 2023 - jason.record@suse.com
 
 - Fixed missing status detail for apparmor (bsc#1196933)
