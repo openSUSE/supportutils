@@ -1,4 +1,9 @@
 -------------------------------------------------------------------
+Mon Jun 26 14:11:15 UTC 2023 - jason.record@suse.com
+
+- ha_info sle15 uses /var/log/pacemaker/ (pq#153)
+
+-------------------------------------------------------------------
 Thu Jun  1 04:29:14 UTC 2023 - jason.record@suse.com
 
 - Changes for supportutils version 3.1.25
