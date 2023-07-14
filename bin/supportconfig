@@ -814,6 +814,39 @@ boot_info() {
 	echolog Done
 }
 
+bpf_info() {
+	printlog "BPF..."
+	test $OPTION_BPF -eq 0 && { echolog Excluded; return 1; }
+	OF=bpf.txt
+	addHeaderFile $OF
+	bpf_present=$(zgrep 'CONFIG_BPF=y' /proc/config.gz)
+	if [ "$bpf_present" ]; then
+		if rpm_verify $OF bpftool; then
+			for bpfsub in prog map net
+			do
+				log_cmd $OF "bpftool $bpfsub list";
+			done
+			log_cmd $OF 'bpftool cgroup tree';
+			log_cmd $OF 'bpftool struct_ops dump';
+
+			for bpfid in $(bpftool prog list | grep -E '^[0-9]+:' | cut -d: -f1)
+			do
+				log_cmd $OF "bpftool prog dump xlated id $bpfid"
+			done
+			if (( $INCLUDE_NETWORK_NAMESPACES )); then
+				NAMESPACES=$(ip netns list)
+				if [[ -n "${NAMESPACES}" ]] ; then
+					ip netns list | while read NAMESPACE rest; do
+						log_cmd $OF "ip netns exec ${NAMESPACE} bpftool net list"
+					done
+				fi
+			fi
+		else
+			log_cmd $OF 'grep -E bpf_prog_[a-f0-9]{16} /proc/kallsyms'
+		fi
+	fi
+	echolog Done
+}
 smt_info() {
 	printlog "SMT..."
 	test $OPTION_SMT -eq 0 && { echolog Excluded; return 1; }
@@ -4662,6 +4695,7 @@ if [ "$USE_SAVED_LOGS_ONLY" != "1" ]; then
 	slert_info
 	update_info
 	nvme_info
+	bpf_info
 	smt_info
 	ha_info
 	ocfs2_info
