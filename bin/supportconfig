@@ -1,7 +1,7 @@
 #!/bin/bash
 
-SVER='3.0.11-6'
-SDATE='2023 03 20'
+SVER='3.0.11-7'
+SDATE='2023 07 26'
 
 ##############################################################################
 #  supportconfig - Gathers system troubleshooting information for SUSE Support
@@ -184,6 +184,9 @@ eval $(cat /etc/sysconfig/bootloader | grep LOADER_TYPE)
 file /sbin/init | grep "systemd" &>/dev/null && SYSTEMD=1 || SYSTEMD=0
 IO_DELAYS=0
 
+RUN_VAR_DIR="/var/run/supportconfig"
+RUN_PID_FILE="${RUN_VAR_DIR}/supportconfig.pid"
+
 # These are minimum options and should never be unset.
 MIN_OPTION_RPM=1
 MIN_OPTION_ENV=1
@@ -302,6 +305,35 @@ log2sys() {
 	else
 		logger -t supportconfig "$MSG"
 	fi
+}
+
+run_status() {
+	[[ -d $RUN_VAR_DIR ]] || mkdir -p $RUN_VAR_DIR
+	case $1 in
+	"start")
+		echo $$ > $RUN_PID_FILE
+		chmod 644 $RUN_PID_FILE
+		RC=0
+		;;
+	"stop")
+		rm -f $RUN_PID_FILE
+		RC=1
+		;;
+	*)
+		if [[ -s $RUN_PID_FILE ]]; then
+			RUN_PROC_DIR="/proc/$(cat $RUN_PID_FILE)"
+			if [[ -d $RUN_PROC_DIR ]]; then
+				RC=0
+			else
+				rm -f $RUN_PID_FILE
+				RC=1
+			fi
+		else
+			RC=1
+		fi
+		;;
+	esac
+	return $RC
 }
 
 wait_trace_on() {
@@ -5747,6 +5779,14 @@ if [ "$USE_SAVED_LOGS_ONLY" != "1" ]; then
 		fi
 	fi
 	test $VAR_OPTION_SILENT -gt 0 && title >> $LOG/$BASIC_ENVF || title | tee -a $LOG/$BASIC_ENVF
+	if run_status; then
+		echo "Error: A supportconfig instance is already running, PID $(cat ${RUN_PID_FILE})"
+		echo
+		exit_code 10
+	else
+		run_status start
+	fi
+
 	RPM_QA_FILE_PATH=$(mktemp ${LOG}/rpm_qa.XXXXXXXXXX)
 	RPM_DIST_FILE_PATH=$(mktemp ${LOG}/rpm_dist.XXXXXXXXXX)
 	RPM_QA_FILE=$(basename $RPM_QA_FILE_PATH)
@@ -5910,6 +5950,7 @@ trap "{ echo SKIPPED BY USER; return 4; }" SIGQUIT
 test -n "$VAR_OPTION_GPG_UID" && encrypt_tarball
 upload_tarball
 remove_local_tarball
+run_status stop
 log2sys "END"
 
 

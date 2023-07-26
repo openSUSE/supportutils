@@ -1,4 +1,9 @@
 -------------------------------------------------------------------
+Wed Jul 26 23:57:28 UTC 2023 - jason.record@suse.com
+
+- Added run time detection (bsc#1213127)
+
+-------------------------------------------------------------------
 Thu Jun  1 04:58:44 UTC 2023 - jason.record@suse.com
 
 - Removed iSCSI passwords CVE-2022-45154 (bsc#1207598)
