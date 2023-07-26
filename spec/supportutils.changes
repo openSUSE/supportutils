@@ -1,4 +1,9 @@
 -------------------------------------------------------------------
+Wed Jul 26 15:05:45 UTC 2023 - user@localhost
+
+- Added run time detection (bsc#1213127)
+
+-------------------------------------------------------------------
 Mon Jun 26 14:11:15 UTC 2023 - jason.record@suse.com
 
 - ha_info sle15 uses /var/log/pacemaker/ (pq#153)

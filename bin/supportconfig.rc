@@ -1,7 +1,7 @@
 ##############################################################################
 #  supportconfig.rc - Resource file for supportconfig
 #  Copyright (C) 2001-2023 SUSE LLC
-RCVER='3.1.11-35.4.1'
+RCVER='3.1.11-36.0'
 #
 #  Contains supporting functions and variables used by supportconfig and
 #  supportconfig plugins.
@@ -20,7 +20,7 @@ RCVER='3.1.11-35.4.1'
 #  You should have received a copy of the GNU General Public License
 #  along with this program; if not, see <http://www.gnu.org/licenses/>.
 #
-#  Modified: 2023 May 03
+#  Modified: 2023 Jul 26
 #  Authors/Contributors:
 #     Jason Record <jason.record@suse.com>
 #
@@ -191,6 +191,9 @@ PROC_DIRS_DEPTH_FULL="/proc/irq/ /proc/sys/"
 PROC_DIRS_DEPTH_ONE_FILTER_OUT="rt_acct$|/sched_domain/"
 PROC_DIRS_DEPTH_FULL_FILTER_OUT="fs/binfmt_misc/register|net/ipv4/route/flush|net/ipv6/route/flush|vm/compact_memory|base_reachable_time|scan_unevictable_pages|/sched_domain/"
 
+RUN_VAR_DIR="/var/run/supportconfig"
+RUN_PID_FILE="${RUN_VAR_DIR}/supportconfig.pid"
+
 INCLUDE_NETWORK_NAMESPACES=1
 
 # These are minimum options and should never be unset.
@@ -218,6 +221,34 @@ log2sys() {
 	else
 		logger -t supportconfig "$MSG"
 	fi
+}
+
+run_status() {
+	[[ -d $RUN_VAR_DIR ]] || mkdir -p $RUN_VAR_DIR
+	case $1 in
+	"start")
+		echo $$ > $RUN_PID_FILE
+		RC=0
+		;;
+	"stop")
+		rm -f $RUN_PID_FILE
+		RC=1
+		;;
+	*)
+		if [[ -s $RUN_PID_FILE ]]; then
+			RUN_PROC_DIR="/proc/$(cat $RUN_PID_FILE)"
+			if [[ -d $RUN_PROC_DIR ]]; then
+				RC=0
+			else
+				rm -f $RUN_PID_FILE
+				RC=1
+			fi
+		else
+			RC=1
+		fi
+		;;
+	esac
+	return $RC
 }
 
 wait_trace_on() {

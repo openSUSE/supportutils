@@ -1,7 +1,7 @@
 #!/bin/bash
 
-SVER='3.1.15-11.6'
-SDATE='2023 05 31'
+SVER='3.1.15-11.7'
+SDATE='2023 07 26'
 
 ##############################################################################
 #  supportconfig - Gathers system troubleshooting information for SUSE Support
@@ -4599,6 +4599,14 @@ if [ "$USE_SAVED_LOGS_ONLY" != "1" ]; then
 		fi
 	fi
 	test $VAR_OPTION_SILENT -gt 0 && title >> $LOG/$BASIC_ENVF || title | tee -a $LOG/$BASIC_ENVF
+	if run_status; then
+		echo "Error: A supportconfig instance is already running, PID $(cat ${RUN_PID_FILE})"
+		echo
+		exit_code 10
+	else
+		run_status start
+	fi
+
 	RPM_QA_FILE_PATH=$(mktemp ${LOG}/rpm_qa.XXXXXXXXXX)
 	RPM_DIST_FILE_PATH=$(mktemp ${LOG}/rpm_dist.XXXXXXXXXX)
 	RPM_QA_FILE=$(basename $RPM_QA_FILE_PATH)
