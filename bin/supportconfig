@@ -1,6 +1,6 @@
 #!/bin/bash
 
-SVER='3.1.15-11.7'
+SVER='3.1.15-11.7.1'
 SDATE='2023 07 26'
 
 ##############################################################################
@@ -4776,6 +4776,7 @@ trap "{ echo SKIPPED BY USER; return 4; }" SIGQUIT
 test -n "$VAR_OPTION_GPG_UID" && encrypt_tarball
 upload_tarball
 remove_local_tarball
+run_status stop
 log2sys "END"
 
 
