@@ -1,6 +1,6 @@
 #!/bin/bash
 
-SVER='3.1.15-11.8'
+SVER='3.1.15-11.9'
 SDATE='2023 Aug 09'
 
 ##############################################################################
@@ -2340,9 +2340,15 @@ iscsi_info() {
 		log_cmd $OF 'systemctl status iscsid.service'
 		log_cmd $OF 'systemctl status iscsid.socket'
 		conf_files $OF "/etc/iscsi/initiatorname.iscsi /etc/iscsi/iscsid.conf"
-		log_cmd $OF 'iscsiadm -m session'
+		for MODE in discovery iface host session
+		do
+			log_cmd $OF "iscsiadm -m $MODE"
+			log_cmd $OF "iscsiadm -m $MODE -P 1"
+		done
+		log_cmd $OF 'iscsiadm -m fw'
 		if log_cmd $OF 'iscsiadm -m node'
 		then
+			log_cmd $OF 'iscsiadm -m node -P 1'
 			NODES=$(iscsiadm -m node -P 1 | grep -i Target | awk '{print $2}')
 			IBIN='iscsiadm -m node -T'
 			for NODE in $NODES
