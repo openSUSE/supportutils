@@ -1,5 +1,11 @@
 -------------------------------------------------------------------
-Wed Jul 26 15:05:45 UTC 2023 - user@localhost
+Wed Aug  9 15:39:31 UTC 2023 - jason.record@suse.com
+
+- A Cleartext Storage of Sensitive Information vulnerability CVE-2022-45154
+- supportconfig: collect BPF information (pr#154)
+
+-------------------------------------------------------------------
+Wed Jul 26 15:05:45 UTC 2023 - jason.record@suse.com
 
 - Added run time detection (bsc#1213127)
 

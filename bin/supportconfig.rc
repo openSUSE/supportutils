@@ -1,7 +1,7 @@
 ##############################################################################
 #  supportconfig.rc - Resource file for supportconfig
 #  Copyright (C) 2001-2023 SUSE LLC
-RCVER='3.1.11-36.1'
+RCVER='3.1.11-36.2'
 #
 #  Contains supporting functions and variables used by supportconfig and
 #  supportconfig plugins.
@@ -20,7 +20,7 @@ RCVER='3.1.11-36.1'
 #  You should have received a copy of the GNU General Public License
 #  along with this program; if not, see <http://www.gnu.org/licenses/>.
 #
-#  Modified: 2023 Jul 26
+#  Modified: 2023 Aug 09
 #  Authors/Contributors:
 #     Jason Record <jason.record@suse.com>
 #
@@ -37,7 +37,7 @@ OPTION_APPARMOR=1
 OPTION_AUDIT=1
 OPTION_AUTOFS=1
 OPTION_BOOT=1
-OPTION_BPF=0
+OPTION_BPF=1
 OPTION_BTRFS=1
 OPTION_DAEMONS=1
 OPTION_CIMOM=1
