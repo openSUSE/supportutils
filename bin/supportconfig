@@ -1737,8 +1737,8 @@ hardware_info() {
 	echonlog "Please Wait..."
 	OF=hardware.txt
 	addHeaderFile $OF
-	log_cmd $OF 'procinfo'
-	(( $SLES_VER >= 110 )) && log_cmd $OF 'lscpu'
+	[[ -x /usr/bin/procinfo ]] && log_cmd $OF 'procinfo'
+	(( $SLES_VER >= 110 )) && [[ -x /usr/bin/lscpu ]] && log_cmd $OF 'lscpu'
 	detectVirtualization $OF
 	conf_files $OF /proc/cpuinfo /proc/cmdline /proc/ioports /proc/dma /proc/devices /proc/bus/usb/devices
 	log_cmd $OF 'lspci -b'
