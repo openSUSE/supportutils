@@ -3762,17 +3762,27 @@ proc_info() {
 drm_sub_info() {
     log_cmd $OF 'systool -vc drm'
     log_cmd $OF 'ls -lR --time-style=long-iso /sys/class/drm'
-    log_cmd $OF 'modetest'
-    log_cmd $OF 'intel_reg_dumper'
+    [[ -x /usr/bin/modetest ]] && log_cmd $OF 'modetest'
+
+    if [ -x /usr/bin/intel_reg_dumper ]; then
+	log_cmd $OF 'intel_reg_dumper'
+    elif [ -x /usr/bin/intel_reg ]; then
+	log_cmd $OF 'intel_reg dump'
+    fi
+
     for i in /sys/class/drm/card?/device/uevent
     do
-	module=$(cat $i | grep DRIVER | cut -d= -f2)
-	log_cmd $OF "modeprint $module"
+	if [ -f "$i" ] ; then
+		module=$(cat $i | grep DRIVER | cut -d= -f2)
+		[[ -x /usr/bin/modeprint ]] && log_cmd $OF "modeprint $module"
+	fi
     done
     for i in /sys/class/drm/card*-*
     do
-	log_cmd $OF "cat $i/status $i/enabled "
-	log_cmd $OF 'hexdump -e '"'16/1 "'"%2.2x ""  "'"' -e '16/1 "'"%_p""\n"'"' $i/edid"
+	if [ -d "$i" ]; then
+		log_cmd $OF "cat $i/status $i/enabled "
+		log_cmd $OF 'hexdump -e '"'16/1 "'"%2.2x ""  "'"' -e '16/1 "'"%_p""\n"'"' $i/edid"
+	fi
     done
     log_cmd $OF 'dmesg -T | grep drm'
     if grep -v 'drm.debug=' /proc/cmdline &>/dev/null; then
