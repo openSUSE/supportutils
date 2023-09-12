@@ -2187,8 +2187,8 @@ disk_info() {
 	log_cmd $OF "grep '' /sys/block/*/queue/scheduler"
 
 	if [[ $ADD_OPTION_MINDISK -eq 0 ]]; then
-		log_cmd $OF 'iostat -x 1 4'
-		log_cmd $OF 'sg_map -i -x'
+		[[ -x /usr/bin/iostat ]] && log_cmd $OF 'iostat -x 1 4'
+		[[ -x /usr/bin/sg_map ]] && log_cmd $OF 'sg_map -i -x'
 		if [ -d /sys/block ]; then
 			IDE_DISKS=$(find /sys/block/ -maxdepth 1 | grep hd\.)
 			SCSI_DISKS=$(find /sys/block/ -maxdepth 1 | grep sd\.)
