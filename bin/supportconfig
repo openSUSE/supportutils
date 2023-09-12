@@ -2929,7 +2929,7 @@ apparmor_info() {
 			rpm_verify $OF subdomain-utils
 			rpm_verify $OF subdomain-profiles
 			test -f $AARPTMP && cat $AARPTMP >> $LOG/$OF
-			log_cmd $OF 'unconfined'
+			[[ -x /usr/sbin/unconfined ]] && log_cmd $OF 'unconfined'
 	else
 		((SKIP++))
 	fi
@@ -2944,7 +2944,7 @@ apparmor_info() {
 		else
 			log_cmd $OF "systemctl status apparmor.service"
 		fi
-		log_cmd $OF 'unconfined'
+		[[ -x /usr/sbin/unconfined ]] && log_cmd $OF 'unconfined'
 		log_cmd $OF 'aa-status'
 		log_cmd $OF 'aa-notify -l'
 		[[ /etc/apparmor ]] && FILES=$(find -L /etc/apparmor/ | grep '\.conf$') || FILES=""
