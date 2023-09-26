@@ -258,7 +258,7 @@ checkkernel()
 	KERNEL=""
 	if [ -z "$USERKERNEL" ]; then
 		if [ -e README.txt ]; then
-			KERNEL=$($GREP_BIN "^Kernel version :" README.txt | $AWK_BIN '{print $NF}')
+			KERNEL=$($GREP_BIN "^Kernel version *:" README.txt | $AWK_BIN '{print $NF}')
 			if ! [ -z "$KERNEL" ]; then
 				KERNEL="vmlinux-$KERNEL.gz"
 			fi
@@ -535,7 +535,12 @@ fi
 if [[ -z "$COREDIR" ]]; then
 	#Source /etc/sysconfig/kdump
 	if [[ -e "/etc/sysconfig/kdump" ]]; then
-		. /etc/sysconfig/kdump
+		if [[ -x /usr/lib/kdump/kdump-read-config.sh ]]; then
+			. /usr/lib/kdump/kdump-read-config.sh
+			KDUMP_SAVEDIR=${KDUMP_SAVEDIR#file://}
+		else
+			KDUMP_SAVEDIR=$(kdumptool dump_config | grep ^KDUMP_SAVEDIR | sed -e 's/"//g' | cut -d= -f2)
+		fi
 		if [[ "${KDUMP_SAVEDIR:0:8}" = "file:///" ]]; then
 			KDUMP_SAVEDIR=${KDUMP_SAVEDIR:7}
 		elif [[ "${KDUMP_SAVEDIR:0:1}" = "/" ]]; then
