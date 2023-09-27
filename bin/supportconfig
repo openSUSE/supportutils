@@ -3040,7 +3040,7 @@ ha_info() {
 			cd $LOG
 			for HBRDIR in $VAR_OPTION_HBREPORT_DIRS
 			do
-				HBRS=$(find $HBRDIR -maxdepth 1 -type f 2>/dev/null | egrep "/hb[_-]?report[0-9a-zA-Z._-]*\.tar\.bz2$")
+				HBRS=$(find $HBRDIR -maxdepth 1 -type f -mtime -30 2>/dev/null | egrep "/hb[_-]?report[0-9a-zA-Z._-]*\.tar\.bz2$")
 				if [[ -n "$HBRS" ]]; then
 					for HBR_PATH in $HBRS
 					do
@@ -3054,7 +3054,7 @@ ha_info() {
 			CURRENT_CIB=''
 			FILES=''
 			if [[ -d /var/lib/heartbeat/ ]]; then
-				FILES=$(find /var/lib/heartbeat/ -type f | egrep -v "cores|pengine|hb_uuid|cib\.xml")
+				FILES=$(find /var/lib/heartbeat/ -type f | egrep -v "cores|pengine|trace_ra|hb_uuid|cib\.xml")
 				[[ -e /var/lib/heartbeat/crm/cib.xml ]] && CURRENT_CIB='/var/lib/heartbeat/crm/cib.xml'
 				for i in $(find /var/lib/heartbeat/cores -type f)
 				do
@@ -3062,7 +3062,7 @@ ha_info() {
 				done
 			fi
 			if [[ -d /var/lib/pacemaker/ ]]; then
-				TFILES=$(find /var/lib/pacemaker/ -type f | egrep -v "cores|pengine|hb_uuid|cib\.xml")
+				TFILES=$(find /var/lib/pacemaker/ -type f | egrep -v "blackbox|cores|pengine|hb_uuid|cib\.xml")
 				FILES="$FILES $TFILES"
 				[[ -e /var/lib/pacemaker/cib/cib.xml ]] && CURRENT_CIB='/var/lib/pacemaker/cib/cib.xml'
 			fi
