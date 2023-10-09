@@ -1,7 +1,7 @@
 ##############################################################################
 #  supportconfig.rc - Resource file for supportconfig
 #  Copyright (C) 2001-2023 SUSE LLC
-RCVER='3.1.11-35.4.1'
+RCVER='3.2.0_dev1'
 #
 #  Contains supporting functions and variables used by supportconfig and
 #  supportconfig plugins.
@@ -20,7 +20,7 @@ RCVER='3.1.11-35.4.1'
 #  You should have received a copy of the GNU General Public License
 #  along with this program; if not, see <http://www.gnu.org/licenses/>.
 #
-#  Modified: 2023 May 03
+#  Modified: 2023 Oct 09
 #  Authors/Contributors:
 #     Jason Record <jason.record@suse.com>
 #
@@ -1457,7 +1457,7 @@ get_sles_ver() {
 		VID=${VID//\./}
 #		echo "ID=${ID}, VID=${VID}" > /dev/kmsg
 		if [[ "${ID}" == "alp" ]]; then
-			SLES_VER=2${VID}
+			SLES_VER=160
 		else
 			SLES_VER=$VID
 		fi
