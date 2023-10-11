@@ -1456,7 +1456,7 @@ get_sles_ver() {
 		VID=$(grep VERSION_ID /etc/os-release | cut -d\= -f2 | tr -d \")
 		VID=${VID//\./}
 #		echo "ID=${ID}, VID=${VID}" > /dev/kmsg
-		if [[ "${ID}" == "alp" ]]; then
+		if [[ "${ID}" == *"alp-"* ]]; then
 			SLES_VER=160
 		else
 			SLES_VER=$VID
