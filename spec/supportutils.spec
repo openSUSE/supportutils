@@ -88,7 +88,6 @@ install -m 644 man/COPYING.GPLv2 %{buildroot}%{_docdir}/%{name}
 %dir %{support_libdir}/resources
 %dir %{support_libdir}/plugins
 %dir %{_docdir}/%{name}
-%doc %{_docdir}/%{name}/*
 
 %if 0%{?suse_version} < 1500
 %doc %{_docdir}/%{name}/COPYING.GPLv2

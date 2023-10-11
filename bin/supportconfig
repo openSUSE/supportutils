@@ -774,6 +774,42 @@ boot_info() {
 	echolog Done
 }
 
+bpf_info() {
+	printlog "BPF..."
+	test $OPTION_BPF -eq 0 && { echolog Excluded; return 1; }
+	OF=bpf.txt
+	addHeaderFile $OF
+	bpf_present=$(zgrep 'CONFIG_BPF=y' /proc/config.gz)
+	if [[ "$bpf_present" ]]; then
+		if rpm_verify $OF bpftool; then
+			log_cmd $OF 'grep -E bpf_prog_[a-f0-9]{16} /proc/kallsyms'
+			for bpfsub in prog map net
+			do
+				log_cmd $OF "bpftool $bpfsub list";
+			done
+			log_cmd $OF 'bpftool cgroup tree';
+			log_cmd $OF 'bpftool struct_ops dump';
+
+			for bpfid in $(bpftool prog list | grep -E '^[0-9]+:' | cut -d: -f1)
+			do
+				log_cmd $OF "bpftool prog dump xlated id $bpfid"
+			done
+			if (( $INCLUDE_NETWORK_NAMESPACES )); then
+				NAMESPACES=$(ip netns list)
+				if [[ -n "${NAMESPACES}" ]] ; then
+					ip netns list | while read NAMESPACE rest; do
+						log_cmd $OF "ip netns exec ${NAMESPACE} bpftool net list"
+					done
+				fi
+			fi
+		else
+			log_cmd $OF 'grep -E bpf_prog_[a-f0-9]{16} /proc/kallsyms'
+		fi
+		echolog Done
+	else
+		echolog Skipped
+	fi
+}
 smt_info() {
 	printlog "SMT..."
 	test $OPTION_SMT -eq 0 && { echolog Excluded; return 1; }
@@ -1661,8 +1697,8 @@ hardware_info() {
 	echonlog "Please Wait..."
 	OF=hardware.txt
 	addHeaderFile $OF
-	log_cmd $OF 'procinfo'
-	(( $SLES_VER >= 110 )) && log_cmd $OF 'lscpu'
+	[[ -x /usr/bin/procinfo ]] && log_cmd $OF 'procinfo'
+	(( $SLES_VER >= 110 )) && [[ -x /usr/bin/lscpu ]] && log_cmd $OF 'lscpu'
 	detectVirtualization $OF
 	conf_files $OF /proc/cpuinfo /proc/cmdline /proc/ioports /proc/dma /proc/devices /proc/bus/usb/devices
 	log_cmd $OF 'lspci -b'
@@ -2264,9 +2300,15 @@ iscsi_info() {
 		log_cmd $OF 'systemctl status iscsid.service'
 		log_cmd $OF 'systemctl status iscsid.socket'
 		conf_files $OF "/etc/iscsi/initiatorname.iscsi /etc/iscsi/iscsid.conf"
-		log_cmd $OF 'iscsiadm -m session'
+		for MODE in discovery iface host session
+		do
+			log_cmd $OF "iscsiadm -m $MODE"
+			log_cmd $OF "iscsiadm -m $MODE -P 1"
+		done
+		log_cmd $OF 'iscsiadm -m fw'
 		if log_cmd $OF 'iscsiadm -m node'
 		then
+			log_cmd $OF 'iscsiadm -m node -P 1'
 			NODES=$(iscsiadm -m node -P 1 | grep -i Target | awk '{print $2}')
 			IBIN='iscsiadm -m node -T'
 			for NODE in $NODES
@@ -3066,7 +3108,7 @@ ha_info() {
 			fi
 			log_cmd $OF 'cibadmin -Q'
 			conf_files $OF $CURRENT_CIB $FILES
-			FILES="/var/log/ha-log /var/log/pacemaker.log /var/log/ctdb/log.ctdb"
+			FILES="/var/log/ha-log /var/log/pacemaker/pacemaker.log /var/log/ctdb/log.ctdb"
 			test $ADD_OPTION_LOGS -gt 0 && log_files $OF 0 $FILES || log_files $OF $VAR_OPTION_LINE_COUNT $FILES
 			CORBIN="/usr/sbin/corosync-fplay"
 			if [[ -x $CORBIN ]]; then
@@ -4468,7 +4510,7 @@ do
 	u) UPLOAD_TARBALL=1 ;;
 	v) ADD_OPTION_RPMV=1 ;;
 	w) VAR_OPTION_WAIT_TRACE=1; VAR_OPTION_SBM=1 ;;
-	x) SELECTED_FEATURE_LIST=$OPTARG; set_to_all; selected_features off ;;
+	x) SELECTED_FEATURE_LIST=$OPTARG; selected_features off ;;
 	y) ADD_OPTION_MAXYAST=1 ;;
 	z) COMPRESS="tbz"; COMPRESS_OPT="jcf" ;;
 	esac
@@ -4559,6 +4601,14 @@ if [ "$USE_SAVED_LOGS_ONLY" != "1" ]; then
 		fi
 	fi
 	test $VAR_OPTION_SILENT -gt 0 && title >> $LOG/$BASIC_ENVF || title | tee -a $LOG/$BASIC_ENVF
+	if run_status; then
+		echo "Error: A supportconfig instance is already running, PID $(cat ${RUN_PID_FILE})"
+		echo
+		exit_code 10
+	else
+		run_status start
+	fi
+
 	RPM_QA_FILE_PATH=$(mktemp ${LOG}/rpm_qa.XXXXXXXXXX)
 	RPM_DIST_FILE_PATH=$(mktemp ${LOG}/rpm_dist.XXXXXXXXXX)
 	RPM_QA_FILE=$(basename $RPM_QA_FILE_PATH)
@@ -4622,6 +4672,7 @@ if [ "$USE_SAVED_LOGS_ONLY" != "1" ]; then
 	slert_info
 	update_info
 	nvme_info
+	bpf_info
 	smt_info
 	ha_info
 	ocfs2_info
@@ -4728,6 +4779,7 @@ trap "{ echo SKIPPED BY USER; return 4; }" SIGQUIT
 test -n "$VAR_OPTION_GPG_UID" && encrypt_tarball
 upload_tarball
 remove_local_tarball
+run_status stop
 log2sys "END"
 
 
