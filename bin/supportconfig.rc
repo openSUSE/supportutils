@@ -1,13 +1,13 @@
 ##############################################################################
 #  supportconfig.rc - Resource file for supportconfig
 #  Copyright (C) 2001-2023 SUSE LLC
-RCVER='3.1.11-36.2'
+RCVER='3.2.0_dev1'
 #
 #  Contains supporting functions and variables used by supportconfig and
 #  supportconfig plugins.
 #
 ##############################################################################
-#
+# 
 #  This program is free software; you can redistribute it and/or modify
 #  it under the terms of the GNU General Public License as published by
 #  the Free Software Foundation; version 2 of the License.
@@ -20,7 +20,8 @@ RCVER='3.1.11-36.2'
 #  You should have received a copy of the GNU General Public License
 #  along with this program; if not, see <http://www.gnu.org/licenses/>.
 #
-#  Modified: 2023 Aug 09
+#  Modified: 2023 Oct 11
+#
 #  Authors/Contributors:
 #     Jason Record <jason.record@suse.com>
 #
@@ -1489,8 +1490,8 @@ get_sles_ver() {
 		VID=$(grep VERSION_ID /etc/os-release | cut -d\= -f2 | tr -d \")
 		VID=${VID//\./}
 #		echo "ID=${ID}, VID=${VID}" > /dev/kmsg
-		if [[ "${ID}" == "alp" ]]; then
-			SLES_VER=2${VID}
+		if [[ "${ID}" == *"alp-"* ]]; then
+			SLES_VER=160
 		else
 			SLES_VER=$VID
 		fi
