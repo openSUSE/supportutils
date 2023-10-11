@@ -15,11 +15,6 @@
 # Please submit bugfixes or comments via http://bugs.opensuse.org/
 #
 
-# ensure usr-merge does not effect existing SLE
-%if %suse_version < 1550
-%define _sbindir /sbin
-%endif
-
 %define support_libdir /usr/lib/supportconfig
 
 Name:           supportutils
