@@ -3995,8 +3995,8 @@ if [ $CURRENTUID -ne 0 ]; then
 fi
 
 # check for valid conf file
-if [ -s ${SC_CONF:="/etc/${CURRENT_SCRIPT}.conf"} ]; then
-	if [ -x /usr/bin/dos2unix ]; then
+if [[ -s ${SC_CONF:="/etc/${CURRENT_SCRIPT}.conf"} ]]; then
+	if [[ -x /usr/bin/dos2unix ]]; then
 		/usr/bin/dos2unix $SC_CONF &>/dev/null
 	else
 		sed -i -e 's/\r//g' $SC_CONF &>/dev/null
@@ -4086,7 +4086,7 @@ test $ADD_OPTION_LOGS -gt 0 && ADD_OPTION_MAXYAST=1
 umask 0077
 log2sys "Initialize"
 
-if [ -n "$TARGET_DIRECTORY" ]; then
+if [[ -n "$TARGET_DIRECTORY" ]]; then
 	VAR_OPTION_LOG_DIRS=$TARGET_DIRECTORY
 fi
 
@@ -4096,7 +4096,7 @@ if (( UPLOAD_TARBALL )); then
 fi
 
 # Add custom tar ball name element
-if [ -n "$VAR_OPTION_CUSTOM_ARCH" ]; then
+if [[ -n $VAR_OPTION_CUSTOM_ARCH ]]; then
 	TMP=$(echo "$VAR_OPTION_CUSTOM_ARCH" | sed -e 's/ /_/g')
 	BASE="${ARCHIVE_PREFIX}${TMP}"
 fi
@@ -4158,14 +4158,14 @@ if (( $LOGERROR )); then
 fi
 export LOG
 
-if [ "$USE_SAVED_LOGS_ONLY" != "1" ]; then
+if (( $USE_SAVED_LOGS_ONLY != 1 )); then
 
 	if ! (( $VAR_OPTION_SILENT )); then
 		if ! (( $VAR_OPTION_SBM )); then
 			clear
 		fi
 	fi
-	test $VAR_OPTION_SILENT -gt 0 && title >> $LOG/$BASIC_ENVF || title | tee -a $LOG/$BASIC_ENVF
+	(( $VAR_OPTION_SILENT )) && title >> $LOG/$BASIC_ENVF || title | tee -a $LOG/$BASIC_ENVF
 	if run_status; then
 		echo "Error: A supportconfig instance is already running, PID $(cat ${RUN_PID_FILE})"
 		echo
@@ -4211,7 +4211,7 @@ if [ "$USE_SAVED_LOGS_ONLY" != "1" ]; then
 	log_write ${CSFILE} "  FORCE_OPTION_PAM:  $FORCE_OPTION_PAM"
 	log2sys "Supportconfig Args: $ALL_ARGS"
 
-	test -s $SC_CONF && log_write ${CSFILE} "  Using Options:     $SC_CONF"
+	[[ -s $SC_CONF ]] && log_write ${CSFILE} "  Using Options:     $SC_CONF"
 	echolog
 
 	log_options
@@ -4278,12 +4278,12 @@ if [ "$USE_SAVED_LOGS_ONLY" != "1" ]; then
 	x_info
 	print_info
 	smartmon_info
-	[ -s ${FSLIST_ADD_FILE} ] && fslist_ufiles_info
+	[[ -s ${FSLIST_ADD_FILE} ]] && fslist_ufiles_info
 	kernel_livepatch_info
 	hardware_info		#Minimum Requirement
 	rpm_full_verify
 	exec_plugins
-	(( OPTION_MOD > 0 )) && post_lsmod_list
+	(( OPTION_MOD )) && post_lsmod_list
 	log2sys "Finished Gathering"
 	messages_file		#Minimum Requirement
 	localwarn_file
@@ -4291,14 +4291,14 @@ if [ "$USE_SAVED_LOGS_ONLY" != "1" ]; then
 
 	rm -f $LOG/$RPM_QA_FILE $LOG/$RPM_DIST_FILE
 	timed_cmd_cleanup
-	test $VAR_OPTION_SILENT -eq 0 && { echo; }
+	(( $VAR_OPTION_SILENT )) || { echo; }
 
 else
-	test $VAR_OPTION_SILENT -eq 0 && { clear; title; }
+	(( $VAR_OPTION_SILENT )) || { clear; title; }
 fi
 
 # don't continue if SAVE_LOGS_ONLY is set
-[ "$SAVE_LOGS_ONLY" = "1" ] && exit_code 0;
+(( $SAVE_LOGS_ONLY )) && exit_code 0;
 
 
 # creating tar ball for NTS
@@ -4325,7 +4325,7 @@ wait_trace_off -t
 
 rm -rf $LOG
 
-if [ $VAR_OPTION_SILENT -eq 0 ]; then
+if ! (( $VAR_OPTION_SILENT )); then
 cat << EOF1
 
 ==[ DONE ]===================================================================
@@ -4341,7 +4341,7 @@ fi
 trap "{ echo TERMINATED BY USER; echo; exit 5; }" SIGINT
 trap "{ echo SKIPPED BY USER; return 4; }" SIGQUIT
 
-test -n "$VAR_OPTION_GPG_UID" && encrypt_tarball
+[[ -n "$VAR_OPTION_GPG_UID" ]] && encrypt_tarball
 upload_tarball
 remove_local_tarball
 run_status stop
