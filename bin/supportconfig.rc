@@ -126,7 +126,7 @@ VAR_OPTION_SAR_FILES_LIMIT=30
 VAR_OPTION_SILENT=0
 VAR_OPTION_SBM=0
 VAR_OPTION_UNIQUE_FILE=0
-VAR_OPTION_HEADER_FILE='/usr/lib/supportconfig/header.txt'
+VAR_OPTION_HEADER_FILE='/var/opt/supportconfig/header.txt'
 SUSE_UPLOAD_NA_ASERVER='support-ftp.us.suse.com'
 SUSE_UPLOAD_EMEA_ASERVER='support-ftp.emea.suse.com'
 SUSE_UPLOAD_NA_HTTPS="https://${SUSE_UPLOAD_NA_ASERVER}/incoming/upload.php?file={tarball}"
@@ -744,12 +744,9 @@ check_service() {
 	BASEFILE=$1
 	SERVICE_NAME=$2
 	SYSTEMD_DIR=/usr/lib/systemd/system
-	if [ $SYSTEMD == 1 ] && [ -f $SYSTEMD_DIR/${SERVICE_NAME}.service ]; then
+	if [[ -f $SYSTEMD_DIR/${SERVICE_NAME}.service ]]; then
 		log_cmd $BASEFILE "systemctl status $SERVICE_NAME"
 		log_cmd $BASEFILE "systemctl is-enabled $SERVICE_NAME"
-	else
-		log_cmd $BASEFILE "chkconfig $SERVICE_NAME --list"
-		log_cmd $BASEFILE "/etc/init.d/$SERVICE_NAME status"
 	fi
 	return $?
 }
@@ -757,19 +754,19 @@ check_service() {
 get_customer_info() {
 	INFOLOG=$1
 	LINE_ADDED=0
-	test -n "$VAR_OPTION_CONTACT_COMPANY" && 		{ log_write $INFOLOG "Company:     $VAR_OPTION_CONTACT_COMPANY"; ((LINE_ADDED++)); }
-	test -n "$VAR_OPTION_CONTACT_STOREID" && 		{ log_write $INFOLOG "Store ID:    $VAR_OPTION_CONTACT_STOREID"; ((LINE_ADDED++)); }
-	test -n "$VAR_OPTION_CONTACT_TERMINALID" && 	{ log_write $INFOLOG "Terminal ID: $VAR_OPTION_CONTACT_TERMINALID"; ((LINE_ADDED++)); }
-	test -n "$VAR_OPTION_CONTACT_NAME" && 			{ log_write $INFOLOG "Name:        $VAR_OPTION_CONTACT_NAME"; ((LINE_ADDED++)); }
-	test -n "$VAR_OPTION_CONTACT_PHONE" && 		{ log_write $INFOLOG "Phone:       $VAR_OPTION_CONTACT_PHONE"; ((LINE_ADDED++)); }
-	test -n "$VAR_OPTION_CONTACT_EMAIL" && 		{ log_write $INFOLOG "Email:       $VAR_OPTION_CONTACT_EMAIL"; ((LINE_ADDED++)); }
-	test -n "$CONTACT_SRNUM" && 						{ log_write $INFOLOG "SR#:         $CONTACT_SRNUM"; ((LINE_ADDED++)); }
-	if ((LINE_ADDED)); then log_write $INFOLOG; fi
+	[[ -n "$VAR_OPTION_CONTACT_COMPANY" ]] && 		{ log_write $INFOLOG "Company:     $VAR_OPTION_CONTACT_COMPANY"; ((LINE_ADDED++)); }
+	[[ -n "$VAR_OPTION_CONTACT_STOREID" ]] && 		{ log_write $INFOLOG "Store ID:    $VAR_OPTION_CONTACT_STOREID"; ((LINE_ADDED++)); }
+	[[ -n "$VAR_OPTION_CONTACT_TERMINALID" ]] && 	{ log_write $INFOLOG "Terminal ID: $VAR_OPTION_CONTACT_TERMINALID"; ((LINE_ADDED++)); }
+	[[ -n "$VAR_OPTION_CONTACT_NAME" ]] && 			{ log_write $INFOLOG "Name:        $VAR_OPTION_CONTACT_NAME"; ((LINE_ADDED++)); }
+	[[ -n "$VAR_OPTION_CONTACT_PHONE" ]] && 		{ log_write $INFOLOG "Phone:       $VAR_OPTION_CONTACT_PHONE"; ((LINE_ADDED++)); }
+	[[ -n "$VAR_OPTION_CONTACT_EMAIL" ]] && 		{ log_write $INFOLOG "Email:       $VAR_OPTION_CONTACT_EMAIL"; ((LINE_ADDED++)); }
+	[[ -n "$CONTACT_SRNUM" ]] &&					{ log_write $INFOLOG "SR#:         $CONTACT_SRNUM"; ((LINE_ADDED++)); }
+	((LINE_ADDED)) && log_write $INFOLOG
 }
 
 addHeaderFile() {
 	OPEN=$1
-	if [ -s $VAR_OPTION_HEADER_FILE ]; then
+	if [[ -s $VAR_OPTION_HEADER_FILE ]]; then
 		wait_trace_on "cat $VAR_OPTION_HEADER_FILE"
 		log_entry $OPEN note $VAR_OPTION_HEADER_FILE
 		cat $VAR_OPTION_HEADER_FILE >> $LOG/$OPEN
@@ -849,7 +846,7 @@ bad_plugin_dir() {
 }
 
 exec_plugins() {
-	if [ -d $XPLUGIN_DIR ]; then
+	if [[ -d $XPLUGIN_DIR ]]; then
 		printlog "Supportconfig Plugins:"
 		if bad_plugin_dir; then
 			echolog Skipped
@@ -860,7 +857,7 @@ exec_plugins() {
 		do
 			PLUGIN=${PLUGIN_FEATURE/p/}
 			printlog "  Plugin: ${PLUGIN}..."
-			test $((PLUGIN_OPTION_${PLUGIN})) -eq 0 && { echolog Excluded; continue; }
+			(( PLUGIN_OPTION_${PLUGIN} )) || { echolog Excluded; continue; }
 			PLUGIN_ERROR=0
 			PLUGIN_SKIP=0
 			PLUGIN_LOG_FILE="plugin-${PLUGIN}.txt"
@@ -872,11 +869,11 @@ exec_plugins() {
 			log_write $PLUGIN_LOG_FILE "# Output: $PLUGIN_BIN"
 			log_write $PLUGIN_LOG_FILE
 
-			if [ -x $PLUGIN_BIN ]; then
+			if [[ -x $PLUGIN_BIN ]]; then
 				log_cmd $PLUGIN_LOG_FILE "$PLUGIN_BIN"
 				PLUGIN_RC=$?
-				if [ $PLUGIN_RC -ne 0 ]; then
-					if [ $PLUGIN_RC -eq 111 ]; then
+				if (( $PLUGIN_RC )); then
+					if (( $PLUGIN_RC == 111 )); then
 						((PLUGIN_SKIP++))
 					else
 						((PLUGIN_ERROR++))
@@ -974,7 +971,7 @@ valid_srnum() {
 check_log_dir() {
 	# if supportconfig repeats execution too fast, make sure the directory is unique so files are not overwritten
 	ORIGBASE=$BASE
-	if [ -d ${LOG}/${BASE} -o -f ${LOG}/${BASE}.${COMPRESS} ]; then
+	if [[ -d ${LOG}/${BASE} ]] || [[ -f ${LOG}/${BASE}.${COMPRESS} ]]; then
 		BASE="${ORIGBASE}_%u"
 		normalize_base
 	fi
