@@ -1,7 +1,7 @@
 #!/bin/bash
 
 SVER='3.2.0'
-SDATE='2023 10 11'
+SDATE='2023 Oct 12'
 
 ##############################################################################
 #  supportconfig - Gathers system troubleshooting information for SUSE Support
@@ -4196,16 +4196,6 @@ if (( $USE_SAVED_LOGS_ONLY != 1 )); then
 	log_write ${CSFILE} 	"  Script Date:       ${SDATE}"
 	echolog 					"  Data Directory:    ${LOG}"
 	log2sys "Data Directory: ${LOG}"
-
-	if bad_plugin_dir; then
-		echolog "  WARNING: Invalid plugin directory, all plugins will be skipped."
-		echo    "           See $CSFILE for details."
-		log_write ${CSFILE} "   Plugin Directory:  $XPLUGIN_DIR"
-		log_write ${CSFILE} "   Owner.Group:       ${XPLUGIN_DIR_OWNER}.${XPLUGIN_DIR_GRP}"
-		log_write ${CSFILE} "   Access Rights:     $XPLUGIN_DIR_MODE"
-		log_write ${CSFILE} "   The plugin directory should be writable only for root and group root."
-		log_write ${CSFILE} "   Currently SUID, SGID and sticky bits are not allowed."
-	fi
 	log_write ${CSFILE} "  Environment Value: $SLES_VER"
 	log_write ${CSFILE} "  Command with Args: $0 $ALL_ARGS"
 	log_write ${CSFILE} "  FORCE_OPTION_PAM:  $FORCE_OPTION_PAM"

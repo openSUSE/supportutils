@@ -725,13 +725,6 @@ log_options() {
 		for i in $(grep ^$SRCH $SC_RESOURCE_FILE | cut -d= -f1 | sort)
 		do
 			printf "%-25s = %s\n" "$i" "$((i))" >> $LOGFILE
-			continue
-
-			if [ $((i)) -eq 0 ]; then
-				printf "%-25s = \n" "$i" >> $LOGFILE
-			else
-				printf "%-25s = %s\n" "$i" "$((i))" >> $LOGFILE
-			fi
 		done
 		echo >> $LOGFILE
 	done
@@ -805,53 +798,9 @@ ascii_plugin() {
 	fi
 }
 
-bad_plugin_dir() {
-	if [ -d $XPLUGIN_DIR ]; then
-		XPLUGIN_DIR_OWNER=$(stat -c %u $XPLUGIN_DIR)
-		XPLUGIN_DIR_GRP=$(stat -c %g $XPLUGIN_DIR)
-		XPLUGIN_DIR_MODE=$(stat -c %a $XPLUGIN_DIR)
-
-		test $XPLUGIN_DIR_OWNER -eq 0 && OWNER_DENIED=0 || OWNER_DENIED=1
-		case $XPLUGIN_DIR_GRP in
-		0) GROUP_DENIED=0 ;;
-		*)	if [ ${#XPLUGIN_DIR_MODE} -eq 3 ]; then
-				case ${XPLUGIN_DIR_MODE:1:1} in
-				0|1|4|5) GROUP_DENIED=0 ;;
-				*) GROUP_DENIED=1 ;;
-				esac
-			else
-				# Don't allow suid, guid, or sticky bits to be set
-				GROUP_DENIED=1
-			fi
-		esac
-		if [ ${#XPLUGIN_DIR_MODE} -eq 3 ]; then
-			case ${XPLUGIN_DIR_MODE:2:1} in
-			0|1|4|5) OTHER_DENIED=0 ;;
-			*) OTHER_DENIED=1 ;;
-			esac
-		else
-			# Don't allow suid, guid, or sticky bits to be set
-			OTHER_DENIED=1
-		fi
-
-		BAD_DIR=0
-		test $OWNER_DENIED -gt 0 && ((BAD_DIR++))
-		test $GROUP_DENIED -gt 0 && ((BAD_DIR++))
-		test $OTHER_DENIED -gt 0 && ((BAD_DIR++))
-		test $BAD_DIR -gt 0 && return 0 || return 1
-	else
-		# good plugin directory
-		return 1
-	fi
-}
-
 exec_plugins() {
 	if [[ -d $XPLUGIN_DIR ]]; then
 		printlog "Supportconfig Plugins:"
-		if bad_plugin_dir; then
-			echolog Skipped
-			return 5
-		fi
 		echolog $PLUGIN_CNT
 		for PLUGIN_FEATURE in $PLUGIN_FEATURES
 		do
