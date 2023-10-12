@@ -573,7 +573,7 @@ timed_log_cmd() {
 	export SEMAPHORE_LOG
 	CMD=$(\which $CMDBIN 2>/dev/null | awk '{print $1}')
 	echo "#==[ Command ]======================================#" >> $LOGFILE
-	if [ -x "$CMD" ]; then
+	if [[ -x "$CMD" ]]; then
 		export CMDLINE=$(echo $CMDLINE_ORIG | sed -e "s!${CMDBIN}!${CMD}!")
 		echo "# $CMDLINE" >> $LOGFILE
 		wait_trace_on "$CMDLINE"
@@ -584,7 +584,7 @@ cat << TEOF > $SEMAPHORE_BIN
 echo \$\$ > $SEMAPHORE_PID
 $CMDLINE >> $SEMAPHORE_LOG 2>&1
 echo \$? > $SEMAPHORE_ERR
-if [ -e $LOGFILE ]; then
+if [[ -e $LOGFILE ]]; then
  sed -i -e "\$(grep -n $SEMAPHORE_LOG $LOGFILE | cut -d: -f1)r $SEMAPHORE_LOG" $LOGFILE 2>/dev/null
  sed -i -e "/\$(basename $SEMAPHORE_LOG)/d" $LOGFILE 2>/dev/null
  rm -f $SEMAPHORE_LOG
@@ -597,22 +597,20 @@ TEOF
 		touch $SEMAPHORE_FILE
 		# Background the temporary script, it will delete the semaphore file when complete
 		bash $SEMAPHORE_BIN &>/dev/null &
-		while [ $TIME_CURRENT -lt $VAR_OPTION_BIN_TIMEOUT_SEC ]
+		while (( $TIME_CURRENT < $VAR_OPTION_BIN_TIMEOUT_SEC ))
 		do
-			if [ -e $SEMAPHORE_FILE ]; then
+			if [[ -e $SEMAPHORE_FILE ]]; then
 				# Still waiting on backgrounded binary
 				sleep 1
 				((TIME_CURRENT++))
-				if [ $(( TIME_CURRENT % TIMEOUT_PROGRESS )) -eq 0 ]; then
-					timed_progress
-				fi
+				(( TIME_CURRENT % TIMEOUT_PROGRESS )) || timed_progress
 			else
 				# Backgrounded binary completed
 				TIME_CURRENT=$(( VAR_OPTION_BIN_TIMEOUT_SEC + 1 ))
 				TIME_OUT=0
 				rm -f $SEMAPHORE_BIN
 				rm -f $SEMAPHORE_PID
-				if [ -e $SEMAPHORE_ERR ]; then
+				if [[ -e $SEMAPHORE_ERR ]]; then
 					TIME_RCODE=$(< $SEMAPHORE_ERR)
 					rm -f $SEMAPHORE_ERR
 				fi
@@ -656,7 +654,7 @@ ping_addr() {
 	OF=$1
 	ADDR_STRING="$2"
 	ADDR_PING=$3
-	if [ -n "$ADDR_PING" ]; then
+	if [[ -n "$ADDR_PING" ]]; then
 		if log_cmd $OF "${4}ping -n -c1 -W1 $ADDR_PING"; then
 			log_write $OF "# Connectivity Test, $ADDR_STRING $ADDR_PING: Success"
 		else
@@ -684,7 +682,7 @@ rpm_verify() {
 			rpm -V $RPM >> $LOGFILE 2>&1
 			ERR=$?
 			wait_trace_off
-			if [ $ERR -gt 0 ]; then
+			if (( $ERR )); then
 				echo "# Verification Status: Differences Found" >> $LOGFILE
 			else
 				echo "# Verification Status: Passed" >> $LOGFILE
