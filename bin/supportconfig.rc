@@ -1,7 +1,7 @@
 ##############################################################################
 #  supportconfig.rc - Resource file for supportconfig
 #  Copyright (C) 2001-2023 SUSE LLC
-RCVER='3.2.0'
+RCVER='3.2.0_test1'
 #
 #  Contains supporting functions and variables used by supportconfig and
 #  supportconfig plugins.
@@ -20,7 +20,7 @@ RCVER='3.2.0'
 #  You should have received a copy of the GNU General Public License
 #  along with this program; if not, see <http://www.gnu.org/licenses/>.
 #
-#  Modified: 2023 Oct 11
+#  Modified: 2023 Oct 12
 #
 #  Authors/Contributors:
 #     Jason Record <jason.record@suse.com>
@@ -168,14 +168,14 @@ elif [[ -x "/usr/bin/bzip2" ]]; then
 	COMPRESS="tbz"
 	COMPRESS_OPT="jcf"
 else
-	COMPRESS="tgz"; 
-	COMPRESS_OPT="zcf"
+	COMPRESS="tar"; 
+	COMPRESS_OPT="cf"
 fi
 SC_SRV=$(hostname) # %s
-test "$SC_SRV" = "" && SC_SRV=suse
+[[ "$SC_SRV" == "" ]] && SC_SRV=suse
 SC_DATE=$(date +"%y%m%d") # %d
 SC_TIME=$(date +"%H%M") # %t
-test -x /usr/bin/uuidgen && SC_UID="$(uuidgen 2>/dev/null)" || SC_UID="$(mktemp -u XXXXXXXXXXXXXXXXXXXXXXXXXXXXXX)" # %u
+[[ -x /usr/bin/uuidgen ]] && SC_UID="$(uuidgen 2>/dev/null)" || SC_UID="$(mktemp -u XXXXXXXXXXXXXXXXXXXXXXXXXXXXXX)" # %u
 BASE="${ARCHIVE_PREFIX}%B"
 ARCH=$(uname -i)
 SAVE_LOGS_ONLY=0
@@ -300,7 +300,7 @@ conf_text_files() {
 		if [[ -f $CONF ]]; then
 			echo "# $CONF" >> $LOGFILE
 			TEXTFILE=$(file -L $CONF | cut -d \: -f2 | egrep -i "text|empty|XML")
-			if [ -z "$TEXTFILE" ]; then
+			if [[ -z "$TEXTFILE" ]]; then
 				echo "file $(file -L $CONF)" >> $LOGFILE
 				echo "ERROR: Not a normal text file, excluding it." >> $LOGFILE
 			else
@@ -356,14 +356,14 @@ log_files() {
 	for CONF in $@
 	do
 		BAD_FILE=$(echo "$CONF" | egrep "\.tbz$|\.bz2$|\.gz$|\.zip$|\.xz$")
-		if [ -n "$BAD_FILE" ]; then
+		if [[ -n "$BAD_FILE" ]]; then
 			continue
 		fi
 		echo "#==[ Log File ]=====================================#" >> $LOGFILE
 		CONF=$(echo $CONF | sed -e "s/%7B%20%7D%7B%20%7D/ /g")
-		if [ -f "$CONF" ]; then
+		if [[ -f "$CONF" ]]; then
 			wait_trace_on "$CONF"
-			if [ $LOGLINES -eq 0 ]; then
+			if ! (( $LOGLINES )); then
 				echo "# $CONF" >> $LOGFILE
 				sed -e 's/\r//g' "$CONF" >> $LOGFILE
 			else
@@ -389,9 +389,9 @@ grep_log_files() {
 	for CONF in $@
 	do
 		echo "#==[ Log File ]=====================================#" >> $LOGFILE
-		if [ -f $CONF ]; then
+		if [[ -f $CONF ]]; then
 			wait_trace_on "$CONF"
-			if [ $LOGLINES -eq 0 ]; then
+			if ! (( $LOGLINES )); then
 				echo "# grep -i $SKEY $CONF" >> $LOGFILE
 				grep -i $SKEY $CONF | grep -v 'supportconfig:' | sed -e 's/\r//g' >> $LOGFILE
 			else
@@ -435,7 +435,7 @@ log_write() {
 }
 
 xml_write() {
-	if [ -n "$2" ]; then
+	if [[ -n "$2" ]]; then
 		echo "  <$1>$2</$1>" >> $LOG/$XML_FILE
 	else
 		echo "  <$1 />" >> $LOG/$XML_FILE
@@ -483,7 +483,7 @@ timed_progress() {
 printlog() {
 	CSLOGFILE=$LOG/${CSFILE}
 	SMB_OVERIDE=0
-	if [ "$1" = "-b" ]; then
+	if [[ "$1" == "-b" ]]; then
 		SMB_OVERIDE=1
 		shift
 	fi
@@ -501,7 +501,7 @@ printlog() {
 
 printvrpmlog() {
 	CSLOGFILE=$LOG/${CSFILE}
-	test $VAR_OPTION_SILENT -gt 0 && printf "  %-40s %12s ... " "$1" "$2" >> $CSLOGFILE || printf "  %-40s %12s ... " "$1" "$2" | tee -a $CSLOGFILE
+	(( $VAR_OPTION_SILENT )) && printf "  %-40s %12s ... " "$1" "$2" >> $CSLOGFILE || printf "  %-40s %12s ... " "$1" "$2" | tee -a $CSLOGFILE
 }
 
 _sanitize_file() {
