@@ -992,10 +992,10 @@ init_plugins() {
 	off) FEATURE_STATE=0; log2sys "Plugins: OFF" ;;
 	*) FEATURE_STATE=1; log2sys "Plugins: ON" ;;
 	esac
-	if [ -d $XPLUGIN_DIR ]; then
+	if [[ -d $XPLUGIN_DIR ]]; then
 		for FILE in $(\ls -A1 $XPLUGIN_DIR)
 		do
-			if [ -x ${XPLUGIN_DIR}/${FILE} ]; then
+			if [[ -x ${XPLUGIN_DIR}/${FILE} ]]; then
 				PLUGIN_FEATURES="p${FILE} $PLUGIN_FEATURES"
 				((PLUGIN_CNT++))
 			fi
@@ -1044,9 +1044,9 @@ toggle_features() {
 	do
 		if echo $FEATURE_LIST | grep $FEATURE &>/dev/null; then
 			case ${FEATURE:0:1} in
-			a) [ $(( ADD_OPTION_${FEATURE/a/} )) -eq 0 ] && eval ADD_OPTION_${FEATURE/a/}=1 || eval ADD_OPTION_${FEATURE/a/}=0 ;;
-			p) [ $(( PLUGIN_OPTION_${FEATURE/p/} )) -eq 0 ] && eval PLUGIN_OPTION_${FEATURE/p/}=1 || eval PLUGIN_OPTION_${FEATURE/p/}=0 ;;
-			*) [ $(( OPTION_${FEATURE} )) -eq 0 ] && eval OPTION_${FEATURE}=1 || eval OPTION_${FEATURE}=0 ;;
+			a) (( $(( ADD_OPTION_${FEATURE/a/} )) )) || eval ADD_OPTION_${FEATURE/a/}=1 && eval ADD_OPTION_${FEATURE/a/}=0 ;;
+			p) (( $(( PLUGIN_OPTION_${FEATURE/p/} )) )) || eval PLUGIN_OPTION_${FEATURE/p/}=1 && eval PLUGIN_OPTION_${FEATURE/p/}=0 ;;
+			*) (( $(( OPTION_${FEATURE} )) )) || eval OPTION_${FEATURE}=1 && eval OPTION_${FEATURE}=0 ;;
 			esac
 		else
 			echo "ERROR: Invalid Feature Keyword: $FEATURE"
@@ -1068,7 +1068,7 @@ ehr() {
 encrypt_tarball() {
 	log2sys "Encrypt Tar Ball"
 	FOUND_KEY=$(gpg --list-keys 2>/dev/null | grep "$VAR_OPTION_GPG_UID" 2>/dev/null)
-	if [ -z "$FOUND_KEY" ]; then
+	if [[ -z "$FOUND_KEY" ]]; then
 		echo "ERROR: GPG key not found: $VAR_OPTION_GPG_UID"
 		echo "       File encryption failed, aborting"
 		echo
@@ -1078,7 +1078,7 @@ encrypt_tarball() {
 	if (( VAR_OPTION_SILENT )); then
 		gpg --batch --yes --trust-model always --encrypt --recipient "$VAR_OPTION_GPG_UID" $TARBALL &> /dev/null
 		ERR=$?
-		if [ $ERR -ne 0 ]; then
+		if (( $ERR )); then
 			echo "ERROR: gpg failed, RC=$ERR, aborting"
 			echo
 			exit_code 13
@@ -1097,7 +1097,7 @@ encrypt_tarball() {
 		gpg --batch --yes --trust-model always --encrypt --recipient "$VAR_OPTION_GPG_UID" $TARBALL
 		ERR=$?
 		wait_trace_off
-		if [ $ERR -ne 0 ]; then
+		if (( $ERR )); then
 			echo "ERROR: gpg failed, RC=$ERR, aborting"
 			echo
 			exit_code 13
@@ -1340,7 +1340,7 @@ post_lsmod_list() {
 	# Show the module list difference
 	MOD_CNT_ADDED=$((MOD_CNT_AFTER - MOD_CNT_BEFORE))
 	log_write $OF "Modules Loaded Incident to Supportconfig: $MOD_CNT_ADDED"
-	if [ $MOD_CNT_ADDED -gt 0 ]; then
+	if (( $MOD_CNT_ADDED )); then
 		log_write $OF
 		diff $MOD_FIRST $MOD_LAST | grep '>' >> $LOG/$OF
 		log_write $OF
@@ -1356,7 +1356,7 @@ post_lsmod_list() {
 }
 
 remove_local_tarball() {
-	if [ $VAR_OPTION_RM_LOCAL_FILE -gt 0 ]; then
+	if (( $VAR_OPTION_RM_LOCAL_FILE )); then
 		log2sys "Deleting $TARBALL"
 		echo "Deleting local supportconfig file: $TARBALL"
 		rm -f $TARBALL ${TARBALL}.md5
@@ -1370,7 +1370,7 @@ exit_code() {
 	XC=$1
 	shift
 	MSG="$@"
-	[ -n "$MSG" ] && log2sys "$MSG"
+	[[ -n "$MSG" ]] && log2sys "$MSG"
 	log2sys "END"
 	exit $XC
 }
@@ -1394,7 +1394,7 @@ normalize_base() {
 write_xml_file() {
 	wait_trace_on "write_xml_file supportconfig"
 	echo \<\?xml\ version=\"1.0\"\?\> >> $LOG/$XML_FILE
-	if [ -s $VAR_OPTION_HEADER_FILE ]; then
+	if [[ -s $VAR_OPTION_HEADER_FILE ]]; then
 		echo '<note>' >> $LOG/$XML_FILE
 		cat $VAR_OPTION_HEADER_FILE >> $LOG/$XML_FILE
 		echo '</note>' >> $LOG/$XML_FILE
@@ -1406,7 +1406,7 @@ write_xml_file() {
 	xml_write 'runtime' "${SC_TIME}"
 	xml_write 'logdir' "${LOG}"
 	HOSTOUT=$(hostname --long 2>/dev/null)
-	if [ -n "$HOSTOUT" ]; then
+	if [[ -n "$HOSTOUT" ]]; then
 		xml_write 'hostname' "$HOSTOUT"
 	else
 		xml_write 'hostname' "$(hostname 2>/dev/null)"
@@ -1454,17 +1454,17 @@ write_xml_file() {
 
 	echo '</summary>' >> $LOG/$XML_FILE
 	echo '<customer>' >> $LOG/$XML_FILE
-	test -n "$VAR_OPTION_CONTACT_COMPANY" && { xml_write 'company' "$VAR_OPTION_CONTACT_COMPANY"; }
-	test -n "$VAR_OPTION_CONTACT_STOREID" && { xml_write 'storeid' "$VAR_OPTION_CONTACT_STOREID"; }
-	test -n "$VAR_OPTION_CONTACT_TERMINALID" && { xml_write 'terminalid' "$VAR_OPTION_CONTACT_TERMINALID"; }
-	test -n "$VAR_OPTION_CONTACT_NAME" && { xml_write 'contact' "$VAR_OPTION_CONTACT_NAME"; }
-	test -n "$VAR_OPTION_CONTACT_PHONE" && { xml_write 'phone' "$VAR_OPTION_CONTACT_PHONE"; }
-	test -n "$VAR_OPTION_CONTACT_EMAIL" && { xml_write 'email' "$VAR_OPTION_CONTACT_EMAIL"; }
+	[[ -n "$VAR_OPTION_CONTACT_COMPANY" ]] && { xml_write 'company' "$VAR_OPTION_CONTACT_COMPANY"; }
+	[[ -n "$VAR_OPTION_CONTACT_STOREID" ]] && { xml_write 'storeid' "$VAR_OPTION_CONTACT_STOREID"; }
+	[[ -n "$VAR_OPTION_CONTACT_TERMINALID" ]] && { xml_write 'terminalid' "$VAR_OPTION_CONTACT_TERMINALID"; }
+	[[ -n "$VAR_OPTION_CONTACT_NAME" ]] && { xml_write 'contact' "$VAR_OPTION_CONTACT_NAME"; }
+	[[ -n "$VAR_OPTION_CONTACT_PHONE" ]] && { xml_write 'phone' "$VAR_OPTION_CONTACT_PHONE"; }
+	[[ -n "$VAR_OPTION_CONTACT_EMAIL" ]] && { xml_write 'email' "$VAR_OPTION_CONTACT_EMAIL"; }
 	xml_write 'srnum' "$CONTACT_SRNUM"
 	echo '</customer>' >> $LOG/$XML_FILE
 	wait_trace_off
 
-	if [ -d /etc/products.d ]; then
+	if [[ -d /etc/products.d ]]; then
 		echo '<products>' >> $LOG/$XML_FILE
 		for i in $(find -L /etc/products.d/ -type f)
 		do
