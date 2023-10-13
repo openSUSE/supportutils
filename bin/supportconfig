@@ -2377,13 +2377,13 @@ crash_info() {
 	(( $OPTION_CRASH )) || { echolog Excluded; return 1; }
 	OF=crash.txt
 	addHeaderFile $OF
+	READ_KDUMP_CONFIG='/usr/lib/kdump/kdump-read-config.sh'
 	SKIP=0
 	rpm_verify $OF kdump
 	rpm_verify $OF kexec-tools
 	log_cmd $OF "uname -r"
 	log_cmd $OF "systemctl status kdump.service"
 	log_cmd $OF "kdumptool calibrate"
-	log_cmd $OF "kdumptool dump_config"
 	conf_files $OF /proc/cmdline
 	conf_files $OF /etc/sysconfig/kdump
 	conf_files $OF /proc/sys/kernel/panic
@@ -2401,16 +2401,21 @@ crash_info() {
 	conf_files $OF /var/crash/*/vmcore-dmesg.txt
 	conf_files $OF /var/crash/*/kexec-dmesg.log
 	conf_files $OF /var/log/kdump.log
-	if rpm -q kdump &>/dev/null; then
-		DUMPDIR=$(kdumptool dump_config | grep ^KDUMP_SAVEDIR | sed -e 's/"//g;s!file://!!g' | cut -d= -f2)
+	log_cmd $OF "sysctl kernel.sysrq"
+	log_cmd $OF 'sysctl kernel 2>/dev/null | grep panic'
+	if rpm -q kdump &>/dev/null ; then
+		if [[ -x $READ_KDUMP_CONFIG ]]; then
+			. $READ_KDUMP_CONFIG
+			DUMPDIR=${KDUMP_SAVEDIR#file://}
+		else
+			DUMPDIR=''
+		fi
 		if [[ -d $DUMPDIR ]]; then
 			log_cmd $OF "find ${DUMPDIR}/"
 		else
 			log_entry $OF conf "KDUMP_SAVEDIR not found: ${DUMPDIR}"
 		fi
 	fi
-	log_cmd $OF "sysctl kernel.sysrq"
-	log_cmd $OF 'sysctl kernel 2>/dev/null | grep panic'
 	ANALYZEVMCORE_PREFIX=$ARCHIVE_PREFIX
 
 	for i in $(ls -1 /var/log/${ANALYZEVMCORE_PREFIX}analyzevmcore* 2>/dev/null)

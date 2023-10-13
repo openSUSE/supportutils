@@ -1,7 +1,7 @@
 #!/bin/bash
 
-SVER='1.38'
-SDATE="2021 05 25"
+SVER='2.0.0'
+SDATE="2023 Oct 13"
 SNAME="analyzevmcore"
 
 # --------------------------------------------------------------------- #
@@ -11,7 +11,7 @@ SNAME="analyzevmcore"
 #  Please submit bug fixes or comments via:                             #
 #    http://en.opensuse.org/Supportutils#Reporting_Bugs                 #
 #                                                                       #
-#  Copyright (C) 1999-2021 SUSE Linux Products GmbH, Nuernberg, Germany #
+#  Copyright (C) 1999-2023 SUSE Linux Products GmbH, Nuernberg, Germany #
 #                                                                       #
 # --------------------------------------------------------------------- #
 #                                                                       #
@@ -29,8 +29,8 @@ SNAME="analyzevmcore"
 #  along with this program; if not, see <http://www.gnu.org/licenses/>. #
 #                                                                       #
 #  Authors/Contributors:                                                #
-#     Mike Latimer (mlatimer@suse.com)                                  #
-#     Jason Record (jason.record@suse.com)                              #
+#     Mike Latimer <mlatimer@suse.com>                                  #
+#     Jason Record <jason.record@suse.com>                              #
 # --------------------------------------------------------------------- #
 #                                                                       #
 # Overview:                                                             #
@@ -50,43 +50,13 @@ SNAME="analyzevmcore"
 # directory as the core.                                                #
 #                                                                       #
 # --------------------------------------------------------------------- #
-# Changes:                                                              #
-#                                                                       #
-# 1.38 Release                                                          #
-#    - Fixed local directory KDUMP_SAVEDIR support                      #
-# 1.33 Release                                                          #
-#    - Changed filename prefix from nts_ to scc_ with FILENAME_PREFIX   #
-#    - Processes all available crash dumps                              #
-# 1.32 Release                                                          #
-#    - Improved support for user-specified crash directory              #
-# 1.31 Release                                                          #
-#    - Modified code to detect correct kernel version for corefile      #
-#    - Better support for SLES10 environments                           #
-# 1.30 Release                                                          #
-#    - Misc comment cleanup, minor bug fixes in kernel detection        #
-#    - Added -r option to remove and recreate existing analysis files   #
-#    - Added return code check for crash                                #
-# 1.29 Release                                                          #
-#    - Changed spinner code                                             #
-#    - Default to currently running kernel if no kernel found           #
-# 1.28 Release                                                          #
-#    - Change to always copy analysis to /var/log.                      #
-# 1.27 Release                                                          #
-#    - Added Update channel documentation                               #
-#    - Updated output formatting                                        #
-# 1.26 Release                                                          #
-#    - Better binary checking                                           #
-#    - README.txt is now checked for kernel version                     #
-#    - Link to /boot/vmlinux will be created if not found in crashdir   #
-# 1.25 Release                                                          #
-#    - Initial public release in supportutils                           #
-# --------------------------------------------------------------------- #
 
 CRASHV4=0
 REWRITE_ANALYSIS=0
 FORMAT="%-35s"
 SPINSTR='|/-\'
 FILENAME_PREFIX='scc_'
+READ_KDUMP_CONFIG='/usr/lib/kdump/kdump-read-config.sh'
 
 #Required Binaries
 AWK_BIN=/usr/bin/awk
@@ -533,23 +503,16 @@ if [[ "${CRASH_VER:0:1}" < "5" ]]; then
 fi
 
 if [[ -z "$COREDIR" ]]; then
-	#Source /etc/sysconfig/kdump
-	if [[ -e "/etc/sysconfig/kdump" ]]; then
-		. /etc/sysconfig/kdump
-		if [[ "${KDUMP_SAVEDIR:0:8}" = "file:///" ]]; then
-			KDUMP_SAVEDIR=${KDUMP_SAVEDIR:7}
-		elif [[ "${KDUMP_SAVEDIR:0:1}" = "/" ]]; then
-			:
-		else
-			echo "Unsupported KDUMP_SAVEDIR specified in /etc/sysconfig/kdump!"
-			echo "  Only local directories are supported"
-			echo '  Supported syntax:  [file://]/var/crash'
-			echo "  Current setting:   $KDUMP_SAVEDIR"
-			echo
-			exit -1
-		fi
+    if [[ -x $READ_KDUMP_CONFIG ]]; then
+        . $READ_KDUMP_CONFIG
+        KDUMP_SAVEDIR=${KDUMP_SAVEDIR#file://}
 	else
-		COREDIR="/var/crash"
+		echo "Unsupported KDUMP_SAVEDIR in $READ_KDUMP_CONFIG"
+		echo "  Only local directories are supported"
+		echo '  Supported syntax:  [file://]/var/crash'
+		echo "  Current setting:   $KDUMP_SAVEDIR"
+		echo
+		exit -1
 	fi
 fi
 
