@@ -283,7 +283,7 @@ basic_healthcheck() {
 				wait_trace_off
 			fi
 		done
-		if [[ $LIST_MODULES_ANY -eq 0 ]]; then
+		if (( $LIST_MODULES_ANY == 0 )); then
 			log_write $OF "Module List Unknown"
 			log_write $OF
 		fi
@@ -481,7 +481,7 @@ messages_file() {
 				wait_trace_off
 			done
 		else
-			if [[ $VAR_OPTION_MSG_MAXSIZE -eq 0 ]]; then
+			if (( $VAR_OPTION_MSG_MAXSIZE == 0 )); then
 				log_files $OF 0 $MESSAGES_FILE  # override and get the entire file
 			else
 				MSGSIZE=$(stat -c%s $MESSAGES_FILE)
@@ -543,7 +543,7 @@ localwarn_file() {
                 log_files $OF $VAR_OPTION_LINE_COUNT /var/log/warn
                 LOGFILE="/var/log/localmessages"
                 if [[ -e $LOGFILE ]]; then
-                        if [[ $VAR_OPTION_MSG_MAXSIZE -eq 0 ]]; then
+                        if (( $VAR_OPTION_MSG_MAXSIZE == 0 )); then
                                 log_files $OF 0 $LOGFILE  # override and get the entire file
                         else
                                 MSGSIZE=$(stat -c%s $LOGFILE)
@@ -2003,7 +2003,7 @@ disk_info() {
 	log_cmd $OF 'ls -l /dev/disk/by-uuid/'
 	log_cmd $OF "grep '' /sys/block/*/queue/scheduler"
 
-	if [[ $ADD_OPTION_MINDISK -eq 0 ]]; then
+	if ! (( $ADD_OPTION_MINDISK )); then
 		log_cmd $OF 'iostat -x 1 4'
 		log_cmd $OF 'sg_map -i -x'
 		if [[ -d /sys/block ]]; then
@@ -3893,7 +3893,7 @@ sysfs_info() {
 				# option is used
 				if [[ $ITEM == "memory" ]]; then
 					mem=$(grep 'MemTotal' /proc/meminfo | awk '{print $2}')
-					test $mem -gt 16000000000 -a $VAR_OPTION_EXHAUSTIVE_MEM -eq 0 && continue
+					(( $mem > 16000000000 )) && (( $VAR_OPTION_EXHAUSTIVE_MEM == 0 )) && continue
 					echonlog "Please Wait..."
 					echonlog "Memory"
 				fi
