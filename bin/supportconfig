@@ -140,7 +140,7 @@ show_help() {
 basic_environment() {
 	# This is a minimum required function, do not exclude
 	printlog "Basic Environment..."
-	test $MIN_OPTION_ENV -eq 0 && { echolog EXCLUDED; return 1; }
+	(( $MIN_OPTION_ENV )) || { echolog EXCLUDED; return 1; }
 	addHeaderFile $BASIC_ENVF
 	get_customer_info $BASIC_ENVF
 	log_cmd $BASIC_ENVF 'date'
@@ -187,7 +187,7 @@ basic_environment() {
 basic_healthcheck() {
 	# This is a minimum required function, do not exclude
 	printlog "Basic Server Health Check..."
-	test $MIN_OPTION_HC -eq 0 && { echolog EXCLUDED; return 1; }
+	(( $MIN_OPTION_HC )) || { echolog EXCLUDED; return 1; }
 	OF=basic-health-check.txt
 	addHeaderFile $OF
 	log_cmd $OF 'uptime'
@@ -369,7 +369,7 @@ basic_healthcheck() {
 rpm_info() {
 	# This is a minimum required function, do not exclude
 	printlog "RPM Database..."
-	test $MIN_OPTION_RPM -eq 0 && { echolog EXCLUDED; return 1; }
+	(( $MIN_OPTION_RPM )) || { echolog EXCLUDED; return 1; }
 	addHeaderFile $RPMFILE
 	if ((NSA_CHECK)); then
 		log_write $RPMFILE "#==[ NSA Check ]====================================#"
@@ -433,7 +433,7 @@ module_info() {
 messages_file() {
 	# This is a minimum required function, do not exclude
 	printlog "System Logs..."
-	test $MIN_OPTION_SYSLOGS -eq 0 && { echolog EXCLUDED; return 1; }
+	(( $MIN_OPTION_SYSLOGS )) || { echolog EXCLUDED; return 1; }
 	OF=messages.txt
 	OF2=messages_config.txt
 	addHeaderFile $OF
@@ -510,7 +510,7 @@ messages_file() {
 
 localwarn_file() {
         printlog "Local/Warn Logs..."
-        test $MIN_OPTION_SYSLOGS -eq 0 && { echolog EXCLUDED; return 1; }
+        (( $MIN_OPTION_SYSLOGS )) || { echolog EXCLUDED; return 1; }
         OF=messages_localwarn.txt
         addHeaderFile $OF
         if [[ $ADD_OPTION_LOGS -gt 0 ]]; then
@@ -595,7 +595,7 @@ audit_info() {
 yast_files() {
 	# This is a minimum required function, do not exclude
 	printlog "YaST Files..."
-	test $MIN_OPTION_YAST -eq 0 && { echolog EXCLUDED; return 1; }
+	(( $MIN_OPTION_YAST )) || { echolog EXCLUDED; return 1; }
 	hppsp_info
 	# YaST files
 	OF=y2log.txt
@@ -1581,7 +1581,7 @@ detectVirtualization() {
 hardware_info() {
 	# This is a minimum required function, do not exclude
 	printlog "Hardware..."
-	test $MIN_OPTION_HARDWARE -eq 0 && { echolog EXCLUDED; return 1; }
+	(( $MIN_OPTION_HARDWARE )) || { echolog EXCLUDED; return 1; }
 	echonlog "Please Wait..."
 	OF=hardware.txt
 	addHeaderFile $OF
