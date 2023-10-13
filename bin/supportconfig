@@ -1406,7 +1406,7 @@ mpio_info() {
 	addHeaderFile $OF
 	SKIP=0
 	MPIO_RPM=$(rpm -qf `which multipath 2>/dev/null` 2>/dev/null)
-	if [ -z "$MPIO_RPM" ]; then
+	if [[ -z "$MPIO_RPM" ]]; then
 		MPIO_RPM=multipath-tools
 	fi
 	if rpm_verify $OF $MPIO_RPM
@@ -1611,7 +1611,7 @@ hardware_info() {
 	log_cmd $OF 'lsusb -vv'
 	log_cmd $OF 'ls -al /dev | egrep "fd.*|dvd.*|cdr.*"'
 	ALSABIN='/usr/sbin/alsa-info.sh'
-	if [ -x $ALSABIN ]; then
+	if [[ -x $ALSABIN ]]; then
 		AVER=$(grep SCRIPT_VERSION= $ALSABIN | cut -d= -f2 | sed -e 's/\.//g')
 		if [ $AVER -ge 0458 ]; then
 			log_cmd $OF "$ALSABIN --stdout --no-upload --with-configs --with-devices --with-dmesg --with-alsactl"
@@ -2014,7 +2014,7 @@ disk_info() {
 	if [[ $ADD_OPTION_MINDISK -eq 0 ]]; then
 		log_cmd $OF 'iostat -x 1 4'
 		log_cmd $OF 'sg_map -i -x'
-		if [ -d /sys/block ]; then
+		if [[ -d /sys/block ]]; then
 			IDE_DISKS=$(find /sys/block/ -maxdepth 1 | grep hd\.)
 			SCSI_DISKS=$(find /sys/block/ -maxdepth 1 | grep sd\.)
 			CCISS_DISKS=$(find /sys/block/ -maxdepth 1 | grep cciss\*)
@@ -2282,7 +2282,7 @@ ntp_info() {
 			do
 				ping_addr $OF 'NTP Server' $IPADDR
 			done
-			if [ -f $CONFFILE ]; then
+			if [[ -f $CONFFILE ]]; then
 				log_write $OF "#___________________________________________________________#"
 				log_write $OF "#____[ Files Included in $CONFFILE ]____________________#"
 				log_write $OF
@@ -2503,7 +2503,7 @@ crash_info() {
 	done
 	# Search ld.so.conf includes
 	LDINCLUDES=$(grep -i ^include /etc/ld.so.conf | awk '{print $2}')
-	if [ -n "$LDINCLUDES" ]; then
+	if [[ -n "$LDINCLUDES" ]]; then
 		SEARCH=$(cat $LDINCLUDES 2>/dev/null)
 		for i in $SEARCH
 		do
@@ -2514,7 +2514,7 @@ crash_info() {
 	# include the core file list found
 	cat $SEARCH_LIST | sort -k 9 | uniq | sed -e 's|//|/|g' > ${SEARCH_LIST}_U
 	cat ${SEARCH_LIST}_U >> $LOG/$OF
-	if [ -s ${SEARCH_LIST}_U ]; then
+	if [[ -s ${SEARCH_LIST}_U ]]; then
 		FILES=$(cat ${SEARCH_LIST}_U | awk '{print $NF}')
 	else
 		FILES=""
@@ -2522,7 +2522,7 @@ crash_info() {
 	rm -f $SEARCH_LIST ${SEARCH_LIST}_U
 	log_write $OF
 	# determine the which app generated the core files found
-	if [ -n "$FILES" ]; then
+	if [[ -n "$FILES" ]]; then
 		log_cmd $OF "file $FILES"
 	fi
 
@@ -2815,7 +2815,7 @@ slp_info() {
 	if rpm_verify $OF openslp
 	then
 		conf_files $OF /etc/slp.conf
-		if [ -s /etc/slp.conf ]; then
+		if [[ -s /etc/slp.conf ]]; then
 			IPADDRS=$(grep -i '^net.slp.DAAddresses' /etc/slp.conf | sed -e "s/[[:space:]]+//g;s/\'//g;s/\"//g" | cut -d= -f2 | sed -e "s/,/ /g")
 			for IPADDR in $IPADDRS
 			do
@@ -2823,7 +2823,7 @@ slp_info() {
 			done
 		fi
 		conf_files $OF /etc/slp.reg /etc/slp.spi
-		if [ -d /etc/slp.reg.d ]; then
+		if [[ -d /etc/slp.reg.d ]]; then
 			FILES=$(find -L /etc/slp.reg.d/ -type f)
 			conf_files $OF $FILES
 		fi
@@ -2879,12 +2879,12 @@ ocfs2_info() {
 			;;
 		esac
 		CHECKDIR="/sys/o2cb"
-		if [ -d $CHECKDIR ]; then
+		if [[ -d $CHECKDIR ]]; then
 			FILES=$(find ${CHECKDIR}/ -type f)
 			conf_files $OF $FILES
 		fi
 		CHECKDIR="/sys/kernel/config/cluster"
-		if [ -d $CHECKDIR ]; then
+		if [[ -d $CHECKDIR ]]; then
 			FILES=$(find ${CHECKDIR}/ -type f)
 			conf_files $OF $FILES
 		fi
@@ -3023,10 +3023,10 @@ memory_info() {
 		log_cmd $OF 'numactl --hardware'
 		log_cmd $OF 'numastat'
 	fi
-	if [ -e /sys/kernel/debug/vmmemctl ]; then
+	if [[ -e /sys/kernel/debug/vmmemctl ]]; then
 		conf_files $OF /sys/kernel/debug/vmmemctl
 	fi
-	if [ -x /usr/bin/pmap ]; then
+	if [[ -x /usr/bin/pmap ]]; then
 		for I in $(ps axo pid)
 		do
 			log_cmd $OF "pmap $I"
@@ -3067,11 +3067,11 @@ samba_info() {
 		done
 		SAMBA_LIB="/var/lib/samba"
 		SAMBA_KRB="$SAMBA_LIB/smb_krb5"
-		if [ -d $SAMBA_LIB ]; then
+		if [[ -d $SAMBA_LIB ]]; then
 			log_cmd $OF "ls -al $SAMBA_LIB"
 			conf_files $OF $SAMBA_LIB/browse.dat $SAMBA_LIB/wins.dat
 		fi
-		if [ -d $SAMBA_KRB ]; then
+		if [[ -d $SAMBA_KRB ]]; then
 			conf_files $OF /etc/krb5.conf ${SAMBA_KRB}/* 
 		fi
 	fi
@@ -3098,7 +3098,7 @@ samba_info() {
 		conf_files $OF /etc/samba/lmhosts /etc/nsswitch.conf /etc/security/pam_winbind.conf
 	fi
 
-	if [ -d /var/log/samba ]; then
+	if [[ -d /var/log/samba ]]; then
 		FILES=$(find /var/log/samba/ -type f | grep -v '/core')
 		(( $ADD_OPTION_LOGS )) && log_files $OF 0 $FILES || log_files $OF $VAR_OPTION_LINE_COUNT $FILES
 	fi
@@ -3126,11 +3126,11 @@ fslist_ufiles_info() {
 	if [ "$UFUID" = "0" ]; then
 		while read FILE
 		do
-			if [ -d "$FILE" ]; then
+			if [[ -d "$FILE" ]]; then
 				log_write $OF "#==[ Directory ]====================================#"
 				log_write $OF "# $FILE - Not a regular file"
 				log_write $OF
-			elif [ -e "$FILE" ]; then
+			elif [[ -e "$FILE" ]]; then
 				MIME1=$(file -Li "$FILE" | awk -F\: '{print $2}' | awk '{print $1}' | cut -d/ -f1)
 				MIME2=$(file -Li "$FILE" | awk -F\: '{print $2}' | awk '{print $1}' | cut -d/ -f2)
 				case $MIME1 in
@@ -3239,12 +3239,12 @@ ldap_info() {
 	then
 		SLAPD_CONF="/etc/openldap/slapd.conf"
 		# Extract the SLAPD directory from the conf file
-		if [ -f $SLAPD_CONF ]; then
+		if [[ -f $SLAPD_CONF ]]; then
 			SLAPD_DIR=$(grep -i ^directory $SLAPD_CONF | awk '{print $2}')
 			[[ -z "$SLAPD_DIR" ]] && SLAPD_DIR="/var/lib/ldap"
 			SLAPD_PIDF=$(grep -i ^pidfile $SLAPD_CONF | awk '{print $2}')
 			[[ -z "$SLAPD_PIDF" ]] && SLAPD_PIDF="/var/run/slapd/slapd.pid"
-			if [ -f $SLAPD_PIDF ]; then
+			if [[ -f $SLAPD_PIDF ]]; then
 				SLAPD_PID=$(cat $SLAPD_PIDF)
 			else
 				SLAPD_PID=""
@@ -3255,7 +3255,7 @@ ldap_info() {
 		log_cmd $OF "ss -nlp | grep slapd"
 		log_cmd $OF "ls -al /etc/openldap/schema"
 		conf_files $OF $SLAPD_CONF /etc/sysconfig/openldap
-		if [ -d $SLAPD_DIR ]; then
+		if [[ -d $SLAPD_DIR ]]; then
 			conf_files $OF $SLAPD_DIR/DB_CONFIG
 			log_cmd $OF "ls -al $SLAPD_DIR"
 		fi
@@ -3370,7 +3370,7 @@ proc_info() {
 	# cpuset information relates to processes
 	log_cmd $OF "grep cpuset /etc/mtab"
 	CPUSET=$(grep -m 1 -E ' cpuset |cgroup .*cpuset' /etc/mtab | cut -d' ' -f2)
-	if [ -n "$CPUSET" ]; then
+	if [[ -n "$CPUSET" ]]; then
 		log_cmd $OF "find -L ${CPUSET}/ -type f"
 		FILES=$(find -L ${CPUSET}/ -type f)
 		conf_files $OF $FILES
@@ -3548,10 +3548,10 @@ slert_info() {
 		[ -e /etc/init.d/slert ] && check_service $OF slert
 		if rpm -q cpuset &>/dev/null; then
 			rpm_verify $OF cpuset
-			if [ -e /etc/init.d/cset ]; then
+			if [[ -e /etc/init.d/cset ]]; then
 				CSETSRV=cset
 				check_service $OF $CSETSRV
-			elif [ -e /etc/init.d/cset.init.d ]; then
+			elif [[ -e /etc/init.d/cset.init.d ]]; then
 				CSETSRV='cset.init.d'
 				check_service $OF $CSETSRV
 			fi
@@ -3561,7 +3561,7 @@ slert_info() {
 		fi
 		log_cmd $OF "ps -eo pid,user,args,ni,rtprio --sort -rtprio"
 		conf_files $OF /etc/slert/setup /proc/cpuinfo /etc/sysconfig/cset $CSETFILES
-		if [ -e /proc/irq/default_smp_affinity ]; then
+		if [[ -e /proc/irq/default_smp_affinity ]]; then
 			conf_files $OF /proc/irq/default_smp_affinity /proc/irq/*/smp_affinity
 		fi
 		log_write $OF "#==[ Process (thread) RT scheduling ]==============================#"
@@ -3626,10 +3626,10 @@ sar_info() {
 	SARDIR=/var/log/sa
 	SARSCDIR=$LOG/sar
 	if rpm_verify $OF sysstat; then
-		if [ -d $SARDIR ]; then
+		if [[ -d $SARDIR ]]; then
 			log_cmd $OF '/usr/lib64/sa/sa1 1 1'
 			FOUND=$(ls -A1 $SARDIR)
-			if [ -n "$FOUND" ]; then
+			if [[ -n "$FOUND" ]]; then
 				mkdir -p $SARSCDIR
 				log_entry $OF command "cp $SARDIR/sa* $SARSCDIR"
 				if [ $ADD_OPTION_LOGS -gt 0 ]; then
@@ -3667,7 +3667,7 @@ dns_info() {
 		FILES=$(grep ^include /etc/named.conf | cut -d';' -f1 | sed -e 's/"//g'  | awk '{print $2}')
 		conf_files $OF /etc/named.conf $FILES /etc/sysconfig/named
 		ZDIR=$(grep ^[[:space:]]*directory /etc/named.conf | cut -d';' -f1 | sed -e 's/"//g'  | awk '{print $2}')
-		if [ -n "$ZDIR" ]; then
+		if [[ -n "$ZDIR" ]]; then
 			FILES=$(find -L ${ZDIR}/ -mount -type f 2>/dev/null | grep zone | grep -v '/proc/') || unset FILES
 			conf_files $OF $FILES
 			FILES=$(find -L ${ZDIR}/ -mount -type f 2>/dev/null | egrep -v "localtime|zone" | grep -v '/proc/') || unset FILES
@@ -3741,8 +3741,8 @@ cimom_info() {
 		do
 			unset OWSSLCHECK
 			OWSSLCHECK=$(grep "^http_server.SSL_${i}" /etc/openwbem/openwbem.conf | awk '{print $3}')
-			if [ -n "$OWSSLCHECK" ]; then
-				if [ -L $OWSSLCHECK ]; then
+			if [[ -n "$OWSSLCHECK" ]]; then
+				if [[ -L $OWSSLCHECK ]]; then
 					log_cmd $OF "readlink -ev $OWSSLCHECK"
 				fi
 			fi
@@ -3852,7 +3852,7 @@ web_info() {
 		do
 			check_service $OF $(basename $WEB_SERVICE)
 		done
-		if [ -s /etc/sysconfig/j2ee ]; then
+		if [[ -s /etc/sysconfig/j2ee ]]; then
 			conf_files $OF /etc/sysconfig/j2ee
 			. /etc/sysconfig/j2ee
 			conf_files $OF $CATALINA_HOME/conf/server.xml
@@ -3867,11 +3867,11 @@ web_info() {
 
 hppsp_info() {
 	OFPSP=psp.txt
-	if [ -s /var/log/hppldu.log ]; then
+	if [[ -s /var/log/hppldu.log ]]; then
 		addHeaderFile $OFPSP
 		PSPFILES="/var/log/hppldu.log"
 		(( $ADD_OPTION_LOGS )) && log_files $OFPSP 0 $PSPFILES || log_files $OFPSP $VAR_OPTION_LINE_COUNT $PSPFILES
-		if [ -d /var/hp ]; then
+		if [[ -d /var/hp ]]; then
 			PSPCFILES="$(find /var/hp/ -type f)"
 			conf_files $OFPSP $PSPCFILES
 		fi
