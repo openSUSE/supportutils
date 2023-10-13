@@ -1424,7 +1424,7 @@ mpio_info() {
 		for SDIR in $SCSI_DIRS
 		do
 			# Skip unwanted scsi directories
-			test "$SDIR" = "/proc/scsi" -o "$SDIR" = "/proc/scsi/sg" -o "$SDIR" = "/proc/scsi/mptspi" && continue
+			[[ "$SDIR" == "/proc/scsi" ]] || [[ "$SDIR" == "/proc/scsi/sg" ]] || [[ "$SDIR" == "/proc/scsi/mptspi" ]] && continue
 			FILES=$(find ${SDIR}/ -maxdepth 1 -type f 2>/dev/null)
 			conf_files $OF $FILES
 		done
@@ -1439,7 +1439,7 @@ mpio_info() {
 	else
 		((SKIP++))
 	fi
-	test $SKIP -lt 2 && echolog Done || echolog Skipped
+	(( $SKIP < 2 )) && echolog Done || echolog Skipped
 }
 
 detectProducts() {
@@ -2050,7 +2050,7 @@ disk_info() {
 			[[ -d /proc/scsi ]] && SCSI_DIRS=$(find /proc/scsi/ -type d) || SCSI_DIRS=""
 			for SDIR in $SCSI_DIRS
 			do
-				test "$SDIR" = "/proc/scsi" -o "$SDIR" = "/proc/scsi/sg" -o "$SDIR" = "/proc/scsi/mptspi" && continue
+				[[ "$SDIR" == "/proc/scsi" ]] || [[ "$SDIR" == "/proc/scsi/sg" ]] || [[ "$SDIR" == "/proc/scsi/mptspi" ]] && continue
 				FILES=$(find ${SDIR}/ -maxdepth 1 -type f 2>/dev/null)
 				conf_files $OF $FILES
 			done
@@ -2363,7 +2363,7 @@ udev_info() {
 					conf_files $OF $FILES
 				fi
 			done
-			test "$udev_db" != "" && log_cmd $OF "ls -l --time-style=long-iso ${udev_db}/"
+			[[ -n "$udev_db" ]] && log_cmd $OF "ls -l --time-style=long-iso ${udev_db}/"
 		fi
 		echolog Done
 	else
@@ -3262,7 +3262,7 @@ ldap_info() {
 		((SKIP++))
 	fi
 
-	test $SKIP -lt 3 && echolog Done || echolog Skipped
+	(( $SKIP < 3 )) && echolog Done || echolog Skipped
 }
 
 etc_info() {
@@ -3606,7 +3606,7 @@ print_info() {
 		((SKIP++))
 	fi
 
-	test $SKIP -lt 2 && echolog Done || echolog Skipped
+	(( $SKIP < 2 )) && echolog Done || echolog Skipped
 }
 
 sar_info() {
@@ -3755,7 +3755,7 @@ cimom_info() {
 		((SKIP++))
 	fi
 
-	test $SKIP -lt 2 && echolog Done || echolog Skipped
+	(( $SKIP < 2 )) && echolog Done || echolog Skipped
 }
 
 ib_info() {
