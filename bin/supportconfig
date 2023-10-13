@@ -1,7 +1,7 @@
 #!/bin/bash
 
-SVER='3.2.0'
-SDATE='2023 Oct 12'
+SVER='3.2.0_test5'
+SDATE='2023 Oct 13'
 
 ##############################################################################
 #  supportconfig - Gathers system troubleshooting information for SUSE Support
@@ -357,7 +357,7 @@ basic_healthcheck() {
 	FILES=$MCE_LOG
 	if [[ -s $MCE_LOG ]]; then
 		log_cmd $OF "ls -l --time-style=long-iso $MCE_LOG"
-		test $ADD_OPTION_LOGS -gt 0 && log_files $OF 0 $FILES || log_files $OF $VAR_OPTION_LINE_COUNT $FILES
+		(( $ADD_OPTION_LOGS )) && log_files $OF 0 $FILES || log_files $OF $VAR_OPTION_LINE_COUNT $FILES
 	fi
 
 	cat $PSPTMP >> $LOG/$OF
@@ -403,7 +403,7 @@ rpm_info() {
 # Run basic_healthcheck first TAINT & TAINT_STRING must be defined first
 module_info() {
 	printlog "System Modules..."
-	test $OPTION_MOD -eq 0 && { echolog Excluded; return 1; }
+	(( $OPTION_MOD )) || { echolog Excluded; return 1; }
 	OF=modules.txt
 	LOGFILE=$LOG/$OF
 	addHeaderFile $OF
@@ -412,18 +412,18 @@ module_info() {
 	do
 		log_cmd $OF "modinfo $MODULE"
 		MODPARM="/sys/module/$MODULE/parameters/"
-		if [ -d $MODPARM ]; then
+		if [[ -d $MODPARM ]]; then
 			log_write $OF "# Known Module Parameter Values"
 			for i in $(ls -1 $MODPARM)
 			do
 				MODVALUE=$(cat ${MODPARM}$i 2>/dev/null)
-				[ $? -ne 0 ] && MODVALUE="?"
+				(( $? )) && MODVALUE="?"
 				log_write $OF "${MODPARM}$i=$MODVALUE"
 			done
 			log_write $OF
 		fi
 		MODOPT=$(grep -R "options ${MODULE} " /etc/modprobe\.?* | grep -v ":# option")
-		[ -n "$MODOPT" ] && { log_write $OF "# Module Configuration"; log_write $OF "$MODOPT"; log_write $OF; }
+		[[ -n "$MODOPT" ]] && { log_write $OF "# Module Configuration"; log_write $OF "$MODOPT"; log_write $OF; }
 	done
 	conf_files $OF /lib/modules/$(uname -r)/modules.*dep
 	conf_files $OF /etc/modprobe.d/*
@@ -567,7 +567,7 @@ localwarn_file() {
 
 audit_info() {
 	printlog "Auditing..."
-	test $OPTION_AUDIT -eq 0 && { echolog Excluded; return 1; }
+	(( $OPTION_AUDIT )) || { echolog Excluded; return 1; }
 	OF=security-audit.txt
 	if rpm_verify $OF audit; then
 		addHeaderFile $OF
@@ -575,9 +575,9 @@ audit_info() {
 		log_cmd $OF 'auditctl -s'
 		log_cmd $OF 'auditctl -l'
 		log_cmd $OF 'aureport'
-		if [ -d /etc/audit ]; then
+		if [[ -d /etc/audit ]]; then
 			FILES=$(find -L /etc/audit/ -type f)
-			if [ -d /etc/audispd ]; then
+			if [[ -d /etc/audispd ]]; then
 				FILES="$FILES $(find -L /etc/audispd/ -type f)"
 			fi
 		else
@@ -585,7 +585,7 @@ audit_info() {
 		fi
 		conf_files $OF $FILES
 		FILES=$(find /var/log/audit/ -type f | egrep -v "/ltaudit/" | grep log$)
-		test $ADD_OPTION_LOGS -gt 0 && log_files $OF 0 $FILES || log_files $OF $VAR_OPTION_LINE_COUNT $FILES
+		(( $ADD_OPTION_LOGS )) && log_files $OF 0 $FILES || log_files $OF $VAR_OPTION_LINE_COUNT $FILES
 		echolog Done
 	else
 		echolog Skipped
@@ -670,7 +670,7 @@ boot_info() {
 
 	log_cmd $OF 'ls -lR --time-style=long-iso /boot/'
 	log_cmd $OF "lsinitrd -k $(uname -r)"
-	test $ADD_OPTION_LOGS -gt 0 && log_files $OF 0 $FILES || log_files $OF $VAR_OPTION_LINE_COUNT $FILES
+	(( $ADD_OPTION_LOGS )) && log_files $OF 0 $FILES || log_files $OF $VAR_OPTION_LINE_COUNT $FILES
 	log_cmd $OF 'journalctl --no-pager --disk-usage'
 	if (( $ADD_OPTION_LOGS > 0 )); then
 		log_cmd $OF 'journalctl --no-pager --list-boot'
@@ -741,7 +741,7 @@ bpf_info() {
 }
 smt_info() {
 	printlog "SMT..."
-	test $OPTION_SMT -eq 0 && { echolog Excluded; return 1; }
+	(( $OPTION_SMT )) || { echolog Excluded; return 1; }
 	OF=smt.txt
 	addHeaderFile $OF
 	if rpm_verify $OF smt; then
@@ -754,11 +754,11 @@ smt_info() {
 		log_cmd $OF 'smt-catalogs -o'
 		log_cmd $OF 'smt-list-registrations'
 		log_cmd $OF 'smt-list-products'
-		if [ -d /srv/www/htdocs/repo ]; then
+		if [[ -d /srv/www/htdocs/repo ]]; then
 			log_cmd $OF 'find /srv/www/htdocs/repo -print0 | sort -z | xargs -0 ls -ld --time-style=long-iso'
 		fi
 		FILES=$(find /var/log/ -type f | grep smt- | grep log$)
-		test $ADD_OPTION_LOGS -gt 0 && log_files $OF 0 $FILES || log_files $OF $VAR_OPTION_LINE_COUNT $FILES
+		(( $ADD_OPTION_LOGS )) && log_files $OF 0 $FILES || log_files $OF $VAR_OPTION_LINE_COUNT $FILES
 		_sanitize_file $OF
 		echolog Done
 	else
@@ -768,7 +768,7 @@ smt_info() {
 
 update_info() {
 	printlog "Updates..."
-	test $OPTION_UP -eq 0 && { echolog Excluded; return 1; }
+	(( $OPTION_UP )) || { echolog Excluded; return 1; }
 	OF=updates.txt
 	SKIP=0
 	TIMEOUT=0
@@ -780,7 +780,7 @@ update_info() {
 		log_cmd $OF 'zypper patterns --installed-only'
 		for CMDOPT in services 'repos -d' patch-check patches list-patches list-updates products '--xmlout products' 'packages --orphaned'
 		do
-			if [ $TIMEOUT -ge 10 ]; then
+			if (( $TIMEOUT >= 10 )); then
 				log_write $OF "#==[ Command ]======================================#"
 				log_write $OF "# Skipped \"zypper $CMDOPT\" due to previous timeout"
 				log_write $OF
@@ -1961,7 +1961,7 @@ net_info_namespace() {
 		FILES=$(grep logfile /etc/nscd.conf 2> /dev/null | grep -v ^# | awk '{print $2}' | tail -1)
 		test -n "$FILES" || FILES="/var/log/nscd.log"
 		FILES="$FILES /var/log/NetworkManager"
-		test $ADD_OPTION_LOGS -gt 0 && log_files $OF 0 $FILES || log_files $OF $VAR_OPTION_LINE_COUNT $FILES
+		(( $ADD_OPTION_LOGS )) && log_files $OF 0 $FILES || log_files $OF $VAR_OPTION_LINE_COUNT $FILES
 	fi
 	_sanitize_file $OF
 }
@@ -2128,10 +2128,10 @@ btrfs_info() {
 			conf_files $OF /etc/sysconfig/snapper /etc/snapper/configs/* /etc/snapper/filters/*
 		fi
                 FILES="/var/log/messages"
-                test $ADD_OPTION_LOGS -gt 0 && grep_log_files btrfs $OF 0 $FILES || grep_log_files btrfs $OF $VAR_OPTION_LINE_COUNT $FILES
+                (( $ADD_OPTION_LOGS )) && grep_log_files btrfs $OF 0 $FILES || grep_log_files btrfs $OF $VAR_OPTION_LINE_COUNT $FILES
 
 		FILES="/var/log/snapper.log"
-		test $ADD_OPTION_LOGS -gt 0 && log_files $OF 0 $FILES || log_files $OF $VAR_OPTION_LINE_COUNT $FILES
+		(( $ADD_OPTION_LOGS )) && log_files $OF 0 $FILES || log_files $OF $VAR_OPTION_LINE_COUNT $FILES
 		echolog Done
 	else
 		echolog Skipped
@@ -2295,9 +2295,9 @@ ntp_info() {
 				LOGDIR=$(grep ^${KEYNAME} $CONFFILE | awk '{print $2}')
 				[[ -z "$LOGDIR" ]] && LOGDIR='/var/log/chrony/'
 				FILES=$(find $LOGDIR -type f)
-				test $ADD_OPTION_LOGS -gt 0 && log_files $OF 0 $FILES || log_files $OF $VAR_OPTION_LINE_COUNT $FILES
+				(( $ADD_OPTION_LOGS )) && log_files $OF 0 $FILES || log_files $OF $VAR_OPTION_LINE_COUNT $FILES
 				FILES="/var/log/messages"
-				test $ADD_OPTION_LOGS -gt 0 && grep_log_files chrony $OF 0 $FILES || grep_log_files chrony $OF $VAR_OPTION_LINE_COUNT $FILES
+				(( $ADD_OPTION_LOGS )) && grep_log_files chrony $OF 0 $FILES || grep_log_files chrony $OF $VAR_OPTION_LINE_COUNT $FILES
 			fi
 			echolog Done
 		else
@@ -2602,7 +2602,7 @@ printlog "AUTOFS..."
 		done
 		_sanitize_file $OF
 		FILES="/var/log/messages"
-		test $ADD_OPTION_LOGS -gt 0 && grep_log_files automount $OF 0 $FILES || grep_log_files automount $OF $VAR_OPTION_LINE_COUNT $FILES
+		(( $ADD_OPTION_LOGS )) && grep_log_files automount $OF 0 $FILES || grep_log_files automount $OF $VAR_OPTION_LINE_COUNT $FILES
 		echolog Done
 	else
 		echolog Skipped
@@ -2633,7 +2633,7 @@ rpm_full_verify() {
 
 apparmor_info() {
 	printlog "AppArmor..."
-	test $OPTION_APPARMOR -eq 0 && { rm -f $AARPTMP &>/dev/null; echolog Excluded; return 1; }
+	(( $OPTION_APPARMOR )) || { rm -f $AARPTMP &>/dev/null; echolog Excluded; return 1; }
 	OF=security-apparmor.txt
 	addHeaderFile $OF
 	SKIP=0
@@ -2661,7 +2661,7 @@ apparmor_info() {
 		log_cmd $OF 'unconfined'
 		log_cmd $OF 'aa-status'
 		log_cmd $OF 'aa-notify -l'
-		[[ /etc/apparmor ]] && FILES=$(find -L /etc/apparmor/ | grep '\.conf$') || FILES=""
+		[[ -d /etc/apparmor ]] && FILES=$(find -L /etc/apparmor/ | grep '\.conf$') || FILES=""
 		conf_files $OF $FILES
 		log_files $OF 0 /var/log/audit/audit.log
 	else
@@ -2669,7 +2669,7 @@ apparmor_info() {
 	fi
 
 	rm -f $AARPTMP &>/dev/null
-	test $SKIP -lt 2 && echolog Done || echolog Skipped
+	(( $SKIP < 2 )) && echolog Done || echolog Skipped
 }
 
 selinux_info() {
@@ -2783,7 +2783,7 @@ ha_info() {
 			log_cmd $OF 'cibadmin -Q'
 			conf_files $OF $CURRENT_CIB $FILES
 			FILES="/var/log/ha-log /var/log/pacemaker/pacemaker.log /var/log/ctdb/log.ctdb"
-			test $ADD_OPTION_LOGS -gt 0 && log_files $OF 0 $FILES || log_files $OF $VAR_OPTION_LINE_COUNT $FILES
+			(( $ADD_OPTION_LOGS )) && log_files $OF 0 $FILES || log_files $OF $VAR_OPTION_LINE_COUNT $FILES
 			CORBIN="/usr/sbin/corosync-fplay"
 			if [[ -x $CORBIN ]]; then
 				CLN=$($CORBIN 2>/dev/null | wc -l)
@@ -2854,7 +2854,7 @@ slp_info() {
 	fi
 	echolog Done
 	FILES="/var/log/slpd.log"
-	test $ADD_OPTION_LOGS -gt 0 && log_files $OF 0 $FILES || log_files $OF $VAR_OPTION_LINE_COUNT $FILES
+	(( $ADD_OPTION_LOGS )) && log_files $OF 0 $FILES || log_files $OF $VAR_OPTION_LINE_COUNT $FILES
 }
 
 ocfs2_info() {
@@ -2928,7 +2928,7 @@ ocfs2_info() {
 			rm -f $O2C
 		fi
 		FILES="/var/log/messages"
-		test $ADD_OPTION_LOGS -gt 0 && grep_log_files ocfs $OF 0 $FILES || grep_log_files ocfs $OF $VAR_OPTION_LINE_COUNT $FILES
+		(( $ADD_OPTION_LOGS )) && grep_log_files ocfs $OF 0 $FILES || grep_log_files ocfs $OF $VAR_OPTION_LINE_COUNT $FILES
 		echolog Done
 	else
 		echolog Skipped
@@ -2970,7 +2970,7 @@ drbd_info() {
 			conf_files $OF "/etc/drbd.conf $FILES"
 		fi
 		FILES="/var/log/messages"
-		test $ADD_OPTION_LOGS -gt 0 && grep_log_files drbd $OF 0 $FILES || grep_log_files drbd $OF $VAR_OPTION_LINE_COUNT $FILES
+		(( $ADD_OPTION_LOGS )) && grep_log_files drbd $OF 0 $FILES || grep_log_files drbd $OF $VAR_OPTION_LINE_COUNT $FILES
 		echolog Done
 	else
 		echolog Skipped
@@ -2991,7 +2991,7 @@ haproxy_info() {
 		log_cmd $OF "ps aux | grep haproxy | grep -v grep"
 		conf_files $OF "/etc/haproxy/haproxy.cfg"
 		FILES="/var/log/messages"
-		test $ADD_OPTION_LOGS -gt 0 && grep_log_files haproxy $OF 0 $FILES || grep_log_files haproxy $OF $VAR_OPTION_LINE_COUNT $FILES
+		(( $ADD_OPTION_LOGS )) && grep_log_files haproxy $OF 0 $FILES || grep_log_files haproxy $OF $VAR_OPTION_LINE_COUNT $FILES
 		echolog Done
 	else
 		echolog Skipped
@@ -3100,7 +3100,7 @@ samba_info() {
 
 	if [ -d /var/log/samba ]; then
 		FILES=$(find /var/log/samba/ -type f | grep -v '/core')
-		test $ADD_OPTION_LOGS -gt 0 && log_files $OF 0 $FILES || log_files $OF $VAR_OPTION_LINE_COUNT $FILES
+		(( $ADD_OPTION_LOGS )) && log_files $OF 0 $FILES || log_files $OF $VAR_OPTION_LINE_COUNT $FILES
 	fi
 	
 	echolog Done
@@ -3602,7 +3602,7 @@ print_info() {
 		test -d /etc/cups/ppd && PPDFILES=$(find -L /etc/cups/ppd/ -type f) || PPDFILES=""
 		conf_files $OF /etc/sysconfig/printer /etc/printcap /etc/cups/cupsd.conf /etc/cups/printers.conf /etc/cups/mime.types /etc/cups/mime.convs $PPDFILES
 		FILES="/var/log/cups/error_log /var/log/cups/error_log.test /tmp/prnlog"
-		test $ADD_OPTION_LOGS -gt 0 && log_files $OF 0 $FILES || log_files $OF $VAR_OPTION_LINE_COUNT $FILES
+		(( $ADD_OPTION_LOGS )) && log_files $OF 0 $FILES || log_files $OF $VAR_OPTION_LINE_COUNT $FILES
 	else
 		((SKIP++))
 	fi
@@ -3750,7 +3750,7 @@ cimom_info() {
 		log_cmd $OF 'owenumnamespace -u https://localhost/root/cimv2'
 		log_cmd $OF 'owenumclassnames -u https://localhost/root/cimv2'
 		test -f /var/lib/openwbem/loadmof.log && FILES="/var/lib/openwbem/loadmof.log /var/lib/openwbem/loadmof.log.*" || unset FILES
-		test $ADD_OPTION_LOGS -gt 0 && log_files $OF 0 $FILES || log_files $OF $VAR_OPTION_LINE_COUNT $FILES
+		(( $ADD_OPTION_LOGS )) && log_files $OF 0 $FILES || log_files $OF $VAR_OPTION_LINE_COUNT $FILES
 	else
 		((SKIP++))
 	fi
@@ -3820,7 +3820,7 @@ ib_info() {
 			(( CHK_DIAG )) && FILES="$FILES $(find /tmp/ -type f -name \*ibdiagnet\* 2>/dev/null)"
 			(( CHK_OPENSM )) && FILES="$FILES /var/log/opensm.log"
 			(( CHK_ACM )) && FILES="$FILES /var/log/ibacm.log"
-			test $ADD_OPTION_LOGS -gt 0 && log_files $OF 0 $FILES || log_files $OF $VAR_OPTION_LINE_COUNT $FILES
+			(( $ADD_OPTION_LOGS )) && log_files $OF 0 $FILES || log_files $OF $VAR_OPTION_LINE_COUNT $FILES
 			echolog Done
 		else
 			echolog Skipped
@@ -3842,7 +3842,7 @@ web_info() {
 		FILES=$(find -L /etc/apache2/ -type f | grep 'conf$' | grep -v 'httpd.conf')
 		conf_files $OF $FILES
 		FILES=$(find /var/log/apache2/ -type f)
-		test $ADD_OPTION_LOGS -gt 0 && log_files $OF 0 $FILES || log_files $OF $VAR_OPTION_LINE_COUNT $FILES
+		(( $ADD_OPTION_LOGS )) && log_files $OF 0 $FILES || log_files $OF $VAR_OPTION_LINE_COUNT $FILES
 		TOMCAT=$(cat $LOG/$RPM_QA_FILE | grep '^tomcat')
 		for i in $TOMCAT
 		do
@@ -3857,7 +3857,7 @@ web_info() {
 			. /etc/sysconfig/j2ee
 			conf_files $OF $CATALINA_HOME/conf/server.xml
 			FILES="$CATALINA_HOME/logs/catalina.out $CATALINA_HOME/logs/localhost_log*"
-			test $ADD_OPTION_LOGS -gt 0 && log_files $OF 0 $FILES || log_files $OF $VAR_OPTION_LINE_COUNT $FILES
+			(( $ADD_OPTION_LOGS )) && log_files $OF 0 $FILES || log_files $OF $VAR_OPTION_LINE_COUNT $FILES
 		fi
 		echolog Done
 	else
@@ -3870,7 +3870,7 @@ hppsp_info() {
 	if [ -s /var/log/hppldu.log ]; then
 		addHeaderFile $OFPSP
 		PSPFILES="/var/log/hppldu.log"
-		test $ADD_OPTION_LOGS -gt 0 && log_files $OFPSP 0 $PSPFILES || log_files $OFPSP $VAR_OPTION_LINE_COUNT $PSPFILES
+		(( $ADD_OPTION_LOGS )) && log_files $OFPSP 0 $PSPFILES || log_files $OFPSP $VAR_OPTION_LINE_COUNT $PSPFILES
 		if [ -d /var/hp ]; then
 			PSPCFILES="$(find /var/hp/ -type f)"
 			conf_files $OFPSP $PSPCFILES
@@ -3929,7 +3929,7 @@ transactional_info() {
 		conf_files $OF /etc/transactional-update.conf
 		conf_files $OF /var/lib/misc/transactional-update.state
 		FILES="/var/log/transactional-update.log"
-		test $ADD_OPTION_LOGS -gt 0 && log_files $OF 0 $FILES || log_files $OF $VAR_OPTION_LINE_COUNT $FILES
+		(( $ADD_OPTION_LOGS )) && log_files $OF 0 $FILES || log_files $OF $VAR_OPTION_LINE_COUNT $FILES
 		echolog Done
 	else
 		echolog Skipped
@@ -3987,7 +3987,7 @@ else
 fi
 
 CURRENTUID=$(id -u)
-if [ $CURRENTUID -ne 0 ]; then
+if (( $CURRENTUID != 0 )); then
 	echo "ERROR: You must be logged in as root."
 	echo "       $(id)"
 	echo
@@ -4081,7 +4081,7 @@ do
 	esac
 done
 
-test $ADD_OPTION_LOGS -gt 0 && ADD_OPTION_MAXYAST=1
+(( $ADD_OPTION_LOGS )) && ADD_OPTION_MAXYAST=1
 
 umask 0077
 log2sys "Initialize"
@@ -4103,7 +4103,7 @@ fi
 
 if (( VAR_OPTION_UNIQUE_FILE )); then
 	NOTFOUND=$(echo $BASE | grep '%u')
-	test -z "$NOTFOUND" && BASE="${BASE}_%u" #add UID if not present already
+	[[ -z "$NOTFOUND" ]] && BASE="${BASE}_%u" #add UID if not present already
 fi
 
 if [[ -n "$FROM_DIRECTORY" ]]; then
@@ -4310,7 +4310,7 @@ LOGSIZE=$(ls -lh ${TARBALL} | awk '{print $5}')
 wait_trace_off -t
 wait_trace_on -t "md5sum $TARBALL"
 md5sum $TARBALL | awk '{print $1}' > ${TARBALL}.md5
-LOGMD5=$(cat ${TARBALL}.md5)-f
+LOGMD5=$(cat ${TARBALL}.md5)
 wait_trace_off -t
 
 rm -rf $LOG
