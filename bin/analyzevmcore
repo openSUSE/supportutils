@@ -228,7 +228,7 @@ checkkernel()
 	KERNEL=""
 	if [ -z "$USERKERNEL" ]; then
 		if [ -e README.txt ]; then
-			KERNEL=$($GREP_BIN "^Kernel version :" README.txt | $AWK_BIN '{print $NF}')
+			KERNEL=$($GREP_BIN "^Kernel version *:" README.txt | $AWK_BIN '{print $NF}')
 			if ! [ -z "$KERNEL" ]; then
 				KERNEL="vmlinux-$KERNEL.gz"
 			fi
