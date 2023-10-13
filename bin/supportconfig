@@ -3011,7 +3011,7 @@ memory_info() {
 	log_cmd $OF "free -k"
 	conf_files $OF /proc/meminfo /proc/vmstat
 	log_cmd $OF 'sysctl -a 2>/dev/null | grep ^vm'
-	[ -d /sys/kernel/mm/transparent_hugepage/ ] && FILES=$(find /sys/kernel/mm/transparent_hugepage/ -type f) || FILES=''
+	[[ -d /sys/kernel/mm/transparent_hugepage/ ]] && FILES=$(find /sys/kernel/mm/transparent_hugepage/ -type f) || FILES=''
 	conf_files $OF /proc/buddyinfo /proc/slabinfo /proc/zoneinfo $FILES
 	if rpm -q numactl &>/dev/null; then
 		log_cmd $OF 'numactl --hardware'
@@ -3467,7 +3467,7 @@ x_info() {
 		do
 			rpm -q $i &> /dev/null && verify_list="$verify_list $i"
 		done
-		[ -n "$verify_list" ] && rpm_verify $OF "$verify_list"
+		[[ -n "$verify_list" ]] && rpm_verify $OF "$verify_list"
 		if rpm -q xorg-x11-server &>/dev/null
 		then
 			CONTENT_FOUND=1
@@ -3487,7 +3487,7 @@ x_info() {
 			    xorg_conf='/etc/X11/xorg.conf.d/*'
 			    TMPLOG=0
 			fi
-			[ -n "$xorg_conf" ] && ADD_OPTION_LOGS=$TMPLOG conf_files $OF $xorg_conf
+			[[ -n "$xorg_conf" ]] && ADD_OPTION_LOGS=$TMPLOG conf_files $OF $xorg_conf
 		fi
 		if [[ -d /sys/class/drm ]]
 		then
@@ -3538,7 +3538,7 @@ slert_info() {
 	if rpm_verify $OF kernel-rt
 	then
 		log_cmd $OF "uname -r"
-		[ -e /etc/init.d/slert ] && check_service $OF slert
+		[[ -e /etc/init.d/slert ]] && check_service $OF slert
 		if rpm -q cpuset &>/dev/null; then
 			rpm_verify $OF cpuset
 			if [[ -e /etc/init.d/cset ]]; then
@@ -3656,7 +3656,7 @@ dns_info() {
 	addHeaderFile $OF
 	if rpm_verify $OF bind; then
 		check_service $OF named
-		[ $SKIP -gt 0 ] && log_cmd $OF 'ss -nlp | grep named'
+		(( $SKIP )) && log_cmd $OF 'ss -nlp | grep named'
 		FILES=$(grep ^include /etc/named.conf | cut -d';' -f1 | sed -e 's/"//g'  | awk '{print $2}')
 		conf_files $OF /etc/named.conf $FILES /etc/sysconfig/named
 		ZDIR=$(grep ^[[:space:]]*directory /etc/named.conf | cut -d';' -f1 | sed -e 's/"//g'  | awk '{print $2}')
