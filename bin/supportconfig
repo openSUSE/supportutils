@@ -815,10 +815,10 @@ update_info() {
 
 	if rpm -q libzypp &> /dev/null; then
 		QPBIN=$(rpm -ql libzypp | grep query-pool)
-		test -n "$QPBIN" && timed_log_cmd $OF "$QPBIN products" || ((SKIP++))
+		[[ -n "$QPBIN" ]] && timed_log_cmd $OF "$QPBIN products" || ((SKIP++))
 	elif rpm -q libzypp-zmd-backend &> /dev/null; then
 		QPBIN=$(rpm -ql libzypp-zmd-backend | grep query-pool)
-		test -n "$QPBIN" && timed_log_cmd $OF "$QPBIN products" || ((SKIP++))
+		[[ -n "$QPBIN" ]] && timed_log_cmd $OF "$QPBIN products" || ((SKIP++))
 	fi
 
 	if rpm -q zypper &> /dev/null; then
@@ -1959,7 +1959,7 @@ net_info_namespace() {
 		fi
 		conf_files $OF /usr/etc/services
 		FILES=$(grep logfile /etc/nscd.conf 2> /dev/null | grep -v ^# | awk '{print $2}' | tail -1)
-		test -n "$FILES" || FILES="/var/log/nscd.log"
+		[[ -n "$FILES" ]] || FILES="/var/log/nscd.log"
 		FILES="$FILES /var/log/NetworkManager"
 		(( $ADD_OPTION_LOGS )) && log_files $OF 0 $FILES || log_files $OF $VAR_OPTION_LINE_COUNT $FILES
 	fi
