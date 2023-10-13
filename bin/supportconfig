@@ -1586,7 +1586,7 @@ hardware_info() {
 	log_cmd $OF 'cpupower frequency-info'
 	log_cmd $OF 'cpupower idle-info'
 	log_cmd $OF 'cpupower info'
-	if [[ $MIN_OPTION_AUTOMOD -eq 0 ]]; then
+	if ! (( $MIN_OPTION_AUTOMOD )); then
 		log_write $OF "#==[ Warning ]======================================#"
 		log_write $OF "# Autoloading kernel modules disabled. Don't use -k."
 		log_write $OF "# Excluding hwinfo"
@@ -1804,9 +1804,7 @@ net_info_namespace() {
 	log_cmd $OF "${NS}ip -stats link"
 	log_cmd $OF "${NS}ip -stats neighbor"
 	if [[ -z "${NS}" ]]; then
-		if [[ $MIN_OPTION_AUTOMOD -ne 0 ]]; then
-			timed_log_cmd $OF 'hwinfo --netcard'
-		fi
+		(( $MIN_OPTION_AUTOMOD )) && timed_log_cmd $OF 'hwinfo --netcard'
 		conf_files $OF /proc/sys/net/ipv4/ip_forward /etc/HOSTNAME
 		log_cmd $OF "${NS}hostname"
 		# s390 specific
@@ -1858,7 +1856,7 @@ net_info_namespace() {
 	log_cmd $OF "${NS}ss -nap"
 	log_cmd $OF "${NS}ip ntable show"
 	log_cmd $OF "${NS}nstat -az"
-	if [[ $MIN_OPTION_AUTOMOD -eq 0 ]]; then
+	if ! (( $MIN_OPTION_AUTOMOD )); then
 		log_write $OF "#==[ Warning ]======================================#"
 		log_write $OF "# Autoloading kernel modules disabled. Don't use -k."
 		log_write $OF "# Excluding IPsec command: xfrm"
@@ -1870,7 +1868,7 @@ net_info_namespace() {
 	log_cmd $OF "${NS}ip maddr show"
 	log_cmd $OF "${NS}ip mroute show"
 
-	if [[ $MIN_OPTION_AUTOMOD -eq 0 ]]; then
+	if ! (( $MIN_OPTION_AUTOMOD )); then
 		log_write $OF "#==[ Warning ]======================================#"
 		log_write $OF "# Autoloading kernel modules disabled. Don't use -k."
 		log_write $OF "# Excluding Bridge command: brctl"
@@ -3579,7 +3577,7 @@ print_info() {
 		log_cmd $OF "systemctl status cups.service"
 		log_cmd $OF 'ss -nlp | grep cupsd'
 		BEP=$(ls -1 /usr/lib*/cups/backend/parallel 2>/dev/null | head -n1)
-		if [[ $MIN_OPTION_AUTOMOD -eq 0 ]]; then
+		if ! (( $MIN_OPTION_AUTOMOD )); then
 			log_write $OF "#==[ Warning ]======================================#"
 			log_write $OF "# Autoloading kernel modules disabled. Don't use -k."
 			log_write $OF "# Excluding $BEP"
