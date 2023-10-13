@@ -617,7 +617,7 @@ yast_files() {
 
 boot_info() {
 	printlog "Boot Files..."
-	test $OPTION_BOOT -eq 0 && { echolog Excluded; return 1; }
+	(( $OPTION_BOOT )) || { echolog Excluded; return 1; }
 	OF=boot.txt
 	addHeaderFile $OF
 	log_cmd $OF "uname -a"
@@ -705,7 +705,7 @@ boot_info() {
 
 bpf_info() {
 	printlog "BPF..."
-	test $OPTION_BPF -eq 0 && { echolog Excluded; return 1; }
+	(( $OPTION_BPF )) || { echolog Excluded; return 1; }
 	OF=bpf.txt
 	addHeaderFile $OF
 	bpf_present=$(zgrep 'CONFIG_BPF=y' /proc/config.gz)
@@ -941,7 +941,7 @@ pam_info() {
 
 sssd_info() {
 	printlog "System Security Services..."
-	test $OPTION_SSSD -eq 0 && { echolog Excluded; return 1; }
+	(( $OPTION_SSSD )) || { echolog Excluded; return 1; }
 	OF=sssd.txt
 	addHeaderFile $OF
 	if rpm_verify $OF sssd; then
@@ -1003,7 +1003,7 @@ sssd_info() {
 
 environment_info() {
 	printlog "Environment..."
-	test $OPTION_ENV -eq 0 && { echolog Excluded; return 1; }
+	(( $OPTION_ENV )) || { echolog Excluded; return 1; }
 	OF=env.txt
 	addHeaderFile $OF
 	log_icmd $OF 'ulimit -a'
@@ -1043,7 +1043,7 @@ environment_info() {
 
 systemd_info() {
 	printlog "SystemD..."
-	test $OPTION_DAEMONS -eq 0 && { echolog Excluded; return 1; }
+	(( $OPTION_DAEMONS )) || { echolog Excluded; return 1; }
 	OF=systemd.txt
 	OF2=systemd-status.txt
 	addHeaderFile $OF
@@ -1086,7 +1086,7 @@ systemd_info() {
 
 docker_info() {
 	printlog "Docker..."
-	test $OPTION_DOCKER -eq 0 && { echolog Excluded; return 1; }
+	(( $OPTION_DOCKER )) || { echolog Excluded; return 1; }
 	OF=docker.txt
 	addHeaderFile $OF
 	DOCKERSCDIR=$LOG/docker
@@ -1123,7 +1123,7 @@ docker_info() {
 
 plymouth_info() {
 	printlog "Plymouth..."
-	test $OPTION_PLYMOUTH -eq 0 && { echolog Excluded; return 1; }
+	(( $OPTION_PLYMOUTH )) || { echolog Excluded; return 1; }
 	OF=plymouth.txt
 	addHeaderFile $OF
 	plymouth_configs="/etc/plymouth/plymouthd.conf /usr/share/plymouth/plymouthd.defaults /etc/logrotate.d/bootlog"
@@ -1147,7 +1147,7 @@ plymouth_info() {
 
 podman_info() {
 	printlog "Podman..."
-	test $OPTION_PODMAN -eq 0 && { echolog Excluded; return 1; }
+	(( $OPTION_PODMAN )) || { echolog Excluded; return 1; }
 	OF=podman-root.txt
 	addHeaderFile $OF
 	PODMANSCDIR=$LOG/podman
@@ -1286,7 +1286,7 @@ podman_info() {
 
 cron_info() {
 	printlog "CRON..."
-	test $OPTION_CRON -eq 0 && { echolog Excluded; return 1; }
+	(( $OPTION_CRON )) || { echolog Excluded; return 1; }
 	OF=cron.txt
 	addHeaderFile $OF
 	if rpm_verify $OF cronie
@@ -1331,7 +1331,7 @@ cron_info() {
 
 soft_raid_info() {
 	printlog "Software Raid..."
-	test $OPTION_SRAID -eq 0 && { echolog Excluded; return 1; }
+	(( $OPTION_SRAID )) || { echolog Excluded; return 1; }
 	OF=fs-softraid.txt
 	addHeaderFile $OF
 	conf_files $OF /proc/mdstat
@@ -1355,7 +1355,7 @@ soft_raid_info() {
 
 lvm_info() {
 	printlog "LVM..."
-	test $OPTION_LVM -eq 0 && { echolog Excluded; return 1; }
+	(( $OPTION_LVM )) || { echolog Excluded; return 1; }
 	echonlog "Please Wait..."
 	OF=lvm.txt
 	local LVM_IO_DELAYS=0
@@ -1401,7 +1401,7 @@ lvm_info() {
 
 mpio_info() {
 	printlog "Multipathing..."
-	test $OPTION_MPIO -eq 0 && { echolog Excluded; return 1; }
+	(( $OPTION_MPIO )) || { echolog Excluded; return 1; }
 	OF=mpio.txt
 	addHeaderFile $OF
 	SKIP=0
@@ -1765,7 +1765,7 @@ hardware_info() {
 
 net_info() {
 	printlog "Networking..."
-	test $OPTION_NET -eq 0 && { echolog Excluded; return 1; }
+	(( $OPTION_NET )) || { echolog Excluded; return 1; }
 	if (( $INCLUDE_NETWORK_NAMESPACES )); then
 		NAMESPACES=$(ip netns list)
 		if [[ -n "${NAMESPACES}" ]] ; then
@@ -1968,7 +1968,7 @@ net_info_namespace() {
 
 disk_info() {
 	printlog "Disk I/O..."
-	test $OPTION_DISK -eq 0 && { echolog Excluded; return 1; }
+	(( $OPTION_DISK )) || { echolog Excluded; return 1; }
 	OF=fs-diskio.txt
 	addHeaderFile $OF
 	conf_files $OF /proc/partitions /etc/fstab
@@ -2093,7 +2093,7 @@ disk_info() {
 
 btrfs_info() {
 	printlog "B-tree File System..."
-	test $OPTION_BTRFS -eq 0 && { echolog Excluded; return 1; }
+	(( $OPTION_BTRFS )) || { echolog Excluded; return 1; }
 	OF=fs-btrfs.txt
 	if rpm_verify $OF btrfsprogs; then
 		addHeaderFile $OF
@@ -2140,7 +2140,7 @@ btrfs_info() {
 
 iscsi_info() {
 	printlog "iSCSI..."
-	test $OPTION_ISCSI -eq 0 && { echolog Excluded; return 1; }
+	(( $OPTION_ISCSI )) || { echolog Excluded; return 1; }
 	OF=fs-iscsi.txt
 	addHeaderFile $OF
 	FILES=''
@@ -2188,7 +2188,7 @@ iscsi_info() {
 
 nfs_info() {
 	printlog "NFS..."
-	test $OPTION_NFS -eq 0 && { echolog Excluded; return 1; }
+	(( $OPTION_NFS )) || { echolog Excluded; return 1; }
 	OF=nfs.txt
 	addHeaderFile $OF
 	if rpm_verify $OF nfs-client
@@ -2248,7 +2248,7 @@ nfs_info() {
 
 ntp_info() {
 	printlog "NTP..."
-	test $OPTION_NTP -eq 0 && { echolog Excluded; return 1; }
+	(( $OPTION_NTP )) || { echolog Excluded; return 1; }
 	OF=ntp.txt
 	CONFFILE=/etc/ntp.conf
 	addHeaderFile $OF
@@ -2309,7 +2309,7 @@ ntp_info() {
 
 nvme_info() {
 	printlog "NVMe..."
-	test $OPTION_NVME -eq 0 && { echolog Excluded; return 1; }
+	(( $OPTION_NVME )) || { echolog Excluded; return 1; }
 	OF=nvme.txt
 	addHeaderFile $OF
 	NVME_PKG='nvme-cli'
@@ -2352,7 +2352,7 @@ nvme_info() {
 
 udev_info() {
 	printlog "UDEV..."
-	test $OPTION_UDEV -eq 0 && { echolog Excluded; return 1; }
+	(( $OPTION_UDEV )) || { echolog Excluded; return 1; }
 	OF=udev.txt
 	addHeaderFile $OF
 	if rpm_verify $OF udev
@@ -2382,7 +2382,7 @@ udev_info() {
 crash_info() {
 	printlog "Crash Info..."
 	# Call fslist_info first to search for core files
-	test $OPTION_CRASH -eq 0 && { echolog Excluded; return 1; }
+	(( $OPTION_CRASH )) || { echolog Excluded; return 1; }
 	OF=crash.txt
 	addHeaderFile $OF
 	SKIP=0
@@ -2541,7 +2541,7 @@ crash_info() {
 
 autofs_info() {
 printlog "AUTOFS..."
-	test $OPTION_AUTOFS -eq 0 && { echolog Excluded; return 1; }
+	(( $OPTION_AUTOFS )) || { echolog Excluded; return 1; }
 	OF=fs-autofs.txt
 	addHeaderFile $OF
 	if rpm_verify $OF autofs || rpm_verify $OF autofs4 || rpm_verify $OF autofs5
@@ -2715,7 +2715,7 @@ selinux_info() {
 
 ha_info() {
 	printlog "HA Cluster..."
-	test $OPTION_HA -eq 0 && { echolog Excluded; return 1; }
+	(( $OPTION_HA )) || { echolog Excluded; return 1; }
 	OF=ha.txt
 	addHeaderFile $OF
 	case $SLES_VER in
@@ -2805,7 +2805,7 @@ ha_info() {
 
 slp_info() {
 	printlog "SLP..."
-	test $OPTION_SLP -eq 0 && { echolog Excluded; return 1; }
+	(( $OPTION_SLP )) || { echolog Excluded; return 1; }
 	OF=slp.txt
 	addHeaderFile $OF
 	if rpm_verify $OF openslp-server
@@ -2937,7 +2937,7 @@ ocfs2_info() {
 
 drbd_info() {
 	printlog "DRBD..."
-	test $OPTION_DRBD -eq 0 && { echolog Excluded; return 1; }
+	(( $OPTION_DRBD )) || { echolog Excluded; return 1; }
 	OF=drbd.txt
 	addHeaderFile $OF
 	if [[ -s /etc/drbd.conf ]]
@@ -2979,7 +2979,7 @@ drbd_info() {
 
 haproxy_info() {
 	printlog "HAPROXY..."
-	test $OPTION_HAPROXY -eq 0 && { echolog Excluded; return 1; }
+	(( $OPTION_HAPROXY )) || { echolog Excluded; return 1; }
 	OF=haproxy.txt
 	addHeaderFile $OF
 	if [[ -s /etc/haproxy/haproxy.cfg ]]
@@ -3000,7 +3000,7 @@ haproxy_info() {
 
 root_shell_history_info() {
 	printlog "Command History..."
-	test $OPTION_HISTORY -eq 0 && { echolog Excluded; return 1; }
+	(( $OPTION_HISTORY )) || { echolog Excluded; return 1; }
 	OF=shell_history.txt
 	addHeaderFile $OF
 	log_icmd $OF "history"
@@ -3010,7 +3010,7 @@ root_shell_history_info() {
 
 memory_info() {
 	printlog "Memory Details..."
-	test $OPTION_MEM -eq 0 && { echolog Excluded; return 1; }
+	(( $OPTION_MEM )) || { echolog Excluded; return 1; }
 	OF=memory.txt
 	addHeaderFile $OF
 	log_cmd $OF "vmstat 1 4"
@@ -3037,7 +3037,7 @@ memory_info() {
 
 open_files() {
 	printlog "Open Files..."
-	test $OPTION_OFILES -eq 0 && { echolog Excluded; return 1; }
+	(( $OPTION_OFILES )) || { echolog Excluded; return 1; }
 	OF=open-files.txt
 	addHeaderFile $OF
 	if rpm_verify $OF lsof
@@ -3051,7 +3051,7 @@ open_files() {
 
 samba_info() {
 	printlog "Samba..."
-	test $OPTION_SMB -eq 0 && { echolog Excluded; return 1; }
+	(( $OPTION_SMB )) || { echolog Excluded; return 1; }
 	OF=samba.txt
 	RPMPATH=$LOG/$RPMFILE
 	addHeaderFile $OF
@@ -3118,7 +3118,7 @@ fslist_info() {
 
 fslist_ufiles_info() {
 	printlog "Additional Files List..."
-	test $OPTION_UFILES -eq 0 && { echolog Skipped; return 1; }
+	(( $OPTION_UFILES )) || { echolog Skipped; return 1; }
 	OF=fs-files-additional.txt
 	addHeaderFile $OF
 	UFUID=$(stat -c%u $FSLIST_ADD_FILE)
@@ -3157,7 +3157,7 @@ fslist_ufiles_info() {
 
 smartmon_info() {
 	printlog "SMART Disks..."
-	test $OPTION_SMART -eq 0 && { echolog Excluded; return 1; }
+	(( $OPTION_SMART )) || { echolog Excluded; return 1; }
 	OF=fs-smartmon.txt
 	addHeaderFile $OF
 	if rpm_verify $OF smartmontools
@@ -3184,7 +3184,7 @@ smartmon_info() {
 
 ldap_info() {
 	printlog "LDAP..."
-	test $OPTION_LDAP -eq 0 && { echolog Excluded; return 1; }
+	(( $OPTION_LDAP )) || { echolog Excluded; return 1; }
 	OF=ldap.txt
 	addHeaderFile $OF
 	SKIP=0
@@ -3275,7 +3275,7 @@ ldap_info() {
 
 etc_info() {
 	printlog "ETC..."
-	test $OPTION_ETC -eq 0 && { echolog Excluded; return 1; }
+	(( $OPTION_ETC )) || { echolog Excluded; return 1; }
 	OF=etc.txt
 	addHeaderFile $OF
 	# Let us get alternatives output
@@ -3289,7 +3289,7 @@ etc_info() {
 
 sysconfig_info() {
 	printlog "SYSCONFIG..."
-	test $OPTION_SYSCONFIG -eq 0 && { echolog Excluded; return 1; }
+	(( $OPTION_SYSCONFIG )) || { echolog Excluded; return 1; }
 	OF=sysconfig.txt
 	addHeaderFile $OF
 	for FILE in $(find /etc/sysconfig/ -maxdepth 1 -type f | sort -f)
@@ -3309,7 +3309,7 @@ sysconfig_info() {
 
 proc_info() {
 	printlog "PROC..."
-	test $OPTION_PROC -eq 0 && { echolog Excluded; return 1; }
+	(( $OPTION_PROC )) || { echolog Excluded; return 1; }
 	OF=proc.txt
 	addHeaderFile $OF
 
@@ -3404,7 +3404,7 @@ x_info() {
 	local CONTENT_FOUND=0
 
 	printlog "X..."
-	test $OPTION_X -eq 0 && { echolog Excluded; return 1; }
+	(( $OPTION_X )) || { echolog Excluded; return 1; }
 	OF=x.txt
 	addHeaderFile $OF
 	case $SLES_VER in
@@ -3523,7 +3523,7 @@ x_info() {
 
 ssh_info() {
 	printlog "SSH..."
-	test $OPTION_SSH -eq 0 && { echolog Excluded; return 1; }
+	(( $OPTION_SSH )) || { echolog Excluded; return 1; }
 	OF=ssh.txt
 	addHeaderFile $OF
 	if rpm_verify $OF openssh
@@ -3539,7 +3539,7 @@ ssh_info() {
 
 slert_info() {
 	printlog "SLERT..."
-	test $OPTION_SLERT -eq 0 && { echolog Excluded; return 1; }
+	(( $OPTION_SLERT )) || { echolog Excluded; return 1; }
 	OF=slert.txt
 	addHeaderFile $OF
 	if rpm_verify $OF kernel-rt
@@ -3577,7 +3577,7 @@ slert_info() {
 
 print_info() {
 	printlog "Printing..."
-	test $OPTION_PRINT -eq 0 && { echolog Excluded; return 1; }
+	(( $OPTION_PRINT )) || { echolog Excluded; return 1; }
 	OF=print.txt
 	addHeaderFile $OF
 	SKIP=0
@@ -3620,7 +3620,7 @@ print_info() {
 
 sar_info() {
 	printlog "SAR Files..."
-	test $OPTION_SAR -eq 0 && { echolog Excluded; return 1; }
+	(( $OPTION_SAR )) || { echolog Excluded; return 1; }
 	OF=sar.txt
 	addHeaderFile $OF
 	SARDIR=/var/log/sa
@@ -3657,7 +3657,7 @@ sar_info() {
 
 dns_info() {
 	printlog "DNS..."
-	test $OPTION_DNS -eq 0 && { echolog Excluded; return 1; }
+	(( $OPTION_DNS )) || { echolog Excluded; return 1; }
 	SKIP=0
 	OF=dns.txt
 	addHeaderFile $OF
@@ -3683,7 +3683,7 @@ dns_info() {
 
 dhcp_info() {
 	printlog "DHCP..."
-	test $OPTION_DHCP -eq 0 && { echolog Excluded; return 1; }
+	(( $OPTION_DHCP )) || { echolog Excluded; return 1; }
 	OF=dhcp.txt
 	addHeaderFile $OF
 	SKIP=0
@@ -3702,7 +3702,7 @@ dhcp_info() {
 
 tuned_info() {
 	printlog "Tuned..."
-	test $OPTION_TUNED -eq 0 && { echolog Excluded; return 1; }
+	(( $OPTION_TUNED )) || { echolog Excluded; return 1; }
 	OF=tuned.txt
 	addHeaderFile $OF
 	if rpm_verify $OF tuned; then
@@ -3728,7 +3728,7 @@ tuned_info() {
 
 cimom_info() {
 	printlog "CIMOM..."
-	test $OPTION_CIMOM -eq 0 && { echolog Excluded; return 1; }
+	(( $OPTION_CIMOM )) || { echolog Excluded; return 1; }
 	OF=cimom.txt
 	addHeaderFile $OF
 	SKIP=0
@@ -3769,7 +3769,7 @@ cimom_info() {
 
 ib_info() {
 	printlog "InfiniBand..."
-	test $OPTION_IB -eq 0 && { echolog Excluded; return 1; }
+	(( $OPTION_IB )) || { echolog Excluded; return 1; }
 	OF=ib.txt
 	addHeaderFile $OF
 	case $SLES_VER in
@@ -3832,7 +3832,7 @@ ib_info() {
 
 web_info() {
 	printlog "Web..."
-	test $OPTION_WEB -eq 0 && { echolog Excluded; return 1; }
+	(( $OPTION_WEB )) || { echolog Excluded; return 1; }
 	SKIP=0
 	OF=web.txt
 	addHeaderFile $OF
@@ -3880,7 +3880,7 @@ hppsp_info() {
 
 sysfs_info() {
 	printlog "SYSFS..."
-	test $OPTION_SYSFS -eq 0 && { echolog Excluded; return 1; }
+	(( $OPTION_SYSFS )) || { echolog Excluded; return 1; }
 	OF=sysfs.txt
 	addHeaderFile $OF
 	log_entry $OF command "/bin/find /sys | sed -e 's/\\/\\\\/g' | xargs ls -ld --time-style=long-iso"
@@ -3919,7 +3919,7 @@ sysfs_info() {
 
 transactional_info() {
 	printlog "Transactional Update..."
-	test $OPTION_TRANSACTIONAL -eq 0 && { echolog Excluded; return 1; }
+	(( $OPTION_TRANSACTIONAL )) || { echolog Excluded; return 1; }
 	OF=transactional-update.txt
 	addHeaderFile $OF
 	if rpm_verify $OF transactional-update; then
@@ -3938,7 +3938,7 @@ transactional_info() {
 
 kernel_livepatch_info() {
 	printlog "Kernel Livepatch..."
-	test $OPTION_LIVEPATCH -eq 0 && { echolog Excluded; return 1; }
+	(( $OPTION_LIVEPATCH )) || { echolog Excluded; return 1; }
 	OF=kernel-livepatch.txt
 	addHeaderFile $OF
 	for FDIR in $(find /sys/kernel/livepatch/ -maxdepth 1 -type d | grep -v "/sys/kernel/livepatch/$")
@@ -3953,7 +3953,7 @@ kernel_livepatch_info() {
 
 email_info() {
 	printlog "Email..."
-	test $OPTION_EMAIL -eq 0 && { echolog Excluded; return 1; }
+	(( $OPTION_EMAIL )) || { echolog Excluded; return 1; }
 	OF=email.txt
 	addHeaderFile $OF
 	if rpm_verify $OF postfix; then
