@@ -3486,20 +3486,19 @@ x_info() {
 			log_cmd $OF 'lspci -nn'
 
 			conf_files $OF /etc/sysconfig/displaymanager /etc/sysconfig/windowmanager /etc/xinetd.d/vnc
-			if [ -e /etc/X11/xorg.conf ]
-			then
-			xorg_conf=/etc/X11/xorg.conf
-			TMPLOG=$ADD_OPTION_LOGS
-			else [ -d /etc/X11/xorg.conf.d ]
-			xorg_conf='/etc/X11/xorg.conf.d/*'
-			TMPLOG=0
+			if [[ -e /etc/X11/xorg.conf ]]; then
+			    xorg_conf=/etc/X11/xorg.conf
+			    TMPLOG=$ADD_OPTION_LOGS
+			elif [[ -d /etc/X11/xorg.conf.d ]]; then
+			    xorg_conf='/etc/X11/xorg.conf.d/*'
+			    TMPLOG=0
 			fi
 			[ -n "$xorg_conf" ] && ADD_OPTION_LOGS=$TMPLOG conf_files $OF $xorg_conf
 		fi
 		if [[ -d /sys/class/drm ]]
 		then
 			CONTENT_FOUND=1
-			if [ "$xserver_present" == "n" ]
+			if [[ "$xserver_present" == "n" ]]
 			then
 			log_cmd $OF 'mokutil --sb-state'
 			log_cmd $OF 'lspci -nn'
