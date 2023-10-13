@@ -200,69 +200,63 @@ basic_healthcheck() {
 	TAINT_SRC='/proc/sys/kernel/tainted'
 	conf_files $OF $TAINT_SRC
 	TAINT=$(cat $TAINT_SRC)
-	TAINTED=0
-	if (( ${#TAINT} > 1 )); then
-		TAINTED=1
-	elif (( ${TAINT} > 0 )); then
-		TAINTED=1
-	fi
-	if (( TAINTED )); then
+	if (( $TAINT )); then
 		# TAINT=$(( 1 + 2 + 4 + 8 + 16 + 32 + 64 + 128 + 256 ))
 		# Refer to /usr/src/linux/include/linux/kernel.h and /usr/src/linux/kernel/panic.c (print_tainted function)
 		TAINT_STRING=""
 
 		# common to all versions SLES15 and higher
-		test $((TAINT & 1))     -ne 0 && TAINT_STRING="${TAINT_STRING}P" || TAINT_STRING="${TAINT_STRING} "
-		test $((TAINT & 2))     -ne 0 && TAINT_STRING="${TAINT_STRING}F" || TAINT_STRING="${TAINT_STRING} "
-		test $((TAINT & 4))     -ne 0 && TAINT_STRING="${TAINT_STRING}S" || TAINT_STRING="${TAINT_STRING} "
-		test $((TAINT & 8))     -ne 0 && TAINT_STRING="${TAINT_STRING}R" || TAINT_STRING="${TAINT_STRING} "
-		test $((TAINT & 16))    -ne 0 && TAINT_STRING="${TAINT_STRING}M" || TAINT_STRING="${TAINT_STRING} "
-		test $((TAINT & 32))    -ne 0 && TAINT_STRING="${TAINT_STRING}B" || TAINT_STRING="${TAINT_STRING} "
-		test $((TAINT & 64))    -ne 0 && TAINT_STRING="${TAINT_STRING}U" || TAINT_STRING="${TAINT_STRING} "
-		test $((TAINT & 128))   -ne 0 && TAINT_STRING="${TAINT_STRING}D" || TAINT_STRING="${TAINT_STRING} "
-		test $((TAINT & 256))   -ne 0 && TAINT_STRING="${TAINT_STRING}A" || TAINT_STRING="${TAINT_STRING} "
-		test $((TAINT & 512))   -ne 0 && TAINT_STRING="${TAINT_STRING}W" || TAINT_STRING="${TAINT_STRING} "
-		test $((TAINT & 1024))  -ne 0 && TAINT_STRING="${TAINT_STRING}C" || TAINT_STRING="${TAINT_STRING} "
-		test $((TAINT & 2048))  -ne 0 && TAINT_STRING="${TAINT_STRING}I" || TAINT_STRING="${TAINT_STRING} "
-		test $((TAINT & 4096))  -ne 0 && TAINT_STRING="${TAINT_STRING}O" || TAINT_STRING="${TAINT_STRING} "
-		test $((TAINT & 8192))  -ne 0 && TAINT_STRING="${TAINT_STRING}E" || TAINT_STRING="${TAINT_STRING} "
-		test $((TAINT & 16384)) -ne 0 && TAINT_STRING="${TAINT_STRING}L" || TAINT_STRING="${TAINT_STRING} "
-		test $((TAINT & 32768)) -ne 0 && TAINT_STRING="${TAINT_STRING}K" || TAINT_STRING="${TAINT_STRING} "
+		((TAINT & 1)) && TAINT_STRING="${TAINT_STRING}P" || TAINT_STRING="${TAINT_STRING} "
+		((TAINT & 2)) && TAINT_STRING="${TAINT_STRING}F" || TAINT_STRING="${TAINT_STRING} "
+		((TAINT & 4)) && TAINT_STRING="${TAINT_STRING}S" || TAINT_STRING="${TAINT_STRING} "
+		((TAINT & 8)) && TAINT_STRING="${TAINT_STRING}R" || TAINT_STRING="${TAINT_STRING} "
+		((TAINT & 16)) && TAINT_STRING="${TAINT_STRING}M" || TAINT_STRING="${TAINT_STRING} "
+		((TAINT & 32)) && TAINT_STRING="${TAINT_STRING}B" || TAINT_STRING="${TAINT_STRING} "
+		((TAINT & 64)) && TAINT_STRING="${TAINT_STRING}U" || TAINT_STRING="${TAINT_STRING} "
+		((TAINT & 128)) && TAINT_STRING="${TAINT_STRING}D" || TAINT_STRING="${TAINT_STRING} "
+		((TAINT & 256)) && TAINT_STRING="${TAINT_STRING}A" || TAINT_STRING="${TAINT_STRING} "
+		((TAINT & 512)) && TAINT_STRING="${TAINT_STRING}W" || TAINT_STRING="${TAINT_STRING} "
+		((TAINT & 1024)) && TAINT_STRING="${TAINT_STRING}C" || TAINT_STRING="${TAINT_STRING} "
+		((TAINT & 2048)) && TAINT_STRING="${TAINT_STRING}I" || TAINT_STRING="${TAINT_STRING} "
+		((TAINT & 4096)) && TAINT_STRING="${TAINT_STRING}O" || TAINT_STRING="${TAINT_STRING} "
+		((TAINT & 8192)) && TAINT_STRING="${TAINT_STRING}E" || TAINT_STRING="${TAINT_STRING} "
+		((TAINT & 16384)) && TAINT_STRING="${TAINT_STRING}L" || TAINT_STRING="${TAINT_STRING} "
+		((TAINT & 32768)) && TAINT_STRING="${TAINT_STRING}K" || TAINT_STRING="${TAINT_STRING} "
 
 		case $SLES_VER in
 		16*|999)
-		test $((TAINT & 65536))      -ne 0 && TAINT_STRING="${TAINT_STRING}X" || TAINT_STRING="${TAINT_STRING} "
-		test $((TAINT & 131072))     -ne 0 && TAINT_STRING="${TAINT_STRING}T" || TAINT_STRING="${TAINT_STRING} "
-		test $((TAINT & 262144))     -ne 0 && TAINT_STRING="${TAINT_STRING}H" || TAINT_STRING="${TAINT_STRING} "
-		test $((TAINT & 2147483648)) -ne 0 && TAINT_STRING="${TAINT_STRING}N" || TAINT_STRING="${TAINT_STRING} "
+		((TAINT & 65536)) && TAINT_STRING="${TAINT_STRING}X" || TAINT_STRING="${TAINT_STRING} "
+		((TAINT & 131072)) && TAINT_STRING="${TAINT_STRING}T" || TAINT_STRING="${TAINT_STRING} "
+		((TAINT & 262144)) && TAINT_STRING="${TAINT_STRING}H" || TAINT_STRING="${TAINT_STRING} "
+		((TAINT & 2147483648)) && TAINT_STRING="${TAINT_STRING}N" || TAINT_STRING="${TAINT_STRING} "
 		;;
 		esac
 		log_write $OF "Kernel Status -- Tainted: $TAINT_STRING"
 
 		# common to all versions ALP1 and higher
-		test $((TAINT & 1))     -ne 0 && log_write $OF "  TAINT: (P) Proprietary module has been loaded"
-		test $((TAINT & 2))     -ne 0 && log_write $OF "  TAINT: (F) Module was forcibly loaded"
-		test $((TAINT & 4))     -ne 0 && log_write $OF "  TAINT: (S) SMP with CPUs not designed for SMP"
-		test $((TAINT & 8))     -ne 0 && log_write $OF "  TAINT: (R) Module was forcibly unloaded"
-		test $((TAINT & 16))    -ne 0 && log_write $OF "  TAINT: (M) Machine check exception"
-		test $((TAINT & 32))    -ne 0 && log_write $OF "  TAINT: (B) System has hit bad_page"
-		test $((TAINT & 64))    -ne 0 && log_write $OF "  TAINT: (U) Userspace-defined problems"
-		test $((TAINT & 128))   -ne 0 && log_write $OF "  TAINT: (D) Kernel has oopsed before"
-		test $((TAINT & 256))   -ne 0 && log_write $OF "  TAINT: (A) ACPI table overridden"
-		test $((TAINT & 512))   -ne 0 && log_write $OF "  TAINT: (W) Taint on warning"
-		test $((TAINT & 1024))  -ne 0 && log_write $OF "  TAINT: (C) Modules from drivers/staging are loaded"
-		test $((TAINT & 2048))  -ne 0 && log_write $OF "  TAINT: (I) Working around severe firmware bug"
-		test $((TAINT & 4096))  -ne 0 && log_write $OF "  TAINT: (O) Out-of-tree module has been loaded"
-		test $((TAINT & 8192))  -ne 0 && log_write $OF "  TAINT: (E) Unsigned module has been loaded"
-		test $((TAINT & 16384)) -ne 0 && log_write $OF "  TAINT: (L) A soft lockup has previously occurred"
-		test $((TAINT & 32768)) -ne 0 && log_write $OF "  TAINT: (K) Kernel has been live patched"
+		((TAINT & 1)) && log_write $OF "  TAINT: (P) Proprietary module has been loaded"
+		((TAINT & 2)) && log_write $OF "  TAINT: (F) Module was forcibly loaded"
+		((TAINT & 4)) && log_write $OF "  TAINT: (S) SMP with CPUs not designed for SMP"
+		((TAINT & 8)) && log_write $OF "  TAINT: (R) Module was forcibly unloaded"
+		((TAINT & 16)) && log_write $OF "  TAINT: (M) Machine check exception"
+		((TAINT & 32)) && log_write $OF "  TAINT: (B) System has hit bad_page"
+		((TAINT & 64)) && log_write $OF "  TAINT: (U) Userspace-defined problems"
+		((TAINT & 128)) && log_write $OF "  TAINT: (D) Kernel has oopsed before"
+		((TAINT & 256)) && log_write $OF "  TAINT: (A) ACPI table overridden"
+		((TAINT & 512)) && log_write $OF "  TAINT: (W) Taint on warning"
+		((TAINT & 1024)) && log_write $OF "  TAINT: (C) Modules from drivers/staging are loaded"
+		((TAINT & 2048)) && log_write $OF "  TAINT: (I) Working around severe firmware bug"
+		((TAINT & 4096)) && log_write $OF "  TAINT: (O) Out-of-tree module has been loaded"
+		((TAINT & 8192)) && log_write $OF "  TAINT: (E) Unsigned module has been loaded"
+		((TAINT & 16384)) && log_write $OF "  TAINT: (L) A soft lockup has previously occurred"
+		((TAINT & 32768)) && log_write $OF "  TAINT: (K) Kernel has been live patched"
 
 		case $SLES_VER in
 		16*|999)
-		test $((TAINT & 65536))      -ne 0 && log_write $OF "  TAINT: (X) Modules with external support loaded"
-		test $((TAINT & 131072))     -ne 0 && log_write $OF "  TAINT: (T) Kernel built with randstruct plugin"
-		test $((TAINT & 262144))     -ne 0 && log_write $OF "  TAINT: (H) System restored from unsafe hibernate snapshot image"
-		test $((TAINT & 2147483648)) -ne 0 && log_write $OF "  TAINT: (N) Unsupported modules loaded"
+		((TAINT & 65536)) && log_write $OF "  TAINT: (X) Modules with external support loaded"
+		((TAINT & 131072)) && log_write $OF "  TAINT: (T) Kernel built with randstruct plugin"
+		((TAINT & 262144)) && log_write $OF "  TAINT: (H) System restored from unsafe hibernate snapshot image"
+		((TAINT & 2147483648)) && log_write $OF "  TAINT: (N) Unsupported modules loaded"
 		;;
 		esac
 
