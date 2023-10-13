@@ -605,7 +605,7 @@ yast_files() {
 	if rpm -q perl-Bootloader &> /dev/null; then
 		rpm_verify $OF perl-Bootloader
 	fi
-	test -d /var/log/YaST2 && FILES=$(find /var/log/YaST2/ -type f | egrep -v "_dev_|\.tbz$|\.tgz$|\.gz$|\.bz2$|\.zip$") || unset FILES
+	[[ -d /var/log/YaST2 ]] && FILES=$(find /var/log/YaST2/ -type f | egrep -v "_dev_|\.tbz$|\.tgz$|\.gz$|\.bz2$|\.zip$") || unset FILES
 	conf_files $OF /etc/youservers /etc/sysconfig/onlineupdate /etc/wgetrc 
 	log_files $OF 0 /var/log/pbl.log
 	(( ADD_OPTION_MAXYAST > 0 )) && log_files $OF 0 $FILES || log_files $OF $VAR_OPTION_LINE_COUNT $FILES
@@ -921,10 +921,10 @@ pam_info() {
 
 		log_cmd $OF 'loginctl --no-pager list-sessions'
 		log_write $OF "#==[ Files in /etc/security ]=======================#"
-		test -d /etc/security && FILES="$(find -L /etc/security/ -type f -name \*conf)" || FILES=""
+		[[ -d /etc/security ]] && FILES="$(find -L /etc/security/ -type f -name \*conf)" || FILES=""
 		conf_files $OF $FILES
 		log_write $OF "#==[ Files in /etc/pam.d ]==========================#"
-		test -d /etc/pam.d && FILES="$(find -L /etc/pam.d/ -type f)" || FILES=""
+		[[ -d /etc/pam.d ]] && FILES="$(find -L /etc/pam.d/ -type f)" || FILES=""
 		conf_files $OF $FILES
 		echolog Done
 	else
@@ -1014,7 +1014,7 @@ environment_info() {
 	log_cmd $OF 'ipcs -l'
 	log_cmd $OF 'ipcs -a'
 	log_cmd $OF 'CASAcli -l'
-	test -d /etc/default && FILES=$(find -L /etc/default/ -type f) || FILES=""
+	[[ -d /etc/default ]] && FILES=$(find -L /etc/default/ -type f) || FILES=""
 	conf_files $OF $FILES /root/.xauth/export
 	log_cmd $OF 'env'
 	# s390 specific
@@ -1294,7 +1294,7 @@ cron_info() {
 		log_cmd $OF "systemctl status cron.service"
 		conf_files $OF /var/spool/cron/allow /var/spool/cron/deny
 		log_write $OF "### Individual User Cron Jobs ###"
-		test -d /var/spool/cron/tabs && FILES=$(find /var/spool/cron/tabs/ -type f) || FILES=""
+		[[ -d /var/spool/cron/tabs ]] && FILES=$(find /var/spool/cron/tabs/ -type f) || FILES=""
 		conf_files $OF $FILES
 		CRONS="cron.d cron.hourly cron.daily cron.weekly cron.monthly"
 		log_write $OF "### System Cron Job File List ###"
@@ -1426,7 +1426,7 @@ mpio_info() {
 		log_cmd $OF 'lsmap -all'
 		log_cmd $OF 'lsnports'
 		log_cmd $OF "udevadm info -e"
-		test -d /proc/scsi && SCSI_DIRS=$(find /proc/scsi/ -type d) || SCSI_DIRS=""
+		[[ -d /proc/scsi ]] && SCSI_DIRS=$(find /proc/scsi/ -type d) || SCSI_DIRS=""
 		for SDIR in $SCSI_DIRS
 		do
 			# Skip unwanted scsi directories
@@ -1951,7 +1951,7 @@ net_info_namespace() {
 	fi
 
 	if [[ -z "${NS}" ]] ; then
-		test -d /etc/sysconfig/network && FILES=$(find /etc/sysconfig/network/ -maxdepth 1 -type f) || FILES=""
+		[[ -d /etc/sysconfig/network ]] && FILES=$(find /etc/sysconfig/network/ -maxdepth 1 -type f) || FILES=""
 		conf_files $OF /etc/sysconfig/proxy $FILES 
 		if [[ -d /proc/net/bonding ]]; then
 			FILES=$(find /proc/net/bonding/ -type f)
@@ -2055,7 +2055,7 @@ disk_info() {
 				done
 			fi
 			log_cmd $OF 'lsscsi -v'
-			test -d /proc/scsi && SCSI_DIRS=$(find /proc/scsi/ -type d) || SCSI_DIRS=""
+			[[ -d /proc/scsi ]] && SCSI_DIRS=$(find /proc/scsi/ -type d) || SCSI_DIRS=""
 			for SDIR in $SCSI_DIRS
 			do
 				test "$SDIR" = "/proc/scsi" -o "$SDIR" = "/proc/scsi/sg" -o "$SDIR" = "/proc/scsi/mptspi" && continue
@@ -3596,10 +3596,10 @@ print_info() {
 		fi
 		BEU=$(ls -1 /usr/lib*/cups/backend/usb 2>/dev/null | head -n1)
 		test -x "$BEU" && log_cmd $OF "$BEU"
-		test -d /etc/cups/ppd && PPDFILES=$(find -L /etc/cups/ppd/ -type f) || PPDFILES=""
+		[[ -d /etc/cups/ppd ]] && PPDFILES=$(find -L /etc/cups/ppd/ -type f) || PPDFILES=""
 		conf_files $OF /etc/sysconfig/cups /etc/sysconfig/printer /etc/printcap /etc/cups/cupsd.conf /etc/cups/printers.conf /etc/cups/mime.types /etc/cups/mime.convs $PPDFILES
 
-		test -d /etc/cups/ppd && PPDFILES=$(find -L /etc/cups/ppd/ -type f) || PPDFILES=""
+		[[ -d /etc/cups/ppd ]] && PPDFILES=$(find -L /etc/cups/ppd/ -type f) || PPDFILES=""
 		conf_files $OF /etc/sysconfig/printer /etc/printcap /etc/cups/cupsd.conf /etc/cups/printers.conf /etc/cups/mime.types /etc/cups/mime.convs $PPDFILES
 		FILES="/var/log/cups/error_log /var/log/cups/error_log.test /tmp/prnlog"
 		(( $ADD_OPTION_LOGS )) && log_files $OF 0 $FILES || log_files $OF $VAR_OPTION_LINE_COUNT $FILES
