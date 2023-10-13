@@ -193,7 +193,7 @@ basic_healthcheck() {
 	log_cmd $OF 'uptime'
 	log_cmd $OF 'grep -H . /sys/devices/system/cpu/vulnerabilities/*'
 	log_cmd $OF 'vmstat 1 4'
-	test -x /usr/bin/mpstat && log_cmd $OF 'mpstat -P ALL 1 3'
+	[[ -x /usr/bin/mpstat ]] && log_cmd $OF 'mpstat -P ALL 1 3'
 	log_cmd $OF 'free -k'
 	timed_log_cmd $OF 'df -h' || IO_DELAYS=1
 	(( $IO_DELAYS )) || log_cmd $OF 'df -i'
@@ -334,8 +334,8 @@ basic_healthcheck() {
 		log_write $AARTMP "$(systemctl status apparmor.service)"
 
 		APP_AUDIT_LOG="/var/log/audit/audit.log"
-		test -f $APP_AUDIT_LOG && AAREJECT=$(egrep 'REJECTING|DENIED' $APP_AUDIT_LOG | wc -l) || AAREJECT=0
-		test -z "$AAREJECT" && AAREJECT=0
+		[[ -f $APP_AUDIT_LOG ]] && AAREJECT=$(egrep 'REJECTING|DENIED' $APP_AUDIT_LOG | wc -l) || AAREJECT=0
+		[[ -z "$AAREJECT" ]] && AAREJECT=0
 		if [[ -x /usr/sbin/apparmor_status ]]; then
 			/usr/sbin/apparmor_status --enabled &>/dev/null
 			AASTAT=$?
@@ -351,7 +351,7 @@ basic_healthcheck() {
 		log_write $AARTMP "${AAREJECT} Reject Messages, AppArmor Module: $AALOADED"
 		log_write $AARTMP
 	fi
-	test -f $AARPTMP && cat $AARPTMP >> $LOG/$OF
+	[[ -f $AARPTMP ]] && cat $AARPTMP >> $LOG/$OF
 
 	MCE_LOG='/var/log/mcelog'
 	FILES=$MCE_LOG
@@ -662,8 +662,8 @@ boot_info() {
 		conf_files $OF /etc/zipl.conf /boot/zipl/active_devices.txt /boot/zipl/config
 	fi
 
-	test -e /usr/sbin/mcelog && log_cmd $OF "/usr/sbin/mcelog --ignorenodev --filter --dmi"
-	test -s /var/log/mcelog && { log_cmd $OF "ls -l --time-style=long-iso /var/log/mcelog"; conf_files $OF /var/log/mcelog; }
+	[[ -e /usr/sbin/mcelog ]] && log_cmd $OF "/usr/sbin/mcelog --ignorenodev --filter --dmi"
+	[[ -s /var/log/mcelog ]] && { log_cmd $OF "ls -l --time-style=long-iso /var/log/mcelog"; conf_files $OF /var/log/mcelog; }
 	log_cmd $OF 'last -wxF | egrep "reboot|shutdown|runlevel|system"'
 
 	conf_files $OF /proc/cmdline /etc/sysconfig/kernel $FILES /etc/init.d/boot.local /etc/init.d/before.local /etc/init.d/after.local /etc/init.d/halt.local
@@ -973,7 +973,7 @@ sssd_info() {
 		log_cmd $OF 'date +"%Y-%m-%d %H:%M"'
 		log_cmd $OF 'ls -lR --time-style=long-iso /var/lib/sss/'
 		[[ -s /etc/init.d/sssd ]] && SSSD_PIDF=$(grep '^PID_FILE' /etc/init.d/sssd | sed -e 's/ *//g' | cut -d= -f2)
-		test -z "$SSSD_PIDF" && SLAPD_PIDF="/var/run/sssd.pid"
+		[[ -z "$SSSD_PIDF" ]] && SLAPD_PIDF="/var/run/sssd.pid"
 		if [[ -f $SSSD_PIDF ]]; then
 			SSSD_PID=$(cat $SSSD_PIDF)
 		else
@@ -1441,7 +1441,7 @@ mpio_info() {
 	fi
 	if rpm_verify $OF EMCpower.LINUX
 	then
-		test -x /sbin/powermt && log_cmd $OF 'powermt display dev=all'
+		[[ -x /sbin/powermt ]] && log_cmd $OF 'powermt display dev=all'
 	else
 		((SKIP++))
 	fi
@@ -1840,7 +1840,7 @@ net_info_namespace() {
 	ping_addr $OF 'Default Route' $IPADDR "${NS}"
 
 	if [[ -z "${NS}" ]] ; then
-		test -e /etc/resolv.conf && IPADDRS=$(grep ^nameserver /etc/resolv.conf | cut -d' ' -f2) || IPADDRS=""
+		[[ -e /etc/resolv.conf ]] && IPADDRS=$(grep ^nameserver /etc/resolv.conf | cut -d' ' -f2) || IPADDRS=""
 		for IPADDR in $IPADDRS
 		do
 			ping_addr $OF 'DNS Server' $IPADDR "${NS}"
@@ -2642,7 +2642,7 @@ apparmor_info() {
 			rpm_verify $OF subdomain-parser-common
 			rpm_verify $OF subdomain-utils
 			rpm_verify $OF subdomain-profiles
-			test -f $AARPTMP && cat $AARPTMP >> $LOG/$OF
+			[[ -f $AARPTMP ]] && cat $AARPTMP >> $LOG/$OF
 			log_cmd $OF 'unconfined'
 	else
 		((SKIP++))
@@ -2652,7 +2652,7 @@ apparmor_info() {
 	then
 		rpm_verify $OF apparmor-utils
 		rpm_verify $OF apparmor-profiles
-		test -f $AARPTMP && cat $AARPTMP >> $LOG/$OF
+		[[ -f $AARPTMP ]] && cat $AARPTMP >> $LOG/$OF
 		if [[ -x /etc/init.d/boot.apparmor ]]; then
 			log_cmd $OF "/etc/init.d/boot.apparmor status"
 		else
@@ -3241,9 +3241,9 @@ ldap_info() {
 		# Extract the SLAPD directory from the conf file
 		if [ -f $SLAPD_CONF ]; then
 			SLAPD_DIR=$(grep -i ^directory $SLAPD_CONF | awk '{print $2}')
-			test -z "$SLAPD_DIR" && SLAPD_DIR="/var/lib/ldap"
+			[[ -z "$SLAPD_DIR" ]] && SLAPD_DIR="/var/lib/ldap"
 			SLAPD_PIDF=$(grep -i ^pidfile $SLAPD_CONF | awk '{print $2}')
-			test -z "$SLAPD_PIDF" && SLAPD_PIDF="/var/run/slapd/slapd.pid"
+			[[ -z "$SLAPD_PIDF" ]] && SLAPD_PIDF="/var/run/slapd/slapd.pid"
 			if [ -f $SLAPD_PIDF ]; then
 				SLAPD_PID=$(cat $SLAPD_PIDF)
 			else
@@ -3592,10 +3592,10 @@ print_info() {
 			log_write $OF "# Excluding $BEP"
 			log_write $OF
 		else
-			test -x "$BEP" && log_cmd $OF "$BEP"
+			[[ -x "$BEP" ]] && log_cmd $OF "$BEP"
 		fi
 		BEU=$(ls -1 /usr/lib*/cups/backend/usb 2>/dev/null | head -n1)
-		test -x "$BEU" && log_cmd $OF "$BEU"
+		[[ -x "$BEU" ]] && log_cmd $OF "$BEU"
 		[[ -d /etc/cups/ppd ]] && PPDFILES=$(find -L /etc/cups/ppd/ -type f) || PPDFILES=""
 		conf_files $OF /etc/sysconfig/cups /etc/sysconfig/printer /etc/printcap /etc/cups/cupsd.conf /etc/cups/printers.conf /etc/cups/mime.types /etc/cups/mime.convs $PPDFILES
 
@@ -3749,7 +3749,7 @@ cimom_info() {
 		done
 		log_cmd $OF 'owenumnamespace -u https://localhost/root/cimv2'
 		log_cmd $OF 'owenumclassnames -u https://localhost/root/cimv2'
-		test -f /var/lib/openwbem/loadmof.log && FILES="/var/lib/openwbem/loadmof.log /var/lib/openwbem/loadmof.log.*" || unset FILES
+		[[ -f /var/lib/openwbem/loadmof.log ]] && FILES="/var/lib/openwbem/loadmof.log /var/lib/openwbem/loadmof.log.*" || unset FILES
 		(( $ADD_OPTION_LOGS )) && log_files $OF 0 $FILES || log_files $OF $VAR_OPTION_LINE_COUNT $FILES
 	else
 		((SKIP++))
