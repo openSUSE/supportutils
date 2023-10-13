@@ -725,7 +725,7 @@ bpf_info() {
 			done
 			if (( $INCLUDE_NETWORK_NAMESPACES )); then
 				NAMESPACES=$(ip netns list)
-				if [[ -n "${NAMESPACES}" ]] ; then
+				if [[ -n "${NAMESPACES}" ]]; then
 					ip netns list | while read NAMESPACE rest; do
 						log_cmd $OF "ip netns exec ${NAMESPACE} bpftool net list"
 					done
@@ -1592,7 +1592,7 @@ hardware_info() {
 	log_cmd $OF 'cpupower frequency-info'
 	log_cmd $OF 'cpupower idle-info'
 	log_cmd $OF 'cpupower info'
-	if [ $MIN_OPTION_AUTOMOD -eq 0 ]; then
+	if [[ $MIN_OPTION_AUTOMOD -eq 0 ]]; then
 		log_write $OF "#==[ Warning ]======================================#"
 		log_write $OF "# Autoloading kernel modules disabled. Don't use -k."
 		log_write $OF "# Excluding hwinfo"
@@ -1613,7 +1613,7 @@ hardware_info() {
 	ALSABIN='/usr/sbin/alsa-info.sh'
 	if [[ -x $ALSABIN ]]; then
 		AVER=$(grep SCRIPT_VERSION= $ALSABIN | cut -d= -f2 | sed -e 's/\.//g')
-		if [ $AVER -ge 0458 ]; then
+		if [[ $AVER -ge 0458 ]]; then
 			log_cmd $OF "$ALSABIN --stdout --no-upload --with-configs --with-devices --with-dmesg --with-alsactl"
 		else
 			log_cmd $OF "echo y | $ALSABIN --no-dialog --no-upload --with-configs --with-devices &>/dev/null"
@@ -1638,7 +1638,7 @@ hardware_info() {
 			log_cmd $OF "ppc64_cpu --frequency"
 			log_cmd $OF "ppc64_cpu --dscr"
 			log_cmd $OF "nvram --print-config"
-			if [ $platform == "pSeries" ]; then
+			if [[ $platform == "pSeries" ]]; then
 				log_cmd $OF "serv_config -l"
 				log_cmd $OF "bootlist -m both -r"
 				log_cmd $OF "lparstat -i"
@@ -1652,7 +1652,7 @@ hardware_info() {
 			log_cmd $OF "lscfg -vp"
 			log_cmd $OF "lsmcode -A"
 			log_cmd $OF "lsvpd --debug"
-			if [ $platform == "pSeries" ]; then
+			if [[ $platform == "pSeries" ]]; then
 				log_cmd $OF "lsvio -des"
 			fi
 		fi
@@ -1680,7 +1680,7 @@ hardware_info() {
 			log_cmd $OF "iprconfig -c show-slots"
 			log_cmd $OF "iprconfig -c dump"
 		fi
-		if [ $platform == "pSeries" ]; then
+		if [[ $platform == "pSeries" ]]; then
 			if rpm -q servicelog &>/dev/null; then
 				rpm_verify $OF servicelog
 				log_cmd $OF "servicelog --dump"
@@ -1768,7 +1768,7 @@ net_info() {
 	(( $OPTION_NET )) || { echolog Excluded; return 1; }
 	if (( $INCLUDE_NETWORK_NAMESPACES )); then
 		NAMESPACES=$(ip netns list)
-		if [[ -n "${NAMESPACES}" ]] ; then
+		if [[ -n "${NAMESPACES}" ]]; then
 			net_info_namespace "network.txt" 
 			ip netns list | while read NAMESPACE rest; do
 				net_info_namespace "network-${NAMESPACE}.txt" "${NAMESPACE}"
@@ -1785,13 +1785,13 @@ net_info() {
 net_info_namespace() {
 	OF=$1
 	addHeaderFile $OF
-	if [[ -z "${2}" ]] ; then
+	if [[ -z "${2}" ]]; then
 		NS=""
 	else 
 		NS="ip netns exec $2 "
 		log_write $OF "#==[ Network namespace ${2} ]======================#"
 	fi
-	if [[ -z "${NS}" ]] ; then
+	if [[ -z "${NS}" ]]; then
 		rpm_verify $OF NetworkManager
 		rpm_verify $OF iproute2
 		rpm_verify $OF firewalld && FIREWALL=1 || FIREWALL=0
@@ -1809,7 +1809,7 @@ net_info_namespace() {
 	log_cmd $OF "${NS}ip -6 route"
 	log_cmd $OF "${NS}ip -stats link"
 	log_cmd $OF "${NS}ip -stats neighbor"
-	if [ -z "${NS}" ] ; then
+	if [[ -z "${NS}" ]]; then
 		if [[ $MIN_OPTION_AUTOMOD -ne 0 ]]; then
 			timed_log_cmd $OF 'hwinfo --netcard'
 		fi
@@ -1839,7 +1839,7 @@ net_info_namespace() {
 	IPADDR=$(${NS}ip route list | awk '$1 == "default" {print $3}')
 	ping_addr $OF 'Default Route' $IPADDR "${NS}"
 
-	if [[ -z "${NS}" ]] ; then
+	if [[ -z "${NS}" ]]; then
 		[[ -e /etc/resolv.conf ]] && IPADDRS=$(grep ^nameserver /etc/resolv.conf | cut -d' ' -f2) || IPADDRS=""
 		for IPADDR in $IPADDRS
 		do
@@ -1902,7 +1902,7 @@ net_info_namespace() {
 			done
 		done
 	fi
-	if [[ -z "${NS}" ]] ; then
+	if [[ -z "${NS}" ]]; then
 		log_cmd $OF "nscd -g"
 		conf_files $OF /etc/hosts /etc/host.conf /etc/resolv.conf /etc/nsswitch.conf /etc/nscd.conf /etc/hosts.allow /etc/hosts.deny /etc/sysconfig/firewalld
 	fi
@@ -1950,7 +1950,7 @@ net_info_namespace() {
 		IFS=$SAVEIFS
 	fi
 
-	if [[ -z "${NS}" ]] ; then
+	if [[ -z "${NS}" ]]; then
 		[[ -d /etc/sysconfig/network ]] && FILES=$(find /etc/sysconfig/network/ -maxdepth 1 -type f) || FILES=""
 		conf_files $OF /etc/sysconfig/proxy $FILES 
 		if [[ -d /proc/net/bonding ]]; then
@@ -2080,7 +2080,7 @@ disk_info() {
 			fi
 		fi
 	fi
-        if [[ "$ARCH" == "s390x" ]] ; then
+        if [[ "$ARCH" == "s390x" ]]; then
                log_write $OF "#==[ s390x and DASD Info ]==========================#"
                log_write $OF "#---------------------------------------------------#"
                log_cmd $OF 'lsdasd -a'
@@ -2612,7 +2612,7 @@ printlog "AUTOFS..."
 rpm_full_verify() {
 	OF=rpm-verify.txt
 	OFTMP=$LOG/$RPM_QA_FILE
-	if [ $ADD_OPTION_RPMV -eq 1 ]; then
+	if [[ $ADD_OPTION_RPMV -eq 1 ]]; then
 		printlog -b "Full RPM Verification..."
 		addHeaderFile $OF
 		STARTCNT=1
@@ -2787,7 +2787,7 @@ ha_info() {
 			CORBIN="/usr/sbin/corosync-fplay"
 			if [[ -x $CORBIN ]]; then
 				CLN=$($CORBIN 2>/dev/null | wc -l)
-				if [ $CLN -gt 1000 ]; then
+				if [[ $CLN -gt 1000 ]]; then
 					log_cmd $OF 'corosync-fplay | head -500'
 					log_cmd $OF 'corosync-fplay | tail -500'
 				else
@@ -2828,7 +2828,7 @@ slp_info() {
 			conf_files $OF $FILES
 		fi
 		log_cmd $OF 'slptool findscopes'
-		if [ $ADD_OPTION_SLP -gt 0 ]; then
+		if [[ $ADD_OPTION_SLP -gt 0 ]]; then
 			echonlog "Please Wait..."
 			if log_cmd $OF 'slptool findsrvtypes'
 			then
@@ -2837,7 +2837,7 @@ slp_info() {
 				SRV_TYPES=''
 				while read LINE
 				do
-					if [ $STATE -gt 0 ]; then
+					if [[ $STATE -gt 0 ]]; then
 						SRV_TYPES="$SRV_TYPES $LINE"
 					elif echo $LINE | grep findsrvtypes &>/dev/null; then
 						STATE=1
@@ -3123,7 +3123,7 @@ fslist_ufiles_info() {
 	addHeaderFile $OF
 	UFUID=$(stat -c%u $FSLIST_ADD_FILE)
 	conf_files $OF $FSLIST_ADD_FILE
-	if [ "$UFUID" = "0" ]; then
+	if [[ "$UFUID" = "0" ]]; then
 		while read FILE
 		do
 			if [[ -d "$FILE" ]]; then
@@ -3586,7 +3586,7 @@ print_info() {
 		log_cmd $OF "systemctl status cups.service"
 		log_cmd $OF 'ss -nlp | grep cupsd'
 		BEP=$(ls -1 /usr/lib*/cups/backend/parallel 2>/dev/null | head -n1)
-		if [ $MIN_OPTION_AUTOMOD -eq 0 ]; then
+		if [[ $MIN_OPTION_AUTOMOD -eq 0 ]]; then
 			log_write $OF "#==[ Warning ]======================================#"
 			log_write $OF "# Autoloading kernel modules disabled. Don't use -k."
 			log_write $OF "# Excluding $BEP"
@@ -3632,7 +3632,7 @@ sar_info() {
 			if [[ -n "$FOUND" ]]; then
 				mkdir -p $SARSCDIR
 				log_entry $OF command "cp $SARDIR/sa* $SARSCDIR"
-				if [ $ADD_OPTION_LOGS -gt 0 ]; then
+				if [[ $ADD_OPTION_LOGS -gt 0 ]]; then
 					cp $SARDIR/sa* $SARSCDIR &>/dev/null
 				else
 					log_write $OF "# NOTE: Only the newest $VAR_OPTION_SAR_FILES_LIMIT files are copied"
@@ -3900,7 +3900,7 @@ sysfs_info() {
 				# collecting memory info from sysfs can be time consuming
 				# skip it on systems with 16TB  or ram or more unless exhaustive
 				# option is used
-				if [ $ITEM == "memory" ]; then
+				if [[ $ITEM == "memory" ]]; then
 					mem=$(grep 'MemTotal' /proc/meminfo | awk '{print $2}')
 					test $mem -gt 16000000000 -a $VAR_OPTION_EXHAUSTIVE_MEM -eq 0 && continue
 					echonlog "Please Wait..."
