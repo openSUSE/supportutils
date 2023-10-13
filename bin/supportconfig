@@ -2859,7 +2859,7 @@ slp_info() {
 
 ocfs2_info() {
 	printlog "OCFS2..."
-	test $OPTION_OCFS2 -eq 0 && { echolog Excluded; return 1; }
+	(( $OPTION_OCFS2 )) || { echolog Excluded; return 1; }
 	OF=ocfs2.txt
 	OCFS2_MODULES=0
 	addHeaderFile $OF
@@ -3108,7 +3108,7 @@ samba_info() {
 
 fslist_info() {
 	printlog "File System List..."
-	test $ADD_OPTION_FSLIST -eq 0 && { echolog Skipped; return 1; }
+	(( $ADD_OPTION_FSLIST )) || { echolog Skipped; return 1; }
 	echonlog "Please Wait..."
 	OF=$FSLIST_FILE
 	addHeaderFile $OF
