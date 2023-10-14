@@ -65,7 +65,6 @@ install -m 544 bin/supportconfig %{buildroot}%{_sbindir}
 install -m 544 bin/chkbin %{buildroot}%{_sbindir}
 install -m 544 bin/getappcore %{buildroot}%{_sbindir}
 install -m 544 bin/analyzevmcore %{buildroot}%{_sbindir}
-install -m 444 bin/scplugin.rc %{buildroot}%{support_libdir}/resources
 install -m 444 bin/supportconfig.rc %{buildroot}%{support_libdir}/resources
 install -m 644 man/*.3.gz %{buildroot}%{_mandir}/man3
 install -m 644 man/*.5.gz %{buildroot}%{_mandir}/man5
