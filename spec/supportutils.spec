@@ -34,9 +34,7 @@ Requires:       tar
 Requires:       /usr/bin/which
 Requires:       /usr/bin/sed
 Requires:       /usr/bin/awk
-Provides:       supportconfig-plugin-icommand
-Provides:       supportconfig-plugin-resource
-Provides:       supportconfig-plugin-tag
+Provides:       supportconfig-plugin-rc
 BuildArch:      noarch
 
 %description
