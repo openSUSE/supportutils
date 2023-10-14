@@ -190,7 +190,7 @@ PROC_FILES="/proc/mounts /proc/zoneinfo"
 PROC_DIRS_DEPTH_ONE="/proc/sys/kernel/ /proc/scsi/ /proc/net/ /proc/dasd/"
 PROC_DIRS_DEPTH_FULL="/proc/irq/ /proc/sys/"
 PROC_DIRS_DEPTH_ONE_FILTER_OUT="rt_acct$|/sched_domain/"
-PROC_DIRS_DEPTH_FULL_FILTER_OUT="fs/binfmt_misc/register|net/ipv4/route/flush|net/ipv6/route/flush|vm/compact_memory|base_reachable_time|scan_unevictable_pages|/sched_domain/"
+PROC_DIRS_DEPTH_FULL_FILTER_OUT="fs/binfmt_misc/register|net/ipv4/route/flush|net/ipv6/route/flush|vm/compact_memory|base_reachable_time|scan_unevictable_pages|/sched_domain/|stable_secret$|drop_caches$"
 
 RUN_VAR_DIR="/var/run/supportconfig"
 RUN_PID_FILE="${RUN_VAR_DIR}/supportconfig.pid"
