@@ -1386,20 +1386,6 @@ write_xml_file() {
 		[[ $VER == $REL ]] && REL=0
 		xml_write 'sle_version' "$VER"
 		xml_write 'sle_patchlevel' "$REL"
-	elif [[ -s /etc/SuSE-release ]]; then
-		if rpm -q 'SUSE_SLES_SAP-release' &>/dev/null; then
-			xml_write 'sle_type' 'SUSE Linux Enterprise Server for SAP Applications'
-		elif rpm -q 'SLES-for-VMware-release' &>/dev/null; then
-			xml_write 'sle_type' 'SUSE Linux Enterprise Server for VMware'
-		elif grep -i 'enterprise server' /etc/SuSE-release &>/dev/null; then
-			xml_write 'sle_type' 'SUSE Linux Enterprise Server'
-		elif grep -i 'enterprise desktop' /etc/SuSE-release &>/dev/null; then
-			xml_write 'sle_type' 'SUSE Linux Enterprise Desktop'
-		else
-			xml_write 'sle_type' ''
-		fi
-		xml_write 'sle_version' "$(sed -ne 's/VERSION = //p' /etc/SuSE-release)"
-		xml_write 'sle_patchlevel' "$(sed -ne 's/PATCHLEVEL = //p' /etc/SuSE-release)"
 	else
 		xml_write 'sle_type' ''
 		xml_write 'sle_version' ''
@@ -1450,12 +1436,8 @@ get_sles_ver() {
 		elif (( ${#SLES_VER} == 8 )); then
 			SLES_VER=999
 		fi
-	elif [[ -s /etc/SuSE-release ]]; then
-		VMAJOR=$(grep VERSION /etc/SuSE-release | awk '{print $NF}')
-		VMINOR=$(grep PATCHLEVEL /etc/SuSE-release | awk '{print $NF}')
-		SLES_VER=${VMAJOR}${VMINOR}
 	else
-		SLES_VER=123
+		SLES_VER=999
 	fi
 }
 
