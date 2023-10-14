@@ -155,10 +155,8 @@ basic_environment() {
 		16*|999)
 			if rpm_verify $BASIC_ENVF firewalld
 			then
-				log_write $BASIC_ENVF "#==[ Firewall Services ]============================#"
-				log_write $BASIC_ENVF "# Service state"
 				wait_trace_on "systemctl status firewalld.service"
-				log_write $BASIC_ENVF "$(systemctl status firewalld.service)"
+				log_cmd $BASIC_ENVF 'systemctl status firewalld.service'
 				wait_trace_off
 				IPBIN="/usr/sbin/iptables"
 				if [[ -x $IPBIN ]]; then
@@ -324,7 +322,7 @@ basic_healthcheck() {
 	if grep 'security=apparmor' /proc/cmdline &>/dev/null; then
 		log_write $AARTMP "#==[ Summary ]======================================#"
 		log_write $AARTMP "# AppArmor REJECT Messages"
-		log_write $AARTMP "$(systemctl status apparmor.service)"
+		log_cmd $AARTMP 'systemctl status apparmor.service'
 
 		APP_AUDIT_LOG="/var/log/audit/audit.log"
 		[[ -f $APP_AUDIT_LOG ]] && AAREJECT=$(egrep 'REJECTING|DENIED' $APP_AUDIT_LOG | wc -l) || AAREJECT=0
@@ -432,12 +430,12 @@ messages_file() {
 	addHeaderFile $OF
 	addHeaderFile $OF2
 	if rpm_verify $OF2 rsyslog; then
-		log_cmd $OF2 "systemctl status rsyslog.service"
+		log_cmd $OF2 'systemctl status rsyslog.service'
 		conf_files $OF2 /etc/rsyslog.conf
 		log_cmd $OF2 "rsyslogd -N 1"
 	fi
 	rpm_verify $OF2 systemd
-	log_cmd $OF2 "systemctl status systemd-journald.service"
+	log_cmd $OF2 'systemctl status systemd-journald.service'
 	JDIRS=''
 	for JDIR in /etc/systemd/journald.conf.d/ /run/systemd/journald.conf.d/ /usr/lib/systemd/journald.conf.d/
 	do
@@ -564,7 +562,7 @@ audit_info() {
 	OF=security-audit.txt
 	if rpm_verify $OF audit; then
 		addHeaderFile $OF
-		check_service $OF auditd
+		log_cmd $OF 'systemctl status auditd.service'
 		log_cmd $OF 'auditctl -s'
 		log_cmd $OF 'auditctl -l'
 		log_cmd $OF 'aureport'
@@ -738,7 +736,7 @@ smt_info() {
 	OF=smt.txt
 	addHeaderFile $OF
 	if rpm_verify $OF smt; then
-		check_service $OF smt
+		log_cmd $OF 'systemctl status smt.service'
 		CONF=/etc/smt.conf
 		conf_files $OF /etc/smt.conf
 		FILES=$(find -L /etc/smt.d/ -type f 2>/dev/null)
@@ -992,7 +990,7 @@ environment_info() {
 	OF=env.txt
 	addHeaderFile $OF
 	log_icmd $OF 'ulimit -a'
-	log_cmd $OF 'systemctl status sysctl'
+	log_cmd $OF 'systemctl status systemd-sysctl.service'
 	conf_files $OF /etc/sysctl.conf /boot/sysctl.conf-* /lib/sysctl.d/*.conf /usr/lib/sysctl.d/*.conf /usr/local/lib/sysctl.d/*.conf /etc/sysctl.d/*.conf /run/sysctl.d/*.conf
 	log_cmd $OF 'sysctl -a'
 	log_cmd $OF 'getconf -a'
@@ -1079,7 +1077,7 @@ docker_info() {
 	[[ -z $DOCKER_PKG ]] && DOCKER_PKG='docker'
 	if rpm_verify $OF $DOCKER_PKG
 	then
-		log_cmd $OF "systemctl status docker.service"
+		log_cmd $OF 'systemctl status docker.service'
 		log_cmd $OF 'docker version'
 		log_cmd $OF 'docker info'
 		log_cmd $OF 'docker images'
@@ -1305,7 +1303,7 @@ lvm_info() {
 		echonlog Base
 		VGBIN="vgs"
 		LVBIN="lvs"
-		log_cmd $OF "systemctl status 'lvm2-activation-early.service'"
+		log_cmd $OF 'systemctl status lvm2-activation-early.service'
 		FILES="/etc/lvm/lvm.conf"
 		timed_log_cmd $OF 'pvs' || LVM_IO_DELAYS=1
 		if ! (( $LVM_IO_DELAYS )); then
@@ -2132,8 +2130,8 @@ nfs_info() {
 	if rpm_verify $OF nfs-client
 	then
 		rpm_verify $OF rpcbind
-		check_service $OF nfs
-		check_service $OF rpcbind
+		log_cmd $OF 'systemctl status nfs.service'
+		log_cmd $OF 'systemctl status rpcbind.service'
 		conf_files $OF /etc/sysconfig/nfs
 		log_cmd $OF 'nfsstat'
 		timed_log_cmd $OF 'rpcinfo -p'
@@ -2151,7 +2149,7 @@ nfs_info() {
 
 		if rpm_verify $OF nfs-kernel-server
 		then
-			check_service $OF nfsserver
+			log_cmd $OF 'systemctl status nfsserver.service'
 			log_cmd $OF 'exportfs -v'
 			conf_files $OF /etc/exports
 			if timed_log_cmd $OF 'showmount'
@@ -2165,10 +2163,10 @@ nfs_info() {
 	else
 		if rpm_verify $OF nfs-utils
 		then
-			check_service $OF portmap
-			check_service $OF nfslock
-			check_service $OF nfs
-			check_service $OF nfsserver
+			log_cmd $OF 'systemctl status portmap.service'
+			log_cmd $OF 'systemctl status nfslock.service'
+			log_cmd $OF 'systemctl status nfs.service'
+			log_cmd $OF 'systemctl status nfsserver.service'
 			log_cmd $OF 'exportfs -v'
 			log_cmd $OF 'nfsstat'
 			if timed_log_cmd $OF 'showmount'
@@ -2574,7 +2572,7 @@ apparmor_info() {
 		rpm_verify $OF apparmor-utils
 		rpm_verify $OF apparmor-profiles
 		[[ -f $AARPTMP ]] && cat $AARPTMP >> $LOG/$OF
-		check_service $OF apparmor
+		log_cmd $OF 'systemctl status apparmor.service'
 		log_cmd $OF 'unconfined'
 		log_cmd $OF 'aa-status'
 		log_cmd $OF 'aa-notify -l'
@@ -2860,7 +2858,7 @@ drbd_info() {
 	if [[ -s /etc/drbd.conf ]]
 	then
 		rpm_verify $OF drbd
-		check_service $OF drbd
+		log_cmd $OF 'systemctl status drbd.service'
 		log_cmd $OF "egrep \"drbd\" $RPMPATH"
 		log_write $OF
 		log_cmd $OF "lsmod | grep drbd"
@@ -2902,7 +2900,7 @@ haproxy_info() {
 	if [[ -s /etc/haproxy/haproxy.cfg ]]
 	then
 		rpm_verify $OF haproxy
-		check_service $OF haproxy
+		log_cmd $OF 'systemctl status haproxy.service'
 		log_cmd $OF "egrep \"haproxy\" $RPMPATH"
 		log_write $OF
 		log_cmd $OF "ps aux | grep haproxy | grep -v grep"
@@ -3079,7 +3077,7 @@ smartmon_info() {
 	addHeaderFile $OF
 	if rpm_verify $OF smartmontools
 	then
-		check_service $OF smartd
+		log_cmd $OF 'systemctl status smartd.service'
 		conf_files $OF /proc/partitions /etc/smartd.conf
 		for DISK in $(cat /proc/partitions | grep -v ^m | grep -v ^$ | awk '{print $4}')
 		do
@@ -3168,7 +3166,7 @@ ldap_info() {
 			fi
 			SLAPD_SCHEMAS=$(grep ^include $SLAPD_CONF | awk '{print $2}')
 		fi
-		check_service $OF ldap
+		log_cmd $OF 'systemctl status ldap.service'
 		log_cmd $OF "ss -nlp | grep slapd"
 		log_cmd $OF "ls -al /etc/openldap/schema"
 		conf_files $OF $SLAPD_CONF /etc/sysconfig/openldap
@@ -3461,8 +3459,8 @@ slert_info() {
 	if rpm_verify $OF kernel-rt
 	then
 		log_cmd $OF "uname -r"
-		check_service $OF slert
-		check_service $OF cset
+		log_cmd $OF 'systemctl status slert.service'
+		log_cmd $OF 'systemctl status cset.service'
 		log_cmd $OF "ps -eo pid,user,args,ni,rtprio --sort -rtprio"
 		conf_files $OF /etc/slert/setup /proc/cpuinfo /etc/sysconfig/cset /etc/cset.conf
 		if [[ -e /proc/irq/default_smp_affinity ]]; then
@@ -3566,7 +3564,7 @@ dns_info() {
 	OF=dns.txt
 	addHeaderFile $OF
 	if rpm_verify $OF bind; then
-		check_service $OF named
+		log_cmd $OF 'systemctl status named.service'
 		(( $SKIP )) && log_cmd $OF 'ss -nlp | grep named'
 		FILES=$(grep ^include /etc/named.conf | cut -d';' -f1 | sed -e 's/"//g'  | awk '{print $2}')
 		conf_files $OF /etc/named.conf $FILES /etc/sysconfig/named
@@ -3592,7 +3590,7 @@ dhcp_info() {
 	addHeaderFile $OF
 	SKIP=0
 	if rpm_verify $OF dhcp-server; then
-		check_service $OF dhcpd
+		log_cmd $OF 'systemctl status dhcpd.service'
 		log_cmd $OF 'ss -nlp | grep dhcp'
 		conf_files $OF /etc/sysconfig/dhcpd
 		conf_files $OF /etc/dhcpd.conf /var/lib/dhcp/db/dhcpd.leases
@@ -3638,7 +3636,7 @@ cimom_info() {
 	SKIP=0
 	if rpm_verify $OF openwbem; then
 		log_cmd $OF "egrep -i \"cim|provider\" $RPMPATH"
-		check_service $OF owcimomd
+		log_cmd $OF 'systemctl status owcimomd.service'
 		conf_files $OF /etc/openwbem/openwbem.conf
 		log_cmd $OF 'ls -lR --time-style=long-iso /etc/openwbem/'
 		for i in cert key
@@ -3660,7 +3658,7 @@ cimom_info() {
 	fi
 	if rpm_verify $OF sblim-sfcb; then
 		log_cmd $OF "egrep -i \"cim|provider\" $RPMPATH"
-		check_service $OF sfcb
+		log_cmd $OF 'systemctl status sfcb.service'
 		log_cmd $OF "ss -nlp | grep sfcb"
 		conf_files $OF /etc/sfcb/sfcb.cfg
 		log_cmd $OF "ls -lR --time-style=long-iso /etc/sfcb/"

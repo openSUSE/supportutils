@@ -730,18 +730,6 @@ log_options() {
 	# add VAR_OPTION_ parameters
 }
 
-check_service() {
-	LOGFILE=$LOG/$1
-	BASEFILE=$1
-	SERVICE_NAME=$2
-	SYSTEMD_DIR=/usr/lib/systemd/system
-	if [[ -f $SYSTEMD_DIR/${SERVICE_NAME}.service ]]; then
-		log_cmd $BASEFILE "systemctl status $SERVICE_NAME"
-		log_cmd $BASEFILE "systemctl is-enabled $SERVICE_NAME"
-	fi
-	return $?
-}
-
 get_customer_info() {
 	INFOLOG=$1
 	LINE_ADDED=0
