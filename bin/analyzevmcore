@@ -1,7 +1,7 @@
 #!/bin/bash
 
 SVER='2.0.0'
-SDATE="2023 Oct 13"
+SDATE="2023 Oct 14"
 SNAME="analyzevmcore"
 
 # --------------------------------------------------------------------- #
@@ -51,7 +51,6 @@ SNAME="analyzevmcore"
 #                                                                       #
 # --------------------------------------------------------------------- #
 
-CRASHV4=0
 REWRITE_ANALYSIS=0
 FORMAT="%-35s"
 SPINSTR='|/-\'
@@ -64,7 +63,9 @@ BASENAME_BIN=/usr/bin/basename
 CAT_BIN=/bin/cat
 CP_BIN=/bin/cp
 CPIO_BIN=/usr/bin/cpio
-CRASH_BIN=/usr/bin/crash
+#CRASH_BIN=/usr/bin/crash
+# For testing purposes only
+CRASH_BIN=/root/bin/crash
 DATE_BIN=/bin/date
 DIRNAME_BIN=/usr/bin/dirname
 GREP_BIN=/usr/bin/grep
@@ -157,21 +158,21 @@ title ()
 # --------------------------------------------------------- #
 checkbinaries()
 {
-	if [ -z "$DBGRPM" ]; then
+	if [[ -z "$DBGRPM" ]]; then
 		CHECK_BINS=$CORE_BINS
 	else
 		CHECK_BINS="$CORE_BINS $EXTRA_BINS"
 	fi
 	for BINARY in $CHECK_BINS; do
-		if ! [ -e $BINARY ]; then
-			if [ -z "$MISSING_BINS" ]; then
+		if ! [[ -e $BINARY ]]; then
+			if [[ -z "$MISSING_BINS" ]]; then
 				MISSING_BINS=$BINARY
 			else
 				MISSING_BINS="$BINARY $MISSING_BINS"
 			fi
 		fi
 	done
-	if ! [ -z "$MISSING_BINS" ]; then
+	if ! [[ -z "$MISSING_BINS" ]]; then
 		echo "The following required binaries were not found!"
 		echo
 		for BIN in $MISSING_BINS; do
@@ -195,7 +196,7 @@ extractdebug()
 	# Strip off kernel-[FLAVOR], to test for debuginfo-*.rpm
 	DBGRPM_NAME=$($BASENAME_BIN $DBGRPM)
 	DBGRPM_NAME=${DBGRPM_NAME#*-*-}
-	if ! [ "${DBGRPM_NAME:0:9}" = "debuginfo" -a "${DBGRPM_NAME:(-4)}" = ".rpm" ]; then
+	if ! [[ "${DBGRPM_NAME:0:9}" == "debuginfo" ]] && [[ "${DBGRPM_NAME:(-4)}" == ".rpm" ]]; then
 		echo "    Invalid RPM specified!"
 		echo "    Please specify a valid kernel-*-debuginfo.rpm file with the -d parameter,"
 		echo "    or install the kernel-*-debuginfo rpm, and do not use the -d parameter."
@@ -211,7 +212,7 @@ extractdebug()
 
 	for DIR in ./usr/lib/debug/boot ./usr/lib/debug ./usr/lib ./usr
 	do
-		if [ -e $DIR ]; then
+		if [[ -e $DIR ]]; then
 			$RMDIR_BIN $DIR
 		fi
 	done
@@ -226,18 +227,18 @@ extractdebug()
 checkkernel()
 {
 	KERNEL=""
-	if [ -z "$USERKERNEL" ]; then
-		if [ -e README.txt ]; then
+	if [[ -z "$USERKERNEL" ]]; then
+		if [[ -e README.txt ]]; then
 			KERNEL=$($GREP_BIN "^Kernel version *:" README.txt | $AWK_BIN '{print $NF}')
-			if ! [ -z "$KERNEL" ]; then
+			if ! [[ -z "$KERNEL" ]]; then
 				KERNEL="vmlinux-$KERNEL.gz"
 			fi
 		fi
-		if [ -z "$KERNEL" ]; then
+		if [[ -z "$KERNEL" ]]; then
 			# If README.txt is missing 'Kernel version :", set KERNEL to vmlinux found in crash dir.
 			KERNEL="$($LS_BIN vmlinux-*.gz 2>/dev/null)"
 		fi
-		if [ -z "$KERNEL" ]; then
+		if [[ -z "$KERNEL" ]]; then
 			# If kernel version is still unknown, use currently running kernel instead of failing.
 			KERNEL="vmlinux-$($UNAME_BIN -r).gz"
 			echo -n "defaulting to running kernel... "
@@ -249,9 +250,9 @@ checkkernel()
 	KERNEL_VER=${KERNEL_VER%-*}
 	KERNEL_FLAVOR=${KERNEL##*-}
 	KERNEL_FLAVOR=${KERNEL_FLAVOR%.*}
-	if ! [ -e $KERNEL ]; then
+	if ! [[ -e $KERNEL ]]; then
 		# If $KERNEL does not exist, check /boot and symlink to it if found
-		if [ -e "/boot/$($BASENAME_BIN $KERNEL)" ]; then
+		if [[ -e "/boot/$($BASENAME_BIN $KERNEL)" ]]; then
 			$LN_BIN -s /boot/$($BASENAME_BIN $KERNEL) $($BASENAME_BIN $KERNEL)
 		else
 			echo "Failed!"
@@ -265,7 +266,7 @@ checkkernel()
 	KERNEL=$($READLINK_BIN -f $KERNEL)
 	KERNEL_DIR=$($DIRNAME_BIN $KERNEL)
 	KERNEL_NAME=$($BASENAME_BIN $KERNEL)
-	if [ ! "${KERNEL_NAME:0:8}" = "vmlinux-" -o "${KERNEL_NAME:(-5)}" = "debug" ]; then
+	if ! [[ "${KERNEL_NAME:0:8}" == "vmlinux-" ]] || [[ "${KERNEL_NAME:(-5)}" == "debug" ]]; then
 		echo "Failed!"
 		echo
 		echo "The -k parameter must specify a valid NORMAL kernel image. For example:"
@@ -288,14 +289,14 @@ checkdebug()
 {
 	FOUND_DEBUG=0
 	DEBUGKERNEL="${KERNEL_NAME%.gz}.debug"
-	if ! [ -e "/usr/lib/debug/boot/$DEBUGKERNEL" -o -e "$KERNEL_DIR/$DEBUGKERNEL" ]; then
+	if ! [[ -e "/usr/lib/debug/boot/$DEBUGKERNEL" ]] || [[ -e "$KERNEL_DIR/$DEBUGKERNEL" ]]; then
 		# If the vmlinux.debug kernel is not in /usr/lib/debug/boot, it will only be found
 		# if it is in the same directory as the kernel. Check to see if there is another copy
 		# of the kernel in the same directory as the .debug version, If not, create a symlink
 		for DIR in $CRASHDIR $ORG_DIR; do
-			if [ -e "$DIR/$DEBUGKERNEL" ]; then
+			if [[ -e "$DIR/$DEBUGKERNEL" ]]; then
 				echo " found (in $DIR)"
-				if [ -e "$DIR/$KERNEL_NAME" ]; then
+				if [[ -e "$DIR/$KERNEL_NAME" ]]; then
 					echo "    Using $KERNEL_NAME in $DIR instead of $KERNEL!"
 				else
 					echo "    Creating symlink to allow for remote $KERNEL_NAME"
@@ -303,14 +304,14 @@ checkdebug()
 				fi
 				FOUND_DEBUG=1
 			fi
-			if [ "$FOUND_DEBUG" = "1" ]; then
+			if (( $FOUND_DEBUG )); then
 				KERNEL=$DIR/$KERNEL_NAME
 				KERNEL_DIR=$($DIRNAME_BIN $KERNEL)
 				break
 			fi
 		done
-		if [ "$FOUND_DEBUG" = "0" ]; then
-			if ! [ -z "$DBGRPM" ]; then
+		if ! (( $FOUND_DEBUG )); then
+			if ! [[ -z "$DBGRPM" ]]; then
 				extractdebug
 			else
 				echo "Failed!"
@@ -321,11 +322,7 @@ checkdebug()
 				echo "  The debuginfo kernel can be automatically installed (if debuginfo"
 				echo "  channels are activated) using:"
 				echo
-				if [ "$CRASHV4" = "1" ]; then
-					echo "       rug in kernel-$KERNEL_FLAVOR-debuginfo-$KERNEL_VER"
-				else
-					echo "       zypper in kernel-$KERNEL_FLAVOR-debuginfo-${KERNEL_VER%-*}"
-				fi
+				echo "       zypper in kernel-$KERNEL_FLAVOR-debuginfo-${KERNEL_VER%-*}"
 				echo
 				echo "  For additional information, see analyzevmcore(8)."
 				echo
@@ -335,12 +332,7 @@ checkdebug()
 	else
 		echo "validated"
 	fi
-	# Add symlink for use with uncompressed kernels
-	if [ "$CRASHV4" = "1" -a -e "/usr/lib/debug/boot/$DEBUGKERNEL" ]; then
-		if ! [ -e "$CRASHDIR/$DEBUGKERNEL" ]; then
-			$LN_BIN -s /usr/lib/debug/boot/$DEBUGKERNEL $CRASHDIR/$DEBUGKERNEL
-		fi
-	fi
+
 	return 0
 }
 
@@ -430,7 +422,7 @@ createreport()
 	# Show progress while creating analysis.txt
 	PROCESSING=0
 	$PRINTF_BIN "${FORMAT}" "  Creating analysis..."
-	while [ "$PROCESSING" = "0" ]
+	while ! (( $PROCESSING ))
 	do
 		local TEMP=${SPINSTR#?}
 		$PRINTF_BIN " [%c]  " "$SPINSTR"
@@ -448,7 +440,7 @@ createreport()
 
 	$RM_BIN $CRASHCMDS
 
-	if [ "$CRASH_STATUS" -ne "0" ]; then
+	if (( $CRASH_STATUS )); then
 		echo "FAILED!"
 		echo "    Crash was unable to create the analysis file."
 		echo "    Either the vmcore file is invalid, or an incorrect version of vmlinux was used."
@@ -496,12 +488,6 @@ clear
 title
 checkbinaries
 
-#Check crash version for workaround on SLES10
-CRASH_VER=$($RPM_BIN -q --queryformat "%{VERSION}\n" crash)
-if [[ "${CRASH_VER:0:1}" < "5" ]]; then
-	CRASHV4="1"
-fi
-
 if [[ -z "$COREDIR" ]]; then
     if [[ -x $READ_KDUMP_CONFIG ]]; then
         . $READ_KDUMP_CONFIG
@@ -532,7 +518,7 @@ else
 	fi
 fi
 
-if ! [ -z "$COREDIR" ]; then
+if ! [[ -z "$COREDIR" ]]; then
 	TMP_DIR=$($MKTEMP_BIN -d /tmp/analyzevmcore_tmp_XXXXXX)
 	ORG_DIR=$PWD
 	COREDIR_TOTAL=$($WC_BIN -w <<< $COREDIR)
@@ -543,8 +529,8 @@ if ! [ -z "$COREDIR" ]; then
 		CORE_DATE=${CRASHDIR##*/}
 		ANALYSIS="$CRASHDIR/${FILENAME_PREFIX}analyzevmcore_$CORE_DATE.txt"
 		$PRINTF_BIN "$FORMAT" "  Existing analysis..."
-		if [ -e "$ANALYSIS" ]; then
-			if [ "$REWRITE_ANALYSIS" = "1" ]; then
+		if [[ -e "$ANALYSIS" ]]; then
+			if (( $REWRITE_ANALYSIS )); then
 				echo "found, removing for rewrite"
 				$RM_BIN $ANALYSIS
 			else
@@ -559,7 +545,7 @@ if ! [ -z "$COREDIR" ]; then
 		else
 			echo "not found"
 		fi
-		if ! [ -e "$CRASHDIR/vmcore" ]; then
+		if ! [[ -e "$CRASHDIR/vmcore" ]]; then
 			echo "  Missing vmcore file, skipping..."
 			echo
 			continue
@@ -571,11 +557,6 @@ if ! [ -z "$COREDIR" ]; then
 
 			$PRINTF_BIN "$FORMAT" "  Checking vmlinux..."
 			checkkernel
-
-			# If crash is version 4, decompress the kernel
-			if [ "$CRASHV4" = "1" ]; then
-				decompresskernel
-			fi
 
 			$PRINTF_BIN "$FORMAT" "  Checking vmlinux.debug..."
 			if checkdebug; then
