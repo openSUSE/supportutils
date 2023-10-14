@@ -63,9 +63,7 @@ BASENAME_BIN=/usr/bin/basename
 CAT_BIN=/bin/cat
 CP_BIN=/bin/cp
 CPIO_BIN=/usr/bin/cpio
-#CRASH_BIN=/usr/bin/crash
-# For testing purposes only
-CRASH_BIN=/root/bin/crash
+CRASH_BIN=/usr/bin/crash
 DATE_BIN=/bin/date
 DIRNAME_BIN=/usr/bin/dirname
 GREP_BIN=/usr/bin/grep

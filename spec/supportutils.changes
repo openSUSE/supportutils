@@ -1,4 +1,20 @@
 -------------------------------------------------------------------
+Sat Oct 14 22:25:40 UTC 2023 - jason.record@suse.com
+
+- Fixed supportconfig using external test command bsc#1216150
+- Removed older versions of SLES_VER bsc#1216147
+- Fixed supportconfig kdump and analyzevmcore errors bsc#1216146
+- Cron and At are replaced with systemd.timer bsc#1216229
+- Offers apparmor or selinux based on configuration bsc#1216233
+- Filted proc access errors bsc#1216151
+- Remove all SuSE-release references bsc#1216228
+- Remove references to /etc/init.d bsc#1216230
+- Changed config directory to /etc/supportutuils for all conf and header.txt bsc#1216232
+- Removed package requires for kmod and util-linux-systemd
+- Remove check_service function from supportconfig.rc bsc#1216231
+- Support has been removed for scplugin.rc, use supportconfig.rc bsc#1216241
+
+-------------------------------------------------------------------
 Wed Oct 11 18:59:32 UTC 2023 - jason.record@suse.com
 
 - SLES_VER starts with ALP1 at 160 (bsc#1216147)
