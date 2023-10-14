@@ -1,7 +1,7 @@
 ##############################################################################
 #  supportconfig.rc - Resource file for supportconfig
 #  Copyright (C) 2001-2023 SUSE LLC
-RCVER='3.2.0_test2'
+RCVER='3.2.0_test3'
 #
 #  Contains supporting functions and variables used by supportconfig and
 #  supportconfig plugins.
@@ -20,10 +20,10 @@ RCVER='3.2.0_test2'
 #  You should have received a copy of the GNU General Public License
 #  along with this program; if not, see <http://www.gnu.org/licenses/>.
 #
-#  Modified: 2023 Oct 13
+#  Modified: 2023 Oct 14
 #
 #  Authors/Contributors:
-#     Jason Record <jason.record@suse.com>
+#	 Jason Record <jason.record@suse.com>
 #
 ##############################################################################
 
@@ -264,9 +264,9 @@ wait_trace_on() {
 		WT_START=$(date +%T:%N)
 		log2sys "<$WT_START> $LOGGING"
 		if (( $TEE )); then
-			printf "%s" "    <$WT_START> $LOGGING  " | tee -a ${LOG}/${CSFILE}
+			printf "%s" "	<$WT_START> $LOGGING  " | tee -a ${LOG}/${CSFILE}
 		else
-			printf "%s" "    <$WT_START> $LOGGING  "
+			printf "%s" "	<$WT_START> $LOGGING  "
 		fi
 	fi
 }
@@ -555,8 +555,8 @@ log_cmd() {
 
 # Input: logfilename command
 # Returns: 1 - command not found or not executable
-#          2 - command returned an error
-#         10 - command timed out
+#		  2 - command returned an error
+#		 10 - command timed out
 timed_log_cmd() {
 	EXIT_STATUS=0
 	TIMEOUT_PROGRESS=30
@@ -746,13 +746,13 @@ check_service() {
 get_customer_info() {
 	INFOLOG=$1
 	LINE_ADDED=0
-	[[ -n "$VAR_OPTION_CONTACT_COMPANY" ]] && 		{ log_write $INFOLOG "Company:     $VAR_OPTION_CONTACT_COMPANY"; ((LINE_ADDED++)); }
-	[[ -n "$VAR_OPTION_CONTACT_STOREID" ]] && 		{ log_write $INFOLOG "Store ID:    $VAR_OPTION_CONTACT_STOREID"; ((LINE_ADDED++)); }
+	[[ -n "$VAR_OPTION_CONTACT_COMPANY" ]] && 		{ log_write $INFOLOG "Company:	 $VAR_OPTION_CONTACT_COMPANY"; ((LINE_ADDED++)); }
+	[[ -n "$VAR_OPTION_CONTACT_STOREID" ]] && 		{ log_write $INFOLOG "Store ID:	$VAR_OPTION_CONTACT_STOREID"; ((LINE_ADDED++)); }
 	[[ -n "$VAR_OPTION_CONTACT_TERMINALID" ]] && 	{ log_write $INFOLOG "Terminal ID: $VAR_OPTION_CONTACT_TERMINALID"; ((LINE_ADDED++)); }
-	[[ -n "$VAR_OPTION_CONTACT_NAME" ]] && 			{ log_write $INFOLOG "Name:        $VAR_OPTION_CONTACT_NAME"; ((LINE_ADDED++)); }
-	[[ -n "$VAR_OPTION_CONTACT_PHONE" ]] && 		{ log_write $INFOLOG "Phone:       $VAR_OPTION_CONTACT_PHONE"; ((LINE_ADDED++)); }
-	[[ -n "$VAR_OPTION_CONTACT_EMAIL" ]] && 		{ log_write $INFOLOG "Email:       $VAR_OPTION_CONTACT_EMAIL"; ((LINE_ADDED++)); }
-	[[ -n "$CONTACT_SRNUM" ]] &&					{ log_write $INFOLOG "SR#:         $CONTACT_SRNUM"; ((LINE_ADDED++)); }
+	[[ -n "$VAR_OPTION_CONTACT_NAME" ]] && 			{ log_write $INFOLOG "Name:		$VAR_OPTION_CONTACT_NAME"; ((LINE_ADDED++)); }
+	[[ -n "$VAR_OPTION_CONTACT_PHONE" ]] && 		{ log_write $INFOLOG "Phone:	   $VAR_OPTION_CONTACT_PHONE"; ((LINE_ADDED++)); }
+	[[ -n "$VAR_OPTION_CONTACT_EMAIL" ]] && 		{ log_write $INFOLOG "Email:	   $VAR_OPTION_CONTACT_EMAIL"; ((LINE_ADDED++)); }
+	[[ -n "$CONTACT_SRNUM" ]] &&					{ log_write $INFOLOG "SR#:		 $CONTACT_SRNUM"; ((LINE_ADDED++)); }
 	((LINE_ADDED)) && log_write $INFOLOG
 }
 
@@ -927,7 +927,13 @@ check_log_dir() {
 
 get_features() {
 	log2sys "Display Feature Set"
-	FEATURES=$(grep ^OPTION_ $SC_RESOURCE_FILE | cut -d= -f1 | sed -e 's/OPTION_//g')
+	if grep 'security=selinux' /proc/cmdline &> /dev/null; then
+		FEATURES=$(grep ^OPTION_ $SC_RESOURCE_FILE | grep -v OPTION_APPARMOR | cut -d= -f1 | sed -e 's/OPTION_//g')
+	elif grep 'security=apparmor' /proc/cmdline &> /dev/null; then
+		FEATURES=$(grep ^OPTION_ $SC_RESOURCE_FILE | grep -v OPTION_SELINUX | cut -d= -f1 | sed -e 's/OPTION_//g')
+	else
+		FEATURES=$(grep ^OPTION_ $SC_RESOURCE_FILE | cut -d= -f1 | sed -e 's/OPTION_//g')
+	fi
 	ADDITIONAL_FEATURES=$(grep ^ADD_OPTION_ $SC_RESOURCE_FILE | cut -d= -f1 | sed -e 's/ADD_OPTION_/a/g')
 	echo $FEATURES $ADDITIONAL_FEATURES $PLUGIN_FEATURES
 }
@@ -1018,7 +1024,7 @@ encrypt_tarball() {
 	FOUND_KEY=$(gpg --list-keys 2>/dev/null | grep "$VAR_OPTION_GPG_UID" 2>/dev/null)
 	if [[ -z "$FOUND_KEY" ]]; then
 		echo "ERROR: GPG key not found: $VAR_OPTION_GPG_UID"
-		echo "       File encryption failed, aborting"
+		echo "	   File encryption failed, aborting"
 		echo
 		gpg --list-keys
 		exit_code 13
@@ -1040,7 +1046,7 @@ encrypt_tarball() {
 		fi
 		echo
 		echo "Using GPG Key:  $VAR_OPTION_GPG_UID"
-		echo "Command:        gpg --batch --yes --trust-model always --encrypt --recipient \"$VAR_OPTION_GPG_UID\" $TARBALL"
+		echo "Command:		gpg --batch --yes --trust-model always --encrypt --recipient \"$VAR_OPTION_GPG_UID\" $TARBALL"
 		wait_trace_on "gpg --batch --yes --trust-model always --encrypt --recipient "$VAR_OPTION_GPG_UID" $TARBALL"
 		gpg --batch --yes --trust-model always --encrypt --recipient "$VAR_OPTION_GPG_UID" $TARBALL
 		ERR=$?
@@ -1275,14 +1281,14 @@ post_lsmod_list() {
 	LN_TOTAL=$((LN_FIN - LN_INIT))
 	head -$LN_TOTAL $LOG/$OF | sed -e '/^#/d;/Module.*Size.*Used/d;/^$/d' | cut -d' ' -f1 | sort > $MOD_FIRST
 	MOD_CNT_BEFORE=$(cat $MOD_FIRST | wc -l)
-	log_write $OF "Modules Loaded Before Suportconfig:       $MOD_CNT_BEFORE"
+	log_write $OF "Modules Loaded Before Suportconfig:	   $MOD_CNT_BEFORE"
 	wait_trace_off
 
 	# Get module list after running supportconfig commands
 	wait_trace_on "lsmod | sed -e '1d' | cut -d' ' -f1 | sort"
 	lsmod | sed -e '1d' | cut -d' ' -f1 | sort > $MOD_LAST
 	MOD_CNT_AFTER=$(cat $MOD_LAST | wc -l)
-	log_write $OF "Modules Loaded After Suportconfig:        $MOD_CNT_AFTER"
+	log_write $OF "Modules Loaded After Suportconfig:		$MOD_CNT_AFTER"
 	wait_trace_off
 
 	# Show the module list difference

@@ -1,7 +1,7 @@
 #!/bin/bash
 
-SVER='3.2.0_test6'
-SDATE='2023 Oct 13'
+SVER='3.2.0_test7'
+SDATE='2023 Oct 14'
 
 ##############################################################################
 #  supportconfig - Gathers system troubleshooting information for SUSE Support
@@ -321,8 +321,7 @@ basic_healthcheck() {
 	log_write $OF
 	rm -f $TOPTMP
 
-	if rpm -q apparmor-parser &>/dev/null; then
-		# apparmor for SLE10/11
+	if grep 'security=apparmor' /proc/cmdline &>/dev/null; then
 		log_write $AARTMP "#==[ Summary ]======================================#"
 		log_write $AARTMP "# AppArmor REJECT Messages"
 		log_write $AARTMP "$(systemctl status apparmor.service)"
@@ -2581,18 +2580,6 @@ apparmor_info() {
 	(( $OPTION_APPARMOR )) || { rm -f $AARPTMP &>/dev/null; echolog Excluded; return 1; }
 	OF=security-apparmor.txt
 	addHeaderFile $OF
-	SKIP=0
-	if rpm_verify $OF subdomain-parser
-	then
-			rpm_verify $OF subdomain-parser-common
-			rpm_verify $OF subdomain-utils
-			rpm_verify $OF subdomain-profiles
-			[[ -f $AARPTMP ]] && cat $AARPTMP >> $LOG/$OF
-			log_cmd $OF 'unconfined'
-	else
-		((SKIP++))
-	fi
-
 	if rpm_verify $OF apparmor-parser
 	then
 		rpm_verify $OF apparmor-utils
@@ -2609,12 +2596,12 @@ apparmor_info() {
 		[[ -d /etc/apparmor ]] && FILES=$(find -L /etc/apparmor/ | grep '\.conf$') || FILES=""
 		conf_files $OF $FILES
 		log_files $OF 0 /var/log/audit/audit.log
+		echolog Done
 	else
-		((SKIP++))
+		echolog Skipped
 	fi
 
 	rm -f $AARPTMP &>/dev/null
-	(( $SKIP < 2 )) && echolog Done || echolog Skipped
 }
 
 selinux_info() {
@@ -4206,8 +4193,15 @@ if (( $USE_SAVED_LOGS_ONLY != 1 )); then
 	nfs_info
 	autofs_info
 	sar_info
-	apparmor_info
-	selinux_info
+	if grep 'security=selinux' /proc/cmdline &> /dev/null; then
+		selinux_info
+		rm -f $AARPTMP &> /dev/null
+	elif grep 'security=apparmor' /proc/cmdline &> /dev/null; then
+		apparmor_info
+	else
+		apparmor_info
+		selinux_info
+	fi
 	x_info
 	print_info
 	smartmon_info
