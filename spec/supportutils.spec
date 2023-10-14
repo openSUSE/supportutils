@@ -26,13 +26,11 @@ Group:          System/Monitoring
 Url:            https://github.com/openSUSE/supportutils
 Source:         %{name}-%{version}.tar.gz
 Requires:       iproute2
-Requires:       kmod-compat
 Requires:       ncurses-utils
 %ifarch ppc64le s390x
 Requires:       numactl
 %endif
 Requires:       tar
-Requires:       util-linux-systemd
 Requires:       /usr/bin/which
 Requires:       /usr/bin/sed
 Requires:       /usr/bin/awk
@@ -56,6 +54,7 @@ gzip -9f man/*8
 %install
 pwd;ls -la
 mkdir -p %{buildroot}%{_sbindir}
+install -d %{buildroot}%{_sysconfdir}/supportutils
 install -d %{buildroot}%{_mandir}/man3
 install -d %{buildroot}%{_mandir}/man5
 install -d %{buildroot}%{_mandir}/man8
@@ -83,6 +82,7 @@ install -m 644 man/COPYING.GPLv2 %{buildroot}%{_docdir}/%{name}
 %dir %{support_libdir}/resources
 %dir %{support_libdir}/plugins
 %dir %{_docdir}/%{name}
+%dir %{_sysconfdir}/supportutils
 
 %if 0%{?suse_version} < 1500
 %doc %{_docdir}/%{name}/COPYING.GPLv2

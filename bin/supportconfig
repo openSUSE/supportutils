@@ -3895,7 +3895,7 @@ if (( $CURRENTUID != 0 )); then
 fi
 
 # check for valid conf file
-if [[ -s ${SC_CONF:="/etc/${CURRENT_SCRIPT}.conf"} ]]; then
+if [[ -s ${SC_CONF:="${CONFIG_DIR}/${CURRENT_SCRIPT}.conf"} ]]; then
 	if [[ -x /usr/bin/dos2unix ]]; then
 		/usr/bin/dos2unix $SC_CONF &>/dev/null
 	else

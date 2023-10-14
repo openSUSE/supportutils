@@ -125,7 +125,7 @@ VAR_OPTION_SAR_FILES_LIMIT=30
 VAR_OPTION_SILENT=0
 VAR_OPTION_SBM=0
 VAR_OPTION_UNIQUE_FILE=0
-VAR_OPTION_HEADER_FILE='/var/opt/supportconfig/header.txt'
+VAR_OPTION_HEADER_FILE="${CONFIG_DIR}/header.txt"
 SUSE_UPLOAD_NA_ASERVER='support-ftp.us.suse.com'
 SUSE_UPLOAD_EMEA_ASERVER='support-ftp.emea.suse.com'
 SUSE_UPLOAD_NA_HTTPS="https://${SUSE_UPLOAD_NA_ASERVER}/incoming/upload.php?file={tarball}"
@@ -146,6 +146,7 @@ PATH="/sbin:/usr/sbin:/bin:/usr/bin:$PATH"
 PATH_ORIG=$PATH
 export PATH LANG
 LIB_DIR='/usr/lib/supportconfig'
+CONFIG_DIR='/etc/supportutils'
 SC_RESOURCE_FILE="${LIB_DIR}/resources/supportconfig.rc"
 XPLUGIN_DIR="${LIB_DIR}/plugins"
 CURRENT_SCRIPT=$(basename $0)
