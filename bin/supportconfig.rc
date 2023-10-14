@@ -182,8 +182,6 @@ USE_SAVED_LOGS_ONLY=0
 ENCRYPTED_TARBALL=0
 # Set bootloader type from sysconfig
 eval $(cat /etc/sysconfig/bootloader | grep LOADER_TYPE)
-# If environment is systemd, /sbin/init should be a symlink to systemd
-file /sbin/init | grep "systemd" &>/dev/null && SYSTEMD=1 || SYSTEMD=0
 IO_DELAYS=0
 
 PROC_FILES="/proc/mounts /proc/zoneinfo"

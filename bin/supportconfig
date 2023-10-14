@@ -659,7 +659,7 @@ boot_info() {
 	[[ -s /var/log/mcelog ]] && { log_cmd $OF "ls -l --time-style=long-iso /var/log/mcelog"; conf_files $OF /var/log/mcelog; }
 	log_cmd $OF 'last -wxF | egrep "reboot|shutdown|runlevel|system"'
 
-	conf_files $OF /proc/cmdline /etc/sysconfig/kernel $FILES /etc/init.d/boot.local /etc/init.d/before.local /etc/init.d/after.local /etc/init.d/halt.local
+	conf_files $OF /proc/cmdline /etc/sysconfig/kernel $FILES
 
 	log_cmd $OF 'ls -lR --time-style=long-iso /boot/'
 	log_cmd $OF "lsinitrd -k $(uname -r)"
@@ -965,23 +965,15 @@ sssd_info() {
 		fi
 		log_cmd $OF 'date +"%Y-%m-%d %H:%M"'
 		log_cmd $OF 'ls -lR --time-style=long-iso /var/lib/sss/'
-		[[ -s /etc/init.d/sssd ]] && SSSD_PIDF=$(grep '^PID_FILE' /etc/init.d/sssd | sed -e 's/ *//g' | cut -d= -f2)
-		[[ -z "$SSSD_PIDF" ]] && SLAPD_PIDF="/var/run/sssd.pid"
-		if [[ -f $SSSD_PIDF ]]; then
-			SSSD_PID=$(cat $SSSD_PIDF)
-		else
-			SSSD_PID=""
-		fi
-		if [[ -n "$SSSD_PID" ]]; then
+		SSSD_PID=$(systemctl show sssd.service -p ExecMainPID)
+		SSSD_PID=${SSSD_PID#ExecMainPID=}
+		if (( $SSSD_PID )); then
 			SSSD_PIDS=$(ps axwwo pid,ppid,cmd | grep ${SSSD_PID} | grep -v grep | awk '{print $1}' | sort -n)
 			log_cmd $OF "ps axwwo user,pid,ppid,%cpu,%mem,vsz,rss,stat,time,cmd | egrep \"${SSSD_PID}|PPID\" | grep -v grep"
 			for THISPID in $SSSD_PIDS
 			do
 				log_cmd $OF "lsof -b +M -n -l -p $THISPID 2>/dev/null"
 			done
-		else
-			log_cmd $OF "ps axwwo user,pid,ppid,%cpu,%mem,vsz,rss,stat,time,cmd | egrep \"sssd|PPID\" | grep -v grep"
-			log_cmd $OF "lsof -b +M -n -l +fg 2>/dev/null | grep sssd"
 		fi
 		log_cmd $OF 'grep pam_sss /etc/pam.d/*'
 		FILES="/var/log/sssd/*"
@@ -2384,7 +2376,6 @@ crash_info() {
 		LIMITS_FILES=$(find /etc/security/limits.d/ -type f -name \*.conf)
 		conf_files $OF $LIMITS_FILES
 	fi
-	log_cmd $OF "grep -n 'ulimit -c' /etc/init.d/* 2>/dev/null"
 
 	if [[ -x /usr/bin/coredumpctl ]]; then
 		log_cmd $OF "/usr/bin/coredumpctl list"
@@ -2395,8 +2386,6 @@ crash_info() {
 				log_cmd $OF "coredumpctl info $COREPID"
 			done
 		fi
-	elif [[ -x /usr/bin/systemd-coredumpctl ]]; then
-		log_cmd $OF "/usr/bin/systemd-coredumpctl list"
 	fi
 	CORE=$(cat /proc/sys/kernel/core_pattern 2>/dev/null)
 	SEARCH_LIST=$(mktemp $LOG/crash.search.list.XXXXXXXX)
@@ -2585,11 +2574,7 @@ apparmor_info() {
 		rpm_verify $OF apparmor-utils
 		rpm_verify $OF apparmor-profiles
 		[[ -f $AARPTMP ]] && cat $AARPTMP >> $LOG/$OF
-		if [[ -x /etc/init.d/boot.apparmor ]]; then
-			log_cmd $OF "/etc/init.d/boot.apparmor status"
-		else
-			log_cmd $OF "systemctl status apparmor.service"
-		fi
+		check_service $OF apparmor
 		log_cmd $OF 'unconfined'
 		log_cmd $OF 'aa-status'
 		log_cmd $OF 'aa-notify -l'
@@ -3476,22 +3461,10 @@ slert_info() {
 	if rpm_verify $OF kernel-rt
 	then
 		log_cmd $OF "uname -r"
-		[[ -e /etc/init.d/slert ]] && check_service $OF slert
-		if rpm -q cpuset &>/dev/null; then
-			rpm_verify $OF cpuset
-			if [[ -e /etc/init.d/cset ]]; then
-				CSETSRV=cset
-				check_service $OF $CSETSRV
-			elif [[ -e /etc/init.d/cset.init.d ]]; then
-				CSETSRV='cset.init.d'
-				check_service $OF $CSETSRV
-			fi
-			CSETFILES="/etc/cset.conf /etc/init.d/$CSETSRV"
-		else
-			CSETFILES=""
-		fi
+		check_service $OF slert
+		check_service $OF cset
 		log_cmd $OF "ps -eo pid,user,args,ni,rtprio --sort -rtprio"
-		conf_files $OF /etc/slert/setup /proc/cpuinfo /etc/sysconfig/cset $CSETFILES
+		conf_files $OF /etc/slert/setup /proc/cpuinfo /etc/sysconfig/cset /etc/cset.conf
 		if [[ -e /proc/irq/default_smp_affinity ]]; then
 			conf_files $OF /proc/irq/default_smp_affinity /proc/irq/*/smp_affinity
 		fi
@@ -3778,10 +3751,6 @@ web_info() {
 		for i in $TOMCAT
 		do
 			rpm_verify $OF $i
-		done
-		for WEB_SERVICE in $(ls -1 /etc/init.d/*tomcat* 2>/dev/null)
-		do
-			check_service $OF $(basename $WEB_SERVICE)
 		done
 		if [[ -s /etc/sysconfig/j2ee ]]; then
 			conf_files $OF /etc/sysconfig/j2ee
