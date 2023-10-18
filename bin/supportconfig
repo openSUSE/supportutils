@@ -1,7 +1,7 @@
 #!/bin/bash
 
-SVER='3.2.0'
-SDATE='2023 Oct 14'
+SVER='3.2.0-2'
+SDATE='2023 Oct 18'
 
 ##############################################################################
 #  supportconfig - Gathers system troubleshooting information for SUSE Support
@@ -696,6 +696,7 @@ boot_info() {
 
 bpf_info() {
 	printlog "BPF..."
+	# Berkley Packet Filter facility (BPF)
 	(( $OPTION_BPF )) || { echolog Excluded; return 1; }
 	OF=bpf.txt
 	addHeaderFile $OF
@@ -3834,18 +3835,30 @@ transactional_info() {
 	fi
 }
 
-kernel_livepatch_info() {
-	printlog "Kernel Livepatch..."
+livepatch_info() {
+	printlog "Livepatch..."
 	(( $OPTION_LIVEPATCH )) || { echolog Excluded; return 1; }
-	OF=kernel-livepatch.txt
+	OF=livepatch.txt
 	addHeaderFile $OF
-	for FDIR in $(find /sys/kernel/livepatch/ -maxdepth 1 -type d | grep -v "/sys/kernel/livepatch/$")
-	do
-		log_cmd $OF "find -L $FDIR -type d"
-		FILES=$(find -L $FDIR/ -type f)
-		conf_files $OF $FILES
-	done
-
+	log_cmd $OF 'rpm -qa | grep livepatch'
+	if rpm_verify $OF kernel-livepatch-tools; then
+		log_cmd $OF 'klp status'
+		log_cmd $OF 'klp -v blocking'
+		log_cmd $OF 'klp -v patches'
+	fi
+	if rpm_verify $OF libpulp-tools; then
+		log_cmd $OF 'ulp -v patches'
+		log_entry $OF command 'for library in $(find -L /lib64 -type f ); do ulp livepatchable $library; done'
+		for library in $(find -L /lib64 -type f )
+		do
+			ulp livepatchable $library >> $LOG/$OF 2>&1
+		done
+		log_entry $OF command 'for library in $(find -L /usr/lib64 -type f ); do ulp livepatchable $library; done'
+		for library in $(find -L /usr/lib64 -type f )
+		do
+			ulp livepatchable $library >> $LOG/$OF 2>&1
+		done
+	fi
 	echolog Done
 }
 
@@ -4173,7 +4186,7 @@ if (( $USE_SAVED_LOGS_ONLY != 1 )); then
 	print_info
 	smartmon_info
 	[[ -s ${FSLIST_ADD_FILE} ]] && fslist_ufiles_info
-	kernel_livepatch_info
+	livepatch_info
 	hardware_info		#Minimum Requirement
 	rpm_full_verify
 	exec_plugins
