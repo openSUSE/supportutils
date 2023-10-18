@@ -3847,7 +3847,7 @@ livepatch_info() {
 		log_cmd $OF 'klp -v patches'
 	fi
 	if rpm_verify $OF libpulp-tools; then
-		log_cmd $OF 'ulp patches'
+		log_cmd $OF 'ulp -v patches'
 		log_entry $OF command 'for library in $(find -L /lib64 -type f ); do ulp livepatchable $library; done'
 		for library in $(find -L /lib64 -type f )
 		do
