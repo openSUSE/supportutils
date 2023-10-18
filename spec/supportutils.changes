@@ -1,7 +1,8 @@
 -------------------------------------------------------------------
-Wed Oct 18 20:44:10 UTC 2023 - jason.record@suse.com
+Wed Oct 18 20:46:24 UTC 2023 - jason.record@suse.com
 
 - Changes in version 3.2.2
+  + Added supportutils to current PED-4456
   + Fixed kernel and added user live patching PED-4524
   + Fixed plugins creating empty files bsc#1216388
   + Fixed supportconfig using external test command bsc#1216150
