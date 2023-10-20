@@ -31,7 +31,7 @@ dist:
 	@rm -rf $(SRCDIR)
 	@mv -f $(SRCFILE).gz src
 
-clean: uninstall obclean
+clean: uninstall
 	@echo [clean]: Cleaning up make files
 	@rm -rf $(OBSPACKAGE)*
 	@for i in $(SVNDIRS); do rm -f $$i/*~; done
