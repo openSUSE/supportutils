@@ -5,7 +5,7 @@ SUSE Linux Enterprise support utilities. Gathers system information.
 
 Branching Strategy
 
-master: Current stable changes for SUSE's Adaptable Linux Platform (ALP)
+master: Current stable changes for SUSE's Adaptable Linux Platform (ALP). Protected branch requires pull request.
 
 dev: Fixes for ALP master
 
