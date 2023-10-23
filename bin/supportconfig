@@ -4067,7 +4067,7 @@ if (( $LOGERROR )); then
 	echo
 	exit_code 3
 fi
-export LOG
+export LOG CSFILE
 
 if (( $USE_SAVED_LOGS_ONLY != 1 )); then
 
