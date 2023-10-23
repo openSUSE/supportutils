@@ -1,7 +1,7 @@
 #!/bin/bash
 
-SVER='3.2.0-3'
-SDATE='2023 Oct 20'
+SVER='3.2.0-4'
+SDATE='2023 Oct 23'
 
 ##############################################################################
 #  supportconfig - Gathers system troubleshooting information for SUSE Support
@@ -865,7 +865,8 @@ update_info() {
 		log_entry $OF note "curl -- not installed, aborted"
 	fi
 
-	FILES=$(find /var/log/ -type f -name \*zypp\*)
+	FILES='/var/log/zypp/history'
+	FILES="$FILES $(find /var/log/ -type f -name \*zypp\*)"
 	(( $ADD_OPTION_LOGS )) && log_files $OF 0 $FILES || log_files $OF $VAR_OPTION_LINE_COUNT $FILES
 
 	conf_files $OF '/proc/kgr_in_progress'
