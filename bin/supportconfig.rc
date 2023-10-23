@@ -304,9 +304,9 @@ conf_text_files() {
 			else
 				wait_trace_on "$CONF"
 				if (( ADD_OPTION_LOGS )); then
-					sed -e 's/\r//g' $CONF >> $LOGFILE 2>> $LOG/$CSFILE
+					sed -e 's/\r//g' $CONF >> $LOGFILE 2>&1
 				else
-					sed -e '/^[[:space:]]*#/d' -e '/^[[:space:]]*;/d' -e '/^[[:space:]]*\/\//d' -e 's/\r//g' -e '/^$/d' $CONF >> $LOGFILE 2>> $LOG/$CSFILE
+					sed -e '/^[[:space:]]*#/d' -e '/^[[:space:]]*;/d' -e '/^[[:space:]]*\/\//d' -e 's/\r//g' -e '/^$/d' $CONF >> $LOGFILE 2>&1
 				fi
 				wait_trace_off
 			fi
@@ -331,9 +331,9 @@ conf_files() {
 			echo "# $CONF" >> $LOGFILE
 			wait_trace_on "$CONF"
 			if (( ADD_OPTION_LOGS )); then
-				sed -e 's/\r//g' $CONF >> $LOGFILE 2>> $LOG/$CSFILE
+				sed -e 's/\r//g' $CONF >> $LOGFILE 2>&1
 			else
-				sed -e '/^[[:space:]]*#/d;/^[[:space:]]*;/d;s/\r//g;/^[[:space:]]*$/d' $CONF >> $LOGFILE 2>> $LOG/$CSFILE
+				sed -e '/^[[:space:]]*#/d;/^[[:space:]]*;/d;s/\r//g;/^[[:space:]]*$/d' $CONF >> $LOGFILE 2>&1
 			fi
 			echo >> $LOGFILE
 			wait_trace_off
