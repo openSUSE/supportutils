@@ -996,9 +996,9 @@ update_info() {
 		log_entry $OF note "curl -- not installed, aborted"
 	fi
 
-#zypper
-	FILES=$(find /var/log/ -type f -name \*zypp\*)
-	(( ADD_OPTION_LOGS > 0 )) && log_files $OF 0 $FILES || log_files $OF $VAR_OPTION_LINE_COUNT $FILES
+	FILES='/var/log/zypp/history'
+	FILES="$FILES $(find /var/log/ -type f -name \*zypp\*)"
+	(( $ADD_OPTION_LOGS )) && log_files $OF 0 $FILES || log_files $OF $VAR_OPTION_LINE_COUNT $FILES
 
 #suseregister
 	log_files $OF 0 '/root/.suse_register.log'
