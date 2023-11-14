@@ -3008,7 +3008,7 @@ ha_info() {
 	12*)
 		if rpm_verify $OF pacemaker
 		then
-			log_cmd $OF "rpm -qa | egrep 'resource-agents|cluster-glue|corosync|csync2|pacemaker|crmsh|libqb|hawk|dlm|lvm2|cluster-md|ocfs2|drbd'"
+			log_cmd $OF "rpm -qa | egrep 'resource-agents|fence-agents|booth|cluster-glue|corosync|csync2|pacemaker|crmsh|libqb|hawk|dlm|lvm2|cluster-md|ocfs2|gfs2|drbd'"
 			log_cmd $OF "systemctl status pacemaker.service"
 			CONF_FILES="/etc/corosync/corosync.conf /etc/sysconfig/ctdb /etc/sysconfig/sbd"
 			if [[ -s /etc/xinetd.d/csync2 ]]; then
