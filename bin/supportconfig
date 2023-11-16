@@ -3490,10 +3490,9 @@ samba_info() {
 fslist_info() {
 	printlog "File System List..."
 	test $ADD_OPTION_FSLIST -eq 0 && { echolog Skipped; return 1; }
-	echonlog "Please Wait..."
 	OF=$FSLIST_FILE
 	addHeaderFile $OF
-	log_cmd $OF 'find / -path /.snapshots -prune -o -print'
+	timed_log_cmd $OF 'find / -path /.snapshots -prune -o -print'
 	echolog Done
 }
 
