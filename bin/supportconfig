@@ -1,6 +1,6 @@
 #!/bin/bash
 
-SVER='3.2.0-5'
+SVER='3.2.0-6'
 SDATE='2023 Nov 17'
 
 ##############################################################################
@@ -1263,10 +1263,10 @@ podman_info() {
 			fi
 		done
 		cd $CURRENT_PATH
+		echolog Done
 	else
 		echolog Skipped
 	fi
-	echolog Done
 }
 
 soft_raid_info() {
