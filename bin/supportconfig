@@ -1263,10 +1263,10 @@ podman_info() {
 			fi
 		done
 		cd $CURRENT_PATH
+		echolog Done
 	else
 		echolog Skipped
 	fi
-	echolog Done
 }
 
 soft_raid_info() {
