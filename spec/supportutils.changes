@@ -1,4 +1,15 @@
 -------------------------------------------------------------------
+Fri Nov 17 20:49:50 UTC 2023 - jason.record@suse.com
+
+- Changes in version 3.1.27
+  + Fixed podman display issue (bsc#1217287)
+  + Added nvme-stas configuration to nvme.txt (bsc#1216049)
+  + Added timed command to fs-files.txt (bsc#1216827)
+  + Collects zypp history file issue#166 (bsc#1216522)
+  + Changed -x OPTION to really be exclude only (issue#146)
+  + Collect HA related rpm package versions in ha.txt (pr#169)
+
+-------------------------------------------------------------------
 Fri Sep  1 12:11:07 UTC 2023 - jason.record@suse.com
 
 - Changes in version 3.1.26
