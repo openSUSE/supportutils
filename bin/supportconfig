@@ -2523,27 +2523,36 @@ nvme_info() {
 	OF=nvme.txt
 	addHeaderFile $OF
 	NVME_PKG='nvme-cli'
-	if lsmod | grep nvme &> /dev/null; then
-		if rpm_verify $OF $NVME_PKG
-		then
+	STAS_PKG='nvme-stas'
+	NVME_LOADED=0
+	STAS_LOADED=0
+	SKIP=0
+	if rpm -q $NVME_PKG &>/dev/null; then
+		rpm_verify $OF $NVME_PKG
+		if lsmod | grep nvme &> /dev/null; then
+			NVME_LOADED=1
+		fi
+		if (( $NVME_LOADED )); then
 			log_cmd $OF "nvme list"
 			log_cmd $OF "nvme list-subsys"
 			if (( $SLES_VER >= 154 )); then
 				log_cmd $OF "nvme show-topology"
 			fi
 			log_cmd $OF "nvme discover"
-			if (( $SLES_VER == 155 )); then
+			if (( $SLES_VER >= 155 )); then
 				log_cmd $OF "nvme show-nbft -o json"
 			fi
 
 			log_cmd $OF "/etc/wicked/extensions/nbft"
+		fi
 
-			FILES='/etc/nvme/discovery.conf /etc/nvme/config.json'
-			if [[ -d /etc/nvme/ ]]; then
-				TFILES=$(find /etc/nvme/ -type f | egrep -v "discovery.conf|config.json")
-				[[ -n $TFILES ]] && FILES="${FILES} ${TFILES}"
-			fi
-			conf_files $OF $FILES
+		FILES='/etc/nvme/discovery.conf /etc/nvme/config.json'
+		if [[ -d /etc/nvme/ ]]; then
+			TFILES=$(find /etc/nvme/ -type f | egrep -v "discovery.conf|config.json")
+			[[ -n $TFILES ]] && FILES="${FILES} ${TFILES}"
+		fi
+		conf_files $OF $FILES
+		if (( $NVME_LOADED )); then
 			NVME_DEVICES=$(nvme list | grep /dev | awk '{print $1}')
 			for NVME_DEVICE in $NVME_DEVICES
 			do
@@ -2559,12 +2568,26 @@ nvme_info() {
 				log_cmd $OF "nvme error-log $NVME_DEVICE"
 				log_cmd $OF "nvme show-regs $NVME_DEVICE"
 			done
-			log_cmd $OF "lspci -tv"
 		fi
-		echolog Done
+		log_cmd $OF "lspci -tv"
 	else
-		echolog Skipped
+		((SKIP++))
 	fi
+	if rpm -q $STAS_PKG &>/dev/null; then
+		rpm_verify $OF $STAS_PKG
+		log_cmd $OF 'systemctl status stacd.service'
+		log_cmd $OF 'stacctl status'
+		log_cmd $OF 'systemctl status stafd.service'
+		log_cmd $OF 'stafctl status'
+		FILES='/etc/stas/sys.conf /etc/stas/stacd.conf /etc/stas/stafd.conf'
+		conf_files $OF $FILES
+		log_cmd $OF 'journalctl -u stacd -o short-iso'
+		log_cmd $OF 'journalctl -u stafd -o short-iso'
+	else
+		((SKIP++))
+	fi
+
+	(( $SKIP < 2 )) && echolog Done || echolog Skipped
 }
 
 udev_info() {
