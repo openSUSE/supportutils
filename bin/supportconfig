@@ -1882,6 +1882,12 @@ hardware_info() {
 				log_entry $OF command "cp /sys/kernel/debug/dynamic_debug/control $PPC_DIR"
 				cp /sys/kernel/debug/dynamic_debug/control $PPC_DIR 2>/dev/null
 			fi
+
+			if [[ -f /var/log/rtas_errd.log ]]; then
+				log_entry $OF command "cp /var/log/rtas_errd.log $PPC_DIR"
+				cp /var/log/rtas_errd.log $PPC_DIR 2>/dev/null
+			fi
+
 			if rpm -q IBMinvscout &>/dev/null; then
 				log_cmd $OF "invscout"
 				log_cmd $OF "invscout -v"
@@ -1894,6 +1900,11 @@ hardware_info() {
 			cp /proc/ppc64/eeh /proc/ppc64/systemcfg /proc/ppc64/topology_updates /sys/firmware/opal/msglog /var/log/opal-elog /dev/nvram $PPC_DIR 2>/dev/null
 			;;
 		esac
+
+		if [[ -f /var/log/lp_diag.log ]]; then
+			log_entry $OF command "cp /var/log/lp_diag.log $PPC_DIR"
+			cp /var/log/lp_diag.log $PPC_DIR 2>/dev/null
+		fi
 
 		if [[ -d /proc/device-tree/ ]]; then
 			SAVE_DIR="${PPC_DIR}/device-tree"
