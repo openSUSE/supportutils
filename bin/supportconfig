@@ -3876,11 +3876,14 @@ livepatch_info() {
 	(( $OPTION_LIVEPATCH )) || { echolog Excluded; return 1; }
 	OF=livepatch.txt
 	addHeaderFile $OF
+	SKIP=0
 	log_cmd $OF 'rpm -qa | grep livepatch'
 	if rpm_verify $OF kernel-livepatch-tools; then
 		log_cmd $OF 'klp status'
 		log_cmd $OF 'klp -v blocking'
 		log_cmd $OF 'klp -v patches'
+	else
+		((SKIP++))
 	fi
 	if rpm_verify $OF libpulp-tools; then
 		log_cmd $OF 'ulp -v patches'
@@ -3889,13 +3892,17 @@ livepatch_info() {
 		do
 			ulp livepatchable $library >> $LOG/$OF 2>&1
 		done
+		log_write $OF
 		log_entry $OF command 'for library in $(find -L /usr/lib64 -type f ); do ulp livepatchable $library; done'
 		for library in $(find -L /usr/lib64 -type f )
 		do
 			ulp livepatchable $library >> $LOG/$OF 2>&1
 		done
+		log_write $OF
+	else
+		((SKIP++))
 	fi
-	echolog Done
+	(( SKIP > 1 )) && echolog Skip || echolog Done
 }
 
 email_info() {
