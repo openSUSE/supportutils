@@ -31,19 +31,18 @@ Group:          System/Monitoring
 Url:            https://github.com/openSUSE/supportutils
 Source:         %{name}-%{version}.tar.gz
 Requires:       iproute2
-Requires:       kmod-compat
 Requires:       ncurses-utils
 %ifarch ppc64le s390x
 Requires:       numactl
 %endif
 Requires:       tar
-Requires:       util-linux-systemd
 Requires:       /usr/bin/which
 Requires:       /usr/bin/sed
 Requires:       /usr/bin/awk
 Provides:       supportconfig-plugin-icommand
 Provides:       supportconfig-plugin-resource
 Provides:       supportconfig-plugin-tag
+Provides:       supportconfig-plugin-rc
 BuildArch:      noarch
 
 %description
