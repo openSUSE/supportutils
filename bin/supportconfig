@@ -944,6 +944,7 @@ sssd_info() {
 		rpm_verify $OF python-sssd-config
 		log_cmd $OF 'systemctl status sssd.service'
 		conf_files $OF "/etc/nsswitch.conf /etc/sssd/sssd.conf"
+		log_cmd $OF 'ls -l --time-style=long-iso /etc/sssd/sssd.conf'
 		log_cmd $OF 'ls -lR --time-style=long-iso /etc/sssd/conf.d/'
 		if [[ -d /etc/sssd/conf.d ]]; then
 			FILES=$(find -L /etc/sssd/conf.d/ -type f | egrep "\.conf$")
