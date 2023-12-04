@@ -649,6 +649,10 @@ boot_info() {
 	if rpm -q efibootmgr &> /dev/null; then
 		log_cmd $OF "efibootmgr -v"
 	fi
+	if rpm -q mokutil &> /dev/null; then
+		log_cmd $OF "mokutil --sb-state"
+		log_cmd $OF "mokutil --list-sbat-revocations"
+	fi
 	if rpm -q s390-tools &> /dev/null; then
 		conf_files $OF /etc/zipl.conf /boot/zipl/active_devices.txt /boot/zipl/config
 	fi
