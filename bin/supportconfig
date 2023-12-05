@@ -2823,86 +2823,86 @@ ntp_info() {
 	test $OPTION_NTP -eq 0 && { echolog Excluded; return 1; }
 	OF=ntp.txt
 	addHeaderFile $OF
-		if rpm_verify $OF ntp
+	if rpm_verify $OF ntp
+	then
+		CONFFILE=/etc/ntp.conf
+		if (( SLES_VER >= 120 ))
 		then
-			CONFFILE=/etc/ntp.conf
-			if (( SLES_VER >= 120 ))
-			then
-				log_cmd $OF "systemctl status ntpd.service"
-			else
-				check_service $OF ntp
-			fi
-			log_cmd $OF 'ntpq -p'
-			conf_files $OF $CONFFILE
-			IPADDRS=$(egrep "^peer |^server " $CONFFILE | awk '{print $2}' | sort | uniq)
-			for IPADDR in $IPADDRS
-			do
-				ping_addr $OF 'NTP Server' $IPADDR
-			done
-			if [ -f $CONFFILE ]; then
-				log_write $OF "#___________________________________________________________#"
-				log_write $OF "#____[ Files Included in $CONFFILE ]____________________#"
-				log_write $OF
-				for KEYNAME in driftfile
-				do
-					FILES=$(grep ^${KEYNAME} $CONFFILE | awk '{print $2}')
-					conf_files $OF $FILES
-				done
-				KEYNAME=logfile
-				FILES=$(grep ^${KEYNAME} $CONFFILE | awk '{print $2}')
-				[ -z "$FILES" ] && FILES=/var/log/ntp
-				test $ADD_OPTION_LOGS -gt 0 && log_files $OF 0 $FILES || log_files $OF $VAR_OPTION_LINE_COUNT $FILES
-			fi
-			echolog Done
-		elif rpm_verify $OF chrony
-		then
-			NTP_DAEMON=1
-			NTP_CRON=''
-			CONFFILE="/etc/chrony.conf"
-			log_cmd $OF "systemctl status chronyd.service"
-			FILES="$CONFFILE /etc/chrony.keys"
-			conf_files $OF $FILES
-			if log_cmd $OF "chronyc -n sources -v"
-			then
-				log_cmd $OF "chronyc -n sourcestats -v"
-				log_cmd $OF "chronyc -n tracking"
-				log_cmd $OF "chronyc activity"
-			else
-				NTP_DAEMON=0
-			fi
-			if [[ -d /etc/cron.d ]]; then
-				NTP_CRON=$(grep -li chronyd /etc/cron.d/* 2>/dev/null)
-				if [[ -n $NTP_CRON ]]; then
-					conf_files $OF $NTP_CRON
-				fi
-			fi
-			log_cmd $OF "timedatectl"
-			IPADDRS=$(egrep "^pool |^peer |^server " $CONFFILE | awk '{print $2}' | sort | uniq)
-			for IPADDR in $IPADDRS
-			do
-				ping_addr $OF 'NTP Server' $IPADDR
-			done
-			if [ -f $CONFFILE ]; then
-				log_write $OF "#___________________________________________________________#"
-				log_write $OF "#____[ Files Included in $CONFFILE ]____________________#"
-				log_write $OF
-				for KEYNAME in driftfile
-				do
-					FILES=$(grep ^${KEYNAME} $CONFFILE | awk '{print $2}')
-					conf_files $OF $FILES
-				done
-				KEYNAME=logdir
-				LOGDIR=$(grep ^${KEYNAME} $CONFFILE | awk '{print $2}')
-				[[ -z "$LOGDIR" ]] && LOGDIR='/var/log/chrony/'
-				FILES=$(find $LOGDIR -type f)
-				test $ADD_OPTION_LOGS -gt 0 && log_files $OF 0 $FILES || log_files $OF $VAR_OPTION_LINE_COUNT $FILES
-				FILES="/var/log/messages"
-				test $ADD_OPTION_LOGS -gt 0 && grep_log_files chrony $OF 0 $FILES || grep_log_files chrony $OF $VAR_OPTION_LINE_COUNT $FILES
-			fi
-			echolog Done
+			log_cmd $OF "systemctl status ntpd.service"
 		else
-			echolog Skipped
+			check_service $OF ntp
 		fi
+		log_cmd $OF 'ntpq -p'
+		conf_files $OF $CONFFILE
+		IPADDRS=$(egrep "^peer |^server " $CONFFILE | awk '{print $2}' | sort | uniq)
+		for IPADDR in $IPADDRS
+		do
+			ping_addr $OF 'NTP Server' $IPADDR
+		done
+		if [[ -f $CONFFILE ]]; then
+			log_write $OF "#___________________________________________________________#"
+			log_write $OF "#____[ Files Included in $CONFFILE ]____________________#"
+			log_write $OF
+			for KEYNAME in driftfile
+			do
+				FILES=$(grep ^${KEYNAME} $CONFFILE | awk '{print $2}')
+				conf_files $OF $FILES
+			done
+			KEYNAME=logfile
+			FILES=$(grep ^${KEYNAME} $CONFFILE | awk '{print $2}')
+			[[ -z "$FILES" ]] && FILES=/var/log/ntp
+			test $ADD_OPTION_LOGS -gt 0 && log_files $OF 0 $FILES || log_files $OF $VAR_OPTION_LINE_COUNT $FILES
+		fi
+		echolog Done
+	elif rpm_verify $OF chrony
+	then
+		NTP_DAEMON=1
+		NTP_CRON=''
+		CONFFILE="/etc/chrony.conf"
+		log_cmd $OF "systemctl status chronyd.service"
+		FILES="$CONFFILE /etc/chrony.keys"
+		conf_files $OF $FILES
+		if log_cmd $OF "chronyc -n sources -v"
+		then
+			log_cmd $OF "chronyc -n sourcestats -v"
+			log_cmd $OF "chronyc -n tracking"
+			log_cmd $OF "chronyc activity"
+		else
+			NTP_DAEMON=0
+		fi
+		if [[ -d /etc/cron.d ]]; then
+			NTP_CRON=$(grep -li chronyd /etc/cron.d/* 2>/dev/null)
+			if [[ -n $NTP_CRON ]]; then
+				conf_files $OF $NTP_CRON
+			fi
+		fi
+		log_cmd $OF "timedatectl"
+		IPADDRS=$(egrep "^pool |^peer |^server " $CONFFILE | awk '{print $2}' | sort | uniq)
+		for IPADDR in $IPADDRS
+		do
+			ping_addr $OF 'NTP Server' $IPADDR
+		done
+		if [[ -f $CONFFILE ]]; then
+			log_write $OF "#___________________________________________________________#"
+			log_write $OF "#____[ Files Included in $CONFFILE ]____________________#"
+			log_write $OF
+			for KEYNAME in driftfile
+			do
+				FILES=$(grep ^${KEYNAME} $CONFFILE | awk '{print $2}')
+				conf_files $OF $FILES
+			done
+			KEYNAME=logdir
+			LOGDIR=$(grep ^${KEYNAME} $CONFFILE | awk '{print $2}')
+			[[ -z "$LOGDIR" ]] && LOGDIR='/var/log/chrony/'
+			FILES=$(find $LOGDIR -type f)
+			test $ADD_OPTION_LOGS -gt 0 && log_files $OF 0 $FILES || log_files $OF $VAR_OPTION_LINE_COUNT $FILES
+			FILES="/var/log/messages"
+			test $ADD_OPTION_LOGS -gt 0 && grep_log_files chrony $OF 0 $FILES || grep_log_files chrony $OF $VAR_OPTION_LINE_COUNT $FILES
+		fi
+		echolog Done
+	else
+		echolog Skipped
+	fi
 }
 
 udev_info() {
