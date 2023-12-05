@@ -154,6 +154,7 @@ unset CONTACT_SRNUM
 UPLOAD_TARBALL=0
 CSFILE=${CURRENT_SCRIPT}.txt
 RPMFILE=rpm.txt
+LSOF_FILE=open-files.txt
 FSLIST_FILE=fs-files.txt
 FSLIST_ADD_FILE="${LIB_DIR}/additional-files.list"
 BASIC_ENVF=basic-environment.txt
@@ -1714,15 +1715,20 @@ sssd_info() {
 				log_cmd $OF "ps axwwo user,pid,ppid,%cpu,%mem,vsz,rss,stat,time,cmd | egrep \"${SSSD_PID}|PPID\" | grep -v grep"
 				for THISPID in $SSSD_PIDS
 				do
-					log_cmd $OF "lsof -b +M -n -l -p $THISPID 2>/dev/null"
+					log_cmd $OF "lsof -b +M -n -l +fg -P -p $THISPID 2>/dev/null"
 				done
-			else
-				log_cmd $OF "ps axwwo user,pid,ppid,%cpu,%mem,vsz,rss,stat,time,cmd | egrep \"sssd|PPID\" | grep -v grep"
-				log_cmd $OF "lsof -b +M -n -l +fg 2>/dev/null | grep sssd"
 			fi
 		else
-			log_cmd $OF "ps axwwo user,pid,ppid,%cpu,%mem,vsz,rss,stat,time,cmd | egrep \"sssd|PPID\" | grep -v grep"
-			log_cmd $OF "lsof -b +M -n -l +fg 2>/dev/null | grep sssd"
+			SSSD_PID=$(systemctl show sssd.service -p ExecMainPID)
+			SSSD_PID=${SSSD_PID#ExecMainPID=}
+			if (( $SSSD_PID )); then
+				SSSD_PIDS=$(ps axwwo pid,ppid,cmd | grep ${SSSD_PID} | grep -v grep | awk '{print $1}' | sort -n)
+				log_cmd $OF "ps axwwo user,pid,ppid,%cpu,%mem,vsz,rss,stat,time,cmd | egrep \"${SSSD_PID}|PPID\" | grep -v grep"
+				for THISPID in $SSSD_PIDS
+				do
+					log_cmd $OF "lsof -b +M -n -l +fg -P -p $THISPID 2>/dev/null"
+				done
+			fi
 		fi
 		log_cmd $OF 'grep pam_sss /etc/pam.d/*'
 		FILES="/var/log/sssd/*"
@@ -3065,11 +3071,13 @@ crash_info() {
 	fi
 
 	# Search CWD per lsof
-	SEARCH="$(lsof -b +M -n -l 2>/dev/null | grep '[[:space:]]cwd[[:space:]]' | awk '{print $9}' | sort | uniq)"
-	for i in $SEARCH
-	do
-		ls -l --time-style=long-iso ${i}/${COREFILE} ${i}/${COREFILE}\.* ${i}/core ${i}/core\.* >> $SEARCH_LIST 2>/dev/null
-	done
+	if [[ -s ${LOG}/${LSOF_FILE} ]]; then
+		SEARCH="$(cat ${LOG}/${LSOF_FILE} | grep '[[:space:]]cwd[[:space:]]' | awk '{print $9}' | sort | uniq)"
+		for i in $SEARCH
+		do
+			ls -l --time-style=long-iso ${i}/${COREFILE} ${i}/${COREFILE}\.* ${i}/core ${i}/core\.* >> $SEARCH_LIST 2>/dev/null
+		done
+	fi
 	# Search specific products
 	SEARCH="/var/log/samba/cores/smbd/ /var/log/samba/cores/nmbd/"
 	for i in $SEARCH
@@ -3974,11 +3982,11 @@ memory_info() {
 open_files() {
 	printlog "Open Files..."
 	test $OPTION_OFILES -eq 0 && { echolog Excluded; return 1; }
-	OF=open-files.txt
+	OF=$LSOF_FILE
 	addHeaderFile $OF
 	if rpm_verify $OF lsof
 	then
-		log_cmd $OF "lsof -b +M -n -l +fg 2>/dev/null"
+		log_cmd $OF "lsof -b +M -n -l +fg -P 2>/dev/null"
 		echolog Done
 	else
 		echolog Skipped
@@ -4202,7 +4210,7 @@ ldap_info() {
 			conf_files $OF $SLAPD_DIR/DB_CONFIG
 			log_cmd $OF "ls -al $SLAPD_DIR"
 		fi
-		log_cmd $OF "lsof -b +M -n -l -p $SLAPD_PID"
+		log_cmd $OF "lsof -b +M -n -l +fg -P -p $SLAPD_PID"
 		log_write $OF "#___________________________________________________________#"
 		log_write $OF "#____[ Schema Files Included in LDAP Server ]_______________#"
 		log_write $OF
@@ -5856,6 +5864,7 @@ if [ "$USE_SAVED_LOGS_ONLY" != "1" ]; then
 	basic_healthcheck	#Minimum Requirement
 	rpm_info				#Minimum Requirement
 	basic_environment	#Minimum Requirement
+	open_files
 	module_info
 	memory_info
 	disk_info
@@ -5880,7 +5889,6 @@ if [ "$USE_SAVED_LOGS_ONLY" != "1" ]; then
 	ldap_info
 	sssd_info
 	cimom_info
-	open_files
 	environment_info
 	root_shell_history_info
 	etc_info
