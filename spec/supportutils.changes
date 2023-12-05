@@ -1,4 +1,11 @@
 -------------------------------------------------------------------
+Tue Dec  5 17:40:17 UTC 2023 - jason.record@suse.com
+
+- Changes in version 3.0.12
+  + Optimize lsof usage (bsc#1183663)
+  + Collects ntp or chrony as needed (bsc#1196293)
+
+-------------------------------------------------------------------
 Mon Aug 14 18:59:53 UTC 2023 - jason.record@suse.com
 
 - Added email.txt based on OPTION_EMAIL

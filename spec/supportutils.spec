@@ -15,12 +15,12 @@
 
 
 Name:           supportutils
-Version:        3.0.11
-Release:        TEST_20230814_01
+Version:        3.0.12
+Release:        0
 Summary:        Support Troubleshooting Tools
 License:        GPL-2.0
 Group:          System/Monitoring
-Url:            https://github.com/g23guy/supportutils
+Url:            https://github.com/openSUSE/supportutils/tree/sle12
 Source:         %{name}-%{version}.tar.gz
 Requires:       sysfsutils
 Requires:       tar
