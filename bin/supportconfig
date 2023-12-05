@@ -948,6 +948,7 @@ sssd_info() {
 		rpm_verify $OF python-sssd-config
 		log_cmd $OF 'systemctl status sssd.service'
 		conf_files $OF "/etc/nsswitch.conf /etc/sssd/sssd.conf"
+		log_cmd $OF 'ls -l --time-style=long-iso /etc/sssd/sssd.conf'
 		log_cmd $OF 'ls -lR --time-style=long-iso /etc/sssd/conf.d/'
 		if [[ -d /etc/sssd/conf.d ]]; then
 			FILES=$(find -L /etc/sssd/conf.d/ -type f | egrep "\.conf$")
@@ -978,7 +979,7 @@ sssd_info() {
 			log_cmd $OF "ps axwwo user,pid,ppid,%cpu,%mem,vsz,rss,stat,time,cmd | egrep \"${SSSD_PID}|PPID\" | grep -v grep"
 			for THISPID in $SSSD_PIDS
 			do
-				log_cmd $OF "lsof -b +M -n -l -p $THISPID 2>/dev/null"
+				log_cmd $OF "lsof -b -n -l +fg -P -p $THISPID 2>/dev/null"
 			done
 		fi
 		log_cmd $OF 'grep pam_sss /etc/pam.d/*'
@@ -2451,11 +2452,13 @@ crash_info() {
 	fi
 
 	# Search CWD per lsof
-	SEARCH="$(lsof -b +M -n -l 2>/dev/null | grep '[[:space:]]cwd[[:space:]]' | awk '{print $9}' | sort | uniq)"
-	for i in $SEARCH
-	do
-		ls -l --time-style=long-iso ${i}/${COREFILE} ${i}/${COREFILE}\.* ${i}/core ${i}/core\.* >> $SEARCH_LIST 2>/dev/null
-	done
+	if [[ -s ${LOG}/${LSOF_FILE} ]]; then
+		SEARCH="$(cat ${LOG}/${LSOF_FILE} | grep '[[:space:]]cwd[[:space:]]' | awk '{print $9}' | sort | uniq)"
+		for i in $SEARCH
+		do
+			ls -l --time-style=long-iso ${i}/${COREFILE} ${i}/${COREFILE}\.* ${i}/core ${i}/core\.* >> $SEARCH_LIST 2>/dev/null
+		done
+	fi
 	# Search specific products
 	SEARCH="/var/log/samba/cores/smbd/ /var/log/samba/cores/nmbd/"
 	for i in $SEARCH
@@ -2995,11 +2998,11 @@ memory_info() {
 open_files() {
 	printlog "Open Files..."
 	(( $OPTION_OFILES )) || { echolog Excluded; return 1; }
-	OF=open-files.txt
+	OF=${LSOF_FILE}
 	addHeaderFile $OF
 	if rpm_verify $OF lsof
 	then
-		log_cmd $OF "lsof -b +M -n -l +fg -P 2>/dev/null"
+		log_cmd $OF "lsof -b -n -l +fg -P 2>/dev/null"
 		echolog Done
 	else
 		echolog Skipped
@@ -3215,7 +3218,7 @@ ldap_info() {
 			conf_files $OF $SLAPD_DIR/DB_CONFIG
 			log_cmd $OF "ls -al $SLAPD_DIR"
 		fi
-		log_cmd $OF "lsof -b +M -n -l -p $SLAPD_PID"
+		log_cmd $OF "lsof -b -n -l +fg -P -p $SLAPD_PID"
 		log_write $OF "#___________________________________________________________#"
 		log_write $OF "#____[ Schema Files Included in LDAP Server ]_______________#"
 		log_write $OF
@@ -3239,7 +3242,7 @@ etc_info() {
 	conf_files $OF $(find -L /etc/ -type f | egrep "conf$|cfg$" | egrep -v "rhn/rhn.conf$")
 	[[ -d /etc/logrotate.d ]] && conf_files $OF /etc/logrotate.d/*
 	conf_files $OF /etc/rc.dialout /etc/ppp/options /etc/ppp/ioptions /etc/ppp/peers/pppoe /etc/motd
-        _sanitize_file $OF
+	_sanitize_file $OF
 	echolog Done
 }
 
@@ -3335,24 +3338,24 @@ proc_info() {
 }
 
 drm_sub_info() {
-    log_cmd $OF 'systool -vc drm'
-    log_cmd $OF 'ls -lR --time-style=long-iso /sys/class/drm'
-    log_cmd $OF 'modetest'
-    log_cmd $OF 'intel_reg_dumper'
-    for i in /sys/class/drm/card?/device/uevent
-    do
-	module=$(cat $i | grep DRIVER | cut -d= -f2)
-	log_cmd $OF "modeprint $module"
-    done
-    for i in /sys/class/drm/card*-*
-    do
-	log_cmd $OF "cat $i/status $i/enabled "
-	log_cmd $OF 'hexdump -e '"'16/1 "'"%2.2x ""  "'"' -e '16/1 "'"%_p""\n"'"' $i/edid"
-    done
-    log_cmd $OF 'dmesg -T | grep drm'
-    if grep -v 'drm.debug=' /proc/cmdline &>/dev/null; then
-	log_write $OF "Warning, enable drm.debug=0xe on boot options line"
-    fi
+	log_cmd $OF 'systool -vc drm'
+	log_cmd $OF 'ls -lR --time-style=long-iso /sys/class/drm'
+	log_cmd $OF 'modetest'
+	log_cmd $OF 'intel_reg_dumper'
+	for i in /sys/class/drm/card?/device/uevent
+	do
+		module=$(cat $i | grep DRIVER | cut -d= -f2)
+		log_cmd $OF "modeprint $module"
+	done
+	for i in /sys/class/drm/card*-*
+	do
+		log_cmd $OF "cat $i/status $i/enabled "
+		log_cmd $OF 'hexdump -e '"'16/1 "'"%2.2x ""  "'"' -e '16/1 "'"%_p""\n"'"' $i/edid"
+	done
+	log_cmd $OF 'dmesg -T | grep drm'
+	if grep -v 'drm.debug=' /proc/cmdline &>/dev/null; then
+		log_write $OF "Warning, enable drm.debug=0xe on boot options line"
+	fi
 }
 
 x_info() {
@@ -3443,11 +3446,11 @@ x_info() {
 
 			conf_files $OF /etc/sysconfig/displaymanager /etc/sysconfig/windowmanager /etc/xinetd.d/vnc
 			if [[ -e /etc/X11/xorg.conf ]]; then
-			    xorg_conf=/etc/X11/xorg.conf
-			    TMPLOG=$ADD_OPTION_LOGS
+				xorg_conf=/etc/X11/xorg.conf
+				TMPLOG=$ADD_OPTION_LOGS
 			elif [[ -d /etc/X11/xorg.conf.d ]]; then
-			    xorg_conf='/etc/X11/xorg.conf.d/*'
-			    TMPLOG=0
+				xorg_conf='/etc/X11/xorg.conf.d/*'
+				TMPLOG=0
 			fi
 			[[ -n "$xorg_conf" ]] && ADD_OPTION_LOGS=$TMPLOG conf_files $OF $xorg_conf
 		fi
@@ -3880,11 +3883,14 @@ livepatch_info() {
 	(( $OPTION_LIVEPATCH )) || { echolog Excluded; return 1; }
 	OF=livepatch.txt
 	addHeaderFile $OF
+	SKIP=0
 	log_cmd $OF 'rpm -qa | grep livepatch'
 	if rpm_verify $OF kernel-livepatch-tools; then
 		log_cmd $OF 'klp status'
 		log_cmd $OF 'klp -v blocking'
 		log_cmd $OF 'klp -v patches'
+	else
+		((SKIP++))
 	fi
 	if rpm_verify $OF libpulp-tools; then
 		log_cmd $OF 'ulp -v patches'
@@ -3893,13 +3899,17 @@ livepatch_info() {
 		do
 			ulp livepatchable $library >> $LOG/$OF 2>&1
 		done
+		log_write $OF
 		log_entry $OF command 'for library in $(find -L /usr/lib64 -type f ); do ulp livepatchable $library; done'
 		for library in $(find -L /usr/lib64 -type f )
 		do
 			ulp livepatchable $library >> $LOG/$OF 2>&1
 		done
+		log_write $OF
+	else
+		((SKIP++))
 	fi
-	echolog Done
+	(( SKIP > 1 )) && echolog Skip || echolog Done
 }
 
 email_info() {
@@ -4160,6 +4170,7 @@ if (( $USE_SAVED_LOGS_ONLY != 1 )); then
 	basic_healthcheck	#Minimum Requirement
 	rpm_info		#Minimum Requirement
 	basic_environment	#Minimum Requirement
+	open_files
 	module_info
 	memory_info
 	disk_info
@@ -4188,7 +4199,6 @@ if (( $USE_SAVED_LOGS_ONLY != 1 )); then
 	ldap_info
 	sssd_info
 	cimom_info
-	open_files
 	environment_info
 	root_shell_history_info
 	etc_info
