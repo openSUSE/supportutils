@@ -155,6 +155,7 @@ unset CONTACT_SRNUM
 UPLOAD_TARBALL=0
 CSFILE=${CURRENT_SCRIPT}.txt
 RPMFILE=rpm.txt
+LSOF_FILE=open-files.txt
 HWINFO_FILE="hwinfo.log"
 FSLIST_FILE=fs-files.txt
 FSLIST_ADD_FILE="${LIB_DIR}/additional-files.list"
