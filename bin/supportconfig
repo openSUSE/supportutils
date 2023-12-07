@@ -1891,6 +1891,10 @@ net_info_namespace() {
 	IPVSADM_BIN=$(command -v ipvsadm)
 	if [[ -x $IPVSADM_BIN ]]; then
 		log_cmd $OF "${NS}${IPVSADM_BIN} -Ln"
+
+	IPSET_BIN=$(command -v ipset)
+	if [[ -x $IPSET_BIN ]]; then
+		log_cmd $OF "${NS}${IPSET_BIN} list"
 	fi
 
 	if rpm_verify $OF nftables
