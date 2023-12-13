@@ -1748,6 +1748,7 @@ hardware_info() {
 			log_cmd $OF "ls -l /var/log/dump"
 		fi
 	fi
+	log_cmd $OF "systemctl status nvidia-persistenced.service"
 	echolog Done
 }
 
