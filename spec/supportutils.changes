@@ -1,5 +1,5 @@
 -------------------------------------------------------------------
-Tue Dec  5 18:01:29 UTC 2023 - jason.record@suse.com
+Mon Dec 18 21:21:56 UTC 2023 - jason.record@suse.com
 
 - Changes in version 3.2.4
   + Inhibit the conversion of port numbers to port names for network files (pr#177)
@@ -9,6 +9,8 @@ Tue Dec  5 18:01:29 UTC 2023 - jason.record@suse.com
   + Provides long listing for /etc/sssd/sssd.conf (bsc#1211547)
   + Optimize lsof usage (bsc#1183663)
   + Added mokutil commands for secureboot (pr#178)
+  + ipset - List entries for all sets (pr#180)
+  + ipvsadm - Inspect the virtual server table (pr#181)
 
 -------------------------------------------------------------------
 Fri Nov 17 15:35:15 UTC 2023 - jason.record@suse.com
