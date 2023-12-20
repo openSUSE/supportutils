@@ -3131,20 +3131,23 @@ smartmon_info() {
 	addHeaderFile $OF
 	if rpm_verify $OF smartmontools
 	then
+		SMART_FOUND=0
 		log_cmd $OF 'systemctl status smartd.service'
 		conf_files $OF /proc/partitions /etc/smartd.conf
 		for DISK in $(cat /proc/partitions | grep -v ^m | grep -v ^$ | awk '{print $4}')
 		do
 			case $DISK in
-			sd[a-z]|sd[a-z][a-z]) log_cmd smartmon-$DISK "smartctl --all /dev/$DISK" ;;
-			hd[a-z]|hd[a-z][a-z]) log_cmd smartmon-$DISK "smartctl --all /dev/$DISK" ;;
+			sd[a-z]|sd[a-z][a-z]) log_cmd smartmon-$DISK "smartctl --all /dev/$DISK"; SMART_FOUND=1 ;;
+			hd[a-z]|hd[a-z][a-z]) log_cmd smartmon-$DISK "smartctl --all /dev/$DISK"; SMART_FOUND=1 ;;
 			esac
 		done
-		log_write $OF "#==[ Quick Status Check ]===========================#"
-		grep -i "^SMART overall" $LOG/smartmon-* | awk -F/ '{print $5}' >> $LOG/$OF
-		log_write $OF 
-		cat $LOG/smartmon-* >> $LOG/$OF
-		rm -f $LOG/smartmon-*
+		if (( SMART_FOUND )); then
+			log_write $OF "#==[ Quick Status Check ]===========================#"
+			grep -i "^SMART overall" $LOG/smartmon-* | awk -F/ '{print $5}' >> $LOG/$OF
+			log_write $OF 
+			cat $LOG/smartmon-* >> $LOG/$OF
+			rm -f $LOG/smartmon-*
+		fi
 		echolog Done
 	else
 		echolog Skipped
