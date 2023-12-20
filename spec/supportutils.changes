@@ -1,5 +1,5 @@
 -------------------------------------------------------------------
-Tue Dec  5 17:53:46 UTC 2023 - jason.record@suse.com
+Wed Dec 20 15:22:09 UTC 2023 - jason.record@suse.com
 
 - Changes in version 3.1.28
   + Inhibit the conversion of port numbers to port names for network files (cherry picked from commit 55f5f716638fb15e3eb1315443949ed98723d250)
@@ -12,6 +12,8 @@ Tue Dec  5 17:53:46 UTC 2023 - jason.record@suse.com
   + Optimize lsof usage (bsc#1183663)
   + Added mokutil commands for secureboot (pr#179)
   + Collects chrony or ntp as needed (bsc#1196293)
+  + ipset - List entries for all sets
+  + ipvsadm - Inspect the virtual server table (pr#185)
 
 -------------------------------------------------------------------
 Fri Nov 17 20:49:50 UTC 2023 - jason.record@suse.com
