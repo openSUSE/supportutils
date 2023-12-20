@@ -1,7 +1,7 @@
 #!/bin/bash
 
-SVER='3.2.0-13'
-SDATE='2023 Dec 05'
+SVER='3.2.0-14'
+SDATE='2023 Dec 20'
 
 ##############################################################################
 #  supportconfig - Gathers system troubleshooting information for SUSE Support
@@ -1891,6 +1891,7 @@ net_info_namespace() {
 	IPVSADM_BIN=$(command -v ipvsadm)
 	if [[ -x $IPVSADM_BIN ]]; then
 		log_cmd $OF "${NS}${IPVSADM_BIN} -Ln"
+	fi
 
 	IPSET_BIN=$(command -v ipset)
 	if [[ -x $IPSET_BIN ]]; then
@@ -1968,7 +1969,7 @@ disk_info() {
 	done
 
 	log_cmd $OF 'ls -lR --time-style=long-iso /dev/disk/'
-        log_cmd $OF 'ls -l --time-style=long-iso /dev/mapper/'
+	log_cmd $OF 'ls -l --time-style=long-iso /dev/mapper/'
 	log_cmd $OF 'ls -l --time-style=long-iso /sys/block/'
 	log_cmd $OF 'lslocks'
 	log_cmd $OF 'ls -l /dev/disk/by-path/'
