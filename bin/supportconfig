@@ -1653,30 +1653,27 @@ detectVirtualization() {
 	fi
 
 	# Xen Hypervisor
-	if egrep -iq "Hypervisor vendor.*Xen" <<< $LSCPU_OUT; then
-		NO_HYPER=0
-		IDENT=$(egrep -i "Virtualization type" <<< $LSCPU_OUT | awk '{print $NF}')
-		log_write $OUT "Hypervisor:    Xen"
-		case $IDENT in
-		'none')
-			if systemctl is-enabled libvirtd.service &>/dev/null; then
-				log_write $OUT "Identity:      Virtual Machine Server - Dom0"
+	if [[ -e /sys/hypervisor/type ]] && [[ -e /sys/hypervisor/uuid ]]; then
+		HYPER_TYPE=$(cat /sys/hypervisor/type | tr '[A-Z]' '[a-z]')
+		if [[ "$HYPER_TYPE" == "xen" ]]; then
+			NO_HYPER=0
+			XEN_UUID=$(cat /sys/hypervisor/uuid | tr -d '-')
+			IDENT=$(egrep -i "Virtualization type" <<< $LSCPU_OUT | awk '{print $NF}')
+			log_write $OUT "Hypervisor:    Xen"
+			if [[ $XEN_UUID =~ [[:alpha:]] ]]; then
+					log_write $OUT "Identity:      Virtual Machine - DomU"
 			else
-				log_write $OUT "Identity:      libvirtd Disabled"
+					log_write $OUT "Identity:      Virtual Machine Server - Dom0"
 			fi
-			;;
-		'full')
-			log_write $OUT "Identity:      Virtual Machine - DomU"
-			log_write $OUT "Type:          Fully Virtualized"
-			;;
-		'para')
-			log_write $OUT "Identity:      Virtual Machine - DomU"
-			log_write $OUT "Type:          Para Virtualized"
-			;;
-		*)
-			log_write $OUT "Identity:      Unknown"
-			;;
-		esac
+			case $IDENT in
+			'full')
+				log_write $OUT "Type:          Fully Virtualized"
+				;;
+			'para')
+				log_write $OUT "Type:          Para Virtualized"
+				;;
+			esac
+		fi
 	fi
 
 	# KVM Hypervisor
