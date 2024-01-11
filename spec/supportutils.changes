@@ -1,4 +1,13 @@
 -------------------------------------------------------------------
+Thu Jan 11 13:37:41 UTC 2024 - jason.record@suse.com
+
+- Additional changes in version 3.1.28
+  + ipset - List entries for all sets
+  + ipvsadm - Inspect the virtual server table (pr#185)
+  + Correctly detects Xen Dom0 (bsc#1218201)
+  + Fixed smart disk error (bsc#1218282)
+
+-------------------------------------------------------------------
 Wed Dec 20 15:22:09 UTC 2023 - jason.record@suse.com
 
 - Changes in version 3.1.28
@@ -12,8 +21,6 @@ Wed Dec 20 15:22:09 UTC 2023 - jason.record@suse.com
   + Optimize lsof usage (bsc#1183663)
   + Added mokutil commands for secureboot (pr#179)
   + Collects chrony or ntp as needed (bsc#1196293)
-  + ipset - List entries for all sets
-  + ipvsadm - Inspect the virtual server table (pr#185)
 
 -------------------------------------------------------------------
 Fri Nov 17 20:49:50 UTC 2023 - jason.record@suse.com

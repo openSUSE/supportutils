@@ -1,7 +1,7 @@
 #!/bin/bash
 
-SVER='3.1.15-11.26'
-SDATE='2023 Dec 20'
+SVER='3.1.15-11.28'
+SDATE='2024 Jan 11'
 
 ##############################################################################
 #  supportconfig - Gathers system troubleshooting information for SUSE Support
