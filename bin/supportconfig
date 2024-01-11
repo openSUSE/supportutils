@@ -1,11 +1,11 @@
 #!/bin/bash
 
-SVER='3.2.0-14'
-SDATE='2023 Dec 20'
+SVER='3.2.0-16'
+SDATE='2024 Jan 11'
 
 ##############################################################################
 #  supportconfig - Gathers system troubleshooting information for SUSE Support
-#  Copyright (C) 2001-2023 SUSE LLC
+#  Copyright (C) 2001-2024 SUSE LLC
 #
 #  Creates a tar ball to attach to the support case or send to support. 
 #  Collects comprehensive system information for troubleshooting and reducing
@@ -1436,30 +1436,27 @@ detectVirtualization() {
 	fi
 
 	# Xen Hypervisor
-	if egrep -iq "Hypervisor vendor.*Xen" <<< $LSCPU_OUT; then
-		NO_HYPER=0
-		IDENT=$(egrep -i "Virtualization type" <<< $LSCPU_OUT | awk '{print $NF}')
-		log_write $OUT "Hypervisor:    Xen"
-		case $IDENT in
-		'none')
-			if systemctl is-enabled libvirtd.service &>/dev/null; then
-				log_write $OUT "Identity:      Virtual Machine Server - Dom0"
+	if [[ -e /sys/hypervisor/type ]] && [[ -e /sys/hypervisor/uuid ]]; then
+		HYPER_TYPE=$(cat /sys/hypervisor/type | tr '[A-Z]' '[a-z]')
+		if [[ "$HYPER_TYPE" == "xen" ]]; then
+			NO_HYPER=0
+			XEN_UUID=$(cat /sys/hypervisor/uuid | tr -d '-')
+			IDENT=$(egrep -i "Virtualization type" <<< $LSCPU_OUT | awk '{print $NF}')
+			log_write $OUT "Hypervisor:    Xen"
+			if [[ $XEN_UUID =~ [[:alpha:]] ]]; then
+					log_write $OUT "Identity:      Virtual Machine - DomU"
 			else
-				log_write $OUT "Identity:      libvirtd Disabled"
+					log_write $OUT "Identity:      Virtual Machine Server - Dom0"
 			fi
-			;;
-		'full')
-			log_write $OUT "Identity:      Virtual Machine - DomU"
-			log_write $OUT "Type:          Fully Virtualized"
-			;;
-		'para')
-			log_write $OUT "Identity:      Virtual Machine - DomU"
-			log_write $OUT "Type:          Para Virtualized"
-			;;
-		*)
-			log_write $OUT "Identity:      Unknown"
-			;;
-		esac
+			case $IDENT in
+			'full')
+				log_write $OUT "Type:          Fully Virtualized"
+				;;
+			'para')
+				log_write $OUT "Type:          Para Virtualized"
+				;;
+			esac
+		fi
 	fi
 
 	# KVM Hypervisor
@@ -3131,20 +3128,23 @@ smartmon_info() {
 	addHeaderFile $OF
 	if rpm_verify $OF smartmontools
 	then
+		SMART_FOUND=0
 		log_cmd $OF 'systemctl status smartd.service'
 		conf_files $OF /proc/partitions /etc/smartd.conf
 		for DISK in $(cat /proc/partitions | grep -v ^m | grep -v ^$ | awk '{print $4}')
 		do
 			case $DISK in
-			sd[a-z]|sd[a-z][a-z]) log_cmd smartmon-$DISK "smartctl --all /dev/$DISK" ;;
-			hd[a-z]|hd[a-z][a-z]) log_cmd smartmon-$DISK "smartctl --all /dev/$DISK" ;;
+			sd[a-z]|sd[a-z][a-z]) log_cmd smartmon-$DISK "smartctl --all /dev/$DISK"; SMART_FOUND=1 ;;
+			hd[a-z]|hd[a-z][a-z]) log_cmd smartmon-$DISK "smartctl --all /dev/$DISK"; SMART_FOUND=1 ;;
 			esac
 		done
-		log_write $OF "#==[ Quick Status Check ]===========================#"
-		grep -i "^SMART overall" $LOG/smartmon-* | awk -F/ '{print $5}' >> $LOG/$OF
-		log_write $OF 
-		cat $LOG/smartmon-* >> $LOG/$OF
-		rm -f $LOG/smartmon-*
+		if (( SMART_FOUND )); then
+			log_write $OF "#==[ Quick Status Check ]===========================#"
+			grep -i "^SMART overall" $LOG/smartmon-* | awk -F/ '{print $5}' >> $LOG/$OF
+			log_write $OF 
+			cat $LOG/smartmon-* >> $LOG/$OF
+			rm -f $LOG/smartmon-*
+		fi
 		echolog Done
 	else
 		echolog Skipped
