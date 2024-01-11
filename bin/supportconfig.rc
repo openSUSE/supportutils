@@ -1,6 +1,6 @@
 ##############################################################################
 #  supportconfig.rc - Resource file for supportconfig
-#  Copyright (C) 2001-2023 SUSE LLC
+#  Copyright (C) 2024 SUSE LLC
 RCVER='3.2.0-1'
 #
 #  Contains supporting functions and variables used by supportconfig and
