@@ -1147,13 +1147,20 @@ podman_info() {
 	then
 		mkdir -p $PODMANSCDIR
 		# Identify all non-root users currently running at least one container
-		PODMAN_USERS=$(ps axwwo user,cmd | grep conmon | grep -v grep | cut -d\  -f1 | sort | uniq | grep -v root)
+		PODMAN_USERS_ACTIVE=$(ps axwwo user,cmd | grep conmon | grep -v grep | cut -d\  -f1 | sort | uniq | grep -v root)
 
-		# Include any LOCAL_PODMAN_USERS defined in /etc/supportconfig.conf
-		if [[ -n $LOCAL_PODMAN_USERS ]]; then
-			PODMAN_USERS="${PODMAN_USERS} ${LOCAL_PODMAN_USERS}"
-		fi
-		PODMAN_USERS="root ${PODMAN_USERS}"
+		# Include any LOCAL_PODMAN_USERS defined in supportconfig.conf
+		declare -A PODMAN_DICT
+		for USER in $PODMAN_USERS_ACTIVE
+		do
+			PODMAN_DICT[$USER]=1
+		done
+		for USER in $LOCAL_PODMAN_USERS
+		do
+			PODMAN_DICT[$USER]=1
+		done
+		PODMAN_USERS="root ${!PODMAN_DICT[@]}"
+		unset PODMAN_DICT USER PODMAN_USERS_ACTIVE
 
 		CURRENT_DIR=$(pwd)
 		cd /tmp
