@@ -1415,6 +1415,8 @@ get_sles_ver() {
 #		echo "ID=${ID}, VID=${VID}" > /dev/kmsg
 		if [[ "${ID}" == *"alp-"* ]]; then
 			SLES_VER=160
+		elif [[ "${ID}" == "sle-micro" ]]; then
+			SLES_VER="1${VID}"
 		else
 			SLES_VER=$VID
 		fi
