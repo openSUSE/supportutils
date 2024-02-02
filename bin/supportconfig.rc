@@ -187,6 +187,11 @@ eval $(cat /etc/sysconfig/bootloader | grep LOADER_TYPE)
 file /sbin/init | grep "systemd" &>/dev/null && SYSTEMD=1 || SYSTEMD=0
 IO_DELAYS=0
 
+EXT_SCALING_DISABLED=1
+EXT_SCALING_PID_LIMIT=1000
+EXT_SCALING_IRQ_LIMIT=1000
+EXT_SCALING_EXEC_LIMIT=9000000
+
 PROC_FILES="/proc/mounts /proc/zoneinfo"
 PROC_DIRS_DEPTH_ONE="/proc/sys/kernel/ /proc/scsi/ /proc/net/ /proc/dasd/"
 PROC_DIRS_DEPTH_FULL="/proc/irq/ /proc/sys/"
@@ -502,6 +507,15 @@ printlog() {
 printvrpmlog() {
 	CSLOGFILE=$LOG/${CSFILE}
 	test $VAR_OPTION_SILENT -gt 0 && printf "  %-40s %12s ... " "$1" "$2" >> $CSLOGFILE || printf "  %-40s %12s ... " "$1" "$2" | tee -a $CSLOGFILE
+}
+
+ext_scaling_check() {
+    T_BEFORE=$(date "+%S%N"); EXT_SCALING_PID=$(ps axo pid | wc -l); T_AFTER=$(date "+%S%N")
+    EXT_SCALING_EXEC=$(expr $T_AFTER - $T_BEFORE)
+    EXT_SCALING_IRQ=$(ls -1 /proc/irq 2>/dev/null | wc -l)
+    (( EXT_SCALING_EXEC > EXT_SCALING_EXEC_LIMIT )) && { EXT_SCALING_DISABLED=0; log2sys "Scaling Down: EXEC limit exceeded: ${EXT_SCALING_EXEC} > ${EXT_SCALING_EXEC_LIMIT}"; }
+    (( EXT_SCALING_PID > EXT_SCALING_PID_LIMIT )) && { EXT_SCALING_DISABLED=0; log2sys "Scaling Down: PID limit exceeded: ${EXT_SCALING_PID} > ${EXT_SCALING_PID_LIMIT}"; }
+    (( EXT_SCALING_IRQ > EXT_SCALING_IRQ_LIMIT )) && { EXT_SCALING_DISABLED=0; log2sys "Scaling Down: IRQ limit exceeded: ${EXT_SCALING_IRQ} > ${EXT_SCALING_IRQ_LIMIT}"; }
 }
 
 _sanitize_file() {
@@ -932,6 +946,7 @@ set_to_min() {
 
 set_to_all() {
 	init_plugins on
+	EXT_SCALING_DISABLED=1
 	for SRCH in OPTION_ ADD_OPTION_ MIN_OPTION_
 	do
 		for i in $(grep ^$SRCH $SC_RESOURCE_FILE | cut -d= -f1 | sort)
