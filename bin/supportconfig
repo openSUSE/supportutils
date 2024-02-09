@@ -92,6 +92,7 @@ show_help() {
 	echo "  -b Screen buffer mode"
 	echo "  -c Disables curl checks to SUSE update servers"
 	echo "  -d Exclude detailed disk info and scans"
+	echo "  -e Disables extended scaling, forcing the gathering of extended proc and irq data"
 	echo "  -f From directory. Don't collect report files, just use the directory or files in that"
 	echo "     directory."
 	echo "  -g Use gzip instead of the default xz compression"
@@ -2957,11 +2958,13 @@ memory_info() {
 	if [[ -e /sys/kernel/debug/vmmemctl ]]; then
 		conf_files $OF /sys/kernel/debug/vmmemctl
 	fi
-	if [[ -x /usr/bin/pmap ]]; then
-		for I in $(ps axo pid)
-		do
-			log_cmd $OF "pmap $I"
-		done
+	if (( EXT_SCALING_DISABLED )); then
+		if [[ -x /usr/bin/pmap ]]; then
+			for I in $(ps axo pid)
+			do
+				log_cmd $OF "pmap $I"
+			done
+		fi
 	fi
 	echolog Done
 }
@@ -3252,47 +3255,51 @@ proc_info() {
 		FILES=$(find $PROCDIR -maxdepth 1 -type f 2>/dev/null | egrep -iv "${PROC_DIRS_DEPTH_ONE_FILTER_OUT}" | sort -f)
 		conf_files $OF $FILES
 	done
+	(( EXT_SCALING_DISABLED )) && PROC_DIRS_DEPTH_FULL="/proc/irq/ /proc/sys/" || PROC_DIRS_DEPTH_FULL="/proc/sys/"
+
 	for PROCDIR in $PROC_DIRS_DEPTH_FULL
 	do
 		FILES=$(find $PROCDIR -type f 2>/dev/null | egrep -iv "${PROC_DIRS_DEPTH_FULL_FILTER_OUT}" | sort -f)
 		conf_files $OF $FILES
 	done
 
-	if (( SLES_VER >= 160 && ${INCLUDE_NETWORK_NAMESPACES} )); then
-		# Check process name space against the default name space
-		log_write $OF "#==[ Processes with a Different Default Name Space ]==#"
-		log_write $OF "# name_space : process_id : command"
-		NS_IPC_DEFAULT="$(readlink /proc/1/ns/ipc | sed 's/\[/\\[/;s/\]/\\]/')"
-		NS_NET_DEFAULT="$(readlink /proc/1/ns/net | sed 's/\[/\\[/;s/\]/\\]/')"
-		NS_PID_DEFAULT="$(readlink /proc/1/ns/pid | sed 's/\[/\\[/;s/\]/\\]/')"
-		NS_UTS_DEFAULT="$(readlink /proc/1/ns/uts | sed 's/\[/\\[/;s/\]/\\]/')"
-		for PID_PATH in /proc/[0-9]*
-		do
-			wait_trace_on "Compare $PID_PATH name space with the default"
-			if [[ -e ${PID_PATH} ]]
-			then
-				CMD_LINE=$(cat ${PID_PATH}/cmdline 2>/dev/null | tr '\0' ' ')
-				STATE=$(sed -n 's/^State:[[:blank:]]\+\([^[:blank:]]\)[[:blank:]]\+.*/\1/p' 2>/dev/null < ${PID_PATH}/status)
-				PID=$(basename $PID_PATH)
-				NS_IPC="$(readlink ${PID_PATH}/ns/ipc 2>/dev/null | sed 's/\[/\\[/;s/\]/\\]/')"
-				NS_NET="$(readlink ${PID_PATH}/ns/net 2>/dev/null | sed 's/\[/\\[/;s/\]/\\]/')"
-				NS_PID="$(readlink ${PID_PATH}/ns/pid 2>/dev/null | sed 's/\[/\\[/;s/\]/\\]/')"
-				NS_UTS="$(readlink ${PID_PATH}/ns/uts 2>/dev/null | sed 's/\[/\\[/;s/\]/\\]/')"
-				if [[ "$STATE" != "Z" || "$STATE" != "D" ]]
+	if (( EXT_SCALING_DISABLED )); then
+		if (( SLES_VER >= 160 && ${INCLUDE_NETWORK_NAMESPACES} )); then
+			# Check process name space against the default name space
+			log_write $OF "#==[ Processes with a Different Default Name Space ]==#"
+			log_write $OF "# name_space : process_id : command"
+			NS_IPC_DEFAULT="$(readlink /proc/1/ns/ipc | sed 's/\[/\\[/;s/\]/\\]/')"
+			NS_NET_DEFAULT="$(readlink /proc/1/ns/net | sed 's/\[/\\[/;s/\]/\\]/')"
+			NS_PID_DEFAULT="$(readlink /proc/1/ns/pid | sed 's/\[/\\[/;s/\]/\\]/')"
+			NS_UTS_DEFAULT="$(readlink /proc/1/ns/uts | sed 's/\[/\\[/;s/\]/\\]/')"
+			for PID_PATH in /proc/[0-9]*
+			do
+				wait_trace_on "Compare $PID_PATH name space with the default"
+				if [[ -e ${PID_PATH} ]]
 				then
-					if [[ -n "$CMD_LINE" ]]
+					CMD_LINE=$(cat ${PID_PATH}/cmdline 2>/dev/null | tr '\0' ' ')
+					STATE=$(sed -n 's/^State:[[:blank:]]\+\([^[:blank:]]\)[[:blank:]]\+.*/\1/p' 2>/dev/null < ${PID_PATH}/status)
+					PID=$(basename $PID_PATH)
+					NS_IPC="$(readlink ${PID_PATH}/ns/ipc 2>/dev/null | sed 's/\[/\\[/;s/\]/\\]/')"
+					NS_NET="$(readlink ${PID_PATH}/ns/net 2>/dev/null | sed 's/\[/\\[/;s/\]/\\]/')"
+					NS_PID="$(readlink ${PID_PATH}/ns/pid 2>/dev/null | sed 's/\[/\\[/;s/\]/\\]/')"
+					NS_UTS="$(readlink ${PID_PATH}/ns/uts 2>/dev/null | sed 's/\[/\\[/;s/\]/\\]/')"
+					if [[ "$STATE" != "Z" || "$STATE" != "D" ]]
 					then
-						[[ "$NS_IPC_DEFAULT" != "$NS_IPC" ]] && log_write $OF "ipc : $PID : $CMD_LINE"
-						[[ "$NS_NET_DEFAULT" != "$NS_NET" ]] && log_write $OF "net : $PID : $CMD_LINE"
-						[[ "$NS_PID_DEFAULT" != "$NS_PID" ]] && log_write $OF "pid : $PID : $CMD_LINE"
-						[[ "$NS_UTS_DEFAULT" != "$NS_UTS" ]] && log_write $OF "uts : $PID : $CMD_LINE"
+						if [[ -n "$CMD_LINE" ]]
+						then
+							[[ "$NS_IPC_DEFAULT" != "$NS_IPC" ]] && log_write $OF "ipc : $PID : $CMD_LINE"
+							[[ "$NS_NET_DEFAULT" != "$NS_NET" ]] && log_write $OF "net : $PID : $CMD_LINE"
+							[[ "$NS_PID_DEFAULT" != "$NS_PID" ]] && log_write $OF "pid : $PID : $CMD_LINE"
+							[[ "$NS_UTS_DEFAULT" != "$NS_UTS" ]] && log_write $OF "uts : $PID : $CMD_LINE"
+						fi
 					fi
 				fi
-			fi
-			wait_trace_off
-		done
-		log_write $OF
-	fi	
+				wait_trace_off
+			done
+			log_write $OF
+		fi
+	fi
 
 	# only include cpu0 sched_domain information, all others are excluded
 	SCHED_DOMAIN='/proc/sys/kernel/sched_domain/cpu0'
@@ -3940,6 +3947,7 @@ if [[ -s ${SC_CONF:="${CONFIG_DIR}/${CURRENT_SCRIPT}.conf"} ]]; then
 fi
 
 log2sys "BEGIN Version: $SVER"
+ext_scaling_check
 init_plugins on
 get_sles_ver
 NSA_CHECK=0
@@ -3986,6 +3994,8 @@ do
 	b) VAR_OPTION_SBM=1 ;;
 	c) ADD_OPTION_LOCAL_ONLY=1 ;;
 	d) ADD_OPTION_MINDISK=1 ;;
+	e) (( EXT_SCALING_DISABLED )) || log2sys "Extended Scaling: Disabled with -e"
+		EXT_SCALING_DISABLED=1 ;;
 	f) FROM_DIRECTORY=$OPTARG  && USE_SAVED_LOGS_ONLY=1;;
 	g) COMPRESS="tgz"; COMPRESS_OPT="zcf" ;;
 	h) title; show_help; exit_code 0 ;;
@@ -4127,23 +4137,24 @@ if (( $USE_SAVED_LOGS_ONLY != 1 )); then
 	rpm_verify ${CSFILE} supportutils
 
 	echolog "Gathering system information"
-	log_write ${CSFILE} 	"  Script Version:    ${SVER}"
-	log_write ${CSFILE} 	"  Script Date:       ${SDATE}"
-	echolog 					"  Data Directory:    ${LOG}"
-	log2sys "Data Directory: ${LOG}"
-	log_write ${CSFILE} "  Environment Value: $SLES_VER"
-	log_write ${CSFILE} "  Command with Args: $0 $ALL_ARGS"
-	log_write ${CSFILE} "  FORCE_OPTION_PAM:  $FORCE_OPTION_PAM"
-	log2sys "Supportconfig Args: $ALL_ARGS"
+	log_write ${CSFILE}	"  Script Version:       ${SVER}"
+	log_write ${CSFILE}	"  Script Date:          ${SDATE}"
+	echolog 	    	"  Data Directory:       ${LOG}"
+    log_write ${CSFILE} "  Environment Value:    $SLES_VER"
+	log_write ${CSFILE} "  Command with Args:    $0 $ALL_ARGS"
+	log_write ${CSFILE} "  FORCE_OPTION_PAM:     $FORCE_OPTION_PAM"
+	log_write ${CSFILE} "  EXT_SCALING_DISABLED: $EXT_SCALING_DISABLED"
+	[[ -s $SC_CONF ]] && log_write ${CSFILE} "  Using Options:        $SC_CONF"
 
-	[[ -s $SC_CONF ]] && log_write ${CSFILE} "  Using Options:     $SC_CONF"
 	echolog
+	log2sys "Data Directory: ${LOG}"
+	log2sys "Supportconfig Args: $ALL_ARGS"
 
 	log_options
 
-	basic_healthcheck	#Minimum Requirement
-	rpm_info		#Minimum Requirement
-	basic_environment	#Minimum Requirement
+	basic_healthcheck	#Minimum Requirement MIN_OPTION_HC
+	rpm_info			#Minimum Requirement MIN_OPTION_RPM
+	basic_environment	#Minimum Requirement MIN_OPTION_ENV
 	open_files
 	module_info
 	memory_info
@@ -4151,7 +4162,7 @@ if (( $USE_SAVED_LOGS_ONLY != 1 )); then
 	btrfs_info
 	transactional_info
 	tuned_info
-	yast_files		#Minimum Requirement
+	yast_files			#Minimum Requirement MIN_OPTION_YAST
 	fslist_info
 	audit_info
 	crash_info
@@ -4211,12 +4222,12 @@ if (( $USE_SAVED_LOGS_ONLY != 1 )); then
 	smartmon_info
 	[[ -s ${FSLIST_ADD_FILE} ]] && fslist_ufiles_info
 	livepatch_info
-	hardware_info		#Minimum Requirement
+	hardware_info		#Minimum Requirement MIN_OPTION_HARDWARE
 	rpm_full_verify
 	exec_plugins
 	(( OPTION_MOD )) && post_lsmod_list
 	log2sys "Finished Gathering"
-	messages_file		#Minimum Requirement
+	messages_file		#Minimum Requirement MIN_OPTION_SYSLOGS
 	localwarn_file
 	write_xml_file
 
