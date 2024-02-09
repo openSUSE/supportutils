@@ -1,4 +1,4 @@
-.TH SUPPORTCONFIG 8 "08 Feb 2024" "supportutils" "Support Utilities Manual"
+.TH SUPPORTCONFIG 8 "09 Feb 2024" "supportutils" "Support Utilities Manual"
 .SH NAME
 supportconfig - Gathers system troubleshooting information
 .SH SYNOPSIS
@@ -133,7 +133,7 @@ Disables curl checks to SUSE update servers. Helpful for local servers. If the s
 Exclude detailed disk information and scans. Disks are still scanned, but this switch attempts to minimize the disk scans.
 .TP
 \fB\-e\fR 
-Disables extended scaling. By default extended scaling is disabled. However, if more than EXT_SCALING_PID_LIMIT PIDs are running or more than EXT_SCALING_IRQ_LIMIT IRQs are active or commands take longer than EXT_SCALING_EXEC_LIMIT seconds/nanoseconds to run, extended scaling will instruct supportconfig to exclude pmap and name space comparison data for all running PIDs and disable gather IRQ data. Any limit exceeded will scale back supportconfig. To force supportconfig to gather the data, use -e. If you disable extended scaling, busy systems may take a long time to gather supportconfig data.
+Disables extended scaling. By default extended scaling is disabled. However, if more than EXT_SCALING_PID_LIMIT PIDs are running or more than EXT_SCALING_IRQ_LIMIT IRQs are active or commands take longer than EXT_SCALING_EXEC_LIMIT seconds/nanoseconds to run, extended scaling will instruct supportconfig to exclude pmap and name space comparison data for all running PIDs and disable gathering IRQ data. Any limit exceeded will scale back supportconfig. To force supportconfig to gather the data, use -e. If you disable extended scaling, busy systems may take a long time to gather supportconfig data.
 .TP
 \fB\-f\fR \fIdirectory\fR
 From directory. Don't collect report files, just use files in that directory. This option is most often used in connection with -t <target_directory> and the YaST support module. If a regular directory is used, supportconfig looks for the most recent supportconfig archive directory and uses it. If a valid supportconfig directory is specified, it is used.
