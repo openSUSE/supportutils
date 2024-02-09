@@ -92,6 +92,7 @@ show_help() {
 	echo "  -b Screen buffer mode"
 	echo "  -c Disables curl checks to SUSE update servers"
 	echo "  -d Exclude detailed disk info and scans"
+	echo "  -e Disables extended scaling, forcing the gathering of extended proc and irq data"
 	echo "  -f From directory. Don't collect report files, just use the directory or files in that"
 	echo "     directory."
 	echo "  -g Use gzip instead of the default xz compression"
@@ -4564,9 +4565,7 @@ do
 	b) VAR_OPTION_SBM=1 ;;
 	c) ADD_OPTION_LOCAL_ONLY=1 ;;
 	d) ADD_OPTION_MINDISK=1 ;;
-	e) if ! (( EXT_SCALING_DISABLED )); then
-		log2sys "Scaling Down: Extended scaling re-enabled with -e"
-		fi 
+	e) (( EXT_SCALING_DISABLED )) || log2sys "Extended Scaling: Disabled with -e"
 		EXT_SCALING_DISABLED=1 ;;
 	f) FROM_DIRECTORY=$OPTARG  && USE_SAVED_LOGS_ONLY=1;;
 	g) COMPRESS="tgz"; COMPRESS_OPT="zcf" ;;
@@ -4709,10 +4708,14 @@ if [ "$USE_SAVED_LOGS_ONLY" != "1" ]; then
 	rpm_verify ${CSFILE} supportutils
 
 	echolog "Gathering system information"
-	log_write ${CSFILE} 	"  Script Version:       ${SVER}"
-	log_write ${CSFILE} 	"  Script Date:          ${SDATE}"
-	echolog 					"  Data Directory:       ${LOG}"
-	log2sys "Data Directory: ${LOG}"
+	log_write ${CSFILE} "  Script Version:       ${SVER}"
+	log_write ${CSFILE} "  Script Date:          ${SDATE}"
+	echolog 			"  Data Directory:       ${LOG}"
+	log_write ${CSFILE} "  Environment Value:    $SLES_VER"
+	log_write ${CSFILE} "  Command with Args:    $0 $ALL_ARGS"
+	log_write ${CSFILE} "  FORCE_OPTION_PAM:     $FORCE_OPTION_PAM"
+	log_write ${CSFILE} "  EXT_SCALING_DISABLED: $EXT_SCALING_DISABLED"
+	test -s $SC_CONF && log_write ${CSFILE} "  Using Options:        $SC_CONF"
 
 	if bad_plugin_dir; then
 		echolog "  WARNING: Invalid plugin directory, all plugins will be skipped."
@@ -4723,19 +4726,15 @@ if [ "$USE_SAVED_LOGS_ONLY" != "1" ]; then
 		log_write ${CSFILE} "   The plugin directory should be writable only for root and group root."
 		log_write ${CSFILE} "   Currently SUID, SGID and sticky bits are not allowed."
 	fi
-	log_write ${CSFILE} "  Environment Value:    $SLES_VER"
-	log_write ${CSFILE} "  Command with Args:    $0 $ALL_ARGS"
-	log_write ${CSFILE} "  FORCE_OPTION_PAM:     $FORCE_OPTION_PAM"
-	log_write ${CSFILE} "  EXT_SCALING_DISABLED: $EXT_SCALING_DISABLED"
-	log2sys "Supportconfig Args: $ALL_ARGS"
 
-	test -s $SC_CONF && log_write ${CSFILE} "  Using Options:     $SC_CONF"
 	echolog
+	log2sys "Data Directory: ${LOG}"
+	log2sys "Supportconfig Args: $ALL_ARGS"
 
 	log_options
 
 	basic_healthcheck	#Minimum Requirement
-	rpm_info		#Minimum Requirement
+	rpm_info			#Minimum Requirement
 	basic_environment	#Minimum Requirement
 	open_files
 	module_info
@@ -4744,7 +4743,7 @@ if [ "$USE_SAVED_LOGS_ONLY" != "1" ]; then
 	btrfs_info
 	transactional_info
 	tuned_info
-	yast_files		#Minimum Requirement
+	yast_files			#Minimum Requirement
 	fslist_info
 	audit_info
 	crash_info
