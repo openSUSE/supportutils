@@ -1898,6 +1898,7 @@ hardware_info() {
 			log_cmd $OF "ls -l /var/log/dump"
 		fi
 	fi
+	[[ "$(systemctl show nvidia-persistenced.service -p LoadState)" == "LoadState=not-found" ]] || log_cmd $OF "systemctl status nvidia-persistenced.service"
 	echolog Done
 }
 
