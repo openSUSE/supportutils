@@ -1,11 +1,11 @@
 #!/bin/bash
 
-SVER='3.1.15-11.28'
-SDATE='2024 Jan 11'
+SVER='3.1.16-1.0'
+SDATE='2024 Feb 12'
 
 ##############################################################################
 #  supportconfig - Gathers system troubleshooting information for SUSE Support
-#  Copyright (C) 2001-2023 SUSE LLC
+#  Copyright (C) 2001-2024 SUSE LLC
 #
 #  Creates a tar ball to attach to the support case or send to support. 
 #  Collects comprehensive system information for troubleshooting and reducing

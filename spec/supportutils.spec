@@ -1,7 +1,7 @@
 #
 # spec file for package supportutils
 #
-# Copyright (c) 2023 SUSE LLC
+# Copyright (c) 2023-2024 SUSE LLC
 #
 # All modifications and additions to the file contributed by third parties
 # remain the property of their copyright owners, unless otherwise agreed
@@ -23,7 +23,7 @@
 %define support_libdir /usr/lib/supportconfig
 
 Name:           supportutils
-Version:        3.1.28
+Version:        3.1.29
 Release:        0
 Summary:        Support Troubleshooting Tools
 License:        GPL-2.0-only

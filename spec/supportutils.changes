@@ -1,4 +1,15 @@
 -------------------------------------------------------------------
+Mon Feb 12 22:02:10 UTC 2024 - jason.record@suse.com
+
+- Changes to version 3.1.29
+  + Extended scaling for performance (bsc#1214713)
+  + Fixed kdumptool output error (bsc#1218632)
+  + Corrected podman ID errors (bsc#1218812)
+  + Duplicate non root podman entries removed (bsc#1218814)
+  + Corrected get_sles_ver for SLE Micro (bsc#1219241)
+  + Check nvidida-persistenced state (bsc#1219639)
+
+-------------------------------------------------------------------
 Thu Jan 11 13:37:41 UTC 2024 - jason.record@suse.com
 
 - Additional changes in version 3.1.28
