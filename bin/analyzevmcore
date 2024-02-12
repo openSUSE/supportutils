@@ -50,43 +50,13 @@ SNAME="analyzevmcore"
 # directory as the core.                                                #
 #                                                                       #
 # --------------------------------------------------------------------- #
-# Changes:                                                              #
-#                                                                       #
-# 1.38 Release                                                          #
-#    - Fixed local directory KDUMP_SAVEDIR support                      #
-# 1.33 Release                                                          #
-#    - Changed filename prefix from nts_ to scc_ with FILENAME_PREFIX   #
-#    - Processes all available crash dumps                              #
-# 1.32 Release                                                          #
-#    - Improved support for user-specified crash directory              #
-# 1.31 Release                                                          #
-#    - Modified code to detect correct kernel version for corefile      #
-#    - Better support for SLES10 environments                           #
-# 1.30 Release                                                          #
-#    - Misc comment cleanup, minor bug fixes in kernel detection        #
-#    - Added -r option to remove and recreate existing analysis files   #
-#    - Added return code check for crash                                #
-# 1.29 Release                                                          #
-#    - Changed spinner code                                             #
-#    - Default to currently running kernel if no kernel found           #
-# 1.28 Release                                                          #
-#    - Change to always copy analysis to /var/log.                      #
-# 1.27 Release                                                          #
-#    - Added Update channel documentation                               #
-#    - Updated output formatting                                        #
-# 1.26 Release                                                          #
-#    - Better binary checking                                           #
-#    - README.txt is now checked for kernel version                     #
-#    - Link to /boot/vmlinux will be created if not found in crashdir   #
-# 1.25 Release                                                          #
-#    - Initial public release in supportutils                           #
-# --------------------------------------------------------------------- #
 
 CRASHV4=0
 REWRITE_ANALYSIS=0
 FORMAT="%-35s"
 SPINSTR='|/-\'
 FILENAME_PREFIX='scc_'
+READ_KDUMP_CONFIG='/usr/lib/kdump/kdump-read-config.sh'
 
 #Required Binaries
 AWK_BIN=/usr/bin/awk
@@ -534,7 +504,10 @@ fi
 
 if [[ -z "$COREDIR" ]]; then
 	#Source /etc/sysconfig/kdump
-	if [[ -e "/etc/sysconfig/kdump" ]]; then
+	if [[ -x $READ_KDUMP_CONFIG ]]; then
+		. $READ_KDUMP_CONFIG
+		KDUMP_SAVEDIR=${KDUMP_SAVEDIR#file://}
+	elif [[ -e "/etc/sysconfig/kdump" ]]; then
 		. /etc/sysconfig/kdump
 		if [[ "${KDUMP_SAVEDIR:0:8}" = "file:///" ]]; then
 			KDUMP_SAVEDIR=${KDUMP_SAVEDIR:7}
