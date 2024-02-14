@@ -1,7 +1,7 @@
 ##############################################################################
 #  supportconfig.rc - Resource file for supportconfig
 #  Copyright (C) 2024 SUSE LLC
-RCVER='3.2.0-1'
+RCVER='3.2.0-4'
 #
 #  Contains supporting functions and variables used by supportconfig and
 #  supportconfig plugins.
@@ -20,7 +20,7 @@ RCVER='3.2.0-1'
 #  You should have received a copy of the GNU General Public License
 #  along with this program; if not, see <http://www.gnu.org/licenses/>.
 #
-#  Modified: 2023 Dec 05
+#  Modified: 2024 Feb 14
 #
 #  Authors/Contributors:
 #	 Jason Record <jason.record@suse.com>
@@ -185,6 +185,11 @@ ENCRYPTED_TARBALL=0
 # Set bootloader type from sysconfig
 eval $(cat /etc/sysconfig/bootloader | grep LOADER_TYPE)
 IO_DELAYS=0
+
+EXT_SCALING_DISABLED=1
+EXT_SCALING_PID_LIMIT=1000
+EXT_SCALING_IRQ_LIMIT=1000
+EXT_SCALING_EXEC_LIMIT=9000000
 
 PROC_FILES="/proc/mounts /proc/zoneinfo"
 PROC_DIRS_DEPTH_ONE="/proc/sys/kernel/ /proc/scsi/ /proc/net/ /proc/dasd/"
@@ -501,6 +506,15 @@ printlog() {
 printvrpmlog() {
 	CSLOGFILE=$LOG/${CSFILE}
 	(( $VAR_OPTION_SILENT )) && printf "  %-40s %12s ... " "$1" "$2" >> $CSLOGFILE || printf "  %-40s %12s ... " "$1" "$2" | tee -a $CSLOGFILE
+}
+
+ext_scaling_check() {
+    T_BEFORE=$(date "+%S%N"); EXT_SCALING_PID=$(ps axo pid | wc -l); T_AFTER=$(date "+%S%N")
+    EXT_SCALING_EXEC=$(expr $T_AFTER - $T_BEFORE)
+    EXT_SCALING_IRQ=$(ls -1 /proc/irq 2>/dev/null | wc -l)
+    (( EXT_SCALING_EXEC > EXT_SCALING_EXEC_LIMIT )) && { EXT_SCALING_DISABLED=0; log2sys "Extended Scaling: EXEC limit exceeded: ${EXT_SCALING_EXEC} > ${EXT_SCALING_EXEC_LIMIT}"; }
+    (( EXT_SCALING_PID > EXT_SCALING_PID_LIMIT )) && { EXT_SCALING_DISABLED=0; log2sys "Extended Scaling: PID limit exceeded: ${EXT_SCALING_PID} > ${EXT_SCALING_PID_LIMIT}"; }
+    (( EXT_SCALING_IRQ > EXT_SCALING_IRQ_LIMIT )) && { EXT_SCALING_DISABLED=0; log2sys "Extended Scaling: IRQ limit exceeded: ${EXT_SCALING_IRQ} > ${EXT_SCALING_IRQ_LIMIT}"; }
 }
 
 _sanitize_file() {
@@ -863,6 +877,7 @@ set_to_min() {
 
 set_to_all() {
 	init_plugins on
+	EXT_SCALING_DISABLED=1
 	for SRCH in OPTION_ ADD_OPTION_ MIN_OPTION_
 	do
 		for i in $(grep ^$SRCH $SC_RESOURCE_FILE | cut -d= -f1 | sort)
@@ -1415,6 +1430,8 @@ get_sles_ver() {
 #		echo "ID=${ID}, VID=${VID}" > /dev/kmsg
 		if [[ "${ID}" == *"alp-"* ]]; then
 			SLES_VER=160
+		elif [[ "${ID}" == "sle-micro" ]]; then
+			SLES_VER="1${VID}"
 		else
 			SLES_VER=$VID
 		fi
