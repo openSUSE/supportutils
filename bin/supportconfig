@@ -1353,7 +1353,8 @@ boot_info() {
 	OF=boot.txt
 	addHeaderFile $OF
 	log_cmd $OF "uname -a"
-	KERNELS=$(cat $LOG/$RPMFILE | grep '^kernel-' | grep -v 'kernel-source' | awk '{print $1}')
+	# Feb 621, 2024 - Ahmad Alzayed - Added grep -E '[0-9]' to avoid getting duplicated output
+	KERNELS=$(cat $LOG/$RPMFILE | grep '^kernel-' | grep -v 'kernel-source' | awk '{print $1}' | grep -E '[0-9]')
 	for KERNEL in $KERNELS
 	do
 		rpm_verify $OF $KERNEL
