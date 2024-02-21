@@ -1488,6 +1488,11 @@ lvm_info() {
 		LVBIN="lvs"
 		log_cmd $OF "systemctl status 'lvm2-activation-early.service'"
 		FILES="/etc/lvm/lvm.conf"
+
+		# suppress lvm command warnings about FD leaks
+		# see man(8) lvm
+		export LVM_SUPPRESS_FD_WARNINGS=1
+
 		timed_log_cmd $OF 'pvs' || LVM_IO_DELAYS=1
 		if ! (( $LVM_IO_DELAYS )); then
 			log_cmd $OF "vgs"
@@ -1514,6 +1519,7 @@ lvm_info() {
 			log_cmd $OF "$VGBIN -vvvv"
 			log_cmd $OF "$LVBIN -vvvv"
 		fi
+		unset LVM_SUPPRESS_FD_WARNINGS
 		echolog Done
 	else
 		echolog Skipped
