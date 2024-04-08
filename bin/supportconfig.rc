@@ -1481,6 +1481,15 @@ write_xml_file() {
 	test -n "$VAR_OPTION_CONTACT_PHONE" && { xml_write 'phone' "$VAR_OPTION_CONTACT_PHONE"; }
 	test -n "$VAR_OPTION_CONTACT_EMAIL" && { xml_write 'email' "$VAR_OPTION_CONTACT_EMAIL"; }
 	xml_write 'srnum' "$CONTACT_SRNUM"
+	for KV in "${KV_PAIRS[@]}"
+	do
+		THIS_KEY="${KV%%:*}"
+		THIS_VALUE="${KV#*:}"
+		DELIMITERS=${KV//[^:]}
+		[[ -z $THIS_KEY ]] && THIS_KEY='Unknown'
+		(( ${#DELIMITERS} < 1 )) && THIS_VALUE=''
+		xml_write "${THIS_KEY}" "${THIS_VALUE}"
+	done
 	echo '</customer>' >> $LOG/$XML_FILE
 	wait_trace_off
 

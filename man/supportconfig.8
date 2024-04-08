@@ -1,8 +1,8 @@
-.TH SUPPORTCONFIG 8 "09 Feb 2024" "supportutils" "Support Utilities Manual"
+.TH SUPPORTCONFIG 8 "08 Apr 2024" "supportutils" "Support Utilities Manual"
 .SH NAME
 supportconfig - Gathers system troubleshooting information
 .SH SYNOPSIS
-supportconfig [\fB\-ACDFJLQabdeghklmpqsuvy\fR][\fB-B\fR string][\fB-E\fR string][\fB-G\fR gpg_uid][\fB-H\fR number][\fB-I\fR number][\fB-M\fR string][\fB-N\fR string][\fB-O\fR string][\fB-P\fR string][\fB-R\fR directory path][\fB-S\fR number][\fB-T\fR seconds][\fB-U\fR URI string][\fB-W\fR string][\fB-X\fR number][\fB-f\fR directory][\fB-i\fR keyword list][\fB-o\fR keyword list][\fB-r\fR srnum][\fB-t\fR directory][\fB-x\fR keyword list]
+supportconfig [\fIOPTIONS\fR]
 .SH DESCRIPTION
 Creates a tar ball that can be attached to a SUSE service request and/or sent to a SUSE Technical Services engineer. Collects comprehensive system information for troubleshooting and reducing resolution time.
 .PP
@@ -111,6 +111,9 @@ You might want to create an ssh trusted host configuration for the scp service. 
 .RS
 The "{TARBALL}" is a reserved case insensitive word that supportconfig replaces with the supportconfig tar ball filename. The upload.php script is code you would have to supply that would receive the connection and copy the file locally. The supportconfig sends a User-Agent string to the HTTP server called "SupportConfig".
 .RE
+.TP
+\fB\-V\fR \fIkey:value\fR
+Include a key/value pair in summary.xml under the <customer> tag. This option can be repeated.
 .TP
 \fB\-W\fR \fIstring\fR
 Contact company store ID. This is an optional store identifier that is included in the basic-environment.txt file.
