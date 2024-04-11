@@ -1107,7 +1107,7 @@ docker_info() {
 			CONTAINEROF=docker/"$container".txt
 			log_cmd $CONTAINEROF "docker top $container"
 			log_cmd $CONTAINEROF "docker inspect $container"
-			log_cmd $CONTAINEROF "docker logs $container"
+			log_cmd $CONTAINEROF "docker logs --timestamps $container"
 		done
 		log_cmd $OF 'ls -al --time-style=long-iso /var/lib/docker/containers'
 		log_cmd $OF 'journalctl -u docker'
