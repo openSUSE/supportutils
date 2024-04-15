@@ -1,4 +1,13 @@
 -------------------------------------------------------------------
+Mon Apr 15 15:58:20 UTC 2024 - jason.record@suse.com
+
+- Changes in version 3.1.30
+  + Added -V key:value pair option (bsc#1222021)
+  + Avoid getting duplicate kernel verifications in boot.text (pr#193)
+  + Suppress file descriptor leak warnings from lvm commands (pr#192, bsc#1220082)
+  + Includes container log timestamps (pr#197)
+
+-------------------------------------------------------------------
 Mon Feb 12 22:02:10 UTC 2024 - jason.record@suse.com
 
 - Changes to version 3.1.29
