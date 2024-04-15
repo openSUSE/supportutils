@@ -1272,7 +1272,7 @@ docker_info() {
 			CONTAINEROF=docker/"$container".txt
 			log_cmd $CONTAINEROF "docker top $container"
 			log_cmd $CONTAINEROF "docker inspect $container"
-			log_cmd $CONTAINEROF "docker logs $container"
+			log_cmd $CONTAINEROF "docker logs --timestamps $container"
 		done
 		log_cmd $OF 'ls -al --time-style=long-iso /var/lib/docker/containers'
 		log_cmd $OF 'journalctl -u docker'
@@ -1359,7 +1359,7 @@ podman_info() {
 						log_cmd $CONTAINEROF "${PODACC}podman ps --all --pod | egrep \"^CONTAINER|${container}\""
 						log_cmd $CONTAINEROF "${PODACC}podman top $container"
 						log_cmd $CONTAINEROF "${PODACC}podman inspect $container"
-						log_cmd $CONTAINEROF "${PODACC}podman logs $container"
+						log_cmd $CONTAINEROF "${PODACC}podman logs --timestamps $container"
 					done
 					log_cmd $OF "${PODACC}podman network ls"
 					for podnet in $(${PODACC}podman network ls --format "{{.Name}}")
