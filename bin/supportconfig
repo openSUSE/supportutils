@@ -87,6 +87,7 @@ show_help() {
 	echo "  -T <seconds> Binary execution timeout"
 	echo "  -U <URI string> Sets upload target URL and initiates an upload, supported"
 	echo "                  services include: ftp, ftps/ftpes, https, scp"
+	echo "  -V <key:value> Include a key/value pair in summary.xml under the <customer> tag; repeatable option."
 	echo "  -X <number> Max system logs line count"
 	echo "  -a Upload the tar ball to the specified alternate target VAR_OPTION_UPLOAD_TARGET_ALT"
 	echo "  -b Screen buffer mode"
@@ -1194,7 +1195,7 @@ podman_info() {
 						log_cmd $CONTAINEROF "${PODACC}podman ps --all --pod | egrep \"^CONTAINER|${container}\""
 						log_cmd $CONTAINEROF "${PODACC}podman top $container"
 						log_cmd $CONTAINEROF "${PODACC}podman inspect $container"
-						log_cmd $CONTAINEROF "${PODACC}podman logs $container"
+						log_cmd $CONTAINEROF "${PODACC}podman logs --timestamps $container"
 					done
 					log_cmd $OF "${PODACC}podman network ls"
 					for podnet in $(${PODACC}podman network ls --format "{{.Name}}")
@@ -3960,7 +3961,8 @@ init_plugins on
 get_sles_ver
 NSA_CHECK=0
 ALL_ARGS="$@"
-while getopts :\#AB:CDE:FG:H:I:JLM:N:O:P:QR:S:T:U:W:X:abcdef:ghi:klmo:pqr:st:uvwx:yz TMPOPT
+declare -a KV_PAIRS
+while getopts :\#AB:CDE:FG:H:I:JLM:N:O:P:QR:S:T:U:W:X:V:abcdef:ghi:klmo:pqr:st:uvwx:yz TMPOPT
 do
 	case $TMPOPT in
 	\:)	clear; title
@@ -3996,6 +3998,7 @@ do
 	S) VAR_OPTION_SAR_FILES_LIMIT=$OPTARG ;;
 	T) VAR_OPTION_BIN_TIMEOUT_SEC=$OPTARG ;;
 	U) VAR_OPTION_UPLOAD_TARGET="$OPTARG" && UPLOAD_TARBALL=1 ;;
+	V) KV_PAIRS+=("${OPTARG}") ;;
 	W) VAR_OPTION_CONTACT_STOREID="$OPTARG" ;;
 	X) VAR_OPTION_MSG_MAXSIZE=$OPTARG ;;
 	a) UPLOAD_TARBALL=1; VAR_OPTION_UPLOAD_TARGET=${VAR_OPTION_UPLOAD_TARGET_ALT} ;;
