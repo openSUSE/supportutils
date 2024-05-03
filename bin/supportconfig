@@ -926,7 +926,7 @@ pam_info() {
 		# Nov 24, 2023 ,, Added by Ahmad Alzayed
 		log_cmd $OF "ls -lt --time-style=long-iso /etc/pam.d/"
 		log_write $OF "#==[ Files in /etc/pam.d ]==========================#"
-		[[ -d /etc/pam.d ]] && FILES="$(find -L /etc/pam.d/ -type f)" || FILES=""
+		[[ -d /etc/pam.d ]] && FILES="$(find -L /etc/pam.d/ -type f|sort)" || FILES=""
 		conf_files $OF $FILES
 		echolog Done
 	else
