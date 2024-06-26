@@ -598,7 +598,7 @@ yast_files() {
 	if rpm -q perl-Bootloader &> /dev/null; then
 		rpm_verify $OF perl-Bootloader
 	fi
-	[[ -d /var/log/YaST2 ]] && FILES=$(find /var/log/YaST2/ -type f | egrep -v "_dev_|\.tbz$|\.tgz$|\.gz$|\.bz2$|\.zcat&|\.zip$") || unset FILES
+	[[ -d /var/log/YaST2 ]] && FILES=$(find /var/log/YaST2/ -type f | egrep -v "_dev_|\.tbz$|\.tgz$|\.gz$|\.bz2$|\.zcat$|\.zip$") || unset FILES
 	conf_files $OF /etc/youservers /etc/sysconfig/onlineupdate /etc/wgetrc 
 	log_files $OF 0 /var/log/pbl.log
 	(( ADD_OPTION_MAXYAST > 0 )) && log_files $OF 0 $FILES || log_files $OF $VAR_OPTION_LINE_COUNT $FILES
