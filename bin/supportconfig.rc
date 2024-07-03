@@ -534,6 +534,7 @@ _sanitize_file() {
 	s/\(secret[[:space:]]*=\).*/\1 $REPLACED/g;\
 	s/\($Param{'[s]*password'}[[:space:]]*=[[:space:]]*'\).*\(';\)/\1$REPLACED\2/g;\
 	s/\(.*password[[:space:]]*=\).*/\1 $REPLACED/g;\
+	s/\(.*password_pbkdf2[[:space:]]\).*/\1 $REPLACED/g;\
 	s/\(.*password_in[[:space:]]*=\).*/\1 $REPLACED/g" \
 	$CLEAN_FILE
 }

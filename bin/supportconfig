@@ -818,6 +818,7 @@ boot_info() {
 		conf_files $OF /var/log/boot.msg /var/log/boot.omsg
 	fi
 	log_cmd $OF 'dmesg -T'
+	_sanitize_file $OF
 	echolog Done
 }
 
