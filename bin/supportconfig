@@ -698,6 +698,7 @@ boot_info() {
 		fi
 	fi
 	log_cmd $OF 'dmesg -T'
+	_sanitize_file $OF
 	echolog Done
 }
 
