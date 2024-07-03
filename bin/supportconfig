@@ -576,6 +576,7 @@ _sanitize_file() {
 	s/\(secret[[:space:]]*=\).*/\1 $REPLACED/g;\
 	s/\($Param{'[s]*password'}[[:space:]]*=[[:space:]]*'\).*\(';\)/\1$REPLACED\2/g;\
 	s/\(.*password[[:space:]]*=\).*/\1 $REPLACED/g;\
+	s/\(.*password_pbkdf2[[:space:]]\).*/\1 $REPLACED/g;\
 	s/\(.*password_in[[:space:]]*=\).*/\1 $REPLACED/g; \
 	s/\(^echo -n\).*\(> \/sys\/kernel\/config\/target\/.*auth\/password.*\)/\1 $REPLACED \2/g" \
 	$CLEAN_FILE
@@ -1443,6 +1444,7 @@ boot_info() {
 		conf_files $OF /var/log/boot.msg /var/log/boot.omsg
 	fi
 	log_cmd $OF 'dmesg -T'
+	_sanitize_file $OF
 	echolog Done
 }
 
