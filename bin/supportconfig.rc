@@ -530,6 +530,7 @@ _sanitize_file() {
 	s!\(<user_password>\).*\(</user_password>\)!\1$REPLACED\2!g;\
 	s/\(^ProxyUser[[:space:]]*=\).*/\1 $REPLACED/g;\
 	s/\(^credentials[[:space:]]*=\).*/\1 $REPLACED/g;\
+	s/\(\"regcode\":\"\)[[:alnum:]_-]*/\1$REPLACED/g;\
 	s/\(secret[[:space:]]*=\).*/\1 $REPLACED/g;\
 	s/\($Param{'[s]*password'}[[:space:]]*=[[:space:]]*'\).*\(';\)/\1$REPLACED\2/g;\
 	s/\(.*password[[:space:]]*=\).*/\1 $REPLACED/g;\
