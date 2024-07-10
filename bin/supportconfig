@@ -1536,12 +1536,21 @@ update_info() {
 	fi
 	if (( SLES_VER >= 120 ))
 	then
-		if rpm_verify $OF SUSEConnect
-		then
-			rpm_verify $OF ruby2.1-rubygem-suse-connect
-			log_cmd $OF "SUSEConnect --status"
-			FILES=$(find /etc/zypp/credentials.d/ -type f 2>/dev/null)
-			conf_files $OF /etc/SUSEConnect $FILES
+		if rpm -q suseconnect-ng &> /dev/null; then
+			if rpm_verify $OF suseconnect-ng
+			then
+				log_cmd $OF "SUSEConnect --status"
+				FILES=$(find -L /etc/zypp/credentials.d/ -type f 2>/dev/null)
+				conf_files $OF /etc/SUSEConnect $FILES
+			fi
+		elif rpm -q SUSEConnect &> /dev/null; then
+			if rpm_verify $OF SUSEConnect
+			then
+				rpm_verify $OF ruby2.1-rubygem-suse-connect
+				log_cmd $OF "SUSEConnect --status"
+				FILES=$(find -L /etc/zypp/credentials.d/ -type f 2>/dev/null)
+				conf_files $OF /etc/SUSEConnect $FILES
+			fi
 		fi
 	fi
 
