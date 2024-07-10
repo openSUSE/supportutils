@@ -870,6 +870,7 @@ basic_environment() {
 	detectProducts $BASIC_ENVF
 	detectVirtualization $BASIC_ENVF
 	conf_files $BASIC_ENVF $RELEASE
+	log_cmd $BASIC_ENVF 'rpm -qf /etc/products.d/baseproduct'
 	if ! ((NSA_CHECK)); then
 		if [ $SLES_VER -lt 110 ]; then
 			if rpm_verify $BASIC_ENVF SPident; then
