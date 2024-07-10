@@ -151,6 +151,7 @@ basic_environment() {
 	detectProducts $BASIC_ENVF
 	detectVirtualization $BASIC_ENVF
 	conf_files $BASIC_ENVF $RELEASE
+	log_cmd $BASIC_ENVF 'rpm -qf /etc/products.d/baseproduct'
 	if ! ((NSA_CHECK)); then
 		cat $LOG/$RPM_DIST_FILE >> $LOG/$BASIC_ENVF
 		case $SLES_VER in
@@ -1371,17 +1372,11 @@ mpio_info() {
 
 detectProducts() {
 	OUT=$1
-	if rpm -q SUSE_SLES_SAP-release &>/dev/null
+	if rpm -q SLES_SAP-release &>/dev/null
 	then
 		log_write $OUT "#==[ System ]=======================================#"
 		log_write $OUT "# Product"
 		log_write $OUT "SUSE Linux Enterprise Server for SAP Applications"
-		log_write $OUT
-	elif rpm -q 'SLES-for-VMware-release' &>/dev/null
-	then
-		log_write $OUT "#==[ System ]=======================================#"
-		log_write $OUT "# Product"
-		log_write $OUT "SUSE Linux Enterprise Server for VMware"
 		log_write $OUT
 	fi
 }
