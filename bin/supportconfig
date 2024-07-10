@@ -151,6 +151,7 @@ basic_environment() {
 	detectProducts $BASIC_ENVF
 	detectVirtualization $BASIC_ENVF
 	conf_files $BASIC_ENVF $RELEASE
+	log_cmd $BASIC_ENVF 'rpm -qf /etc/products.d/baseproduct'
 	if ! ((NSA_CHECK)); then
 		cat $LOG/$RPM_DIST_FILE >> $LOG/$BASIC_ENVF
 		case $SLES_VER in
