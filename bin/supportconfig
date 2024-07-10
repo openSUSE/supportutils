@@ -1371,7 +1371,7 @@ mpio_info() {
 
 detectProducts() {
 	OUT=$1
-	if rpm -q SUSE_SLES_SAP-release &>/dev/null
+	if rpm -q SLES_SAP-release &>/dev/null
 	then
 		log_write $OUT "#==[ System ]=======================================#"
 		log_write $OUT "# Product"
