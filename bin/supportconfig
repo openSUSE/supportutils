@@ -1377,12 +1377,6 @@ detectProducts() {
 		log_write $OUT "# Product"
 		log_write $OUT "SUSE Linux Enterprise Server for SAP Applications"
 		log_write $OUT
-	elif rpm -q 'SLES-for-VMware-release' &>/dev/null
-	then
-		log_write $OUT "#==[ System ]=======================================#"
-		log_write $OUT "# Product"
-		log_write $OUT "SUSE Linux Enterprise Server for VMware"
-		log_write $OUT
 	fi
 }
 
