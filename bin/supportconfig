@@ -1665,7 +1665,7 @@ pam_info() {
 	test -d /etc/security && FILES="$(find -L /etc/security/ -type f -name \*conf)" || FILES=""
 	conf_files $OF $FILES
 	log_write $OF "#==[ Files in /etc/pam.d ]==========================#"
-	test -d /etc/pam.d && FILES="$(find -L /etc/pam.d/ -type f|sort)" || FILES=""
+	test -d /etc/pam.d && FILES="$(find -L /etc/pam.d/ -type f | sort)" || FILES=""
 	conf_files $OF $FILES
 	echolog Done
 }
