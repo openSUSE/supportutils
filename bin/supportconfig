@@ -1526,7 +1526,7 @@ hardware_info() {
 	ALSABIN='/usr/sbin/alsa-info.sh'
 	if [[ -x $ALSABIN ]]; then
 		AVER=$(grep SCRIPT_VERSION= $ALSABIN | cut -d= -f2 | sed -e 's/\.//g')
-		if [[ $((10#$AVER)) -lt $((10#0458)) ]]; then
+		if (( $AVER >= 0458 )); then
 			log_cmd $OF "$ALSABIN --stdout --no-upload --with-configs --with-devices --with-dmesg --with-alsactl"
 		else
 			log_cmd $OF "echo y | $ALSABIN --no-dialog --no-upload --with-configs --with-devices &>/dev/null"
