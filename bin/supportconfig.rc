@@ -1,7 +1,7 @@
 ##############################################################################
 #  supportconfig.rc - Resource file for supportconfig
 #  Copyright (C) 2024 SUSE LLC
-RCVER='3.2.0-4'
+RCVER='3.2.8-1'
 #
 #  Contains supporting functions and variables used by supportconfig and
 #  supportconfig plugins.
@@ -20,7 +20,7 @@ RCVER='3.2.0-4'
 #  You should have received a copy of the GNU General Public License
 #  along with this program; if not, see <http://www.gnu.org/licenses/>.
 #
-#  Modified: 2024 Feb 14
+#  Modified: 2024 Aug 1
 #
 #  Authors/Contributors:
 #	 Jason Record <jason.record@suse.com>
