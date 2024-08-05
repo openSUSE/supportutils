@@ -1484,7 +1484,7 @@ update_info() {
 	SKIP=0
 	TIMEOUT=0
 	addHeaderFile $OF
-	if [ $SLES_VER -lt 110 ] && rpm_verify $OF rug
+	if (( $SLES_VER < 110 )) && rpm_verify $OF rug
 	then
 		rpm_verify $OF lsb
 		RUG_VER=$(rpm -q rug | tail -1 | cut -d- -f2 | cut -d\. -f1)
@@ -1518,7 +1518,7 @@ update_info() {
 	fi
 
 	TIMEOUT=0
-	if [ $SLES_VER -ge 110 ] && rpm_verify $OF zypper; then
+	if (( $SLES_VER >= 110 )) && (( $SLES_VER < 120 )) && rpm_verify $OF zypper; then
 		log_cmd $OF 'date'
 		log_cmd $OF 'ls -lA --time-style=long-iso /etc/products.d/'
 		for CMDOPT in services 'repos -d' patch-check patches list-patches products '--xmlout products'
@@ -1535,8 +1535,7 @@ update_info() {
 		rpm_verify $OF lsb
 		conf_files $OF /etc/zypp/zypp.conf /etc/zypp/credentials.d/NCCcredentials
 	fi
-	if (( SLES_VER >= 120 ))
-	then
+	if (( $SLES_VER >= 120 )); then
 		if rpm -q suseconnect-ng &> /dev/null; then
 			if rpm_verify $OF suseconnect-ng
 			then
