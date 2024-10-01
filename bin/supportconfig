@@ -1992,8 +1992,8 @@ net_info_namespace() {
 	IPADDR=$(${NS}ip route list | awk '$1 == "default" {print $3}')
 	ping_addr $OF 'Default Route' $IPADDR "${NS}"
 
-	if [[ -z "${NS}" ]] ; then
-		test -e /etc/resolv.conf && IPADDRS=$(grep ^nameserver /etc/resolv.conf | cut -d' ' -f2) || IPADDRS=""
+	if [[ -z "${NS}" ]]; then
+		[[ -e /etc/resolv.conf ]] && IPADDRS=$(grep ^nameserver /etc/resolv.conf | awk '{print $2}') || IPADDRS=""
 		for IPADDR in $IPADDRS
 		do
 			ping_addr $OF 'DNS Server' $IPADDR "${NS}"
