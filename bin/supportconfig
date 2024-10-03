@@ -1762,7 +1762,7 @@ net_info_namespace() {
 	ping_addr $OF 'Default Route' $IPADDR "${NS}"
 
 	if [[ -z "${NS}" ]]; then
-		[[ -e /etc/resolv.conf ]] && IPADDRS=$(grep ^nameserver /etc/resolv.conf | cut -d' ' -f2) || IPADDRS=""
+		[[ -e /etc/resolv.conf ]] && IPADDRS=$(grep ^nameserver /etc/resolv.conf | awk '{print $2}') || IPADDRS=""
 		for IPADDR in $IPADDRS
 		do
 			ping_addr $OF 'DNS Server' $IPADDR "${NS}"
