@@ -3302,6 +3302,20 @@ proc_info() {
 				wait_trace_off
 			done
 			log_write $OF
+			log_write $OF "#==[ Processes Mapped to RPM Package ]==#"
+			log_write $OF "# process_id -> binary -> RPM package that owns the binary"
+			for PID in /proc/[0-9]*
+			do
+        			PID=${PID##*/}
+        			if [[ -d "/proc/${PID}" ]]; then
+                			BINARY=$(readlink -e "/proc/${PID}/exe" 2>/dev/null)
+                			if [[ -n $BINARY ]]; then
+                       		 		PACKAGE=$(rpm -qf $BINARY)
+                        			log_write $OF "PID ${PID} -> $BINARY -> $PACKAGE"
+                			fi
+        			fi
+			done
+			log_write $OF
 		fi
 	fi
 
