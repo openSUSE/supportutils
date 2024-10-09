@@ -2229,6 +2229,7 @@ ntp_info() {
 			echolog Skipped
 		fi
 		;;
+		*) echolog Skipped ;;
 	esac
 }
 
@@ -2735,7 +2736,7 @@ ha_info() {
 			echolog Skipped
 		fi
 		;;
-	*) echolog Error ;;
+	*) echolog Skipped ;;
 	esac
 }
 
@@ -3475,6 +3476,7 @@ x_info() {
 			echolog Skipped
 		fi
 	;;
+	*) echolog Skipped ;;
 	esac
 }
 
