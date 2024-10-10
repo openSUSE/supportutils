@@ -2123,6 +2123,7 @@ nfs_info() {
 	(( $OPTION_NFS )) || { echolog Excluded; return 1; }
 	OF=nfs.txt
 	addHeaderFile $OF
+	NFS_FOUND=0
 	if rpm_verify $OF nfs-client
 	then
 		rpm_verify $OF rpcbind
@@ -2142,40 +2143,30 @@ nfs_info() {
 		do
 			log_cmd $OF "showmount -e $IPADDR"
 		done
+		NFS_FOUND=1
+	fi
 
+	if rpm -q nfs-kernel-server &> /dev/null
+	then
+		NFSSERVER='nfs-server.service'
 		if rpm_verify $OF nfs-kernel-server
 		then
-			log_cmd $OF 'systemctl status nfsserver.service'
+			log_cmd $OF "systemctl status $NFSSERVER"
 			log_cmd $OF 'exportfs -v'
 			conf_files $OF /etc/exports
-			if timed_log_cmd $OF 'showmount'
+			if systemctl is-active --quiet $NFSSERVER
 			then
-				log_cmd $OF 'showmount -e'
-				log_cmd $OF 'showmount -a'
+				if timed_log_cmd $OF 'showmount'
+				then
+					log_cmd $OF 'showmount -e'
+					log_cmd $OF 'showmount -a'
+				fi
 			fi
-		fi
-
-		echolog Done
-	else
-		if rpm_verify $OF nfs-utils
-		then
-			log_cmd $OF 'systemctl status portmap.service'
-			log_cmd $OF 'systemctl status nfslock.service'
-			log_cmd $OF 'systemctl status nfs.service'
-			log_cmd $OF 'systemctl status nfsserver.service'
-			log_cmd $OF 'exportfs -v'
-			log_cmd $OF 'nfsstat'
-			if timed_log_cmd $OF 'showmount'
-			then
-				log_cmd $OF 'showmount -e'
-				log_cmd $OF 'showmount -a'
-			fi
-			conf_files $OF /etc/exports /etc/sysconfig/nfs
-			echolog Done
-		else
-			echolog Skipped
+			NFS_FOUND=1
 		fi
 	fi
+
+	(( $NFS_FOUND )) && echolog Done || echolog Skipped
 }
 
 ntp_info() {
