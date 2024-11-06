@@ -3037,7 +3037,7 @@ ha_info() {
 				TMPORT=$(grep -i port /etc/xinetd.d/csync2 | awk '{print $3}')
 				log_cmd $OF "ss -nlp | grep $TMPORT"
 			fi
-			log_cmd $OF 'ntpq -p'
+			log_entry $OF note "Check ntp.txt for more information."
 			log_cmd $OF 'crm_mon -r -1'
 			log_cmd $OF 'crm_mon -r -n -1'
 			# Display node attributes ; Nov 15, 2018 ; Added by Ahmad Al Zayed
@@ -3117,7 +3117,7 @@ ha_info() {
 				TMPORT=$(grep -i port /etc/xinetd.d/csync2 | awk '{print $3}')
 				log_cmd $OF "ss -nlp | grep $TMPORT"
 			fi
-			log_cmd $OF 'chronyc sources -v'
+			log_entry $OF note "Check ntp.txt for more information."
 			log_cmd $OF 'crm_mon -r -1'
 			log_cmd $OF 'crm_mon -r -n -1'
 			# Display node attributes ; Nov 15, 2018 ; Added by Ahmad Al Zayed
