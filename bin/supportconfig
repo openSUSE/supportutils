@@ -675,7 +675,7 @@ boot_info() {
 	[[ -s /var/log/mcelog ]] && { log_cmd $OF "ls -l --time-style=long-iso /var/log/mcelog"; conf_files $OF /var/log/mcelog; }
 	log_cmd $OF 'last -wxF | egrep "reboot|shutdown|runlevel|system"'
 
-	(( SLES_VER < 160 )) && FILES='/var/log/boot.log /etc/init.d/boot.local /etc/init.d/before.local /etc/init.d/after.local /etc/init.d/halt.local'
+	(( SLES_VER < 160 )) && FILES='/var/log/boot.log /etc/init.d/boot.local /etc/init.d/before.local /etc/init.d/after.local /etc/init.d/halt.local' || FILES=''
 	conf_files $OF /proc/cmdline /etc/sysconfig/kernel $FILES
 
 	log_cmd $OF 'ls -lR --time-style=long-iso /boot/'
