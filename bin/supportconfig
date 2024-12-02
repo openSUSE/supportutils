@@ -1772,17 +1772,29 @@ net_info_namespace() {
 		log_write $OF "#==[ Network namespace ${2} ]======================#"
 	fi
 	if [[ -z "${NS}" ]]; then
-		rpm_verify $OF NetworkManager
-		rpm_verify $OF iproute2
-		rpm_verify $OF firewalld && FIREWALL=1 || FIREWALL=0
-		log_cmd $OF "systemctl status network.service"
-		if (( FIREWALL )); then
-		    log_cmd $OF 'systemctl status firewalld.service'
+		if (( SLES_VER >= 160 )); then
+			rpm_verify $OF NetworkManager
+			rpm_verify $OF iproute2
+			rpm_verify $OF firewalld && FIREWALL=1 || FIREWALL=0
+			log_cmd $OF "systemctl status network.service"
+			if (( FIREWALL )); then
+				log_cmd $OF 'systemctl status firewalld.service'
+			fi
+			log_cmd $OF "ip netns list"
+			log_cmd $OF 'nmcli general status'
+			log_cmd $OF 'nmcli connection show'
+			log_cmd $OF 'nmcli device show'
+		elif (( SLES_VER >= 150 )); then
+			rpm_verify $OF sysconfig
+			rpm_verify $OF wicked
+			rpm_verify $OF iproute2
+			rpm_verify $OF firewalld && log_cmd $OF "systemctl status firewalld.service"
+			log_cmd $OF "systemctl status network.service"
+			log_cmd $OF "systemctl status nscd.service"
+			log_cmd $OF "wicked ifstatus --verbose all"
+			log_cmd $OF "ip netns list"
+			log_cmd $OF "wicked show-config"
 		fi
-		log_cmd $OF "ip netns list"
-	    log_cmd $OF 'nmcli general status'
-	    log_cmd $OF 'nmcli connection show'
-	    log_cmd $OF 'nmcli device show'
 	fi
 	log_cmd $OF "${NS}ip addr"
 	log_cmd $OF "${NS}ip route"
@@ -1942,6 +1954,8 @@ net_info_namespace() {
 	if [[ -z "${NS}" ]]; then
 		[[ -d /etc/sysconfig/network ]] && FILES=$(find /etc/sysconfig/network/ -maxdepth 1 -type f) || FILES=""
 		conf_files $OF /etc/sysconfig/proxy $FILES 
+		(( SLES_VER < 160 )) && FILES=$(find /etc/wicked -type f 2>/dev/null | grep '\.xml$') || FILES=''
+		conf_files $OF $FILES
 		if [[ -d /proc/net/bonding ]]; then
 			FILES=$(find /proc/net/bonding/ -type f)
 			conf_files $OF $FILES 
