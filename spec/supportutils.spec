@@ -19,7 +19,7 @@
 
 Name:           supportutils
 Version:        3.2.8
-Release:        0
+Release:        dev.1
 Summary:        Support Troubleshooting Tools
 License:        GPL-2.0-only
 Group:          System/Monitoring
