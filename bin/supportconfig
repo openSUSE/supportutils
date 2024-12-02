@@ -1256,6 +1256,51 @@ podman_info() {
 	fi
 }
 
+cron_info() {
+	printlog "CRON..."
+	test $OPTION_CRON -eq 0 && { echolog Excluded; return 1; }
+	OF=cron.txt
+	addHeaderFile $OF
+	if rpm_verify $OF cronie
+	then
+		log_cmd $OF "systemctl status cron.service"
+		conf_files $OF /var/spool/cron/allow /var/spool/cron/deny
+		log_write $OF "### Individual User Cron Jobs ###"
+		test -d /var/spool/cron/tabs && FILES=$(find /var/spool/cron/tabs/ -type f) || FILES=""
+		conf_files $OF $FILES
+		CRONS="cron.d cron.hourly cron.daily cron.weekly cron.monthly"
+		log_write $OF "### System Cron Job File List ###"
+		for CRONDIR in $CRONS
+		do
+			log_cmd $OF "find -L /etc/${CRONDIR}/ -type f"
+		done
+		log_write $OF "### System Cron Job File Content ###"
+		conf_files $OF /etc/crontab
+		for CRONDIR in $CRONS
+		do
+			FILES=$(find -L /etc/${CRONDIR}/ -type f)
+			conf_files $OF $FILES
+		done
+		echolog Done
+	else
+		echolog Skipped
+	fi
+	printlog "AT..."
+	log_write $OF "#----------------------------------------------------------------#"
+	if rpm_verify $OF at
+	then
+		log_cmd $OF "systemctl status atd.service"
+		log_write $OF "### System at Job File List ###"
+		log_cmd $OF "find /var/spool/atjobs/ -type f"
+		log_write $OF "### System at Job File Content ###"
+		FILES=$(find /var/spool/atjobs/ -type f)
+		conf_files $OF $FILES
+		echolog Done
+	else
+		echolog Skipped
+	fi
+}
+
 soft_raid_info() {
 	printlog "Software Raid..."
 	(( $OPTION_SRAID )) || { echolog Excluded; return 1; }
@@ -4242,6 +4287,7 @@ if (( $USE_SAVED_LOGS_ONLY != 1 )); then
 	systemd_info
 	docker_info
 	podman_info
+	(( SLES_VER < 160 )) && cron_info
 	udev_info
 	lvm_info
 	soft_raid_info
