@@ -155,7 +155,7 @@ basic_environment() {
 	if ! ((NSA_CHECK)); then
 		cat $LOG/$RPM_DIST_FILE >> $LOG/$BASIC_ENVF
 		case $SLES_VER in
-		16*|999)
+		15*|16*|999)
 			if rpm_verify $BASIC_ENVF firewalld
 			then
 				wait_trace_on "systemctl status firewalld.service"
@@ -206,58 +206,68 @@ basic_healthcheck() {
 		# Refer to /usr/src/linux/include/linux/kernel.h and /usr/src/linux/kernel/panic.c (print_tainted function)
 		TAINT_STRING=""
 
-		# common to all versions SLES15 and higher
-		((TAINT & 1)) && TAINT_STRING="${TAINT_STRING}P" || TAINT_STRING="${TAINT_STRING} "
-		((TAINT & 2)) && TAINT_STRING="${TAINT_STRING}F" || TAINT_STRING="${TAINT_STRING} "
-		((TAINT & 4)) && TAINT_STRING="${TAINT_STRING}S" || TAINT_STRING="${TAINT_STRING} "
-		((TAINT & 8)) && TAINT_STRING="${TAINT_STRING}R" || TAINT_STRING="${TAINT_STRING} "
-		((TAINT & 16)) && TAINT_STRING="${TAINT_STRING}M" || TAINT_STRING="${TAINT_STRING} "
-		((TAINT & 32)) && TAINT_STRING="${TAINT_STRING}B" || TAINT_STRING="${TAINT_STRING} "
-		((TAINT & 64)) && TAINT_STRING="${TAINT_STRING}U" || TAINT_STRING="${TAINT_STRING} "
-		((TAINT & 128)) && TAINT_STRING="${TAINT_STRING}D" || TAINT_STRING="${TAINT_STRING} "
-		((TAINT & 256)) && TAINT_STRING="${TAINT_STRING}A" || TAINT_STRING="${TAINT_STRING} "
-		((TAINT & 512)) && TAINT_STRING="${TAINT_STRING}W" || TAINT_STRING="${TAINT_STRING} "
-		((TAINT & 1024)) && TAINT_STRING="${TAINT_STRING}C" || TAINT_STRING="${TAINT_STRING} "
-		((TAINT & 2048)) && TAINT_STRING="${TAINT_STRING}I" || TAINT_STRING="${TAINT_STRING} "
-		((TAINT & 4096)) && TAINT_STRING="${TAINT_STRING}O" || TAINT_STRING="${TAINT_STRING} "
-		((TAINT & 8192)) && TAINT_STRING="${TAINT_STRING}E" || TAINT_STRING="${TAINT_STRING} "
-		((TAINT & 16384)) && TAINT_STRING="${TAINT_STRING}L" || TAINT_STRING="${TAINT_STRING} "
-		((TAINT & 32768)) && TAINT_STRING="${TAINT_STRING}K" || TAINT_STRING="${TAINT_STRING} "
+		# common to all versions
+		((TAINT & 1)) 		&& TAINT_STRING="${TAINT_STRING}P" || TAINT_STRING="${TAINT_STRING} "
+		((TAINT & 2)) 		&& TAINT_STRING="${TAINT_STRING}F" || TAINT_STRING="${TAINT_STRING} "
+		((TAINT & 4)) 		&& TAINT_STRING="${TAINT_STRING}S" || TAINT_STRING="${TAINT_STRING} "
+		((TAINT & 8)) 		&& TAINT_STRING="${TAINT_STRING}R" || TAINT_STRING="${TAINT_STRING} "
+		((TAINT & 16)) 		&& TAINT_STRING="${TAINT_STRING}M" || TAINT_STRING="${TAINT_STRING} "
+		((TAINT & 32)) 		&& TAINT_STRING="${TAINT_STRING}B" || TAINT_STRING="${TAINT_STRING} "
+		((TAINT & 64)) 		&& TAINT_STRING="${TAINT_STRING}U" || TAINT_STRING="${TAINT_STRING} "
+		((TAINT & 128)) 	&& TAINT_STRING="${TAINT_STRING}D" || TAINT_STRING="${TAINT_STRING} "
+		((TAINT & 256))		&& TAINT_STRING="${TAINT_STRING}A" || TAINT_STRING="${TAINT_STRING} "
+		((TAINT & 512))		&& TAINT_STRING="${TAINT_STRING}W" || TAINT_STRING="${TAINT_STRING} "
+		((TAINT & 1024))	&& TAINT_STRING="${TAINT_STRING}C" || TAINT_STRING="${TAINT_STRING} "
+		((TAINT & 2048))	&& TAINT_STRING="${TAINT_STRING}I" || TAINT_STRING="${TAINT_STRING} "
+		((TAINT & 4096))	&& TAINT_STRING="${TAINT_STRING}O" || TAINT_STRING="${TAINT_STRING} "
+		((TAINT & 8192))	&& TAINT_STRING="${TAINT_STRING}E" || TAINT_STRING="${TAINT_STRING} "
+		((TAINT & 16384))	&& TAINT_STRING="${TAINT_STRING}L" || TAINT_STRING="${TAINT_STRING} "
+		((TAINT & 32768))	&& TAINT_STRING="${TAINT_STRING}K" || TAINT_STRING="${TAINT_STRING} "
 
 		case $SLES_VER in
-		16*|999)
-		((TAINT & 65536)) && TAINT_STRING="${TAINT_STRING}X" || TAINT_STRING="${TAINT_STRING} "
-		((TAINT & 131072)) && TAINT_STRING="${TAINT_STRING}T" || TAINT_STRING="${TAINT_STRING} "
-		((TAINT & 262144)) && TAINT_STRING="${TAINT_STRING}H" || TAINT_STRING="${TAINT_STRING} "
-		((TAINT & 2147483648)) && TAINT_STRING="${TAINT_STRING}N" || TAINT_STRING="${TAINT_STRING} "
+		150|151)
+		((TAINT & 65536))      	&& TAINT_STRING="${TAINT_STRING}H" || TAINT_STRING="${TAINT_STRING} "
+		((TAINT & 1073741824))	&& TAINT_STRING="${TAINT_STRING}N" || TAINT_STRING="${TAINT_STRING} "
+		((TAINT & 2147483648))	&& TAINT_STRING="${TAINT_STRING}X" || TAINT_STRING="${TAINT_STRING} "
+		;;
+		15*|16*|999)
+		((TAINT & 65536)) 		&& TAINT_STRING="${TAINT_STRING}X" || TAINT_STRING="${TAINT_STRING} "
+		((TAINT & 131072)) 		&& TAINT_STRING="${TAINT_STRING}T" || TAINT_STRING="${TAINT_STRING} "
+		((TAINT & 262144)) 		&& TAINT_STRING="${TAINT_STRING}H" || TAINT_STRING="${TAINT_STRING} "
+		((TAINT & 2147483648))	&& TAINT_STRING="${TAINT_STRING}N" || TAINT_STRING="${TAINT_STRING} "
 		;;
 		esac
 		log_write $OF "Kernel Status -- Tainted: $TAINT_STRING"
 
-		# common to all versions ALP1 and higher
-		((TAINT & 1)) && log_write $OF "  TAINT: (P) Proprietary module has been loaded"
-		((TAINT & 2)) && log_write $OF "  TAINT: (F) Module was forcibly loaded"
-		((TAINT & 4)) && log_write $OF "  TAINT: (S) SMP with CPUs not designed for SMP"
-		((TAINT & 8)) && log_write $OF "  TAINT: (R) Module was forcibly unloaded"
-		((TAINT & 16)) && log_write $OF "  TAINT: (M) Machine check exception"
-		((TAINT & 32)) && log_write $OF "  TAINT: (B) System has hit bad_page"
-		((TAINT & 64)) && log_write $OF "  TAINT: (U) Userspace-defined problems"
-		((TAINT & 128)) && log_write $OF "  TAINT: (D) Kernel has oopsed before"
-		((TAINT & 256)) && log_write $OF "  TAINT: (A) ACPI table overridden"
-		((TAINT & 512)) && log_write $OF "  TAINT: (W) Taint on warning"
-		((TAINT & 1024)) && log_write $OF "  TAINT: (C) Modules from drivers/staging are loaded"
-		((TAINT & 2048)) && log_write $OF "  TAINT: (I) Working around severe firmware bug"
-		((TAINT & 4096)) && log_write $OF "  TAINT: (O) Out-of-tree module has been loaded"
-		((TAINT & 8192)) && log_write $OF "  TAINT: (E) Unsigned module has been loaded"
-		((TAINT & 16384)) && log_write $OF "  TAINT: (L) A soft lockup has previously occurred"
-		((TAINT & 32768)) && log_write $OF "  TAINT: (K) Kernel has been live patched"
+		# common to all versions
+		((TAINT & 1)) 		&& log_write $OF "  TAINT: (P) Proprietary module has been loaded"
+		((TAINT & 2)) 		&& log_write $OF "  TAINT: (F) Module was forcibly loaded"
+		((TAINT & 4)) 		&& log_write $OF "  TAINT: (S) SMP with CPUs not designed for SMP"
+		((TAINT & 8)) 		&& log_write $OF "  TAINT: (R) Module was forcibly unloaded"
+		((TAINT & 16)) 		&& log_write $OF "  TAINT: (M) Machine check exception"
+		((TAINT & 32)) 		&& log_write $OF "  TAINT: (B) System has hit bad_page"
+		((TAINT & 64)) 		&& log_write $OF "  TAINT: (U) Userspace-defined problems"
+		((TAINT & 128)) 	&& log_write $OF "  TAINT: (D) Kernel has oopsed before"
+		((TAINT & 256)) 	&& log_write $OF "  TAINT: (A) ACPI table overridden"
+		((TAINT & 512)) 	&& log_write $OF "  TAINT: (W) Taint on warning"
+		((TAINT & 1024)) 	&& log_write $OF "  TAINT: (C) Modules from drivers/staging are loaded"
+		((TAINT & 2048)) 	&& log_write $OF "  TAINT: (I) Working around severe firmware bug"
+		((TAINT & 4096)) 	&& log_write $OF "  TAINT: (O) Out-of-tree module has been loaded"
+		((TAINT & 8192)) 	&& log_write $OF "  TAINT: (E) Unsigned module has been loaded"
+		((TAINT & 16384)) 	&& log_write $OF "  TAINT: (L) A soft lockup has previously occurred"
+		((TAINT & 32768)) 	&& log_write $OF "  TAINT: (K) Kernel has been live patched"
 
 		case $SLES_VER in
-		16*|999)
-		((TAINT & 65536)) && log_write $OF "  TAINT: (X) Modules with external support loaded"
-		((TAINT & 131072)) && log_write $OF "  TAINT: (T) Kernel built with randstruct plugin"
-		((TAINT & 262144)) && log_write $OF "  TAINT: (H) System restored from unsafe hibernate snapshot image"
-		((TAINT & 2147483648)) && log_write $OF "  TAINT: (N) Unsupported modules loaded"
+		150|151)
+		((TAINT & 65536))      && log_write $OF "  TAINT: (H) System restored from unsafe hibernate snapshot image"
+		((TAINT & 1073741824)) && log_write $OF "  TAINT: (N) Unsupported modules loaded"
+		((TAINT & 2147483648)) && log_write $OF "  TAINT: (X) Modules with external support loaded"
+		;;
+		15*|16*|999)
+		((TAINT & 65536)) 		&& log_write $OF "  TAINT: (X) Modules with external support loaded"
+		((TAINT & 131072)) 		&& log_write $OF "  TAINT: (T) Kernel built with randstruct plugin"
+		((TAINT & 262144)) 		&& log_write $OF "  TAINT: (H) System restored from unsafe hibernate snapshot image"
+		((TAINT & 2147483648)) 	&& log_write $OF "  TAINT: (N) Unsupported modules loaded"
 		;;
 		esac
 
@@ -665,6 +675,7 @@ boot_info() {
 	[[ -s /var/log/mcelog ]] && { log_cmd $OF "ls -l --time-style=long-iso /var/log/mcelog"; conf_files $OF /var/log/mcelog; }
 	log_cmd $OF 'last -wxF | egrep "reboot|shutdown|runlevel|system"'
 
+	(( SLES_VER < 160 )) && FILES='/var/log/boot.log /etc/init.d/boot.local /etc/init.d/before.local /etc/init.d/after.local /etc/init.d/halt.local' || FILES=''
 	conf_files $OF /proc/cmdline /etc/sysconfig/kernel $FILES
 
 	log_cmd $OF 'ls -lR --time-style=long-iso /boot/'
@@ -1245,6 +1256,51 @@ podman_info() {
 	fi
 }
 
+cron_info() {
+	printlog "CRON..."
+	test $OPTION_CRON -eq 0 && { echolog Excluded; return 1; }
+	OF=cron.txt
+	addHeaderFile $OF
+	if rpm_verify $OF cronie
+	then
+		log_cmd $OF "systemctl status cron.service"
+		conf_files $OF /var/spool/cron/allow /var/spool/cron/deny
+		log_write $OF "### Individual User Cron Jobs ###"
+		test -d /var/spool/cron/tabs && FILES=$(find /var/spool/cron/tabs/ -type f) || FILES=""
+		conf_files $OF $FILES
+		CRONS="cron.d cron.hourly cron.daily cron.weekly cron.monthly"
+		log_write $OF "### System Cron Job File List ###"
+		for CRONDIR in $CRONS
+		do
+			log_cmd $OF "find -L /etc/${CRONDIR}/ -type f"
+		done
+		log_write $OF "### System Cron Job File Content ###"
+		conf_files $OF /etc/crontab
+		for CRONDIR in $CRONS
+		do
+			FILES=$(find -L /etc/${CRONDIR}/ -type f)
+			conf_files $OF $FILES
+		done
+		echolog Done
+	else
+		echolog Skipped
+	fi
+	printlog "AT..."
+	log_write $OF "#----------------------------------------------------------------#"
+	if rpm_verify $OF at
+	then
+		log_cmd $OF "systemctl status atd.service"
+		log_write $OF "### System at Job File List ###"
+		log_cmd $OF "find /var/spool/atjobs/ -type f"
+		log_write $OF "### System at Job File Content ###"
+		FILES=$(find /var/spool/atjobs/ -type f)
+		conf_files $OF $FILES
+		echolog Done
+	else
+		echolog Skipped
+	fi
+}
+
 soft_raid_info() {
 	printlog "Software Raid..."
 	(( $OPTION_SRAID )) || { echolog Excluded; return 1; }
@@ -1716,17 +1772,29 @@ net_info_namespace() {
 		log_write $OF "#==[ Network namespace ${2} ]======================#"
 	fi
 	if [[ -z "${NS}" ]]; then
-		rpm_verify $OF NetworkManager
-		rpm_verify $OF iproute2
-		rpm_verify $OF firewalld && FIREWALL=1 || FIREWALL=0
-		log_cmd $OF "systemctl status network.service"
-		if (( FIREWALL )); then
-		    log_cmd $OF 'systemctl status firewalld.service'
+		if (( SLES_VER >= 160 )); then
+			rpm_verify $OF NetworkManager
+			rpm_verify $OF iproute2
+			rpm_verify $OF firewalld && FIREWALL=1 || FIREWALL=0
+			log_cmd $OF "systemctl status network.service"
+			if (( FIREWALL )); then
+				log_cmd $OF 'systemctl status firewalld.service'
+			fi
+			log_cmd $OF "ip netns list"
+			log_cmd $OF 'nmcli general status'
+			log_cmd $OF 'nmcli connection show'
+			log_cmd $OF 'nmcli device show'
+		elif (( SLES_VER >= 150 )); then
+			rpm_verify $OF sysconfig
+			rpm_verify $OF wicked
+			rpm_verify $OF iproute2
+			rpm_verify $OF firewalld && log_cmd $OF "systemctl status firewalld.service"
+			log_cmd $OF "systemctl status network.service"
+			log_cmd $OF "systemctl status nscd.service"
+			log_cmd $OF "wicked ifstatus --verbose all"
+			log_cmd $OF "ip netns list"
+			log_cmd $OF "wicked show-config"
 		fi
-		log_cmd $OF "ip netns list"
-	    log_cmd $OF 'nmcli general status'
-	    log_cmd $OF 'nmcli connection show'
-	    log_cmd $OF 'nmcli device show'
 	fi
 	log_cmd $OF "${NS}ip addr"
 	log_cmd $OF "${NS}ip route"
@@ -1886,6 +1954,8 @@ net_info_namespace() {
 	if [[ -z "${NS}" ]]; then
 		[[ -d /etc/sysconfig/network ]] && FILES=$(find /etc/sysconfig/network/ -maxdepth 1 -type f) || FILES=""
 		conf_files $OF /etc/sysconfig/proxy $FILES 
+		(( SLES_VER < 160 )) && FILES=$(find /etc/wicked -type f 2>/dev/null | grep '\.xml$') || FILES=''
+		conf_files $OF $FILES
 		if [[ -d /proc/net/bonding ]]; then
 			FILES=$(find /proc/net/bonding/ -type f)
 			conf_files $OF $FILES 
@@ -2176,25 +2246,54 @@ ntp_info() {
 	OF=ntp.txt
 	CONFFILE=/etc/ntp.conf
 	addHeaderFile $OF
-	case $SLES_VER in
-	16*|999)
-		if rpm_verify $OF chrony
+	if rpm -q chrony &> /dev/null
+	then
+	    if rpm_verify $OF chrony
 		then
-			NTP_DAEMON=1
-			CONFFILE="/etc/chrony.conf"
-			log_cmd $OF "systemctl status chronyd.service"
-			FILES="$CONFFILE /etc/chrony.keys"
-			conf_files $OF $FILES
-			if log_cmd $OF "chronyc -n sources -v"
-			then
-				log_cmd $OF "chronyc -n sourcestats -v"
-				log_cmd $OF "chronyc -n tracking"
-				log_cmd $OF "chronyc activity"
-			else
-				NTP_DAEMON=0
-			fi
-			log_cmd $OF "timedatectl"
-			IPADDRS=$(egrep "^pool |^peer |^server " $CONFFILE | awk '{print $2}' | sort | uniq)
+		    NTP_DAEMON=1
+		    CONFFILE="/etc/chrony.conf"
+		    log_cmd $OF "systemctl status chronyd.service"
+		    FILES="$CONFFILE /etc/chrony.keys"
+		    conf_files $OF $FILES
+		    if log_cmd $OF "chronyc -n sources -v"
+		    then
+			    log_cmd $OF "chronyc -n sourcestats -v"
+			    log_cmd $OF "chronyc -n tracking"
+			    log_cmd $OF "chronyc activity"
+		    else
+			    NTP_DAEMON=0
+		    fi
+		    log_cmd $OF "timedatectl"
+		    IPADDRS=$(egrep "^pool |^peer |^server " $CONFFILE | awk '{print $2}' | sort | uniq)
+		    for IPADDR in $IPADDRS
+		    do
+			    ping_addr $OF 'NTP Server' $IPADDR
+		    done
+		    if [[ -f $CONFFILE ]]; then
+			    log_write $OF "#___________________________________________________________#"
+			    log_write $OF "#____[ Files Included in $CONFFILE ]____________________#"
+			    log_write $OF
+			    for KEYNAME in driftfile
+			    do
+				    FILES=$(grep ^${KEYNAME} $CONFFILE | awk '{print $2}')
+				    conf_files $OF $FILES
+			    done
+			    KEYNAME=logdir
+			    LOGDIR=$(grep ^${KEYNAME} $CONFFILE | awk '{print $2}')
+			    [[ -z "$LOGDIR" ]] && LOGDIR='/var/log/chrony/'
+			    FILES=$(find $LOGDIR -type f)
+			    (( $ADD_OPTION_LOGS )) && log_files $OF 0 $FILES || log_files $OF $VAR_OPTION_LINE_COUNT $FILES
+			    FILES="/var/log/messages"
+			    (( $ADD_OPTION_LOGS )) && grep_log_files chrony $OF 0 $FILES || grep_log_files chrony $OF $VAR_OPTION_LINE_COUNT $FILES
+		    fi
+		    echolog Done
+	    elif rpm -q ntp &> /dev/null
+	    then
+			CONFFILE=/etc/ntp.conf
+			log_cmd $OF "systemctl status ntpd.service"
+			log_cmd $OF 'ntpq -p'
+			conf_files $OF $CONFFILE
+			IPADDRS=$(egrep "^peer |^server " $CONFFILE | awk '{print $2}' | sort | uniq)
 			for IPADDR in $IPADDRS
 			do
 				ping_addr $OF 'NTP Server' $IPADDR
@@ -2208,21 +2307,16 @@ ntp_info() {
 					FILES=$(grep ^${KEYNAME} $CONFFILE | awk '{print $2}')
 					conf_files $OF $FILES
 				done
-				KEYNAME=logdir
-				LOGDIR=$(grep ^${KEYNAME} $CONFFILE | awk '{print $2}')
-				[[ -z "$LOGDIR" ]] && LOGDIR='/var/log/chrony/'
-				FILES=$(find $LOGDIR -type f)
-				(( $ADD_OPTION_LOGS )) && log_files $OF 0 $FILES || log_files $OF $VAR_OPTION_LINE_COUNT $FILES
-				FILES="/var/log/messages"
-				(( $ADD_OPTION_LOGS )) && grep_log_files chrony $OF 0 $FILES || grep_log_files chrony $OF $VAR_OPTION_LINE_COUNT $FILES
+				KEYNAME=logfile
+				FILES=$(grep ^${KEYNAME} $CONFFILE | awk '{print $2}')
+				[[ -z "$FILES" ]] && FILES=/var/log/ntp
+				test $ADD_OPTION_LOGS -gt 0 && log_files $OF 0 $FILES || log_files $OF $VAR_OPTION_LINE_COUNT $FILES
 			fi
 			echolog Done
 		else
 			echolog Skipped
 		fi
-		;;
-		*) echolog Skipped ;;
-	esac
+	fi
 }
 
 nvme_info() {
@@ -2244,7 +2338,11 @@ nvme_info() {
 			log_cmd $OF "nvme list"
 			log_cmd $OF "nvme list-subsys"
 			log_cmd $OF "nvme discover"
-			log_cmd $OF "nvme show-nbft -o json"
+			if (( $SLES_VER >= 155 )); then
+				log_cmd $OF "nvme show-nbft -o json"
+			elif (( $SLES_VER >= 154 )); then
+				log_cmd $OF "nvme show-topology"
+			fi
 		fi
 
 		FILES='/etc/nvme/discovery.conf /etc/nvme/config.json'
@@ -2333,6 +2431,7 @@ crash_info() {
 	log_cmd $OF "uname -r"
 	log_cmd $OF "systemctl status kdump.service"
 	log_cmd $OF "kdumptool calibrate"
+	(( SLES_VER < 156 )) && log_cmd $OF "kdumptool dump_config"
 	conf_files $OF /proc/cmdline
 	conf_files $OF /etc/sysconfig/kdump
 	conf_files $OF /proc/sys/kernel/panic
@@ -2648,7 +2747,7 @@ ha_info() {
 	OF=ha.txt
 	addHeaderFile $OF
 	case $SLES_VER in
-	16*|999)
+	15*|16*|999)
 		if rpm_verify $OF pacemaker
 		then
 			log_cmd $OF "rpm -qa | egrep 'resource-agents|fence-agents|booth|cluster-glue|corosync|csync2|pacemaker|crmsh|libqb|hawk|dlm|lvm2|cluster-md|ocfs2|gfs2|drbd'"
@@ -2798,15 +2897,11 @@ ocfs2_info() {
 		then
 			OCFS2_MODULES=1
 		fi
-		case $SLES_VER in
-		16*|999)
-			[[ -x /usr/bin/findmnt ]] && log_cmd $OF "findmnt" || log_cmd $OF "mount"
-			(( OCFS2_MODULES )) && timed_log_cmd $OF "mounted.ocfs2 -d"
-			(( OCFS2_MODULES )) && timed_log_cmd $OF "mounted.ocfs2 -f"
-			log_cmd $OF "ps aux | grep ocfs2 | grep -v grep"
-			log_cmd $OF "lsmod | grep ocfs2"
-			;;
-		esac
+		[[ -x /usr/bin/findmnt ]] && log_cmd $OF "findmnt" || log_cmd $OF "mount"
+		(( OCFS2_MODULES )) && timed_log_cmd $OF "mounted.ocfs2 -d"
+		(( OCFS2_MODULES )) && timed_log_cmd $OF "mounted.ocfs2 -f"
+		log_cmd $OF "ps aux | grep ocfs2 | grep -v grep"
+		log_cmd $OF "lsmod | grep ocfs2"
 		CHECKDIR="/sys/o2cb"
 		if [[ -d $CHECKDIR ]]; then
 			FILES=$(find ${CHECKDIR}/ -type f)
@@ -3261,7 +3356,7 @@ proc_info() {
 	done
 
 	if (( EXT_SCALING_DISABLED )); then
-		if (( SLES_VER >= 160 && ${INCLUDE_NETWORK_NAMESPACES} )); then
+		if (( SLES_VER >= 150 && ${INCLUDE_NETWORK_NAMESPACES} )); then
 			# Check process name space against the default name space
 			log_write $OF "#==[ Processes with a Different Default Name Space ]==#"
 			log_write $OF "# name_space : process_id : command"
@@ -3359,7 +3454,7 @@ x_info() {
 	OF=x.txt
 	addHeaderFile $OF
 	case $SLES_VER in
-	16*|999)
+	15*|16*|999)
 		MESA="Mesa Mesa-32bit Mesa-demo-x Mesa-libEGL1 Mesa-libEGL1-32bit Mesa-libGL1 \
 		Mesa-libGL1-32bit Mesa-libGLESv2-2 Mesa-libGLESv2-2-32bit Mesa-libglapi0 \
                 Mesa-libglapi0-32bit"
@@ -3712,7 +3807,7 @@ ib_info() {
 	OF=ib.txt
 	addHeaderFile $OF
 	case $SLES_VER in
-	16*|999)
+	15*|16*|999)
 		CHK_UTILS=0
 		CHK_SRP=0
 		CHK_DIAG=0
@@ -4206,6 +4301,7 @@ if (( $USE_SAVED_LOGS_ONLY != 1 )); then
 	systemd_info
 	docker_info
 	podman_info
+	(( SLES_VER < 160 )) && cron_info
 	udev_info
 	lvm_info
 	soft_raid_info
