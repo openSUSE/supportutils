@@ -16,6 +16,10 @@
 #
 
 %define support_libdir /usr/lib/supportconfig
+# ensure usr-merge does not effect existing SLE
+%if %suse_version < 1550
+%define _sbindir /sbin
+%endif
 
 Name:           supportutils
 Version:        3.2.8
