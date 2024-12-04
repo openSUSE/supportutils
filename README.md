@@ -14,4 +14,4 @@ SUSE Linux Enterprise support utilities. Gathers system information.
 
 **sle11**: SUSE Linux Enterprise Server 11 branch for all changes to SLE11
 
-Applicable fixes must be checked into each corresponding branch
+Applicable fixes must be checked into each corresponding branch.
