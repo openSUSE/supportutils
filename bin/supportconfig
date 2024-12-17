@@ -1898,6 +1898,8 @@ net_info_namespace() {
 		conf_files $OF /etc/hosts /etc/host.conf /etc/resolv.conf /etc/nsswitch.conf /etc/nscd.conf /etc/hosts.allow /etc/hosts.deny /etc/sysconfig/firewalld
 	fi
 	log_cmd $OF "${NS}firewall-cmd --list-all"
+	log_cmd $OF "${NS}firewall-cmd --list-all-zones"
+	log_cmd $OF "${NS}firewall-cmd --list-all-policies"
 	for TABLE in filter nat mangle raw
 	do
 		if grep iptable_$TABLE /proc/modules &>/dev/null
