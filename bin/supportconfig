@@ -2961,6 +2961,40 @@ ocfs2_info() {
 	fi
 }
 
+gfs2_info() {
+	printlog "GFS2..."
+	(( $OPTION_GFS2 )) || { echolog Excluded; return 1; }
+	OF=gfs2.txt
+	GFS2_MODULES=0
+	addHeaderFile $OF
+	if rpm_verify $OF gfs2-utils
+	then
+		if  lsmod | grep gfs2[[:space:]] &>/dev/null
+		then
+			GFS2_MODULES=1
+		fi
+		[[ -x /usr/bin/findmnt ]] && log_cmd $OF "findmnt" || log_cmd $OF "mount"
+		log_cmd $OF "ps aux | grep gfs2 | grep -v grep"
+		log_cmd $OF "lsmod | grep gfs2"
+		(( GFS2_MODULES )) && DEVICES=$(find /sys/fs/gfs2/ -name device -and -type l -exec sh -c 'readlink -ev {} | sed  "s/.*\//\/dev\//g" ' \;) || DEVICES=''
+		log_entry $OF x "GFS2 Devices"
+		log_write $OF "$DEVICES"
+		log_write $OF
+
+		for DEVICE in $DEVICES
+		do
+		    GFS2_EDIT_OPTS="sb root master jindex per_node inum statfs quota"
+		    log_cmd $OF "gfs2_edit -p $GFS2_EDIT_OPTS $DEVICE"
+		    log_write $OF
+		done
+		FILES="/var/log/messages"
+		(( $ADD_OPTION_LOGS )) && grep_log_files gfs2 $OF 0 $FILES || grep_log_files gfs2 $OF $VAR_OPTION_LINE_COUNT $FILES
+		echolog Done
+	else
+		echolog Skipped
+	fi
+}
+
 drbd_info() {
 	printlog "DRBD..."
 	(( $OPTION_DRBD )) || { echolog Excluded; return 1; }
@@ -4289,6 +4323,7 @@ if (( $USE_SAVED_LOGS_ONLY != 1 )); then
 	smt_info
 	ha_info
 	ocfs2_info
+	gfs2_info
 	drbd_info
 	haproxy_info
 	pam_info
