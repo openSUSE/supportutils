@@ -312,8 +312,8 @@ basic_healthcheck() {
 	log_cmd $PSTMP 'ps axwwo user,pid,ppid,%cpu,%mem,vsz,rss,stat,time,cmd'
 
 	log_write $OF "#==[ Checking Health of Processes ]=================#"
-	log_write $OF "# egrep \" D| Z\" $PSPTMP"
-	log_write $OF "$(grep -v ^# "$PSPTMP" | egrep " D| Z")"
+        log_write $OF "# awk '\$8 ~ /D|Z/' $PSPTMP"
+        log_write $OF "$(awk '!/^#/ && $8 ~ /D|Z/' "$PSPTMP")"
 
 	TOPTMP=$(mktemp $LOG/top.XXXXXXXX)
 	log_write $OF
