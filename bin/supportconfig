@@ -4026,6 +4026,29 @@ email_info() {
 	fi
 }
 
+open_vm_tools_files() {
+	printlog "open-vm-tools..."
+	if rpm_verify $OF open-vm-tools; then
+		SYSPRODNAME=$(/usr/sbin/dmidecode -s system-product-name 2>/dev/null)
+		echo $SYSPRODNAME | grep -qi vmware || { echolog Skipped; return 1; }
+		OF=vmware.txt
+		addHeaderFile $OF
+		rpm_verify $OF open-vm-tools
+		rpm_verify $OF cloud-init # open-vm-tools can call cloud-init
+		FILES=$(find /var/log -type f -name 'vmware-*' | egrep -v "\.tbz$|\.tgz$|\.gz$|\.bz2$|\.zcat$|\.zip$") || unset FILES
+		OPEN_VM_TOOLS_FILES=$(rpm -ql open-vm-tools | awk '/^\/etc\/vmware-tools\// && !/schemas/')
+		MOD_OPEN_VM_TOOLS_FILES=$(rpm -qV open-vm-tools | awk '/^\/etc\/vmware-tool\/s/ && !/schema/ { print $NF }')
+		EXTRA=$(find -L /etc/vmware-tools -type f ! -name 'tools.conf' | grep -Pv 'schemas' | xargs -I {} bash -c \
+			'if grep -qE "^${1//.\\.}$" <(echo "$2"); then grep -E "^${1//./\\.}$" <(echo "$3"); else echo "$1"; fi' \
+				-- {} "${OPEN_VM_TOOLS_FILES}" "${MOD_OPEN_VM_TOOLS_FILES}")
+		conf_files $OF /etc/vmware-tools/tools.conf ${EXTRA}
+		_sanitize_file $OF
+		echolog Done
+	else
+		echo Skipped
+	fi
+}
+
 ##############################################################################
 #  main 
 ##############################################################################
@@ -4342,6 +4365,7 @@ if (( $USE_SAVED_LOGS_ONLY != 1 )); then
 	messages_file		#Minimum Requirement MIN_OPTION_SYSLOGS
 	localwarn_file
 	write_xml_file
+	open_vm_tools_files
 
 	rm -f $LOG/$RPM_QA_FILE $LOG/$RPM_DIST_FILE
 	timed_cmd_cleanup
