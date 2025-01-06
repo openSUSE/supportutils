@@ -2824,6 +2824,14 @@ ha_info() {
 					log_cmd $OF 'corosync-fplay'
 				fi
 			fi
+			conf_files $OF /etc/hawk/server.json /etc/sysconfig/hawk
+			CERT="$(grep -Po '^HAWK_CERT\s*=\s*"\s*\K(/[^"]+)(?=.*)' /etc/sysconfig/hawk)"
+			if [[ -n $CERT ]]; then
+				log_cmd $OF "openssl x509 -in $CERT -subject -startdate -enddate -noout -ext subjectAltName"
+			fi
+			log_cmd $OF 'systemctl status hawk-backend.service'
+			log_cmd $OF 'systemctl status hawk.service'
+
 			echolog Done
 		else
 			echolog Skipped
