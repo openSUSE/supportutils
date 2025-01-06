@@ -1900,6 +1900,9 @@ net_info_namespace() {
 	log_cmd $OF "${NS}firewall-cmd --list-all"
 	log_cmd $OF "${NS}firewall-cmd --list-all-zones"
 	log_cmd $OF "${NS}firewall-cmd --list-all-policies"
+	# do not collect inside namespace
+	[[ -z "$2" && -d /etc/firewalld/zones ]] && FILES=$(find -L /etc/firewalld/zones | grep '\.xml$') || FILES=""
+	conf_files $OF $FILES
 	for TABLE in filter nat mangle raw
 	do
 		if grep iptable_$TABLE /proc/modules &>/dev/null
