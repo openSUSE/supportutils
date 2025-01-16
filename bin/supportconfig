@@ -3289,7 +3289,7 @@ ldap_info() {
 		LDAP_CONF="/etc/openldap/ldap.conf"
 		conf_files $OF $LDAP_CONF
 		if [[ -s $LDAP_CONF ]]; then
-			IPADDRS=$(grep -i '^uri[[:space:]]' $LDAP_CONF | sed -e 's!uri[[:space:]]*!!g;s!ldap://!!g;s!ldaps://!!g;s!ldapi://[[:alnum:][:punct:]]*!!g')
+			IPADDRS=$(grep -Pio '^uri\s+ldaps?://\K(.*)' $LDAP_CONF)
 			for I in $IPADDRS
 			do
 				IPADDR=$(echo $I | sed -e "s/:[[:digit:]]*//g")
