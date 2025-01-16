@@ -3311,7 +3311,7 @@ ldap_info() {
 	log_write $OF "#___________________________________________________________#"
 	log_write $OF "#____[ LDAP Server Information ]____________________________#"
 	log_write $OF
-	if rpm_verify $OF openldap2
+	if rpm_verify $OF openldap2 || rpm_verify $OF openldap2_5
 	then
 		SLAPD_CONF="/etc/openldap/slapd.conf"
 		# Extract the SLAPD directory from the conf file
@@ -3328,6 +3328,7 @@ ldap_info() {
 			SLAPD_SCHEMAS=$(grep ^include $SLAPD_CONF | awk '{print $2}')
 		fi
 		log_cmd $OF 'systemctl status ldap.service'
+		log_cmd $OF 'systemctl status slapd.service'
 		log_cmd $OF "ss -nlp | grep slapd"
 		log_cmd $OF "ls -al /etc/openldap/schema"
 		conf_files $OF $SLAPD_CONF /etc/sysconfig/openldap
