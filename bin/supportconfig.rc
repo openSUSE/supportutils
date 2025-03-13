@@ -538,7 +538,8 @@ _sanitize_file() {
 	s/\(password[[:space:]]*=\).*/\1 $REPLACED/g;\
 	s/\(password_pbkdf2[[:space:]]\).*/\1 $REPLACED/g;\
 	s/\(password_in[[:space:]]*=\).*/\1 $REPLACED/g; \
-	s/\(^echo -n\).*\(> \/sys\/kernel\/config\/target\/.*auth\/password.*\)/\1 $REPLACED \2/g" \
+	s/\(^echo -n\).*\(> \/sys\/kernel\/config\/target\/.*auth\/password.*\)/\1 $REPLACED \2/g;\
+	s/\(olcRootPW:\+\).*/\1 $REPLACED/g" \
 	$CLEAN_FILE
 }
 

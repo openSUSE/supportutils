@@ -3313,11 +3313,14 @@ ldap_info() {
 	log_write $OF
 	if rpm_verify $OF openldap2 || rpm_verify $OF openldap2_5
 	then
-		SLAPD_CONF="/etc/openldap/slapd.conf"
-		# Extract the SLAPD directory from the conf file
-		if [[ -f $SLAPD_CONF ]]; then
+		SLAPD_CONF_BACKEND=$(grep -Po \
+			'^OPENLDAP_CONFIG_BACKEND\s*=\s*"*\K([^"\s$]+)(?=.*)' \
+			/etc/sysconfig/openldap)
+		SLAPD_CONF=/etc/openldap/slapd.conf
+		SLAPD_DIR=/var/lib/ldap
+		if [[ "$SLAPD_CONF_BACKEND" == "files" ]] && [[ -f $SLAPD_CONF ]]
+		then
 			SLAPD_DIR=$(grep -i ^directory $SLAPD_CONF | awk '{print $2}')
-			[[ -z "$SLAPD_DIR" ]] && SLAPD_DIR="/var/lib/ldap"
 			SLAPD_PIDF=$(grep -i ^pidfile $SLAPD_CONF | awk '{print $2}')
 			[[ -z "$SLAPD_PIDF" ]] && SLAPD_PIDF="/var/run/slapd/slapd.pid"
 			if [[ -f $SLAPD_PIDF ]]; then
@@ -3325,24 +3328,48 @@ ldap_info() {
 			else
 				SLAPD_PID=""
 			fi
+			# schema files collection makes sense only in 'file' conf backend
+			log_cmd $OF "ls -al /etc/openldap/schema"
 			SLAPD_SCHEMAS=$(grep ^include $SLAPD_CONF | awk '{print $2}')
+			if [[ -n "$SLAPD_SCHEMAS" ]]
+			then
+				log_write $OF "#___________________________________________________________#"
+				log_write $OF "#____[ Schema Files Included in LDAP Server ]_______________#"
+				log_write $OF
+				log_write $OF "$SLAPD_SCHEMAS"
+				log_write $OF
+				conf_files $OF $SLAPD_SCHEMAS
+			fi
+		elif [[ "$SLAPD_CONF_BACKEND" == "ldap" ]
+		then
+			SLAPD_CONF= # useless in 'ldap' config backend
+			SLAPD_DIR=$(grep -IRhPo '^olcDbDirectory: \K(.*)' /etc/openldap/slapd.d/)
+			SLAPD_PIDF=$(grep -Po '^olcPidFile: \K(.*)' /etc/openldap/slapd.d/cn=config.ldif)
+			if [[ -f $SLAPD_PIDF ]]
+			then
+				SLAPD_PID=$(cat $SLAPD_PIDF)
+			else
+				SLAPD_PID=""
+			fi
+			FILES=$(find /etc/openldap/slapd.d/ -type f)
 		fi
 		log_cmd $OF 'systemctl status ldap.service'
 		log_cmd $OF 'systemctl status slapd.service'
 		log_cmd $OF "ss -nlp | grep slapd"
-		log_cmd $OF "ls -al /etc/openldap/schema"
-		conf_files $OF $SLAPD_CONF /etc/sysconfig/openldap
-		if [[ -d $SLAPD_DIR ]]; then
-			conf_files $OF $SLAPD_DIR/DB_CONFIG
-			log_cmd $OF "ls -al $SLAPD_DIR"
+
+		conf_files $OF $SLAPD_CONF /etc/sysconfig/openldap $FILES
+
+		# there can be multiple databases!
+		for dir in $SLAPD_DIR; do
+			conf_files $OF $dir/DB_CONFIG
+			log_cmd $OF "ls -al $dir"
+		done
+
+		if [[ -n "$SLAPD_PID" ]]
+		then
+			log_cmd $OF "lsof -b +M -n -l +fg -P -p ${SLAPD_PID}"
 		fi
-		log_cmd $OF "lsof -b -n -l +fg -P -p $SLAPD_PID"
-		log_write $OF "#___________________________________________________________#"
-		log_write $OF "#____[ Schema Files Included in LDAP Server ]_______________#"
-		log_write $OF
-		log_write $OF "$SLAPD_SCHEMAS"
-		log_write $OF
-		conf_files $OF $SLAPD_SCHEMAS
+		_sanitize_file $OF
 	else
 		((SKIP++))
 	fi
