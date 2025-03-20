@@ -1301,6 +1301,24 @@ cron_info() {
 	fi
 }
 
+dbus_info() {
+	printlog "D-Bus..."
+	(( $OPTION_DBUS )) || { echolog Excluded; return 1; }
+	OF=dbus.txt
+	addHeaderFile $OF
+	RPM_PKGS=$(egrep "^dbus" $RPM_QA_FILE_PATH)
+	if rpm_verify $OF "$RPM_PKGS"
+	then
+		log_cmd $OF 'systemctl status dbus.socket'
+		log_cmd $OF 'systemctl status dbus.service'
+	fi
+	DBUS_CONF_DIR="/usr/share/dbus-1/system.d/"
+	[[ -d $DBUS_CONF_DIR ]] && CFILES=$(find $DBUS_CONF_DIR -type f -name \*.conf) || CFILES=''
+	conf_files $OF /usr/share/dbus-1/system-local.conf /usr/share/dbus-1/system.conf /usr/share/dbus-1/session.conf $CFILES
+	log_cmd $OF 'ls -lR --time-style=long-iso /usr/share/dbus-1/'
+	echolog Done
+}
+
 soft_raid_info() {
 	printlog "Software Raid..."
 	(( $OPTION_SRAID )) || { echolog Excluded; return 1; }
@@ -3340,7 +3358,7 @@ ldap_info() {
 				log_write $OF
 				conf_files $OF $SLAPD_SCHEMAS
 			fi
-		elif [[ "$SLAPD_CONF_BACKEND" == "ldap" ]
+		elif [[ "$SLAPD_CONF_BACKEND" == "ldap" ]]
 		then
 			SLAPD_CONF= # useless in 'ldap' config backend
 			SLAPD_DIR=$(grep -IRhPo '^olcDbDirectory: \K(.*)' /etc/openldap/slapd.d/)
@@ -4379,6 +4397,7 @@ if (( $USE_SAVED_LOGS_ONLY != 1 )); then
 	docker_info
 	podman_info
 	(( SLES_VER < 160 )) && cron_info
+	dbus_info
 	udev_info
 	lvm_info
 	soft_raid_info
