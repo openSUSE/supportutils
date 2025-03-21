@@ -1,7 +1,7 @@
 ##############################################################################
 #  supportconfig.rc - Resource file for supportconfig
-#  Copyright (C) 2024 SUSE LLC
-RCVER='3.2.8-2'
+#  Copyright (C) 2025 SUSE LLC
+RCVER='3.2.8-3'
 #
 #  Contains supporting functions and variables used by supportconfig and
 #  supportconfig plugins.
@@ -44,6 +44,7 @@ OPTION_DAEMONS=1
 OPTION_CIMOM=1
 OPTION_CRASH=1
 OPTION_CRON=1
+OPTION_DBUS=1
 OPTION_DHCP=1
 OPTION_DISK=1
 OPTION_DNS=1
@@ -67,6 +68,7 @@ OPTION_NFS=1
 OPTION_NTP=1
 OPTION_NVME=1
 OPTION_OCFS2=1
+OPTION_GFS2=1
 OPTION_OFILES=1
 OPTION_PLYMOUTH=1
 OPTION_PODMAN=1
@@ -537,7 +539,8 @@ _sanitize_file() {
 	s/\(password[[:space:]]*=\).*/\1 $REPLACED/g;\
 	s/\(password_pbkdf2[[:space:]]\).*/\1 $REPLACED/g;\
 	s/\(password_in[[:space:]]*=\).*/\1 $REPLACED/g; \
-	s/\(^echo -n\).*\(> \/sys\/kernel\/config\/target\/.*auth\/password.*\)/\1 $REPLACED \2/g" \
+	s/\(^echo -n\).*\(> \/sys\/kernel\/config\/target\/.*auth\/password.*\)/\1 $REPLACED \2/g;\
+	s/\(olcRootPW:\+\).*/\1 $REPLACED/g" \
 	$CLEAN_FILE
 }
 

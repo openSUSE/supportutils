@@ -1,11 +1,11 @@
 #!/bin/bash
 
-SVER='3.2.9-1'
-SDATE='2024 Dec 03'
+SVER='3.2.10-9'
+SDATE='2025 Mar 20'
 
 ##############################################################################
 #  supportconfig - Gathers system troubleshooting information for SUSE Support
-#  Copyright (C) 2001-2024 SUSE LLC
+#  Copyright (C) 2001-2025 SUSE LLC
 #
 #  Creates a tar ball to attach to the support case or send to support. 
 #  Collects comprehensive system information for troubleshooting and reducing
@@ -312,8 +312,8 @@ basic_healthcheck() {
 	log_cmd $PSTMP 'ps axwwo user,pid,ppid,%cpu,%mem,vsz,rss,stat,time,cmd'
 
 	log_write $OF "#==[ Checking Health of Processes ]=================#"
-	log_write $OF "# egrep \" D| Z\" $PSPTMP"
-	log_write $OF "$(grep -v ^# "$PSPTMP" | egrep " D| Z")"
+        log_write $OF "# awk '\$8 ~ /D|Z/' $PSPTMP"
+        log_write $OF "$(awk '!/^#/ && $8 ~ /D|Z/' "$PSPTMP")"
 
 	TOPTMP=$(mktemp $LOG/top.XXXXXXXX)
 	log_write $OF
@@ -1301,6 +1301,24 @@ cron_info() {
 	fi
 }
 
+dbus_info() {
+	printlog "D-Bus..."
+	(( $OPTION_DBUS )) || { echolog Excluded; return 1; }
+	OF=dbus.txt
+	addHeaderFile $OF
+	RPM_PKGS=$(egrep "^dbus" $RPM_QA_FILE_PATH)
+	if rpm_verify $OF "$RPM_PKGS"
+	then
+		log_cmd $OF 'systemctl status dbus.socket'
+		log_cmd $OF 'systemctl status dbus.service'
+	fi
+	DBUS_CONF_DIR="/usr/share/dbus-1/system.d/"
+	[[ -d $DBUS_CONF_DIR ]] && CFILES=$(find $DBUS_CONF_DIR -type f -name \*.conf) || CFILES=''
+	conf_files $OF /usr/share/dbus-1/system-local.conf /usr/share/dbus-1/system.conf /usr/share/dbus-1/session.conf $CFILES
+	log_cmd $OF 'ls -lR --time-style=long-iso /usr/share/dbus-1/'
+	echolog Done
+}
+
 soft_raid_info() {
 	printlog "Software Raid..."
 	(( $OPTION_SRAID )) || { echolog Excluded; return 1; }
@@ -1898,6 +1916,11 @@ net_info_namespace() {
 		conf_files $OF /etc/hosts /etc/host.conf /etc/resolv.conf /etc/nsswitch.conf /etc/nscd.conf /etc/hosts.allow /etc/hosts.deny /etc/sysconfig/firewalld
 	fi
 	log_cmd $OF "${NS}firewall-cmd --list-all"
+	log_cmd $OF "${NS}firewall-cmd --list-all-zones"
+	log_cmd $OF "${NS}firewall-cmd --list-all-policies"
+	# do not collect inside namespace
+	[[ -z "$2" && -d /etc/firewalld/zones ]] && FILES=$(find -L /etc/firewalld/zones | grep '\.xml$') || FILES=""
+	conf_files $OF $FILES
 	for TABLE in filter nat mangle raw
 	do
 		if grep iptable_$TABLE /proc/modules &>/dev/null
@@ -2822,6 +2845,14 @@ ha_info() {
 					log_cmd $OF 'corosync-fplay'
 				fi
 			fi
+			conf_files $OF /etc/hawk/server.json /etc/sysconfig/hawk
+			CERT="$(grep -Po '^HAWK_CERT\s*=\s*"\s*\K(/[^"]+)(?=.*)' /etc/sysconfig/hawk)"
+			if [[ -n $CERT ]]; then
+				log_cmd $OF "openssl x509 -in $CERT -subject -startdate -enddate -noout -ext subjectAltName"
+			fi
+			log_cmd $OF 'systemctl status hawk-backend.service'
+			log_cmd $OF 'systemctl status hawk.service'
+
 			echolog Done
 		else
 			echolog Skipped
@@ -2959,6 +2990,41 @@ ocfs2_info() {
 	fi
 }
 
+gfs2_info() {
+	printlog "GFS2..."
+	(( $OPTION_GFS2 )) || { echolog Excluded; return 1; }
+	OF=fs-gfs2.txt
+	GFS2_MODULES=0
+	addHeaderFile $OF
+	if rpm_verify $OF gfs2-utils
+	then
+		if  lsmod | grep gfs2[[:space:]] &>/dev/null
+		then
+			GFS2_MODULES=1
+		fi
+		log_cmd $OF "rpm -qa | egrep 'gfs2-utils|gfs2-kmp-default'"
+		[[ -x /usr/bin/findmnt ]] && log_cmd $OF "findmnt --types gfs2" || log_cmd $OF "mount --types gfs2"
+		log_cmd $OF "ps aux | grep gfs2 | grep -v grep"
+		log_cmd $OF "lsmod | grep gfs2"
+		(( GFS2_MODULES )) && DEVICES=$(find /sys/fs/gfs2/ -name device -and -type l -exec sh -c 'readlink -ev {} | sed  "s/.*\//\/dev\//g" ' \;) || DEVICES=''
+		log_entry $OF x "GFS2 Devices"
+		log_write $OF "$DEVICES"
+		log_write $OF
+
+		for DEVICE in $DEVICES
+		do
+		    GFS2_EDIT_OPTS="sb root master jindex per_node inum statfs quota"
+		    log_cmd $OF "gfs2_edit -p $GFS2_EDIT_OPTS $DEVICE"
+		    log_write $OF
+		done
+		FILES="/var/log/messages"
+		(( $ADD_OPTION_LOGS )) && grep_log_files gfs2 $OF 0 $FILES || grep_log_files gfs2 $OF $VAR_OPTION_LINE_COUNT $FILES
+		echolog Done
+	else
+		echolog Skipped
+	fi
+}
+
 drbd_info() {
 	printlog "DRBD..."
 	(( $OPTION_DRBD )) || { echolog Excluded; return 1; }
@@ -3068,7 +3134,7 @@ open_files() {
 	addHeaderFile $OF
 	if rpm_verify $OF lsof
 	then
-		log_cmd $OF "lsof -b -n -l +fg -P 2>/dev/null"
+		log_cmd $OF "lsof -b -n -l +fg -P -Ki 2>/dev/null"
 		echolog Done
 	else
 		echolog Skipped
@@ -3241,7 +3307,7 @@ ldap_info() {
 		LDAP_CONF="/etc/openldap/ldap.conf"
 		conf_files $OF $LDAP_CONF
 		if [[ -s $LDAP_CONF ]]; then
-			IPADDRS=$(grep -i '^uri[[:space:]]' $LDAP_CONF | sed -e 's!uri[[:space:]]*!!g;s!ldap://!!g;s!ldaps://!!g;s!ldapi://[[:alnum:][:punct:]]*!!g')
+			IPADDRS=$(grep -Pio '^uri\s+ldaps?://\K(.*)' $LDAP_CONF)
 			for I in $IPADDRS
 			do
 				IPADDR=$(echo $I | sed -e "s/:[[:digit:]]*//g")
@@ -3263,13 +3329,16 @@ ldap_info() {
 	log_write $OF "#___________________________________________________________#"
 	log_write $OF "#____[ LDAP Server Information ]____________________________#"
 	log_write $OF
-	if rpm_verify $OF openldap2
+	if rpm_verify $OF openldap2 || rpm_verify $OF openldap2_5
 	then
-		SLAPD_CONF="/etc/openldap/slapd.conf"
-		# Extract the SLAPD directory from the conf file
-		if [[ -f $SLAPD_CONF ]]; then
+		SLAPD_CONF_BACKEND=$(grep -Po \
+			'^OPENLDAP_CONFIG_BACKEND\s*=\s*"*\K([^"\s$]+)(?=.*)' \
+			/etc/sysconfig/openldap)
+		SLAPD_CONF=/etc/openldap/slapd.conf
+		SLAPD_DIR=/var/lib/ldap
+		if [[ "$SLAPD_CONF_BACKEND" == "files" ]] && [[ -f $SLAPD_CONF ]]
+		then
 			SLAPD_DIR=$(grep -i ^directory $SLAPD_CONF | awk '{print $2}')
-			[[ -z "$SLAPD_DIR" ]] && SLAPD_DIR="/var/lib/ldap"
 			SLAPD_PIDF=$(grep -i ^pidfile $SLAPD_CONF | awk '{print $2}')
 			[[ -z "$SLAPD_PIDF" ]] && SLAPD_PIDF="/var/run/slapd/slapd.pid"
 			if [[ -f $SLAPD_PIDF ]]; then
@@ -3277,23 +3346,48 @@ ldap_info() {
 			else
 				SLAPD_PID=""
 			fi
+			# schema files collection makes sense only in 'file' conf backend
+			log_cmd $OF "ls -al /etc/openldap/schema"
 			SLAPD_SCHEMAS=$(grep ^include $SLAPD_CONF | awk '{print $2}')
+			if [[ -n "$SLAPD_SCHEMAS" ]]
+			then
+				log_write $OF "#___________________________________________________________#"
+				log_write $OF "#____[ Schema Files Included in LDAP Server ]_______________#"
+				log_write $OF
+				log_write $OF "$SLAPD_SCHEMAS"
+				log_write $OF
+				conf_files $OF $SLAPD_SCHEMAS
+			fi
+		elif [[ "$SLAPD_CONF_BACKEND" == "ldap" ]]
+		then
+			SLAPD_CONF= # useless in 'ldap' config backend
+			SLAPD_DIR=$(grep -IRhPo '^olcDbDirectory: \K(.*)' /etc/openldap/slapd.d/)
+			SLAPD_PIDF=$(grep -Po '^olcPidFile: \K(.*)' /etc/openldap/slapd.d/cn=config.ldif)
+			if [[ -f $SLAPD_PIDF ]]
+			then
+				SLAPD_PID=$(cat $SLAPD_PIDF)
+			else
+				SLAPD_PID=""
+			fi
+			FILES=$(find /etc/openldap/slapd.d/ -type f)
 		fi
 		log_cmd $OF 'systemctl status ldap.service'
+		log_cmd $OF 'systemctl status slapd.service'
 		log_cmd $OF "ss -nlp | grep slapd"
-		log_cmd $OF "ls -al /etc/openldap/schema"
-		conf_files $OF $SLAPD_CONF /etc/sysconfig/openldap
-		if [[ -d $SLAPD_DIR ]]; then
-			conf_files $OF $SLAPD_DIR/DB_CONFIG
-			log_cmd $OF "ls -al $SLAPD_DIR"
+
+		conf_files $OF $SLAPD_CONF /etc/sysconfig/openldap $FILES
+
+		# there can be multiple databases!
+		for dir in $SLAPD_DIR; do
+			conf_files $OF $dir/DB_CONFIG
+			log_cmd $OF "ls -al $dir"
+		done
+
+		if [[ -n "$SLAPD_PID" ]]
+		then
+			log_cmd $OF "lsof -b +M -n -l +fg -P -p ${SLAPD_PID}"
 		fi
-		log_cmd $OF "lsof -b -n -l +fg -P -p $SLAPD_PID"
-		log_write $OF "#___________________________________________________________#"
-		log_write $OF "#____[ Schema Files Included in LDAP Server ]_______________#"
-		log_write $OF
-		log_write $OF "$SLAPD_SCHEMAS"
-		log_write $OF
-		conf_files $OF $SLAPD_SCHEMAS
+		_sanitize_file $OF
 	else
 		((SKIP++))
 	fi
@@ -4287,6 +4381,7 @@ if (( $USE_SAVED_LOGS_ONLY != 1 )); then
 	smt_info
 	ha_info
 	ocfs2_info
+	gfs2_info
 	drbd_info
 	haproxy_info
 	pam_info
@@ -4302,6 +4397,7 @@ if (( $USE_SAVED_LOGS_ONLY != 1 )); then
 	docker_info
 	podman_info
 	(( SLES_VER < 160 )) && cron_info
+	dbus_info
 	udev_info
 	lvm_info
 	soft_raid_info
