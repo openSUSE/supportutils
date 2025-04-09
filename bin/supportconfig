@@ -2223,7 +2223,7 @@ nfs_info() {
 		rpm_verify $OF rpcbind
 		log_cmd $OF 'systemctl status nfs.service'
 		log_cmd $OF 'systemctl status rpcbind.service'
-		conf_files $OF /etc/sysconfig/nfs
+		conf_files $OF /etc/nfs.conf /etc/nfs.conf.d/*.conf /etc/nfs.conf.local /etc/sysconfig/nfs
 		log_cmd $OF 'nfsstat'
 		timed_log_cmd $OF 'rpcinfo -p'
 
