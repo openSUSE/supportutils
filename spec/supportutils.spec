@@ -38,6 +38,9 @@ Requires:       tar
 Requires:       /usr/bin/which
 Requires:       /usr/bin/sed
 Requires:       /usr/bin/awk
+Provides:       supportconfig-plugin-icommand
+Provides:       supportconfig-plugin-resource
+Provides:       supportconfig-plugin-tag
 Provides:       supportconfig-plugin-rc
 BuildArch:      noarch
 
@@ -68,6 +71,7 @@ install -m 544 bin/chkbin %{buildroot}%{_sbindir}
 install -m 544 bin/getappcore %{buildroot}%{_sbindir}
 install -m 544 bin/analyzevmcore %{buildroot}%{_sbindir}
 install -m 444 bin/supportconfig.rc %{buildroot}%{support_libdir}/resources
+install -m 444 bin/scplugin.rc %{buildroot}%{support_libdir}/resources
 install -m 644 man/*.3.gz %{buildroot}%{_mandir}/man3
 install -m 644 man/*.5.gz %{buildroot}%{_mandir}/man5
 install -m 644 man/*.8.gz %{buildroot}%{_mandir}/man8
