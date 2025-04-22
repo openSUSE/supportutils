@@ -2460,11 +2460,7 @@ crash_info() {
 	conf_files $OF /proc/sys/kernel/panic
 	conf_files $OF /proc/sys/kernel/panic_on_oops
 	conf_files $OF /sys/kernel/kexec_loaded
-	conf_files $OF /sys/kernel/fadump_enabled
-	conf_files $OF /sys/kernel/fadump/enabled
-	conf_files $OF /sys/kernel/fadump_registered
-	conf_files $OF /sys/kernel/fadump/registered
-	conf_files $OF /sys/kernel/fadump/mem_reserved
+	conf_files $OF /sys/kernel/fadump/*
 	conf_files $OF /sys/kernel/kexec_crash_loaded
 	conf_files $OF /sys/kernel/kexec_crash_size
 	conf_files $OF /etc/kdump.conf
