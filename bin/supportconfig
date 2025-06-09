@@ -1319,6 +1319,18 @@ dbus_info() {
 	echolog Done
 }
 
+# Collects system health data including machine health counters
+sys_health_info() {
+	printlog "System Health Info..."
+	(( $OPTION_SYS_HEALTH )) || { echolog Excluded; return 1; }
+	OF=system_health.txt
+	addHeaderFile $OF
+	conf_files $OF /sys/kernel/hardlockup_count /sys/kernel/softlockup_count
+	conf_files $OF /sys/kernel/warn_count /sys/kernel/oops_count
+	conf_files $OF /sys/kernel/rcu_stall_count
+	echolog Done
+}
+
 soft_raid_info() {
 	printlog "Software Raid..."
 	(( $OPTION_SRAID )) || { echolog Excluded; return 1; }
@@ -4394,6 +4406,7 @@ if (( $USE_SAVED_LOGS_ONLY != 1 )); then
 	podman_info
 	(( SLES_VER < 160 )) && cron_info
 	dbus_info
+	sys_health_info
 	udev_info
 	lvm_info
 	soft_raid_info
