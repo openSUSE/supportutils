@@ -4051,6 +4051,8 @@ sysfs_info() {
 	log_entry $OF command "/bin/find /sys | sed -e 's/\\/\\\\/g' | xargs ls -ld --time-style=long-iso"
 	/bin/find /sys | sed -e 's/\\/\\\\/g' | xargs ls -ld --time-style=long-iso >> ${LOG}/${OF} 2>&1
 	log_write $OF
+	SYS_HEALTH_FILES="/sys/kernel/hardlockup_count /sys/kernel/softlockup_count /sys/kernel/warn_count /sys/kernel/oops_count /sys/kernel/rcu_stall_count"
+	conf_files $OF $SYS_HEALTH_FILES
 	if log_cmd $OF "systool"; then
 		for ITEM in $(systool)
 		do
