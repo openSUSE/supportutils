@@ -600,6 +600,7 @@ yast_files() {
 	# This is a minimum required function, do not exclude
 	printlog "YaST Files..."
 	(( $MIN_OPTION_YAST )) || { echolog EXCLUDED; return 1; }
+	AGAMA_LOGFILE='/var/log/agama-installation/logs.tar.gz'
 	hppsp_info
 	# YaST files
 	OF=y2log.txt
@@ -615,6 +616,7 @@ yast_files() {
 	(( ADD_OPTION_MAXYAST > 0 )) && log_files $OF 0 $FILES || log_files $OF $VAR_OPTION_LINE_COUNT $FILES
 	[[ -s /root/autoupg.xml ]] && FILES="/root/autoupg*xml" || FILES=''
 	conf_files $OF /root/autoinst.xml $FILES /var/adm/autoinstall/cache/installedSystem.xml
+	[[ -f $AGAMA_LOGFILE ]] && log_cmd $OF "tar xf $AGAMA_LOGFILE -C $LOG"
 	_sanitize_file $OF
 	echolog Done
 }
