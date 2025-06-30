@@ -529,7 +529,8 @@ _sanitize_file() {
 	s/\([Pp]ass[[:space:]]*=\).*/\1 $REPLACED/g;\
 	s/\([Pp]assword[[:space:]]*=\).*/\1 $REPLACED/g;\
 	s/\(PASS=\).*/\1$REPLACED/g;\
-	s/\:\/\/.*\:.*@/\:\/\/ $REPLACED @/g;\
+	s/\:\/\/.*\:.*@/\:\/\/$REPLACED@/g;\
+	s/\(proxy-user \"\).*\:.*/\1$REPLACED\"/g; \
 	s/\(_PASSWORD[[:space:]]*=\).*/\1 $REPLACED/g;\
 	s!\(<user_password>\).*\(</user_password>\)!\1$REPLACED\2!g;\
 	s/\(^ProxyUser[[:space:]]*=\).*/\1 $REPLACED/g;\
