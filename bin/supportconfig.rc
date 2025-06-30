@@ -1,7 +1,7 @@
 ##############################################################################
 #  supportconfig.rc - Resource file for supportconfig
 #  Copyright (C) 2025 SUSE LLC
-RCVER='3.2.8-3'
+RCVER='3.2.8-5'
 #
 #  Contains supporting functions and variables used by supportconfig and
 #  supportconfig plugins.
@@ -20,7 +20,7 @@ RCVER='3.2.8-3'
 #  You should have received a copy of the GNU General Public License
 #  along with this program; if not, see <http://www.gnu.org/licenses/>.
 #
-#  Modified: 2024 Dec 03
+#  Modified: 2025 Jun 30
 #
 #  Authors/Contributors:
 #	 Jason Record <jason.record@suse.com>
@@ -529,6 +529,8 @@ _sanitize_file() {
 	s/\([Pp]ass[[:space:]]*=\).*/\1 $REPLACED/g;\
 	s/\([Pp]assword[[:space:]]*=\).*/\1 $REPLACED/g;\
 	s/\(PASS=\).*/\1$REPLACED/g;\
+	s/\:\/\/.*\:.*@/\:\/\/$REPLACED@/g;\
+	s/\(proxy-user \"\).*\:.*/\1$REPLACED\"/g; \
 	s/\(_PASSWORD[[:space:]]*=\).*/\1 $REPLACED/g;\
 	s!\(<user_password>\).*\(</user_password>\)!\1$REPLACED\2!g;\
 	s/\(^ProxyUser[[:space:]]*=\).*/\1 $REPLACED/g;\
