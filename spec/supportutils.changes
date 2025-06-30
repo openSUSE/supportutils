@@ -1,4 +1,15 @@
 -------------------------------------------------------------------
+Mon Jun 30 18:23:03 UTC 2025 - jason.record@suse.com
+
+- Changes to version 3.2.11
+  + Collect rsyslog frule files (bsc#1244003, pr#257)
+  + Remove proxy passwords (bsc#1244011, pr#257)
+  + Missing NetworkManager information (bsc#1241284, pr#257)
+  + Include agama logs bsc#1244937, pr#256)
+  + Additional NFS conf files (pr#253)
+  + New fadump sysfs files (pr#252)
+
+-------------------------------------------------------------------
 Thu Mar 20 20:17:07 UTC 2025 - jason.record@suse.com
 
 - Changes to version 3.2.10
