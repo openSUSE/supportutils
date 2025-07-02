@@ -367,6 +367,13 @@ basic_healthcheck() {
 	cat $PSPTMP >> $LOG/$OF
 	rm $PSPTMP
 
+	# ps with lstart, etime
+	PSPTMP=$(mktemp $LOG/psout.XXXXXXXX)
+	PSTMP=$(basename $PSPTMP)
+	log_cmd $PSTMP 'ps -eo user,pid,ppid,lstart,etime,cmd --sort=start_time | grep -vP "([p]s -eo user|[g]rep)"'
+	cat $PSPTMP >> $LOG/$OF
+	rm $PSPTMP
+	
 	echolog Done
 }
 
