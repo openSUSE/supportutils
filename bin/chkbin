@@ -80,8 +80,7 @@ get_files() {
 	do
 		if [ -f $CONF ]; then
 			echo "# $CONF" >> $LOG
-			cat $CONF | sed -e '/^[[:space:]]*#/d' -e '/^[[:space:]]*;/d' -e 's/
-//g' -e '/^$/d' >> $LOG
+			cat $CONF | sed -e '/^[[:space:]]*#/d' -e '/^[[:space:]]*;/d' -e 's///g' -e '/^$/d' >> $LOG
 		else
 			echo "# $CONF - File not found" >> $LOG
 		fi
