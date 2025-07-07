@@ -3107,7 +3107,7 @@ memory_info() {
 	addHeaderFile $OF
 	log_cmd $OF "vmstat 1 4"
 	log_cmd $OF "free -k"
-	conf_files $OF /proc/meminfo /proc/vmstat
+	conf_files $OF /proc/meminfo /proc/pagetypeinfo /proc/vmstat
 	log_cmd $OF 'sysctl -a 2>/dev/null | grep ^vm'
 	[[ -d /sys/kernel/mm/transparent_hugepage/ ]] && FILES=$(find /sys/kernel/mm/transparent_hugepage/ -type f) || FILES=''
 	conf_files $OF /proc/buddyinfo /proc/slabinfo /proc/zoneinfo $FILES
