@@ -3120,7 +3120,7 @@ memory_info() {
 	fi
 	if (( EXT_SCALING_DISABLED )); then
 		if [[ -x /usr/bin/pmap ]]; then
-			for I in $(ps axo pid)
+			for I in $(ps --no-headers axo pid)
 			do
 				log_cmd $OF "pmap $I"
 			done
