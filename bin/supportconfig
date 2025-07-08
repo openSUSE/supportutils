@@ -338,7 +338,7 @@ basic_healthcheck() {
 		log_cmd $AARTMP 'systemctl status apparmor.service'
 
 		APP_AUDIT_LOG="/var/log/audit/audit.log"
-		[[ -f $APP_AUDIT_LOG ]] && AAREJECT=$(egrep 'REJECTING|DENIED' $APP_AUDIT_LOG | wc -l) || AAREJECT=0
+		[[ -f $APP_AUDIT_LOG ]] && AAREJECT=$(grep -E 'REJECTING|DENIED' $APP_AUDIT_LOG | wc -l) || AAREJECT=0
 		[[ -z "$AAREJECT" ]] && AAREJECT=0
 		if [[ -x /usr/sbin/apparmor_status ]]; then
 			/usr/sbin/apparmor_status --enabled &>/dev/null
@@ -588,7 +588,7 @@ audit_info() {
 			FILES="/etc/auditd.conf /etc/audit.rules"
 		fi
 		conf_files $OF $FILES
-		FILES=$(find /var/log/audit/ -type f | egrep -v "/ltaudit/" | grep log$)
+		FILES=$(find /var/log/audit/ -type f | grep -vE "/ltaudit/" | grep log$)
 		(( $ADD_OPTION_LOGS )) && log_files $OF 0 $FILES || log_files $OF $VAR_OPTION_LINE_COUNT $FILES
 		echolog Done
 	else
@@ -610,7 +610,7 @@ yast_files() {
 	if rpm -q perl-Bootloader &> /dev/null; then
 		rpm_verify $OF perl-Bootloader
 	fi
-	[[ -d /var/log/YaST2 ]] && FILES=$(find /var/log/YaST2/ -type f | egrep -v "_dev_|\.tbz$|\.tgz$|\.gz$|\.bz2$|\.zcat$|\.zip$") || unset FILES
+	[[ -d /var/log/YaST2 ]] && FILES=$(find /var/log/YaST2/ -type f | grep -vE "_dev_|\.tbz$|\.tgz$|\.gz$|\.bz2$|\.zcat$|\.zip$") || unset FILES
 	conf_files $OF /etc/youservers /etc/sysconfig/onlineupdate /etc/wgetrc 
 	log_files $OF 0 /var/log/pbl.log
 	(( ADD_OPTION_MAXYAST > 0 )) && log_files $OF 0 $FILES || log_files $OF $VAR_OPTION_LINE_COUNT $FILES
@@ -675,7 +675,7 @@ boot_info() {
 
 	[[ -e /usr/sbin/mcelog ]] && log_cmd $OF "/usr/sbin/mcelog --ignorenodev --filter --dmi"
 	[[ -s /var/log/mcelog ]] && { log_cmd $OF "ls -l --time-style=long-iso /var/log/mcelog"; conf_files $OF /var/log/mcelog; }
-	log_cmd $OF 'last -wxF | egrep "reboot|shutdown|runlevel|system"'
+	log_cmd $OF 'last -wxF | grep -E "reboot|shutdown|runlevel|system"'
 
 	(( SLES_VER < 160 )) && FILES='/var/log/boot.log /etc/init.d/boot.local /etc/init.d/before.local /etc/init.d/after.local /etc/init.d/halt.local' || FILES=''
 	conf_files $OF /proc/cmdline /etc/sysconfig/kernel $FILES
@@ -859,7 +859,7 @@ update_info() {
 		fi
 
 		if [[ -n $UPDATE_TEST_URL ]]; then # a local update server URL was found
-			if echo $UPDATE_TEST_URL | egrep -i "^http.*//" &>/dev/null; then
+			if echo $UPDATE_TEST_URL | grep -iE "^http.*//" &>/dev/null; then
 				LOCAL_TEST_PROTOCOL=$(echo $UPDATE_TEST_URL | awk -F/ '{print $1}')
 				LOCAL_TEST_HOST=$(echo $UPDATE_TEST_URL | awk -F/ '{print $3}')
 			else
@@ -1076,7 +1076,7 @@ systemd_info() {
 	log_cmd $OF 'systemctl --no-pager list-unit-files'
 	log_cmd $OF 'systemctl --no-pager list-jobs'
 	log_cmd $OF 'systemctl --no-pager list-timers --all'
-	for i in $(systemctl --no-pager --all list-units | sed 's/^[^-_:\\a-zA-Z0-9]*//' | egrep -v '^UNIT |^LOAD |^ACTIVE |^SUB |^To |^[[:digit:]]* ' | awk '{print $1}')
+	for i in $(systemctl --no-pager --all list-units | sed 's/^[^-_:\\a-zA-Z0-9]*//' | grep -vE '^UNIT |^LOAD |^ACTIVE |^SUB |^To |^[[:digit:]]* ' | awk '{print $1}')
 	do
 		if [[ -z "$i" ]]
 		then
@@ -1085,7 +1085,7 @@ systemd_info() {
 			log_cmd $OF "systemctl show '$i' | sort"
 		fi
 	done
-	for i in $(systemctl --no-pager list-units --type=service | grep -v "not-found" | sed 's/^[^-_:\\a-zA-Z0-9]*//' | egrep -v '^UNIT |^LOAD |^ACTIVE |^SUB |^To |^[[:digit:]]* ' | awk '{print $1}')
+	for i in $(systemctl --no-pager list-units --type=service | grep -v "not-found" | sed 's/^[^-_:\\a-zA-Z0-9]*//' | grep -vE '^UNIT |^LOAD |^ACTIVE |^SUB |^To |^[[:digit:]]* ' | awk '{print $1}')
 	do
 		log_cmd $OF2 "systemctl status '$i'"
 	done
@@ -1475,7 +1475,7 @@ detectVirtualization() {
 		log_write $OUT "Hardware:      See hardware.txt"
 	fi
 	if [[ -x /usr/bin/lscpu ]]; then
-		LSCPU_OUT=$(/usr/bin/lscpu 2>/dev/null | egrep -i "virtualization|hypervisor")
+		LSCPU_OUT=$(/usr/bin/lscpu 2>/dev/null | grep -iE "virtualization|hypervisor")
 	else
 		LSCPU_OUT=''
 	fi
@@ -1486,7 +1486,7 @@ detectVirtualization() {
 		if [[ "$HYPER_TYPE" == "xen" ]]; then
 			NO_HYPER=0
 			XEN_UUID=$(cat /sys/hypervisor/uuid | tr -d '-')
-			IDENT=$(egrep -i "Virtualization type" <<< $LSCPU_OUT | awk '{print $NF}')
+			IDENT=$(grep -iE "Virtualization type" <<< $LSCPU_OUT | awk '{print $NF}')
 			log_write $OUT "Hypervisor:    Xen"
 			if [[ $XEN_UUID =~ [[:alpha:]] ]]; then
 					log_write $OUT "Identity:      Virtual Machine - DomU"
@@ -1510,7 +1510,7 @@ detectVirtualization() {
 			NO_HYPER=0
 			log_write $OUT "Hypervisor:    KVM"
 			log_write $OUT "Identity:      Virtual Machine - DomU"
-			IDENT=$(egrep -i "Virtualization type" <<< $LSCPU_OUT | awk '{print $NF}')
+			IDENT=$(grep -iE "Virtualization type" <<< $LSCPU_OUT | awk '{print $NF}')
 			case $IDENT in
 			'full')
 				log_write $OUT "Type:          Fully Virtualized"
@@ -2234,7 +2234,7 @@ nfs_info() {
 		timed_log_cmd $OF 'rpcinfo -p'
 
 		log_cmd $OF "egrep '[[:space:]]nfs[[:space:]]|[[:space:]]nfs4[[:space:]]' /etc/fstab"
-		IPADDRS=$(egrep '[[:space:]]nfs[[:space:]]|[[:space:]]nfs4[[:space:]]' /etc/fstab | egrep -v '^#|^;' | cut -d\: -f1 | sort | uniq)
+		IPADDRS=$(egrep '[[:space:]]nfs[[:space:]]|[[:space:]]nfs4[[:space:]]' /etc/fstab | grep -vE '^#|^;' | cut -d\: -f1 | sort | uniq)
 		for IPADDR in $IPADDRS
 		do
 			ping_addr $OF 'NFS Server' $IPADDR
@@ -2376,7 +2376,7 @@ nvme_info() {
 
 		FILES='/etc/nvme/discovery.conf /etc/nvme/config.json'
 		if [[ -d /etc/nvme/ ]]; then
-			TFILES=$(find /etc/nvme/ -type f | egrep -v "discovery.conf|config.json")
+			TFILES=$(find /etc/nvme/ -type f | grep -vE "discovery.conf|config.json")
 			[[ -n $TFILES ]] && FILES="${FILES} ${TFILES}"
 		fi
 		conf_files $OF $FILES
@@ -2775,7 +2775,7 @@ ha_info() {
 	15*|16*|999)
 		if rpm_verify $OF pacemaker
 		then
-			log_cmd $OF "rpm -qa | egrep 'resource-agents|fence-agents|booth|cluster-glue|corosync|csync2|pacemaker|crmsh|libqb|hawk|dlm|lvm2|cluster-md|ocfs2|gfs2|drbd'"
+			log_cmd $OF "rpm -qa | grep -E 'resource-agents|fence-agents|booth|cluster-glue|corosync|csync2|pacemaker|crmsh|libqb|hawk|dlm|lvm2|cluster-md|ocfs2|gfs2|drbd'"
 			log_cmd $OF "systemctl status pacemaker.service"
 			CONF_FILES="/etc/corosync/corosync.conf /etc/sysconfig/ctdb /etc/sysconfig/sbd"
 			if [[ -s /etc/xinetd.d/csync2 ]]; then
@@ -2807,7 +2807,7 @@ ha_info() {
 			cd $LOG
 			for HBRDIR in $VAR_OPTION_HBREPORT_DIRS
 			do
-				HBRS=$(find $HBRDIR -maxdepth 1 -type f -mtime -30 2>/dev/null | egrep "/(hb|crm)[_-]?report[0-9a-zA-Z._-]*\.tar\.(bz2|gz)$")
+				HBRS=$(find $HBRDIR -maxdepth 1 -type f -mtime -30 2>/dev/null | grep -E "/(hb|crm)[_-]?report[0-9a-zA-Z._-]*\.tar\.(bz2|gz)$")
 				if [[ -n "$HBRS" ]]; then
 					for HBR_PATH in $HBRS
 					do
@@ -2821,7 +2821,7 @@ ha_info() {
 			CURRENT_CIB=''
 			FILES=''
 			if [[ -d /var/lib/heartbeat/ ]]; then
-				FILES=$(find /var/lib/heartbeat/ -type f | egrep -v "cores|pengine|trace_ra|hb_uuid|cib\.xml")
+				FILES=$(find /var/lib/heartbeat/ -type f | grep -vE "cores|pengine|trace_ra|hb_uuid|cib\.xml")
 				[[ -e /var/lib/heartbeat/crm/cib.xml ]] && CURRENT_CIB='/var/lib/heartbeat/crm/cib.xml'
 				for i in $(find /var/lib/heartbeat/cores -type f)
 				do
@@ -2829,7 +2829,7 @@ ha_info() {
 				done
 			fi
 			if [[ -d /var/lib/pacemaker/ ]]; then
-				TFILES=$(find /var/lib/pacemaker/ -type f | egrep -v "blackbox|cores|pengine|hb_uuid|cib\.xml")
+				TFILES=$(find /var/lib/pacemaker/ -type f | grep -vE "blackbox|cores|pengine|hb_uuid|cib\.xml")
 				FILES="$FILES $TFILES"
 				[[ -e /var/lib/pacemaker/cib/cib.xml ]] && CURRENT_CIB='/var/lib/pacemaker/cib/cib.xml'
 			fi
@@ -3004,7 +3004,7 @@ gfs2_info() {
 		then
 			GFS2_MODULES=1
 		fi
-		log_cmd $OF "rpm -qa | egrep 'gfs2-utils|gfs2-kmp-default'"
+		log_cmd $OF "rpm -qa | grep -E 'gfs2-utils|gfs2-kmp-default'"
 		[[ -x /usr/bin/findmnt ]] && log_cmd $OF "findmnt --types gfs2" || log_cmd $OF "mount --types gfs2"
 		log_cmd $OF "ps aux | grep gfs2 | grep -v grep"
 		log_cmd $OF "lsmod | grep gfs2"
@@ -3036,7 +3036,7 @@ drbd_info() {
 	then
 		rpm_verify $OF drbd
 		log_cmd $OF 'systemctl status drbd.service'
-		log_cmd $OF "egrep \"drbd\" $RPMPATH"
+		log_cmd $OF "grep -E \"drbd\" $RPMPATH"
 		log_write $OF
 		log_cmd $OF "lsmod | grep drbd"
 		log_cmd $OF "modinfo drbd"
@@ -3078,7 +3078,7 @@ haproxy_info() {
 	then
 		rpm_verify $OF haproxy
 		log_cmd $OF 'systemctl status haproxy.service'
-		log_cmd $OF "egrep \"haproxy\" $RPMPATH"
+		log_cmd $OF "grep -E \"haproxy\" $RPMPATH"
 		log_write $OF
 		log_cmd $OF "ps aux | grep haproxy | grep -v grep"
 		conf_files $OF "/etc/haproxy/haproxy.cfg"
@@ -3150,7 +3150,7 @@ samba_info() {
 	RPMPATH=$LOG/$RPMFILE
 	addHeaderFile $OF
 
-	log_cmd $OF "egrep \"samba|smb|cifs|libtallo|libtdb|libwbclient\" $RPMPATH"
+	log_cmd $OF "grep -E \"samba|smb|cifs|libtallo|libtdb|libwbclient\" $RPMPATH"
 	log_write $OF
 
 	if rpm_verify $OF samba
@@ -3404,7 +3404,7 @@ etc_info() {
 	addHeaderFile $OF
 	# Let us get alternatives output
 	log_cmd $OF "update-alternatives --get-selections"
-	conf_files $OF $(find -L /etc/ -type f | egrep "(conf|cfg|nfs.conf.local)$" | egrep -v "rhn/rhn.conf$")
+	conf_files $OF $(find -L /etc/ -type f | grep -E "(conf|cfg|nfs.conf.local)$" | grep -vE "rhn/rhn.conf$")
 	[[ -d /etc/logrotate.d ]] && conf_files $OF /etc/logrotate.d/*
 	conf_files $OF /etc/rc.dialout /etc/ppp/options /etc/ppp/ioptions /etc/ppp/peers/pppoe /etc/motd
 	_sanitize_file $OF
@@ -3440,14 +3440,14 @@ proc_info() {
 	conf_files $OF $PROC_FILES
 	for PROCDIR in $PROC_DIRS_DEPTH_ONE
 	do
-		FILES=$(find $PROCDIR -maxdepth 1 -type f 2>/dev/null | egrep -iv "${PROC_DIRS_DEPTH_ONE_FILTER_OUT}" | sort -f)
+		FILES=$(find $PROCDIR -maxdepth 1 -type f 2>/dev/null | grep -ivE "${PROC_DIRS_DEPTH_ONE_FILTER_OUT}" | sort -f)
 		conf_files $OF $FILES
 	done
 	(( EXT_SCALING_DISABLED )) && PROC_DIRS_DEPTH_FULL="/proc/irq/ /proc/sys/" || PROC_DIRS_DEPTH_FULL="/proc/sys/"
 
 	for PROCDIR in $PROC_DIRS_DEPTH_FULL
 	do
-		FILES=$(find $PROCDIR -type f 2>/dev/null | egrep -iv "${PROC_DIRS_DEPTH_FULL_FILTER_OUT}" | sort -f)
+		FILES=$(find $PROCDIR -type f 2>/dev/null | grep -ivE "${PROC_DIRS_DEPTH_FULL_FILTER_OUT}" | sort -f)
 		conf_files $OF $FILES
 	done
 
@@ -3620,7 +3620,7 @@ x_info() {
 		then
 			CONTENT_FOUND=1
 			log_cmd $OF 'bash -c "for i in /sys/class/input/input*; do echo -n \"\$i: \"; echo -n \$i/event* \"  \" | sed -e \"s#\$i/##\"; cat \$i/name; done"'
-			log_cmd $OF 'ls -al /dev | egrep "video.*"'
+			log_cmd $OF 'ls -al /dev | grep -E "video.*"'
 			log_cmd $OF 'mokutil --sb-state'
 			if log_cmd $OF 'cat /proc/fb'; then
 				grep -q "VESA" /proc/fb && timed_log_cmd $OF 'hwinfo --framebuffer'
@@ -3650,9 +3650,9 @@ x_info() {
 		if (( $CONTENT_FOUND > 0 ))
 		then
 			if (( $ADD_OPTION_LOGS )); then
-				log_cmd $OF "journalctl --no-pager --output=short-iso | egrep -e 'gnome|gdm|plasma|kde'"
+				log_cmd $OF "journalctl --no-pager --output=short-iso | grep -E 'gnome|gdm|plasma|kde'"
 			else
-				log_cmd $OF "journalctl --no-pager --output=short-iso | egrep -e 'gnome|gdm|plasma|kde' | tail -${VAR_OPTION_LINE_COUNT}"
+				log_cmd $OF "journalctl --no-pager --output=short-iso | grep -E 'gnome|gdm|plasma|kde' | tail -${VAR_OPTION_LINE_COUNT}"
 			fi
 			echolog Done
 		else
@@ -3800,7 +3800,7 @@ dns_info() {
 		if [[ -n "$ZDIR" ]]; then
 			FILES=$(find -L ${ZDIR}/ -mount -type f 2>/dev/null | grep zone | grep -v '/proc/') || unset FILES
 			conf_files $OF $FILES
-			FILES=$(find -L ${ZDIR}/ -mount -type f 2>/dev/null | egrep -v "localtime|zone" | grep -v '/proc/') || unset FILES
+			FILES=$(find -L ${ZDIR}/ -mount -type f 2>/dev/null | grep -vE "localtime|zone" | grep -v '/proc/') || unset FILES
 			conf_files $OF $FILES
 		fi
 		log_cmd $OF "grep named /var/log/warn"
@@ -3863,7 +3863,7 @@ cimom_info() {
 	addHeaderFile $OF
 	SKIP=0
 	if rpm_verify $OF openwbem; then
-		log_cmd $OF "egrep -i \"cim|provider\" $RPMPATH"
+		log_cmd $OF "grep -iE \"cim|provider\" $RPMPATH"
 		log_cmd $OF 'systemctl status owcimomd.service'
 		conf_files $OF /etc/openwbem/openwbem.conf
 		log_cmd $OF 'ls -lR --time-style=long-iso /etc/openwbem/'
@@ -3885,7 +3885,7 @@ cimom_info() {
 		((SKIP++))
 	fi
 	if rpm_verify $OF sblim-sfcb; then
-		log_cmd $OF "egrep -i \"cim|provider\" $RPMPATH"
+		log_cmd $OF "grep -iE \"cim|provider\" $RPMPATH"
 		log_cmd $OF 'systemctl status sfcb.service'
 		log_cmd $OF "ss -nlp | grep sfcb"
 		conf_files $OF /etc/sfcb/sfcb.cfg
@@ -4109,7 +4109,7 @@ email_info() {
 		log_cmd $OF "postqueue -p"
 		log_cmd $OF "postqueue -j"
 		log_cmd $OF 'bash -c "comm -23 <(postconf -n) <(postconf -d)"'
-		FILES=$(find /etc/postfix/ ! -name '*.rpmnew' -type f -exec sh -c 'f=$1; file -bL --mime $f | grep -q "^text/plain" && echo $f' {} {} \; | egrep -v "${EXCLUDE_LIST}" | sort)
+		FILES=$(find /etc/postfix/ ! -name '*.rpmnew' -type f -exec sh -c 'f=$1; file -bL --mime $f | grep -q "^text/plain" && echo $f' {} {} \; | grep -vE "${EXCLUDE_LIST}" | sort)
 		conf_files $OF $FILES
 		FILES="/var/log/mail.err /var/log/mail.warn /var/log/mail.info /var/log/mail"
 		(( $ADD_OPTION_LOGS )) && log_files $OF 0 $FILES || log_files $OF $VAR_OPTION_LINE_COUNT $FILES
@@ -4262,7 +4262,7 @@ if [[ -n "$FROM_DIRECTORY" ]]; then
 		BASE=$(basename ${FROM_DIRECTORY} 2>/dev/null)
 	else
 		VAR_OPTION_LOG_DIRS=$FROM_DIRECTORY
-		TBASE=$(ls -1td ${FROM_DIRECTORY}/*/ 2>/dev/null | egrep 'scc_|nts_' | head -n1)
+		TBASE=$(ls -1td ${FROM_DIRECTORY}/*/ 2>/dev/null | grep -E 'scc_|nts_' | head -n1)
 		BASE=$(basename $TBASE 2>/dev/null)
 	fi
 fi

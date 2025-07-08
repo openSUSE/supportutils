@@ -333,7 +333,7 @@ if [ -n "$BINARG" ]; then
 			fi
 			for BLIB in $(awk '{print $1}' $ALL_LOG) $(awk -F% '{print $2}' $ALL_LOG | awk '{print $1}') $(awk '{print $4}' $ALL_LOG)
 			do
-				BTEST=$(echo $BLIB | egrep "^/|^\./|^\.\./")
+				BTEST=$(echo $BLIB | grep -E "^/|^\./|^\.\./")
 				if [ -n "$BTEST" ]; then
 					printf "%-35s - from RPM: " $BTEST >> $LOG
 					BRPM=$(rpm -qf $BTEST 2>/dev/null)

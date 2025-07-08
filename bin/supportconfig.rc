@@ -306,7 +306,7 @@ conf_text_files() {
 		echo "#==[ Configuration File ]===========================#" >> $LOGFILE
 		if [[ -f $CONF ]]; then
 			echo "# $CONF" >> $LOGFILE
-			TEXTFILE=$(file -L $CONF | cut -d \: -f2 | egrep -i "text|empty|XML")
+			TEXTFILE=$(file -L $CONF | cut -d \: -f2 | grep -iE "text|empty|XML")
 			if [[ -z "$TEXTFILE" ]]; then
 				echo "file $(file -L $CONF)" >> $LOGFILE
 				echo "ERROR: Not a normal text file, excluding it." >> $LOGFILE
@@ -362,7 +362,7 @@ log_files() {
 	shift
 	for CONF in $@
 	do
-		BAD_FILE=$(echo "$CONF" | egrep "\.tbz$|\.bz2$|\.gz$|\.zip$|\.xz$")
+		BAD_FILE=$(echo "$CONF" | grep -E "\.tbz$|\.bz2$|\.gz$|\.zip$|\.xz$")
 		if [[ -n "$BAD_FILE" ]]; then
 			continue
 		fi
