@@ -3527,7 +3527,7 @@ drm_sub_info() {
 	log_cmd $OF 'intel_reg_dumper'
 	for i in /sys/class/drm/card?/device/uevent
 	do
-		module=$(cat $i | grep DRIVER | cut -d= -f2)
+		module=$(cat $i 2>&1 | grep DRIVER | cut -d= -f2)
 		log_cmd $OF "modeprint $module"
 	done
 	for i in /sys/class/drm/card*-*
