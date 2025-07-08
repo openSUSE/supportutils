@@ -3650,9 +3650,9 @@ x_info() {
 		if (( $CONTENT_FOUND > 0 ))
 		then
 			if (( $ADD_OPTION_LOGS )); then
-				log_cmd $OF "journalctl --no-pager --output=short-iso | grep -eE 'gnome|gdm|plasma|kde'"
+				log_cmd $OF "journalctl --no-pager --output=short-iso | grep -E 'gnome|gdm|plasma|kde'"
 			else
-				log_cmd $OF "journalctl --no-pager --output=short-iso | grep -eE 'gnome|gdm|plasma|kde' | tail -${VAR_OPTION_LINE_COUNT}"
+				log_cmd $OF "journalctl --no-pager --output=short-iso | grep -E 'gnome|gdm|plasma|kde' | tail -${VAR_OPTION_LINE_COUNT}"
 			fi
 			echolog Done
 		else
