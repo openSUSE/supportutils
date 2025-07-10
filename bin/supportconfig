@@ -927,7 +927,7 @@ pam_info() {
 		log_cmd $OF 'getent passwd'
 		conf_files $OF /etc/group
 		log_cmd $OF 'getent group'
-		EXTRA_DIRS=$(egrep '^#includedir |^@includedir ' /etc/sudoers | awk '{print $NF}')
+		EXTRA_DIRS=$(grep -E '^#includedir |^@includedir ' /etc/sudoers | awk '{print $NF}')
 		conf_files $OF /etc/sudoers
 		for EXTRA in $EXTRA_DIRS
 		do
@@ -969,7 +969,7 @@ sssd_info() {
 		log_cmd $OF 'ls -l --time-style=long-iso /etc/sssd/sssd.conf'
 		log_cmd $OF 'ls -lR --time-style=long-iso /etc/sssd/conf.d/'
 		if [[ -d /etc/sssd/conf.d ]]; then
-			FILES=$(find -L /etc/sssd/conf.d/ -type f | egrep "\.conf$")
+			FILES=$(find -L /etc/sssd/conf.d/ -type f | grep -E "\.conf$")
 			conf_files $OF "$FILES"
 		fi
 		SRVS_LDAP=$(grep "^[[:space:]]*ldap_uri" /etc/sssd/sssd.conf | cut -d= -f2 | sed -e 's/ *//g;s/,/ /g')
@@ -980,7 +980,7 @@ sssd_info() {
 				ping_addr $OF 'SSSD LDAP Server' $ADDR
 			done
 		fi
-		SRVS_KRB5=$(egrep "^[[:space:]]*krb5_server|^[[:space:]]*krb5_kdcip" /etc/sssd/sssd.conf | cut -d= -f2 | sed -e 's/ *//g;s/,/ /g')
+		SRVS_KRB5=$(grep -E "^[[:space:]]*krb5_server|^[[:space:]]*krb5_kdcip" /etc/sssd/sssd.conf | cut -d= -f2 | sed -e 's/ *//g;s/,/ /g')
 		if [[ -n "$SRVS_KRB5" ]]; then
 			for URI in $SRVS_KRB5
 			do
@@ -994,7 +994,7 @@ sssd_info() {
 		SSSD_PID=${SSSD_PID#ExecMainPID=}
 		if (( $SSSD_PID )); then
 			SSSD_PIDS=$(ps axwwo pid,ppid,cmd | grep ${SSSD_PID} | grep -v grep | awk '{print $1}' | sort -n)
-			log_cmd $OF "ps axwwo user,pid,ppid,%cpu,%mem,vsz,rss,stat,time,cmd | egrep \"${SSSD_PID}|PPID\" | grep -v grep"
+			log_cmd $OF "ps axwwo user,pid,ppid,%cpu,%mem,vsz,rss,stat,time,cmd | grep -E \"${SSSD_PID}|PPID\" | grep -v grep"
 			for THISPID in $SSSD_PIDS
 			do
 				log_cmd $OF "lsof -b -n -l +fg -P -p $THISPID 2>/dev/null"
@@ -1198,7 +1198,7 @@ podman_info() {
 						IMAGEOF="podman/${PODMAN_USER}-image-${image}.txt"
 						IMAGEID=${image##*_}
 						log_entry $OF note "Image details: $IMAGEOF"
-						log_cmd $IMAGEOF "${PODACC}podman images | egrep \"^REPO|${IMAGEID}\""
+						log_cmd $IMAGEOF "${PODACC}podman images | grep -E \"^REPO|${IMAGEID}\""
 						log_cmd $IMAGEOF "${PODACC}podman inspect ${IMAGEID}"
 					done
 
@@ -1207,7 +1207,7 @@ podman_info() {
 					do
 						CONTAINEROF="podman/${PODMAN_USER}-container-${container}.txt"
 						log_entry $OF note "Container details: $CONTAINEROF"
-						log_cmd $CONTAINEROF "${PODACC}podman ps --all --pod | egrep \"^CONTAINER|${container}\""
+						log_cmd $CONTAINEROF "${PODACC}podman ps --all --pod | grep -E \"^CONTAINER|${container}\""
 						log_cmd $CONTAINEROF "${PODACC}podman top $container"
 						log_cmd $CONTAINEROF "${PODACC}podman inspect $container"
 						log_cmd $CONTAINEROF "${PODACC}podman logs --timestamps $container"
@@ -1227,7 +1227,7 @@ podman_info() {
 					do
 						PODOF="podman/${PODMAN_USER}-pod-${this_pod}.txt"
 						log_entry $OF note "Pod details: $PODOF"
-						log_cmd $PODOF "${PODACC}podman pod ls | egrep \"^POD|${this_pod}\""
+						log_cmd $PODOF "${PODACC}podman pod ls | grep -E \"^POD|${this_pod}\""
 						log_cmd $PODOF "${PODACC}podman pod inspect ${this_pod}"
 					done
 				else
@@ -1308,7 +1308,7 @@ dbus_info() {
 	(( $OPTION_DBUS )) || { echolog Excluded; return 1; }
 	OF=dbus.txt
 	addHeaderFile $OF
-	RPM_PKGS=$(egrep "^dbus" $RPM_QA_FILE_PATH)
+	RPM_PKGS=$(grep -E "^dbus" $RPM_QA_FILE_PATH)
 	if rpm_verify $OF "$RPM_PKGS"
 	then
 		log_cmd $OF 'systemctl status dbus.socket'
@@ -1598,7 +1598,7 @@ hardware_info() {
 	log_cmd $OF 'lspci -nn'
 	log_cmd $OF 'lspci -vvv'
 	log_cmd $OF 'lsusb -vv'
-	log_cmd $OF 'ls -al /dev | egrep "fd.*|dvd.*|cdr.*"'
+	log_cmd $OF 'ls -al /dev | grep -E "fd.*|dvd.*|cdr.*"'
 	ALSABIN='/usr/sbin/alsa-info.sh'
 	if [[ -x $ALSABIN ]]; then
 			log_cmd $OF "$ALSABIN --stdout --no-upload --with-configs --with-devices --with-dmesg --with-alsactl"
@@ -2233,8 +2233,8 @@ nfs_info() {
 		log_cmd $OF 'nfsstat'
 		timed_log_cmd $OF 'rpcinfo -p'
 
-		log_cmd $OF "egrep '[[:space:]]nfs[[:space:]]|[[:space:]]nfs4[[:space:]]' /etc/fstab"
-		IPADDRS=$(egrep '[[:space:]]nfs[[:space:]]|[[:space:]]nfs4[[:space:]]' /etc/fstab | grep -vE '^#|^;' | cut -d\: -f1 | sort | uniq)
+		log_cmd $OF "grep -E '[[:space:]]nfs[[:space:]]|[[:space:]]nfs4[[:space:]]' /etc/fstab"
+		IPADDRS=$(grep -E '[[:space:]]nfs[[:space:]]|[[:space:]]nfs4[[:space:]]' /etc/fstab | grep -vE '^#|^;' | cut -d\: -f1 | sort | uniq)
 		for IPADDR in $IPADDRS
 		do
 			ping_addr $OF 'NFS Server' $IPADDR
@@ -2293,7 +2293,7 @@ ntp_info() {
 			    NTP_DAEMON=0
 		    fi
 		    log_cmd $OF "timedatectl"
-		    IPADDRS=$(egrep "^pool |^peer |^server " $CONFFILE | awk '{print $2}' | sort | uniq)
+		    IPADDRS=$(grep -E "^pool |^peer |^server " $CONFFILE | awk '{print $2}' | sort | uniq)
 		    for IPADDR in $IPADDRS
 		    do
 			    ping_addr $OF 'NTP Server' $IPADDR
@@ -2322,7 +2322,7 @@ ntp_info() {
 			log_cmd $OF "systemctl status ntpd.service"
 			log_cmd $OF 'ntpq -p'
 			conf_files $OF $CONFFILE
-			IPADDRS=$(egrep "^peer |^server " $CONFFILE | awk '{print $2}' | sort | uniq)
+			IPADDRS=$(grep -E "^peer |^server " $CONFFILE | awk '{print $2}' | sort | uniq)
 			for IPADDR in $IPADDRS
 			do
 				ping_addr $OF 'NTP Server' $IPADDR
