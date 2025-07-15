@@ -175,7 +175,7 @@ else
 	COMPRESS="tar"; 
 	COMPRESS_OPT="cf"
 fi
-SC_SRV=$(hostname) # %s
+SC_SRV=$(hostname 2>/dev/null || echo $HOSTNAME) # %s
 [[ "$SC_SRV" == "" ]] && SC_SRV=suse
 SC_DATE=$(date +"%y%m%d") # %d
 SC_TIME=$(date +"%H%M") # %t
@@ -225,10 +225,11 @@ unalias -a &>/dev/null
 
 log2sys() {
 	MSG="$@"
+	LOGGER_BIN="/usr/bin/logger"
 	if (( $VAR_OPTION_DMESG )); then
 		echo "supportconfig: [$(date +%y%m%d:%H:%M:%S)] $MSG" > /dev/kmsg
 	else
-		logger -t supportconfig "$MSG"
+		[[ -x $LOGGER_BIN ]] && $LOGGER_BIN -t supportconfig "$MSG"
 	fi
 }
 
