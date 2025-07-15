@@ -2855,6 +2855,63 @@ ha_info() {
 			log_cmd $OF 'systemctl status hawk-backend.service'
 			log_cmd $OF 'systemctl status hawk.service'
 
+			# an attempt to collect config used by effective RA primitives
+			if [[ -n "$CURRENT_CIB" ]]; then
+				PRIMITIVES=$(xmllint --xpath '//primitive/@type' "$CURRENT_CIB" 2>/dev/null | \
+					sed -r -e 's/ type="([^"]*)"/\1\n/g' | \
+					sed -r -e '/^\s*$/d' | \
+					sort -u
+				)
+				if [[ -n "$PRIMITIVES" ]]; then
+					primitives_regex=$(printf '%s\n' "$PRIMITIVES" | sed -e 's/[.[\*^$(){}+?|/]/\\&/g' | paste -sd'|' -)
+					awk_query_reskey_configs() {
+						local awk_script
+						read -r -d '' awk_script <<'AWK'
+{
+	p = "^OCF_RESKEY_[[:alnum:]_]*(conf(ig)?)(uration|_?file)*_default.*"
+	if ($0 ~ p) {
+		fname = FILENAME
+		sub(/^.*\//, "", fname)
+		gsub(/OCF_RESKEY_/, "", $0)
+		gsub(/_default=/, " ", $0)
+		gsub(/"/, "", $0)
+		print fname,$0
+	}
+}
+AWK
+						awk "$awk_script" "$@"
+					}
+					export -f awk_query_reskey_configs
+
+					mapfile -t CANDIDATES < <(
+						find \
+							/usr/lib/ocf/resource.d/ \
+							/usr/lib64/stonith/plugins/external/ \
+							-type f -regextype egrep -regex '.*/('"$primitives_regex"')$' \
+							-exec bash -c 'awk_query_reskey_configs "$@"' {} +
+					)
+
+					if [[ -n "${CANDIDATES[*]}" ]]; then
+						for i in "${CANDIDATES[@]}"; do
+							read -r ra conf default <<< "${i}"
+							# explicit
+							mapfile -t RA_CUSTOM_CONFIGS < <(xmllint --xpath '//primitive[@type="'"$ra"'"]' "$CURRENT_CIB" 2>/dev/null | \
+								xmllint --nowarning --html --xpath '//nvpair[@name="'"$conf"'"]/@value' - 2>/dev/null | \
+								sed -E 's/ value="([^"]*)"/\1\n/g' | sed '/^\s*$/d' | sort -u
+							)
+							if [[ -n "$RA_CUSTOM_CONFIGS" ]]; then
+								RA_CUSTOM_CONFIG_FILES=()
+								for f in "${RA_CUSTOM_CONFIGS[@]}"; do	 # there might end non-file content
+									[[ -f "$f" ]] && RA_CUSTOM_CONFIG_FILES+=("$f")
+								done
+								conf_files $OF "${RA_CUSTOM_CONFIG_FILES[@]}"
+							elif [[ -n "$default" ]] && [[ -f "$default" ]]; then
+								conf_files $OF "default"
+							fi
+						done
+					fi
+				fi
+			fi
 			echolog Done
 		else
 			echolog Skipped
