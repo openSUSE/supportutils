@@ -309,28 +309,31 @@ basic_healthcheck() {
 	PSTMP=$(basename $PSPTMP)
 	AARTMP=$(basename $AARPTMP)
 
-	log_cmd $PSTMP 'ps axwwo user,pid,ppid,%cpu,%mem,vsz,rss,stat,time,cmd'
+	log_cmd $PSTMP "ps axwwo user,pid,ppid,%cpu,%mem,vsz,rss,stat,time,cmd"
 
 	log_write $OF "#==[ Checking Health of Processes ]=================#"
         log_write $OF "# awk '\$8 ~ /D|Z/' $PSPTMP"
         log_write $OF "$(awk '!/^#/ && $8 ~ /D|Z/' "$PSPTMP")"
 
-	TOPTMP=$(mktemp $LOG/top.XXXXXXXX)
-	log_write $OF
-	log_write $OF "#==[ Summary ]======================================#"
-	log_write $OF "# Top 10 CPU Processes"
-	ps axwwo %cpu,pid,user,cmd | sort -k 1 -r -n | head -11 | sed -e '/^%/d' > $TOPTMP
-	log_write $OF "%CPU   PID USER     CMD"
-	log_write $OF "$(< $TOPTMP)"
-	log_write $OF
+	if [[ -n $PS_BIN ]]; then
+		TOPTMP=$(mktemp $LOG/top.XXXXXXXX)
+		log_write $OF
+		log_write $OF "#==[ Summary ]======================================#"
+		log_write $OF "# Top 10 CPU Processes"
+		$PS_BIN axwwo %cpu,pid,user,cmd | sort -k 1 -r -n | head -11 | sed -e '/^%/d' > $TOPTMP
+		log_write $OF "%CPU   PID USER     CMD"
+		log_write $OF "$(< $TOPTMP)"
+		log_write $OF
 
-	log_write $OF "#==[ Summary ]======================================#"
-	log_write $OF "# Top 10 Memory Processes"
-	ps axwwo %mem,pid,user,cmd | sort -k 1 -r -n | head -11 | sed -e '/^%/d' > $TOPTMP
-	log_write $OF "%MEM   PID USER     CMD"
-	log_write $OF "$(< $TOPTMP)"
-	log_write $OF
-	rm -f $TOPTMP
+		log_write $OF "#==[ Summary ]======================================#"
+		log_write $OF "# Top 10 Memory Processes"
+		$PS_BIN axwwo %mem,pid,user,cmd | sort -k 1 -r -n | head -11 | sed -e '/^%/d' > $TOPTMP
+		log_write $OF "%MEM   PID USER     CMD"
+		log_write $OF "$(< $TOPTMP)"
+		log_write $OF
+		rm -f $TOPTMP
+	fi
+
 
 	if grep 'security=apparmor' /proc/cmdline &>/dev/null; then
 		log_write $AARTMP "#==[ Summary ]======================================#"
@@ -993,7 +996,7 @@ sssd_info() {
 		SSSD_PID=$(systemctl show sssd.service -p ExecMainPID)
 		SSSD_PID=${SSSD_PID#ExecMainPID=}
 		if (( $SSSD_PID )); then
-			SSSD_PIDS=$(ps axwwo pid,ppid,cmd | grep ${SSSD_PID} | grep -v grep | awk '{print $1}' | sort -n)
+			[[ -n $PS_BIN ]] && SSSD_PIDS=$($PS_BIN axwwo pid,ppid,cmd | grep ${SSSD_PID} | grep -v grep | awk '{print $1}' | sort -n) || SSSD_PIDS=""
 			log_cmd $OF "ps axwwo user,pid,ppid,%cpu,%mem,vsz,rss,stat,time,cmd | grep -E \"${SSSD_PID}|PPID\" | grep -v grep"
 			for THISPID in $SSSD_PIDS
 			do
@@ -1165,7 +1168,7 @@ podman_info() {
 	then
 		mkdir -p $PODMANSCDIR
 		# Identify all non-root users currently running at least one container
-		PODMAN_USERS_ACTIVE=$(ps axwwo user,cmd | grep conmon | grep -v grep | cut -d\  -f1 | sort | uniq | grep -v root)
+		[[ -n $PS_BIN ]] && PODMAN_USERS_ACTIVE=$($PS_BIN axwwo user,cmd | grep conmon | grep -v grep | cut -d\  -f1 | sort | uniq | grep -v root) || PODMAN_USERS_ACTIVE=""
 
 		# Include any LOCAL_PODMAN_USERS defined in supportconfig.conf
 		declare -A PODMAN_DICT
@@ -2617,7 +2620,7 @@ printlog "AUTOFS..."
 	then
 		log_cmd $OF "systemctl status autofs.service"
 		[[ -x /usr/bin/findmnt ]] && log_cmd $OF "findmnt" || log_cmd $OF "mount"
-		log_cmd $OF 'ps aux | grep automount | grep -v grep'
+		log_cmd $OF "ps aux | grep automount | grep -v grep"
 		conf_files $OF /etc/sysconfig/autofs
 		log_cmd $OF 'grep ^automount: /etc/nsswitch.conf'
 		for SCHEME in $(grep ^automount: /etc/nsswitch.conf | sed -e 's/^.*:[ \t]*//')
@@ -4150,7 +4153,7 @@ if [[ -s ${SC_CONF:="${CONFIG_DIR}/${CURRENT_SCRIPT}.conf"} ]]; then
 fi
 
 log2sys "BEGIN Version: $SVER"
-ext_scaling_check
+[[ -n $PS_BIN ]] && ext_scaling_check # Assumes the default EXT_SCALING_DISABLED=1
 init_plugins on
 get_sles_ver
 NSA_CHECK=0

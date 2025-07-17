@@ -214,6 +214,8 @@ MIN_OPTION_YAST=1
 MIN_OPTION_SYSLOGS=1
 MIN_OPTION_AUTOMOD=1
 
+PS_BIN=$(which ps 2> /dev/null)
+
 trap "{ echolog TERMINATED BY USER; echo; exit 5; }" SIGINT
 trap "{ echolog SKIPPED BY USER; return 4; }" SIGQUIT
 
@@ -513,7 +515,9 @@ printvrpmlog() {
 }
 
 ext_scaling_check() {
-    T_BEFORE=$(date "+%S%N"); EXT_SCALING_PID=$(ps axo pid | wc -l); T_AFTER=$(date "+%S%N")
+    T_BEFORE=$(date "+%S%N")
+	EXT_SCALING_PID=$($PS_BIN axo pid | wc -l)
+	T_AFTER=$(date "+%S%N")
     EXT_SCALING_EXEC=$(expr $T_AFTER - $T_BEFORE)
     EXT_SCALING_IRQ=$(ls -1 /proc/irq 2>/dev/null | wc -l)
     (( EXT_SCALING_EXEC > EXT_SCALING_EXEC_LIMIT )) && { EXT_SCALING_DISABLED=0; log2sys "Extended Scaling: EXEC limit exceeded: ${EXT_SCALING_EXEC} > ${EXT_SCALING_EXEC_LIMIT}"; }
@@ -646,7 +650,7 @@ TEOF
 			echonlog "$CMDLINE_ORIG - Timed Out,"
 			echo >> $LOGFILE
 			echo "# ERROR: Command did not complete within the timeout period." >> $LOGFILE
-			ps -eaf | grep $(cat $SEMAPHORE_PID) | grep -v grep >> $LOGFILE
+			[[ -n "$PS_BIN" ]] && $PS_BIN -eaf | grep $(cat $SEMAPHORE_PID) | grep -v grep >> $LOGFILE
 			echo >> $LOGFILE
 		fi
 		wait_trace_off
@@ -780,7 +784,10 @@ addHeaderFile() {
 }
 
 timed_cmd_cleanup() {
-	PIDS2KILL=$(\ps axwwo pid,cmd | grep SC__SEMAPHORE | grep -v grep | awk '{print $1}')
+	PIDS2KILL=""
+	if [[ -n $PS_BIN ]]; then
+		PIDS2KILL=$($PS_BIN axwwo pid,cmd | grep SC__SEMAPHORE | grep -v grep | awk '{print $1}')
+	fi
 	if [[ -n "$PIDS2KILL" ]]; then
 		test $VAR_OPTION_SILENT -eq 0 && { echo; }
 		if (( $VAR_OPTION_SBM )); then
@@ -793,7 +800,7 @@ timed_cmd_cleanup() {
 			wait_trace_on "kill $PIDS2KILL"
 			kill -9 $PIDS2KILL &>/dev/null
 			sleep 1
-			PIDS2KILL=$(\ps axwwo pid,cmd | grep SC__SEMAPHORE | grep -v grep | awk '{print $1}')
+			PIDS2KILL=$($PS_BIN axwwo pid,cmd | grep SC__SEMAPHORE | grep -v grep | awk '{print $1}')
 			wait_trace_off
 		done
 	fi
