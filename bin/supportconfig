@@ -993,8 +993,7 @@ sssd_info() {
 		fi
 		log_cmd $OF 'date +"%Y-%m-%d %H:%M"'
 		log_cmd $OF 'ls -lR --time-style=long-iso /var/lib/sss/'
-		SSSD_PID=$(systemctl show sssd.service -p ExecMainPID)
-		SSSD_PID=${SSSD_PID#ExecMainPID=}
+		[[ -x "$SYSTEMCTL_BIN" ]] && { SSSD_PID=$($SYSTEMCTL_BIN show sssd.service -p ExecMainPID); SSSD_PID=${SSSD_PID#ExecMainPID=}; } || SSSD_PID=""
 		if (( $SSSD_PID )); then
 			[[ -n $PS_BIN ]] && SSSD_PIDS=$($PS_BIN axwwo pid,ppid,cmd | grep ${SSSD_PID} | grep -v grep | awk '{print $1}' | sort -n) || SSSD_PIDS=""
 			log_cmd $OF "ps axwwo user,pid,ppid,%cpu,%mem,vsz,rss,stat,time,cmd | grep -E \"${SSSD_PID}|PPID\" | grep -v grep"
@@ -1079,19 +1078,21 @@ systemd_info() {
 	log_cmd $OF 'systemctl --no-pager list-unit-files'
 	log_cmd $OF 'systemctl --no-pager list-jobs'
 	log_cmd $OF 'systemctl --no-pager list-timers --all'
-	for i in $(systemctl --no-pager --all list-units | sed 's/^[^-_:\\a-zA-Z0-9]*//' | grep -vE '^UNIT |^LOAD |^ACTIVE |^SUB |^To |^[[:digit:]]* ' | awk '{print $1}')
-	do
-		if [[ -z "$i" ]]
-		then
-			break
-		else
-			log_cmd $OF "systemctl show '$i' | sort"
-		fi
-	done
-	for i in $(systemctl --no-pager list-units --type=service | grep -v "not-found" | sed 's/^[^-_:\\a-zA-Z0-9]*//' | grep -vE '^UNIT |^LOAD |^ACTIVE |^SUB |^To |^[[:digit:]]* ' | awk '{print $1}')
-	do
-		log_cmd $OF2 "systemctl status '$i'"
-	done
+	if [[ -x "$SYSTEMCTL_BIN" ]]; then
+		for i in $($SYSTEMCTL_BIN --no-pager --all list-units | sed 's/^[^-_:\\a-zA-Z0-9]*//' | grep -vE '^UNIT |^LOAD |^ACTIVE |^SUB |^To |^[[:digit:]]* ' | awk '{print $1}')
+		do
+			if [[ -z "$i" ]]
+			then
+				break
+			else
+				log_cmd $OF "systemctl show '$i' | sort"
+			fi
+		done
+		for i in $($SYSTEMCTL_BIN --no-pager list-units --type=service | grep -v "not-found" | sed 's/^[^-_:\\a-zA-Z0-9]*//' | grep -vE '^UNIT |^LOAD |^ACTIVE |^SUB |^To |^[[:digit:]]* ' | awk '{print $1}')
+		do
+			log_cmd $OF2 "systemctl status '$i'"
+		done
+	fi
 	log_cmd $OF 'ls -alR /etc/systemd/'
 	log_cmd $OF 'ls -alR /usr/lib/systemd/'
 	echolog Done
@@ -1522,10 +1523,12 @@ detectVirtualization() {
 				log_write $OUT "Identity:      Unknown"
 				;;
 			esac
-		elif systemctl is-enabled libvirtd.service &>/dev/null; then
-			NO_HYPER=0
-			log_write $OUT "Hypervisor:    KVM"
-			log_write $OUT "Identity:      Virtual Machine Server - Dom0"
+		elif [[ -x $SYSTEMCTL_BIN ]]; then
+			if $SYSTEMCTL_BIN is-enabled libvirtd.service &>/dev/null; then
+				NO_HYPER=0
+				log_write $OUT "Hypervisor:    KVM"
+				log_write $OUT "Identity:      Virtual Machine Server - Dom0"
+			fi
 		fi
 	fi
 
@@ -1762,7 +1765,9 @@ hardware_info() {
 			log_cmd $OF "ls -l /var/log/dump"
 		fi
 	fi
-	[[ "$(systemctl show nvidia-persistenced.service -p LoadState)" == "LoadState=not-found" ]] || log_cmd $OF "systemctl status nvidia-persistenced.service"
+	if [[ -x $SYSTEMCTL_BIN ]]; then
+		[[ "$($SYSTEMCTL_BIN show nvidia-persistenced.service -p LoadState)" == "LoadState=not-found" ]] || log_cmd $OF "systemctl status nvidia-persistenced.service"
+	fi
 	echolog Done
 }
 
@@ -2257,12 +2262,14 @@ nfs_info() {
 			log_cmd $OF "systemctl status $NFSSERVER"
 			log_cmd $OF 'exportfs -v'
 			conf_files $OF /etc/exports
-			if systemctl is-active --quiet $NFSSERVER
-			then
-				if timed_log_cmd $OF 'showmount'
+			if [[ -x $SYSTEMCTL_BIN ]]; then
+				if $SYSTEMCTL_BIN is-active --quiet $NFSSERVER
 				then
-					log_cmd $OF 'showmount -e'
-					log_cmd $OF 'showmount -a'
+					if timed_log_cmd $OF 'showmount'
+					then
+						log_cmd $OF 'showmount -e'
+						log_cmd $OF 'showmount -a'
+					fi
 				fi
 			fi
 			NFS_FOUND=1
