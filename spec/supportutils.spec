@@ -38,6 +38,9 @@ Requires:       tar
 Requires:       /usr/bin/which
 Requires:       /usr/bin/sed
 Requires:       /usr/bin/awk
+Requires:       /usr/bin/find
+Requires:       /usr/bin/grep
+Requires:       /usr/bin/file
 Provides:       supportconfig-plugin-rc
 BuildArch:      noarch
 
