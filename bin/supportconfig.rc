@@ -186,7 +186,7 @@ SAVE_LOGS_ONLY=0
 USE_SAVED_LOGS_ONLY=0
 ENCRYPTED_TARBALL=0
 # Set bootloader type from sysconfig
-eval $(cat /etc/sysconfig/bootloader | grep LOADER_TYPE)
+[[ -f /etc/sysconfig/bootloader ]] && eval $(cat /etc/sysconfig/bootloader | grep LOADER_TYPE)
 IO_DELAYS=0
 
 EXT_SCALING_DISABLED=1
