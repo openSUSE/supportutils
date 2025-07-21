@@ -41,6 +41,7 @@ Requires:       /usr/bin/awk
 Requires:       /usr/bin/find
 Requires:       /usr/bin/grep
 Requires:       /usr/bin/file
+Requires:       /usr/bin/lsmod
 Provides:       supportconfig-plugin-rc
 BuildArch:      noarch
 
