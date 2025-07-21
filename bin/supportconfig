@@ -169,7 +169,7 @@ basic_environment() {
 						if grep iptable_$TABLE /proc/modules &>/dev/null
 						then
 							wait_trace_on "$IPBIN -t $TABLE -nL | sed -e '/^$/d' -e '/^Chain/d' -e '/^target/d' | wc -l"
-							FIREWALL_RULES=$($IPBIN -t $TABLE -nL | sed -e '/^$/d' -e '/^Chain/d' -e '/^target/d' | wc -l)
+							FIREWALL_RULES=$($IPBIN -t $TABLE -nL 2>/dev/null | sed -e '/^$/d' -e '/^Chain/d' -e '/^target/d' | wc -l)
 							TOTAL_FIREWALL_RULES=$(( TOTAL_FIREWALL_RULES + FIREWALL_RULES ))
 							wait_trace_off
 						fi
