@@ -2285,10 +2285,12 @@ ntp_info() {
 	OF=ntp.txt
 	CONFFILE=/etc/ntp.conf
 	addHeaderFile $OF
+	NTP_FOUND=0
 	if rpm -q chrony &> /dev/null
 	then
 	    if rpm_verify $OF chrony
 		then
+			NTP_FOUND=1
 		    NTP_DAEMON=1
 		    CONFFILE="/etc/chrony.conf"
 		    log_cmd $OF "systemctl status chronyd.service"
@@ -2325,9 +2327,9 @@ ntp_info() {
 			    FILES="/var/log/messages"
 			    (( $ADD_OPTION_LOGS )) && grep_log_files chrony $OF 0 $FILES || grep_log_files chrony $OF $VAR_OPTION_LINE_COUNT $FILES
 		    fi
-		    echolog Done
 	    elif rpm -q ntp &> /dev/null
 	    then
+			NTP_FOUND=1
 			CONFFILE=/etc/ntp.conf
 			log_cmd $OF "systemctl status ntpd.service"
 			log_cmd $OF 'ntpq -p'
@@ -2351,11 +2353,9 @@ ntp_info() {
 				[[ -z "$FILES" ]] && FILES=/var/log/ntp
 				test $ADD_OPTION_LOGS -gt 0 && log_files $OF 0 $FILES || log_files $OF $VAR_OPTION_LINE_COUNT $FILES
 			fi
-			echolog Done
-		else
-			echolog Skipped
 		fi
 	fi
+	(( $NTP_FOUND )) && echolog Done || echolog Skipped
 }
 
 nvme_info() {
