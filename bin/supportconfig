@@ -1407,7 +1407,7 @@ mpio_info() {
 	OF=mpio.txt
 	addHeaderFile $OF
 	SKIP=0
-	MPIO_RPM=$(rpm -qf `which multipath 2>/dev/null` 2>/dev/null)
+	MPIO_RPM=$(rpm -qf `command -v multipath` 2>/dev/null)
 	if [[ -z "$MPIO_RPM" ]]; then
 		MPIO_RPM=multipath-tools
 	fi
@@ -1913,7 +1913,7 @@ net_info_namespace() {
 			done
 		fi
 	fi
-	ETHTOOL_BIN=$(which ethtool 2>/dev/null)
+	ETHTOOL_BIN=$(command -v ethtool)
 	if [[ -x $ETHTOOL_BIN ]]; then
 		NICS=$(IFS="@: ";${NS}ip -o l | while read number nic dummy ; do echo $nic ; done)
 		for NIC in ${NICS}
@@ -2754,7 +2754,7 @@ selinux_info() {
 		do
 			log_cmd $OF "systemctl status ${SERVICE}.service"
 		done
-		SEMANAGE_BIN=$(which semanage 2>/dev/null)
+		SEMANAGE_BIN=$(command -v semanage)
 		if [[ -n $SEMANAGE_BIN ]]; then
 			log_cmd $OF "sestatus -v"
 			log_cmd $OF "$SEMANAGE_BIN boolean --list"

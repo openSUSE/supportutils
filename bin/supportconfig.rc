@@ -214,8 +214,8 @@ MIN_OPTION_YAST=1
 MIN_OPTION_SYSLOGS=1
 MIN_OPTION_AUTOMOD=1
 
-PS_BIN=$(which ps 2> /dev/null)
-SYSTEMCTL_BIN=$(which systemctl 2> /dev/null)
+PS_BIN=$(command -v ps)
+SYSTEMCTL_BIN=$(command -v systemctl)
 
 trap "{ echolog TERMINATED BY USER; echo; exit 5; }" SIGINT
 trap "{ echolog SKIPPED BY USER; return 4; }" SIGQUIT
@@ -599,7 +599,7 @@ timed_log_cmd() {
 	SEMAPHORE_ERR=${SEMAPHORE_FILE}.returncode
 	SEMAPHORE_PID=${SEMAPHORE_FILE}.pid
 	export SEMAPHORE_LOG
-	CMD=$(\which $CMDBIN 2>/dev/null | awk '{print $1}')
+	CMD=$(command -v $CMDBIN)
 	echo "#==[ Command ]======================================#" >> $LOGFILE
 	if [[ -x "$CMD" ]]; then
 		export CMDLINE=$(echo $CMDLINE_ORIG | sed -e "s!${CMDBIN}!${CMD}!")
