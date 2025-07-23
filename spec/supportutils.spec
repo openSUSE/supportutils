@@ -23,7 +23,7 @@
 
 Name:           supportutils
 Version:        3.2.11
-Release:        250721.test.1
+Release:        250723.test.1
 Summary:        Support Troubleshooting Tools
 License:        GPL-2.0-only
 Group:          System/Monitoring
@@ -40,7 +40,7 @@ Requires:       /usr/bin/awk
 Requires:       /usr/bin/find
 Requires:       /usr/bin/grep
 Requires:       /usr/bin/file
-Requires:       /usr/bin/lsmod
+#Requires:       /usr/bin/lsmod
 Provides:       supportconfig-plugin-rc
 BuildArch:      noarch
 

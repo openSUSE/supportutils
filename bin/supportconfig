@@ -993,7 +993,7 @@ sssd_info() {
 		fi
 		log_cmd $OF 'date +"%Y-%m-%d %H:%M"'
 		log_cmd $OF 'ls -lR --time-style=long-iso /var/lib/sss/'
-		[[ -x "$SYSTEMCTL_BIN" ]] && { SSSD_PID=$($SYSTEMCTL_BIN show sssd.service -p ExecMainPID); SSSD_PID=${SSSD_PID#ExecMainPID=}; } || SSSD_PID=""
+		[[ -x "$SYSTEMCTL_BIN" ]] && { SSSD_PID=$($SYSTEMCTL_BIN show sssd.service -p ExecMainPID 2>/dev/null); SSSD_PID=${SSSD_PID#ExecMainPID=}; } || SSSD_PID=""
 		if (( $SSSD_PID )); then
 			[[ -n $PS_BIN ]] && SSSD_PIDS=$($PS_BIN axwwo pid,ppid,cmd | grep ${SSSD_PID} | grep -v grep | awk '{print $1}' | sort -n) || SSSD_PIDS=""
 			log_cmd $OF "ps axwwo user,pid,ppid,%cpu,%mem,vsz,rss,stat,time,cmd | grep -E \"${SSSD_PID}|PPID\" | grep -v grep"
@@ -1079,7 +1079,7 @@ systemd_info() {
 	log_cmd $OF 'systemctl --no-pager list-jobs'
 	log_cmd $OF 'systemctl --no-pager list-timers --all'
 	if [[ -x "$SYSTEMCTL_BIN" ]]; then
-		for i in $($SYSTEMCTL_BIN --no-pager --all list-units | sed 's/^[^-_:\\a-zA-Z0-9]*//' | grep -vE '^UNIT |^LOAD |^ACTIVE |^SUB |^To |^[[:digit:]]* ' | awk '{print $1}')
+		for i in $($SYSTEMCTL_BIN --no-pager --all list-units 2>/dev/null | sed 's/^[^-_:\\a-zA-Z0-9]*//' | grep -vE '^UNIT |^LOAD |^ACTIVE |^SUB |^To |^[[:digit:]]* ' | awk '{print $1}')
 		do
 			if [[ -z "$i" ]]
 			then
@@ -1088,7 +1088,7 @@ systemd_info() {
 				log_cmd $OF "systemctl show '$i' | sort"
 			fi
 		done
-		for i in $($SYSTEMCTL_BIN --no-pager list-units --type=service | grep -v "not-found" | sed 's/^[^-_:\\a-zA-Z0-9]*//' | grep -vE '^UNIT |^LOAD |^ACTIVE |^SUB |^To |^[[:digit:]]* ' | awk '{print $1}')
+		for i in $($SYSTEMCTL_BIN --no-pager list-units --type=service 2>/dev/null | grep -v "not-found" | sed 's/^[^-_:\\a-zA-Z0-9]*//' | grep -vE '^UNIT |^LOAD |^ACTIVE |^SUB |^To |^[[:digit:]]* ' | awk '{print $1}')
 		do
 			log_cmd $OF2 "systemctl status '$i'"
 		done
@@ -1766,7 +1766,7 @@ hardware_info() {
 		fi
 	fi
 	if [[ -x $SYSTEMCTL_BIN ]]; then
-		[[ "$($SYSTEMCTL_BIN show nvidia-persistenced.service -p LoadState)" == "LoadState=not-found" ]] || log_cmd $OF "systemctl status nvidia-persistenced.service"
+		[[ "$($SYSTEMCTL_BIN show nvidia-persistenced.service -p LoadState 2>/dev/null)" == "LoadState=not-found" ]] || log_cmd $OF "systemctl status nvidia-persistenced.service"
 	fi
 	echolog Done
 }
