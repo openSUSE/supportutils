@@ -414,24 +414,47 @@ module_info() {
 	OF=modules.txt
 	LOGFILE=$LOG/$OF
 	addHeaderFile $OF
-	log_cmd $OF 'lsmod | sort'
-	for MODULE in $(cat /proc/modules | awk '{print $1}')
-	do
-		log_cmd $OF "modinfo $MODULE"
-		MODPARM="/sys/module/$MODULE/parameters/"
-		if [[ -d $MODPARM ]]; then
-			log_write $OF "# Known Module Parameter Values"
-			for i in $(ls -1 $MODPARM)
-			do
-				MODVALUE=$(cat ${MODPARM}$i 2>/dev/null)
-				(( $? )) && MODVALUE="?"
-				log_write $OF "${MODPARM}$i=$MODVALUE"
-			done
-			log_write $OF
-		fi
-		MODOPT=$(grep -R "options ${MODULE} " /etc/modprobe\.?* | grep -v ":# option")
-		[[ -n "$MODOPT" ]] && { log_write $OF "# Module Configuration"; log_write $OF "$MODOPT"; log_write $OF; }
-	done
+	if [[ -n "$LSMOD_BIN" ]]; then
+		log_cmd $OF 'lsmod | sort'
+		for MODULE in $(sort /proc/modules | cut -d' ' -f1)
+		do
+			log_cmd $OF "modinfo $MODULE"
+			MODPARM="/sys/module/$MODULE/parameters/"
+			if [[ -d $MODPARM ]]; then
+				log_write $OF "# Known Module Parameter Values"
+				for i in $(ls -1 $MODPARM)
+				do
+					MODVALUE=$(cat ${MODPARM}$i 2>/dev/null)
+					(( $? )) && MODVALUE="?"
+					log_write $OF "${MODPARM}$i=$MODVALUE"
+				done
+				log_write $OF
+			fi
+			MODOPT=$(grep -R "options ${MODULE} " /etc/modprobe\.?* | grep -v ":# option")
+			[[ -n "$MODOPT" ]] && { log_write $OF "# Module Configuration"; log_write $OF "$MODOPT"; log_write $OF; }
+		done
+	else
+		log_cmd $OF 'sort /proc/modules'
+		for MODULE in $(sort /proc/modules | cut -d' ' -f1)
+		do
+			MODPARM="/sys/module/$MODULE/parameters/"
+			MODOPT=$(grep -R "options ${MODULE} " /etc/modprobe\.?* | grep -v ":# option")
+			if [[ -d $MODPARM ]] || [[ -n "$MODOPT" ]]; then
+				log_entry $OF note "Module Information for $MODULE"
+			fi
+			if [[ -d $MODPARM ]]; then
+				log_write $OF "# Known Module Parameter Values"
+				for i in $(ls -1 $MODPARM)
+				do
+					MODVALUE=$(cat ${MODPARM}$i 2>/dev/null)
+					(( $? )) && MODVALUE="?"
+					log_write $OF "${MODPARM}$i=$MODVALUE"
+				done
+				log_write $OF
+			fi
+			[[ -n "$MODOPT" ]] && { log_write $OF "# Module Configuration"; log_write $OF "$MODOPT"; log_write $OF; }
+		done
+	fi
 	conf_files $OF /lib/modules/$(uname -r)/modules.*dep
 	conf_files $OF /etc/modprobe.d/*
 	echolog Done
@@ -2190,7 +2213,7 @@ iscsi_info() {
 	if rpm_verify $OF python3-targetcli-fb
 	then
 		log_cmd $OF 'systemctl status targetcli.service'
-		log_cmd $OF 'lsmod | grep target_'
+		log_cmd $OF 'grep target_ /proc/modules'
 		log_cmd $OF 'targetcli ls'
 		[[ -d /etc/target ]] && FILES=$(find -L /etc/target -type f)
 	fi
@@ -2370,7 +2393,7 @@ nvme_info() {
 	SKIP=0
 	if rpm -q $NVME_PKG &>/dev/null; then
 		rpm_verify $OF $NVME_PKG
-		if lsmod | grep nvme &> /dev/null; then
+		if grep nvme /proc/modules &> /dev/null; then
 			NVME_LOADED=1
 		fi
 		if (( $NVME_LOADED )); then
@@ -2936,7 +2959,7 @@ ocfs2_info() {
 	addHeaderFile $OF
 	if rpm_verify $OF ocfs2-tools
 	then
-		if lsmod | grep ocfs2_stack_user[[:space:]] &>/dev/null && lsmod | grep ocfs2[[:space:]] &>/dev/null
+		if grep -E "ocfs[[:space:]]|ocfs2_stack_user[[:space:]]" /proc/modules &>/dev/null
 		then
 			OCFS2_MODULES=1
 		fi
@@ -2944,7 +2967,7 @@ ocfs2_info() {
 		(( OCFS2_MODULES )) && timed_log_cmd $OF "mounted.ocfs2 -d"
 		(( OCFS2_MODULES )) && timed_log_cmd $OF "mounted.ocfs2 -f"
 		log_cmd $OF "ps aux | grep ocfs2 | grep -v grep"
-		log_cmd $OF "lsmod | grep ocfs2"
+		log_cmd $OF "grep ocfs2 /proc/modules"
 		CHECKDIR="/sys/o2cb"
 		if [[ -d $CHECKDIR ]]; then
 			FILES=$(find ${CHECKDIR}/ -type f)
@@ -3010,14 +3033,14 @@ gfs2_info() {
 	addHeaderFile $OF
 	if rpm_verify $OF gfs2-utils
 	then
-		if  lsmod | grep gfs2[[:space:]] &>/dev/null
+		if  grep gfs2[[:space:]] /proc/modules &>/dev/null
 		then
 			GFS2_MODULES=1
 		fi
 		log_cmd $OF "rpm -qa | grep -E 'gfs2-utils|gfs2-kmp-default'"
 		[[ -x /usr/bin/findmnt ]] && log_cmd $OF "findmnt --types gfs2" || log_cmd $OF "mount --types gfs2"
 		log_cmd $OF "ps aux | grep gfs2 | grep -v grep"
-		log_cmd $OF "lsmod | grep gfs2"
+		log_cmd $OF "grep gfs2 /proc/modules"
 		(( GFS2_MODULES )) && DEVICES=$(find /sys/fs/gfs2/ -name device -and -type l -exec sh -c 'readlink -ev {} | sed  "s/.*\//\/dev\//g" ' \;) || DEVICES=''
 		log_entry $OF x "GFS2 Devices"
 		log_write $OF "$DEVICES"
@@ -3048,7 +3071,7 @@ drbd_info() {
 		log_cmd $OF 'systemctl status drbd.service'
 		log_cmd $OF "grep -E \"drbd\" $RPMPATH"
 		log_write $OF
-		log_cmd $OF "lsmod | grep drbd"
+		log_cmd $OF "grep drbd /proc/modules"
 		log_cmd $OF "modinfo drbd"
 		log_cmd $OF "drbd-overview" 
 		# Added By Ahmad Al Zayed - Feb 21, 2019 to get few drbd output & configuration 
@@ -3954,7 +3977,7 @@ ib_info() {
 			fi
 			log_cmd $OF 'lspci -b'
 			log_cmd $OF 'lspci -nn'
-			log_cmd $OF 'lsmod'
+			log_cmd $OF 'sort /proc/modules'
 
 			FILES=''
 			(( CHK_DIAG )) && FILES="$FILES $(find /tmp/ -type f -name \*ibdiagnet\* 2>/dev/null)"
@@ -4245,6 +4268,7 @@ done
 
 umask 0077
 log2sys "Initialize"
+MOD_SUPPORTCONFIG_COUNT_BEFORE=$(wc -l 2>/dev/null /proc/modules)
 
 if [[ -n "$TARGET_DIRECTORY" ]]; then
 	VAR_OPTION_LOG_DIRS=$TARGET_DIRECTORY
@@ -4317,6 +4341,12 @@ if (( $LOGERROR )); then
 	exit_code 3
 fi
 export LOG CSFILE
+
+if (( OPTION_MOD )); then
+	MODULE_LIST_BEFORE=$(mktemp ${LOG}/module_list_before.XXXXXXXXXX)
+	cat /proc/modules > $MODULE_LIST_BEFORE
+	MODULE_LIST_AFTER=$(mktemp ${LOG}/module_list_after.XXXXXXXXXX)
+fi
 
 if (( $USE_SAVED_LOGS_ONLY != 1 )); then
 
