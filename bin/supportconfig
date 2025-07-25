@@ -315,7 +315,7 @@ basic_healthcheck() {
         log_write $OF "# awk '\$8 ~ /D|Z/' $PSPTMP"
         log_write $OF "$(awk '!/^#/ && $8 ~ /D|Z/' "$PSPTMP")"
 
-	if [[ -n $PS_BIN ]]; then
+	if [[ -x $PS_BIN ]]; then
 		TOPTMP=$(mktemp $LOG/top.XXXXXXXX)
 		log_write $OF
 		log_write $OF "#==[ Summary ]======================================#"
@@ -1018,7 +1018,7 @@ sssd_info() {
 		log_cmd $OF 'ls -lR --time-style=long-iso /var/lib/sss/'
 		[[ -x "$SYSTEMCTL_BIN" ]] && { SSSD_PID=$($SYSTEMCTL_BIN show sssd.service -p ExecMainPID 2>/dev/null); SSSD_PID=${SSSD_PID#ExecMainPID=}; } || SSSD_PID=""
 		if (( $SSSD_PID )); then
-			[[ -n $PS_BIN ]] && SSSD_PIDS=$($PS_BIN axwwo pid,ppid,cmd | grep ${SSSD_PID} | grep -v grep | awk '{print $1}' | sort -n) || SSSD_PIDS=""
+			[[ -x $PS_BIN ]] && SSSD_PIDS=$($PS_BIN axwwo pid,ppid,cmd | grep ${SSSD_PID} | grep -v grep | awk '{print $1}' | sort -n) || SSSD_PIDS=""
 			log_cmd $OF "ps axwwo user,pid,ppid,%cpu,%mem,vsz,rss,stat,time,cmd | grep -E \"${SSSD_PID}|PPID\" | grep -v grep"
 			for THISPID in $SSSD_PIDS
 			do
@@ -1192,7 +1192,7 @@ podman_info() {
 	then
 		mkdir -p $PODMANSCDIR
 		# Identify all non-root users currently running at least one container
-		[[ -n $PS_BIN ]] && PODMAN_USERS_ACTIVE=$($PS_BIN axwwo user,cmd | grep conmon | grep -v grep | cut -d\  -f1 | sort | uniq | grep -v root) || PODMAN_USERS_ACTIVE=""
+		[[ -x $PS_BIN ]] && PODMAN_USERS_ACTIVE=$($PS_BIN axwwo user,cmd | grep conmon | grep -v grep | cut -d\  -f1 | sort | uniq | grep -v root) || PODMAN_USERS_ACTIVE=""
 
 		# Include any LOCAL_PODMAN_USERS defined in supportconfig.conf
 		declare -A PODMAN_DICT
@@ -2778,7 +2778,7 @@ selinux_info() {
 			log_cmd $OF "systemctl status ${SERVICE}.service"
 		done
 		SEMANAGE_BIN=$(command -v semanage)
-		if [[ -n $SEMANAGE_BIN ]]; then
+		if [[ -x $SEMANAGE_BIN ]]; then
 			log_cmd $OF "sestatus -v"
 			log_cmd $OF "$SEMANAGE_BIN boolean --list"
 			log_cmd $OF "$SEMANAGE_BIN fcontext --list"
@@ -4183,7 +4183,7 @@ if [[ -s ${SC_CONF:="${CONFIG_DIR}/${CURRENT_SCRIPT}.conf"} ]]; then
 fi
 
 log2sys "BEGIN Version: $SVER"
-[[ -n $PS_BIN ]] && ext_scaling_check # Assumes the default EXT_SCALING_DISABLED=1
+[[ -x $PS_BIN ]] && ext_scaling_check # Assumes the default EXT_SCALING_DISABLED=1
 init_plugins on
 get_sles_ver
 NSA_CHECK=0

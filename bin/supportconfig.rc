@@ -220,6 +220,7 @@ MIN_OPTION_AUTOMOD=1
 PS_BIN=$(command -v ps)
 SYSTEMCTL_BIN=$(command -v systemctl)
 LSMOD_BIN=$(command -v lsmod)
+DIFF_BIN=$(command -v diff)
 
 trap "{ echolog TERMINATED BY USER; echo; exit 5; }" SIGINT
 trap "{ echolog SKIPPED BY USER; return 4; }" SIGQUIT
@@ -790,7 +791,7 @@ addHeaderFile() {
 
 timed_cmd_cleanup() {
 	PIDS2KILL=""
-	if [[ -n $PS_BIN ]]; then
+	if [[ -x $PS_BIN ]]; then
 		PIDS2KILL=$($PS_BIN axwwo pid,cmd | grep SC__SEMAPHORE | grep -v grep | awk '{print $1}')
 	fi
 	if [[ -n "$PIDS2KILL" ]]; then
@@ -1309,8 +1310,10 @@ post_lsmod_list() {
 	MOD_CNT_ADDED=$((MODULE_COUNT_AFTER - MODULE_COUNT_BEFORE))
 	log_write $OF "Modules Loaded Incident to Supportconfig:  $MOD_CNT_ADDED"
 	if (( $MOD_CNT_ADDED )); then
-		log_write $OF
-		diff $MODULE_LIST_BEFORE $MODULE_LIST_AFTER | grep '>' >> $LOG/$OF
+		if [[ -x $DIFF_BIN ]]; then
+			log_write $OF
+			$DIFF_BIN $MODULE_LIST_BEFORE $MODULE_LIST_AFTER | grep '>' >> $LOG/$OF
+		fi
 		log_write $OF
 		log_write $OF "Use -k to prevent supportconfig from loading modules"
 		log_write $OF "needed for system analysis. Using -k is not recommended."
