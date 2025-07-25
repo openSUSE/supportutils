@@ -1835,9 +1835,11 @@ net_info_namespace() {
 			log_cmd $OF 'nmcli general status'
 			log_cmd $OF 'nmcli device show'
 			log_cmd $OF 'nmcli connection show'
-			CONNECTIONS=$(nmcli -f NAME connection show | grep -v NAME)
-			while read LINE; do log_cmd $OF "nmcli connection show \"$LINE\""; done <<< "$CONNECTIONS"
-			EFILES=$(find /etc/NetworkManager /usr/lib/NetworkManager -type f | grep -v ' ')
+			if [[ -x $NMCLI_BIN ]]; then
+				CONNECTIONS=$(nmcli -f NAME connection show | grep -v NAME)
+				while read LINE; do log_cmd $OF "nmcli connection show \"$LINE\""; done <<< "$CONNECTIONS"
+			fi
+			EFILES=$(find /etc/NetworkManager /usr/lib/NetworkManager -type f 2>/dev/null | grep -v ' ')
 			conf_files $OF $EFILES
 		elif (( SLES_VER >= 150 )); then
 			rpm_verify $OF sysconfig
