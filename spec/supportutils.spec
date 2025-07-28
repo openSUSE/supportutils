@@ -29,17 +29,15 @@ License:        GPL-2.0-only
 Group:          System/Monitoring
 Url:            https://github.com/openSUSE/supportutils
 Source:         %{name}-%{version}.tar.gz
-Requires:       iproute2
-Requires:       ncurses-utils
 %ifarch ppc64le s390x
 Requires:       numactl
 %endif
 Requires:       tar
-Requires:       /usr/bin/sed
-Requires:       /usr/bin/awk
-Requires:       /usr/bin/find
-Requires:       /usr/bin/grep
-Requires:       /usr/bin/file
+Requires:       sed
+Requires:       gawk
+Requires:       findutils
+Requires:       grep
+Requires:       file
 Provides:       supportconfig-plugin-rc
 BuildArch:      noarch
 

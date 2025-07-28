@@ -1798,7 +1798,7 @@ net_info() {
 	printlog "Networking..."
 	(( $OPTION_NET )) || { echolog Excluded; return 1; }
 	if (( $INCLUDE_NETWORK_NAMESPACES )); then
-		NAMESPACES=$(ip netns list)
+		NAMESPACES=$(ip netns list 2>/dev/null)
 		if [[ -n "${NAMESPACES}" ]]; then
 			net_info_namespace "network.txt" 
 			ip netns list | while read NAMESPACE rest; do
@@ -1877,13 +1877,13 @@ net_info_namespace() {
 			esac
 		fi
 	fi
-	IPADDRS=$(${NS}ip addr | grep 'inet ' | awk '{print $2}' | cut -d/ -f1)
+	IPADDRS=$(${NS}ip addr 2>/dev/null | grep 'inet ' | awk '{print $2}' | cut -d/ -f1)
 	for IPADDR in $IPADDRS
 	do
 		ping_addr $OF 'Local Interface' $IPADDR "${NS}"
 	done
 
-	IPADDR=$(${NS}ip route list | awk '$1 == "default" {print $3}')
+	IPADDR=$(${NS}ip route list 2>/dev/null | awk '$1 == "default" {print $3}')
 	ping_addr $OF 'Default Route' $IPADDR "${NS}"
 
 	if [[ -z "${NS}" ]]; then
@@ -1894,14 +1894,14 @@ net_info_namespace() {
 		done
 	fi
 
-	${NS}ip rule show | while read skip skip skip skip table rest
+	${NS}ip rule show 2>/dev/null | while read skip skip skip skip table rest
 	do
 		log_cmd $OF "${NS}ip route show table $table"
 	done
 	log_cmd $OF "${NS}ip route show table cache"
 	log_cmd $OF "${NS}ip -6 route show table cache"
 	log_cmd $OF "${NS}ip rule show"
-	NICS=$(IFS="@: ";${NS}ip -o l | while read number nic dummy ; do echo $nic ; done)
+	NICS=$(IFS="@: ";${NS}ip -o l 2>/dev/null | while read number nic dummy ; do echo $nic ; done)
 	for NIC in ${NICS}
 	do
 		log_cmd $OF "${NS}tc -s -d qdisc show dev ${NIC}"
