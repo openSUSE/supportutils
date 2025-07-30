@@ -32,6 +32,7 @@ Source:         %{name}-%{version}.tar.gz
 %ifarch ppc64le s390x
 Requires:       numactl
 %endif
+Requires:       coreutils
 Requires:       tar
 Requires:       sed
 Requires:       gawk
