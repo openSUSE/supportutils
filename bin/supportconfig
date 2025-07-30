@@ -1,6 +1,6 @@
 #!/bin/bash
 
-SVER='3.2.11-1'
+SVER='3.2.11-1_test-containers'
 SDATE='2025 Jun 30'
 
 ##############################################################################
@@ -710,31 +710,33 @@ boot_info() {
 	log_cmd $OF "lsinitrd -k $(uname -r)"
 	(( $ADD_OPTION_LOGS )) && log_files $OF 0 $FILES || log_files $OF $VAR_OPTION_LINE_COUNT $FILES
 	log_cmd $OF 'journalctl --no-pager --disk-usage'
-	if (( $ADD_OPTION_LOGS )); then
-		log_cmd $OF 'journalctl --no-pager --list-boot'
-		LIST_BOOTS=$(journalctl --no-pager --list-boot | wc -l)
-		((LIST_BOOTS--))
-		if (( LIST_BOOTS > 0 )); then
-			BOOT_COUNT=1
-			if (( VAR_OPTION_JOURNALCTL_MAX_BOOTS > 0 )); then
-				JOURNALCTL_MAX_BOOTS=$VAR_OPTION_JOURNALCTL_MAX_BOOTS
+	if [[ -x $JOURNALCTL_BIN ]]; then
+		if (( $ADD_OPTION_LOGS )); then
+			log_cmd $OF 'journalctl --no-pager --list-boot'
+			LIST_BOOTS=$(journalctl --no-pager --list-boot | wc -l)
+			((LIST_BOOTS--))
+			if (( LIST_BOOTS > 0 )); then
+				BOOT_COUNT=1
+				if (( VAR_OPTION_JOURNALCTL_MAX_BOOTS > 0 )); then
+					JOURNALCTL_MAX_BOOTS=$VAR_OPTION_JOURNALCTL_MAX_BOOTS
+				else
+					#VAR_OPTION_JOURNALCTL_MAX_BOOTS of 0 means get all boots
+					JOURNALCTL_MAX_BOOTS=$LIST_BOOTS
+				fi
+				for THIS_BOOT in $(seq 0 $LIST_BOOTS)
+				do
+					log_cmd $OF "journalctl --no-pager --boot $THIS_BOOT"
+					((BOOT_COUNT < JOURNALCTL_MAX_BOOTS)) && ((BOOT_COUNT++)) || break
+				done
 			else
-				#VAR_OPTION_JOURNALCTL_MAX_BOOTS of 0 means get all boots
-				JOURNALCTL_MAX_BOOTS=$LIST_BOOTS
+				log_cmd $OF "journalctl --no-pager --boot 0"
 			fi
-			for THIS_BOOT in $(seq 0 $LIST_BOOTS)
-			do
-				log_cmd $OF "journalctl --no-pager --boot $THIS_BOOT"
-				((BOOT_COUNT < JOURNALCTL_MAX_BOOTS)) && ((BOOT_COUNT++)) || break
-			done
 		else
-			log_cmd $OF "journalctl --no-pager --boot 0"
-		fi
-	else
-		if (( VAR_OPTION_JOURNALCTL_LINE_COUNT > 0 )); then
-			log_cmd $OF "journalctl --no-pager --boot 0 | tail -n ${VAR_OPTION_JOURNALCTL_LINE_COUNT}"
-		else
-			log_cmd $OF "journalctl --no-pager --boot 0"
+			if (( VAR_OPTION_JOURNALCTL_LINE_COUNT > 0 )); then
+				log_cmd $OF "journalctl --no-pager --boot 0 | tail -n ${VAR_OPTION_JOURNALCTL_LINE_COUNT}"
+			else
+				log_cmd $OF "journalctl --no-pager --boot 0"
+			fi
 		fi
 	fi
 	log_cmd $OF 'dmesg -T'
