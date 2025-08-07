@@ -218,6 +218,7 @@ MIN_OPTION_SYSLOGS=1
 MIN_OPTION_AUTOMOD=1
 
 PS_BIN=$(command -v ps)
+GPG_BIN=$(command -v gpg)
 SYSTEMCTL_BIN=$(command -v systemctl)
 LSMOD_BIN=$(command -v lsmod)
 DIFF_BIN=$(command -v diff)
@@ -1049,16 +1050,24 @@ ehr() {
 
 encrypt_tarball() {
 	log2sys "Encrypt Tar Ball"
-	FOUND_KEY=$(gpg --list-keys 2>/dev/null | grep "$VAR_OPTION_GPG_UID" 2>/dev/null)
-	if [[ -z "$FOUND_KEY" ]]; then
-		echo "ERROR: GPG key not found: $VAR_OPTION_GPG_UID"
-		echo "	   File encryption failed, aborting"
+	if [[ -x $GPG_BIN ]]; then
+		FOUND_KEY=$($GPG_BIN --list-keys 2>/dev/null | grep "$VAR_OPTION_GPG_UID" 2>/dev/null)
+		if [[ -z "$FOUND_KEY" ]]; then
+			echo "ERROR: GPG key not found: $VAR_OPTION_GPG_UID"
+			echo " File encryption failed, aborting"
+			echo " GPG Keys Found:"
+			$GPG_BIN --list-keys
+			echo
+			exit_code 13
+		fi
+	else
+		echo "ERROR: Command not found - gpg"
+		echo " File encryption failed, aborting"
 		echo
-		gpg --list-keys
 		exit_code 13
 	fi
 	if (( VAR_OPTION_SILENT )); then
-		gpg --batch --yes --trust-model always --encrypt --recipient "$VAR_OPTION_GPG_UID" $TARBALL &> /dev/null
+		$GPG_BIN --batch --yes --trust-model always --encrypt --recipient "$VAR_OPTION_GPG_UID" $TARBALL &> /dev/null
 		ERR=$?
 		if (( $ERR )); then
 			echo "ERROR: gpg failed, RC=$ERR, aborting"
@@ -1076,7 +1085,7 @@ encrypt_tarball() {
 		echo "Using GPG Key:  $VAR_OPTION_GPG_UID"
 		echo "Command:		gpg --batch --yes --trust-model always --encrypt --recipient \"$VAR_OPTION_GPG_UID\" $TARBALL"
 		wait_trace_on "gpg --batch --yes --trust-model always --encrypt --recipient "$VAR_OPTION_GPG_UID" $TARBALL"
-		gpg --batch --yes --trust-model always --encrypt --recipient "$VAR_OPTION_GPG_UID" $TARBALL
+		$GPG_BIN --batch --yes --trust-model always --encrypt --recipient "$VAR_OPTION_GPG_UID" $TARBALL
 		ERR=$?
 		wait_trace_off
 		if (( $ERR )); then
