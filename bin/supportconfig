@@ -1000,7 +1000,7 @@ sssd_info() {
 			FILES=$(find -L /etc/sssd/conf.d/ -type f | grep -E "\.conf$")
 			conf_files $OF "$FILES"
 		fi
-		SRVS_LDAP=$(grep "^[[:space:]]*ldap_uri" /etc/sssd/sssd.conf | cut -d= -f2 | sed -e 's/ *//g;s/,/ /g')
+		SRVS_LDAP=$(grep "^[[:space:]]*ldap_uri" /etc/sssd/sssd.conf 2>/dev/null | cut -d= -f2 | sed -e 's/ *//g;s/,/ /g')
 		if [[ -n "$SRVS_LDAP" ]]; then
 			for URI in $SRVS_LDAP
 			do
@@ -1008,7 +1008,7 @@ sssd_info() {
 				ping_addr $OF 'SSSD LDAP Server' $ADDR
 			done
 		fi
-		SRVS_KRB5=$(grep -E "^[[:space:]]*krb5_server|^[[:space:]]*krb5_kdcip" /etc/sssd/sssd.conf | cut -d= -f2 | sed -e 's/ *//g;s/,/ /g')
+		SRVS_KRB5=$(grep -E "^[[:space:]]*krb5_server|^[[:space:]]*krb5_kdcip" /etc/sssd/sssd.conf 2>/dev/null | cut -d= -f2 | sed -e 's/ *//g;s/,/ /g')
 		if [[ -n "$SRVS_KRB5" ]]; then
 			for URI in $SRVS_KRB5
 			do
