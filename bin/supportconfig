@@ -2042,7 +2042,7 @@ disk_info() {
 	(( $IO_DELAYS )) || log_cmd $OF "df -Th"
 	log_cmd $OF "lsblk -i -o 'NAME,KNAME,MAJ:MIN,FSTYPE,LABEL,RO,RM,MODEL,SIZE,OWNER,GROUP,MODE,ALIGNMENT,MIN-IO,OPT-IO,PHY-SEC,LOG-SEC,ROTA,SCHED,MOUNTPOINT,DISC-ALN,DISC-GRAN,DISC-MAX,DISC-ZERO'"
 	log_cmd $OF "blkid"
-	[[ -x /usr/bin/findmnt ]] && log_cmd $OF "findmnt"
+	log_cmd $OF "findmnt"
 	log_cmd $OF "mount"
 	conf_files $OF /proc/mounts /etc/mtab
 
@@ -2166,24 +2166,26 @@ btrfs_info() {
 		addHeaderFile $OF
 		log_cmd $OF "btrfs filesystem show"
 		conf_files $OF /etc/fstab
-		[[ -x /usr/bin/findmnt ]] && log_cmd $OF "findmnt" || log_cmd $OF "mount"
-		(( $IO_DELAYS )) || log_cmd $OF "df -Th"
 		log_cmd $OF "modinfo btrfs"
-		for DEVICE in $(btrfs filesystem show | awk 'NF{ print $NF }' | grep ^/)
-		#TODO For multi-device btrfs filesysems only use one device
-		do
-			for FILESYS in $(findmnt -S $DEVICE --types btrfs --list --output target --first-only --noheadings)
+		(( $IO_DELAYS )) || log_cmd $OF "df -Th"
+		if [[ -x $FINDMNT_BIN ]]; then
+			log_cmd $OF "findmnt"
+			for DEVICE in $(btrfs filesystem show | awk 'NF{ print $NF }' | grep ^/)
 			do
-				log_cmd $OF "btrfs filesystem usage $FILESYS"
-				log_cmd $OF "btrfs scrub status $FILESYS"
-				log_cmd $OF "btrfs balance status -v $FILESYS"
-				log_cmd $OF "btrfs subvolume get-default $FILESYS"
-				log_cmd $OF "btrfs subvolume list $FILESYS"
-				log_cmd $OF "btrfs qgroup show -prce $FILESYS"
-				log_cmd $OF "btrfs device stats $FILESYS"
+				for FILESYS in $($FINDMNT_BIN -S $DEVICE --types btrfs --list --output target --first-only --noheadings)
+				do
+					log_cmd $OF "btrfs filesystem usage $FILESYS"
+					log_cmd $OF "btrfs scrub status $FILESYS"
+					log_cmd $OF "btrfs balance status -v $FILESYS"
+					log_cmd $OF "btrfs subvolume get-default $FILESYS"
+					log_cmd $OF "btrfs subvolume list $FILESYS"
+					log_cmd $OF "btrfs qgroup show -prce $FILESYS"
+					log_cmd $OF "btrfs device stats $FILESYS"
+				done
 			done
-		done
-
+		else
+			log_cmd $OF "mount"
+		fi
 		if rpm_verify $OF snapper; then
 			log_cmd $OF "snapper list-configs"
 			CONFIGS=$(snapper --table-style 0 list-configs | sed -e 's/[[:space:]]*//g;1,2d')
@@ -2653,7 +2655,7 @@ printlog "AUTOFS..."
 	if rpm_verify $OF autofs || rpm_verify $OF autofs4 || rpm_verify $OF autofs5
 	then
 		log_cmd $OF "systemctl status autofs.service"
-		[[ -x /usr/bin/findmnt ]] && log_cmd $OF "findmnt" || log_cmd $OF "mount"
+		[[ -x $FINDMNT_BIN ]] && log_cmd $OF "findmnt" || log_cmd $OF "mount"
 		log_cmd $OF "ps aux | grep automount | grep -v grep"
 		conf_files $OF /etc/sysconfig/autofs
 		log_cmd $OF 'grep ^automount: /etc/nsswitch.conf'
@@ -2967,7 +2969,7 @@ ocfs2_info() {
 		then
 			OCFS2_MODULES=1
 		fi
-		[[ -x /usr/bin/findmnt ]] && log_cmd $OF "findmnt" || log_cmd $OF "mount"
+		[[ -x $FINDMNT_BIN ]] && log_cmd $OF "findmnt" || log_cmd $OF "mount"
 		(( OCFS2_MODULES )) && timed_log_cmd $OF "mounted.ocfs2 -d"
 		(( OCFS2_MODULES )) && timed_log_cmd $OF "mounted.ocfs2 -f"
 		log_cmd $OF "ps aux | grep ocfs2 | grep -v grep"
@@ -3042,7 +3044,7 @@ gfs2_info() {
 			GFS2_MODULES=1
 		fi
 		log_cmd $OF "rpm -qa | grep -E 'gfs2-utils|gfs2-kmp-default'"
-		[[ -x /usr/bin/findmnt ]] && log_cmd $OF "findmnt --types gfs2" || log_cmd $OF "mount --types gfs2"
+		[[ -x $FINDMNT_BIN ]] && log_cmd $OF "findmnt --types gfs2" || log_cmd $OF "mount --types gfs2"
 		log_cmd $OF "ps aux | grep gfs2 | grep -v grep"
 		log_cmd $OF "grep gfs2 /proc/modules"
 		(( GFS2_MODULES )) && DEVICES=$(find /sys/fs/gfs2/ -name device -and -type l -exec sh -c 'readlink -ev {} | sed  "s/.*\//\/dev\//g" ' \;) || DEVICES=''
@@ -3083,7 +3085,7 @@ drbd_info() {
 		log_cmd $OF "drbdadm dump"
 		log_cmd $OF "cat /proc/drbd"
 		log_cmd $OF "ps aux | grep drbd | grep -v grep"
-		[[ -x /usr/bin/findmnt ]] && log_cmd $OF "findmnt" || log_cmd $OF "mount"
+		[[ -x $FINDMNT_BIN ]] && log_cmd $OF "findmnt" || log_cmd $OF "mount"
 		(( $IO_DELAYS )) || log_cmd $OF "df -Th"
 		if [[ -s /etc/drbd.conf ]]; then
 			DIRLIST=$(cat /etc/drbd.conf | grep ^include | cut -d\" -f2 | sed 's!\(.*\)/.*!\1/!' | sort | uniq)

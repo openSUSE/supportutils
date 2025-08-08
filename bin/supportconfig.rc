@@ -224,6 +224,7 @@ LSMOD_BIN=$(command -v lsmod)
 DIFF_BIN=$(command -v diff)
 NMCLI_BIN=$(command -v nmcli)
 JOURNALCTL_BIN=$(command -v journalctl)
+FINDMNT_BIN=$(command -v findmnt)
 
 trap "{ echolog TERMINATED BY USER; echo; exit 5; }" SIGINT
 trap "{ echolog SKIPPED BY USER; return 4; }" SIGQUIT
