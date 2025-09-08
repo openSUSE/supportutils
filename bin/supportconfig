@@ -1066,6 +1066,13 @@ systemd_info() {
 	log_cmd $OF 'systemd-analyze --no-pager blame'
 	log_cmd $OF 'systemd-cgtop --batch --iterations=1'
 	log_cmd $OF 'systemd-cgls --no-pager --all --full'
+	local cgtype
+	cgtype="$(stat -f -c %T /sys/fs/cgroup)"
+	if [[ "$cgtype" = "cgroup2fs" ]] ; then
+		conf_files $OF /sys/fs/cgroup/cgroup.stat
+	else
+		conf_files $OF /proc/cgroups
+	fi
 	log_cmd $OF 'systemd-delta --no-pager'
 	FILES=''
 	[[ -d /etc/systemd ]] && FILES=$(find -L /etc/systemd -maxdepth 1 -type f)
