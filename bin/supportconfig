@@ -3706,6 +3706,8 @@ slert_info() {
 		do
 			log_cmd $OF "chrt -p $TASK"
 		done
+		log_write $OF "#==[ Process affinity ]==============================#"
+		log_cmd $OF 'ps -eL -o pid,comm,psr,pri,class | while read i x ; do echo -n "$i $x "; taskset -cp $i; done'
 		echolog Done
 	else
 		echolog Skipped
