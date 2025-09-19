@@ -381,24 +381,24 @@ rpm_info() {
 	if ((NSA_CHECK)); then
 		log_write $RPMFILE "#==[ NSA Check ]====================================#"
 		log_write $RPMFILE '# rpm -qa --queryformat "%-35{NAME} %-35{DISTRIBUTION} %{VERSION}-%{RELEASE}\n"'
-		rpm -qa --queryformat "%-35{NAME} %-35{DISTRIBUTION} %{VERSION}-%{RELEASE}\n" >> $LOGFILE 2>&1
+		$RPM_BIN -qa --queryformat "%-35{NAME} %-35{DISTRIBUTION} %{VERSION}-%{RELEASE}\n" >> $LOGFILE 2>&1
 	else
 		# rpm list of all files
 		LOGFILE=$LOG/$RPM_DIST_FILE
 		log_cmd $RPM_DIST_FILE 'rpm -qa --queryformat "%{DISTRIBUTION}\n" | sort | uniq'
-		rpm -qa 2>/dev/null | sort > $LOG/$RPM_QA_FILE
+		$RPM_BIN -qa 2>/dev/null | sort > $LOG/$RPM_QA_FILE
 		cat $LOG/$RPM_DIST_FILE >> $LOG/$RPMFILE
 		log_cmd $RPMFILE "ls -l --time-style=long-iso /usr/local/bin /usr/local/sbin"
 		log_write $RPMFILE "#==[ Command ]======================================#"
 		log_write $RPMFILE '# rpm -qa --queryformat "%-35{NAME} %-35{DISTRIBUTION} %{VERSION}-%{RELEASE}\n" | sort -k 1,2 -t " " -i'
 		printf "%-35s %-35s %s\n" NAME DISTRIBUTION VERSION >> $LOGFILE
-		rpm -qa --queryformat "%-35{NAME} %-35{DISTRIBUTION} %{VERSION}-%{RELEASE}\n" | sort -k 1,2 -t " " -i >> $LOGFILE 2>&1
+		$RPM_BIN -qa --queryformat "%-35{NAME} %-35{DISTRIBUTION} %{VERSION}-%{RELEASE}\n" | sort -k 1,2 -t " " -i >> $LOGFILE 2>&1
 		log_write $RPMFILE
 		log_cmd $RPMFILE "rpm -qa --last"
 		log_write $RPMFILE "#==[ Command ]======================================#"
 		log_write $RPMFILE '# rpm -qa --queryformat "%{SIGPGP:pgpsig}  %-35{VENDOR}  %{NAME}-%{VERSION}-%{RELEASE}\n" | sort -k 11 -t " " -i'
 		printf "%-63s %-35s %s\n" SIGNATURE VENDOR PACKAGE >> $LOGFILE
-		rpm -qa --queryformat "%{SIGPGP:pgpsig}  %-35{VENDOR}  %{NAME}-%{VERSION}-%{RELEASE}\n" | sort -k 11 -t " " -i >> $LOGFILE 2>&1
+		$RPM_BIN -qa --queryformat "%{SIGPGP:pgpsig}  %-35{VENDOR}  %{NAME}-%{VERSION}-%{RELEASE}\n" | sort -k 11 -t " " -i >> $LOGFILE 2>&1
 		log_write $RPMFILE
 		# Jul 12, 2018 ; Added by Ahmad AL Zayed to get a list of RPM DB Backups 
 		RETURN=$(grep RPMDB_BACKUP_DIR /etc/sysconfig/backup 2>/dev/null | grep -v "^#" | cut -d= -f2 | tr -d "\"")
@@ -633,7 +633,7 @@ yast_files() {
 	addHeaderFile $OF
 	rpm_verify $OF yast2-packager
 	rpm_verify $OF yast2-packagemanager
-	if rpm -q perl-Bootloader &> /dev/null; then
+	if $RPM_BIN -q perl-Bootloader &> /dev/null; then
 		rpm_verify $OF perl-Bootloader
 	fi
 	[[ -d /var/log/YaST2 ]] && FILES=$(find /var/log/YaST2/ -type f | grep -vE "_dev_|\.tbz$|\.tgz$|\.gz$|\.bz2$|\.zcat$|\.zip$") || unset FILES
@@ -659,25 +659,25 @@ boot_info() {
 	do
 		rpm_verify $OF $KERNEL
 	done
-	if rpm -q grub &> /dev/null; then
+	if $RPM_BIN -q grub &> /dev/null; then
 		rpm_verify $OF grub
 		conf_files $OF /etc/grub.conf /boot/grub/menu.lst /boot/grub/device.map
 		timed_log_cmd $OF 'hwinfo --framebuffer'
 	fi
-	if rpm -q grub2 &> /dev/null; then
+	if $RPM_BIN -q grub2 &> /dev/null; then
 		rpm_verify $OF grub2
 		conf_files $OF /etc/default/grub /etc/default/grub_installdevice /boot/grub2/device.map
 		BKOP=$ADD_OPTION_LOGS
 		ADD_OPTION_LOGS=1 conf_files $OF /boot/grub2/grub.cfg
 		ADD_OPTION_LOGS=$BKOP
 	fi
-	if rpm -q lilo &> /dev/null; then
+	if $RPM_BIN -q lilo &> /dev/null; then
 		rpm_verify $OF lilo
 		conf_files $OF /etc/lilo.conf /etc/yaboot.conf
 	fi
-	if rpm -q elilo &> /dev/null; then
+	if $RPM_BIN -q elilo &> /dev/null; then
 		rpm_verify $OF elilo
-		ELILOFILE=$(rpm -ql elilo | grep elilo.efi)
+		ELILOFILE=$($RPM_BIN -ql elilo | grep elilo.efi)
 		ELILODIR=$(dirname $ELILOFILE)
 		log_cmd $OF "ls -l --time-style=long-iso $ELILODIR"
 		FILES="$(find /boot/ -type f 2>/dev/null | grep elilo.[conf,cfg]) $(find -L /etc/ -type f 2>/dev/null | grep elilo.[conf,cfg])"
@@ -688,14 +688,14 @@ boot_info() {
 		log_cmd $OF 'bootlist -m normal -o'
 		log_cmd $OF 'bootlist -m normal -r'
 	fi
-	if rpm -q efibootmgr &> /dev/null; then
+	if $RPM_BIN -q efibootmgr &> /dev/null; then
 		log_cmd $OF "efibootmgr -v"
 	fi
-	if rpm -q mokutil &> /dev/null; then
+	if $RPM_BIN -q mokutil &> /dev/null; then
 		log_cmd $OF "mokutil --sb-state"
 		log_cmd $OF "mokutil --list-sbat-revocations"
 	fi
-	if rpm -q s390-tools &> /dev/null; then
+	if $RPM_BIN -q s390-tools &> /dev/null; then
 		conf_files $OF /etc/zipl.conf /boot/zipl/active_devices.txt /boot/zipl/config
 	fi
 
@@ -834,14 +834,14 @@ update_info() {
 		rpm_verify $OF lsb
 		conf_files $OF /etc/zypp/zypp.conf /etc/zypp/credentials.d/NCCcredentials
 	fi
-	if rpm -q suseconnect-ng &> /dev/null; then
+	if $RPM_BIN -q suseconnect-ng &> /dev/null; then
 		if rpm_verify $OF suseconnect-ng
 		then
 			log_cmd $OF "SUSEConnect --status"
 			FILES=$(find -L /etc/zypp/credentials.d/ -type f 2>/dev/null)
 			conf_files $OF /etc/SUSEConnect $FILES
 		fi
-	elif rpm -q SUSEConnect &> /dev/null; then
+	elif $RPM_BIN -q SUSEConnect &> /dev/null; then
 		if rpm_verify $OF SUSEConnect
 		then
 			rpm_verify $OF ruby2.1-rubygem-suse-connect
@@ -851,19 +851,19 @@ update_info() {
 		fi
 	fi
 	
-	if rpm -q zypper-lifecycle-plugin &> /dev/null; then
+	if $RPM_BIN -q zypper-lifecycle-plugin &> /dev/null; then
 		log_cmd $OF 'zypper lifecycle'
 	fi
 
-	if rpm -q libzypp &> /dev/null; then
-		QPBIN=$(rpm -ql libzypp | grep query-pool)
+	if $RPM_BIN -q libzypp &> /dev/null; then
+		QPBIN=$($RPM_BIN -ql libzypp | grep query-pool)
 		[[ -n "$QPBIN" ]] && timed_log_cmd $OF "$QPBIN products" || ((SKIP++))
-	elif rpm -q libzypp-zmd-backend &> /dev/null; then
-		QPBIN=$(rpm -ql libzypp-zmd-backend | grep query-pool)
+	elif $RPM_BIN -q libzypp-zmd-backend &> /dev/null; then
+		QPBIN=$($RPM_BIN -ql libzypp-zmd-backend | grep query-pool)
 		[[ -n "$QPBIN" ]] && timed_log_cmd $OF "$QPBIN products" || ((SKIP++))
 	fi
 
-	if rpm -q zypper &> /dev/null; then
+	if $RPM_BIN -q zypper &> /dev/null; then
 		log_cmd $OF 'installation_sources -s'
 	fi
 
@@ -875,7 +875,7 @@ update_info() {
 		sed -i -e "s/:${SC_PROXY_PASS}$/:*REMOVED BY SUPPORTCONFIG*/g;s/:${SC_PROXY_PASS}\"$/:*REMOVED BY SUPPORTCONFIG*\"/g" $LOG/$OF
 	fi
 
-	if rpm -q curl &>/dev/null; then
+	if $RPM_BIN -q curl &>/dev/null; then
 		# Test update server
 		UPDATE_TEST_URL=''
 		if [[ -s /etc/sysconfig/rhn/up2date ]]; then # get SUMA update URL
@@ -1129,7 +1129,7 @@ docker_info() {
 	OF=docker.txt
 	addHeaderFile $OF
 	DOCKERSCDIR=$LOG/docker
-	[[ -e /usr/bin/docker ]] && DOCKER_PKG=`rpm -q --whatprovides /usr/bin/docker 2>/dev/null`
+	[[ -x /usr/bin/docker ]] && DOCKER_PKG=`$RPM_BIN -q --whatprovides /usr/bin/docker 2>/dev/null`
 	[[ -z $DOCKER_PKG ]] && DOCKER_PKG='docker'
 	if rpm_verify $OF $DOCKER_PKG
 	then
@@ -1169,7 +1169,7 @@ plymouth_info() {
 	plymouth_themes="bgrt breeze-text breeze details fade-in script solar spinfinity spinner text tribar"
 	plymouth_logs="/var/log/plymouth-debug.log /var/log/plymouth-shutdown-debug.log /var/lib/plymouth/boot-duration /var/log/boot.log"
 
-	for plymouth_pkgs in `rpm -qa | grep 'plymouth\|libply' | xargs echo`
+	for plymouth_pkgs in `$RPM_BIN -qa 2>/dev/null | grep 'plymouth\|libply' | xargs echo`
 	do
 		rpm_verify $OF $plymouth_pkgs
 	done
@@ -1189,7 +1189,7 @@ podman_info() {
 	(( $OPTION_PODMAN )) || { echolog Excluded; return 1; }
 	ROOTOF="podman-root.txt"
 	PODMANSCDIR=$LOG/podman
-	[[ -e /usr/bin/podman ]] && PODMAN_PKG=$(rpm -q --whatprovides /usr/bin/podman 2>/dev/null) || PODMAN_PKG='podman'
+	[[ -x /usr/bin/podman ]] && PODMAN_PKG=$($RPM_BIN -q --whatprovides /usr/bin/podman 2>/dev/null) || PODMAN_PKG='podman'
 	if rpm_verify $ROOTOF $PODMAN_PKG
 	then
 		mkdir -p $PODMANSCDIR
@@ -1432,7 +1432,7 @@ mpio_info() {
 	OF=mpio.txt
 	addHeaderFile $OF
 	SKIP=0
-	MPIO_RPM=$(rpm -qf `command -v multipath` 2>/dev/null)
+	MPIO_RPM=$($RPM_BIN -qf `command -v multipath` 2>/dev/null)
 	if [[ -z "$MPIO_RPM" ]]; then
 		MPIO_RPM=multipath-tools
 	fi
@@ -1477,7 +1477,7 @@ mpio_info() {
 
 detectProducts() {
 	OUT=$1
-	if rpm -q SLES_SAP-release &>/dev/null
+	if $RPM_BIN -q SLES_SAP-release &>/dev/null
 	then
 		log_write $OUT "#==[ System ]=======================================#"
 		log_write $OUT "# Product"
@@ -1565,7 +1565,7 @@ detectVirtualization() {
 	elif echo $SYSPRODNAME | grep -i vmware &>/dev/null; then
 		NO_HYPER=0
 		log_write $OUT "Hypervisor:    VMware (hardware platform)"
-		if rpm -q "SLES-for-VMware-release" &>/dev/null; then
+		if $RPM_BIN -q "SLES-for-VMware-release" &>/dev/null; then
 			log_write $OUT "Identity:      Virtual Machine (SLES for VMware)"
 		else
 			log_write $OUT "Identity:      Virtual Machine (hardware platform)"
@@ -1648,7 +1648,7 @@ hardware_info() {
 			platform="pSeries"
 		fi
 
-		if rpm -q powerpc-utils &>/dev/null; then
+		if $RPM_BIN -q powerpc-utils &>/dev/null; then
 			rpm_verify $OF powerpc-utils
 			log_cmd $OF "ppc64_cpu --smt"
 			log_cmd $OF "ppc64_cpu --cores-present"
@@ -1666,7 +1666,7 @@ hardware_info() {
 				log_cmd $OF "lparnumascore -c mem -d 3"
 			fi
 		fi
-		if rpm -q lsvpd &>/dev/null; then
+		if $RPM_BIN -q lsvpd &>/dev/null; then
 			rpm_verify $OF lsvpd
 			log_cmd $OF "lscfg -vp"
 			log_cmd $OF "lsmcode -A"
@@ -1676,7 +1676,7 @@ hardware_info() {
 			fi
 		fi
 
-		if rpm -q ppc64-diag &>/dev/null; then
+		if $RPM_BIN -q ppc64-diag &>/dev/null; then
 			rpm_verify $OF ppc64-diag
 			log_cmd $OF "usysattn"
 			log_cmd $OF "usysident"
@@ -1686,7 +1686,7 @@ hardware_info() {
 			log_cmd $OF "opal-elog-parse -l"
 		fi
 
-		if rpm -q iprutils &>/dev/null; then
+		if $RPM_BIN -q iprutils &>/dev/null; then
 			rpm_verify $OF iprutils
 			log_cmd $OF "iprconfig -c show-config"
 			log_cmd $OF "iprconfig -c show-alt-config"
@@ -1700,7 +1700,7 @@ hardware_info() {
 			log_cmd $OF "iprconfig -c dump"
 		fi
 		if [[ $platform == "pSeries" ]]; then
-			if rpm -q servicelog &>/dev/null; then
+			if $RPM_BIN -q servicelog &>/dev/null; then
 				rpm_verify $OF servicelog
 				log_cmd $OF "servicelog --dump"
 				log_cmd $OF "servicelog_notify --list"
@@ -1725,7 +1725,7 @@ hardware_info() {
 			log_entry $OF command "cp /proc/ppc64/eeh /proc/ppc64/lparcfg /proc/ppc64/systemcfg /var/log/platform /dev/nvram $PPC_DIR"
 			cp /proc/ppc64/eeh /proc/ppc64/lparcfg /proc/ppc64/systemcfg /var/log/platform /dev/nvram $PPC_DIR 2>/dev/null
 
-			if rpm -q rsct.core.utils &>/dev/null; then
+			if $RPM_BIN -q rsct.core.utils &>/dev/null; then
 				CTSNAP_DIR="${PPC_DIR}/ctsnap"
 				mkdir -p $CTSNAP_DIR
 				log_cmd $OF "ctsnap -xrunrpttr -d $CTSNAP_DIR"
@@ -1754,7 +1754,7 @@ hardware_info() {
 				cp /var/log/rtas_errd.log $PPC_DIR 2>/dev/null
 			fi
 
-			if rpm -q IBMinvscout &>/dev/null; then
+			if $RPM_BIN -q IBMinvscout &>/dev/null; then
 				log_cmd $OF "invscout"
 				log_cmd $OF "invscout -v"
 				log_entry $OF command "cp -r /var/adm/invscout $PPC_DIR"
@@ -2283,7 +2283,7 @@ nfs_info() {
 		NFS_FOUND=1
 	fi
 
-	if rpm -q nfs-kernel-server &> /dev/null
+	if $RPM_BIN -q nfs-kernel-server &> /dev/null
 	then
 		NFSSERVER='nfs-server.service'
 		if rpm_verify $OF nfs-kernel-server
@@ -2315,7 +2315,7 @@ ntp_info() {
 	CONFFILE=/etc/ntp.conf
 	addHeaderFile $OF
 	NTP_FOUND=0
-	if rpm -q chrony &> /dev/null
+	if $RPM_BIN -q chrony &> /dev/null
 	then
 	    if rpm_verify $OF chrony
 		then
@@ -2356,7 +2356,7 @@ ntp_info() {
 			    FILES="/var/log/messages"
 			    (( $ADD_OPTION_LOGS )) && grep_log_files chrony $OF 0 $FILES || grep_log_files chrony $OF $VAR_OPTION_LINE_COUNT $FILES
 		    fi
-	    elif rpm -q ntp &> /dev/null
+	    elif $RPM_BIN -q ntp &> /dev/null
 	    then
 			NTP_FOUND=1
 			CONFFILE=/etc/ntp.conf
@@ -2397,7 +2397,7 @@ nvme_info() {
 	NVME_LOADED=0
 	STAS_LOADED=0
 	SKIP=0
-	if rpm -q $NVME_PKG &>/dev/null; then
+	if $RPM_BIN -q $NVME_PKG &>/dev/null; then
 		rpm_verify $OF $NVME_PKG
 		if grep nvme /proc/modules &> /dev/null; then
 			NVME_LOADED=1
@@ -2440,7 +2440,7 @@ nvme_info() {
 	else
 		((SKIP++))
 	fi
-	if rpm -q $STAS_PKG &>/dev/null; then
+	if $RPM_BIN -q $STAS_PKG &>/dev/null; then
 		rpm_verify $OF $STAS_PKG
 		log_cmd $OF 'systemctl status stacd.service'
 		log_cmd $OF 'stacctl status'
@@ -2771,7 +2771,7 @@ selinux_info() {
 	addHeaderFile $OF
 	if rpm_verify $OF selinux-policy
 	then
-		for i in policycoreutils $(rpm -qa | grep selinux | grep -v "selinux-policy-[0-9]")
+		for i in policycoreutils $(rpm -qa 2>/dev/null | grep selinux | grep -v "selinux-policy-[0-9]")
 		do
 			rpm_verify $OF "$i"
 		done
@@ -3533,7 +3533,7 @@ proc_info() {
         			if [[ -d "/proc/${PID}" ]]; then
                 			BINARY=$(readlink -e "/proc/${PID}/exe" 2>/dev/null)
                 			if [[ -n $BINARY ]]; then
-                       		 		PACKAGE=$(rpm -qf $BINARY)
+                       		 		PACKAGE=$(rpm -qf $BINARY 2>/dev/null)
                         			log_write $OF "PID ${PID} -> $BINARY -> $PACKAGE"
                 			fi
         			fi
