@@ -2006,7 +2006,7 @@ net_info_namespace() {
 		# IFS must be used to avoid breaking the namespace passed to log_cmd
 		SAVEIFS=$IFS
 		IFS=$(echo -ne "\n\b")
-		for NF_TABLE in $(${NS}nft list tables | cut -d\  -f2,3)
+		for NF_TABLE in $(${NS}nft list tables 2>/dev/null | cut -d\  -f2,3)
 		do
 			IFS=$SAVEIFS
 			log_cmd $OF "${NS}nft list table $NF_TABLE"
