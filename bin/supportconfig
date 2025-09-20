@@ -1491,9 +1491,9 @@ detectVirtualization() {
 	log_write $OUT "#==[ System ]=======================================#"
 	log_write $OUT "# Virtualization"
 	NO_HYPER=1
-	if [[ -x /usr/sbin/dmidecode ]]; then
-		MANUFACTURERNAME=$(/usr/sbin/dmidecode -s system-manufacturer 2>/dev/null)
-		SYSPRODNAME=$(/usr/sbin/dmidecode -s system-product-name 2>/dev/null)
+	if [[ -x $DMIDECODE_BIN ]]; then
+		MANUFACTURERNAME=$($DMIDECODE_BIN -s system-manufacturer 2>/dev/null)
+		SYSPRODNAME=$($DMIDECODE_BIN -s system-product-name 2>/dev/null)
 		if [[ -n "$MANUFACTURERNAME" ]]; then
 			log_write $OUT "Manufacturer:  $MANUFACTURERNAME"
 			log_write $OUT "Hardware:      $SYSPRODNAME"
