@@ -341,7 +341,7 @@ basic_healthcheck() {
 		log_cmd $AARTMP 'systemctl status apparmor.service'
 
 		APP_AUDIT_LOG="/var/log/audit/audit.log"
-		[[ -f $APP_AUDIT_LOG ]] && AAREJECT=$(grep -E 'REJECTING|DENIED' $APP_AUDIT_LOG | wc -l) || AAREJECT=0
+		[[ -f $APP_AUDIT_LOG ]] && AAREJECT=$(grep -E 'REJECTING|DENIED' $APP_AUDIT_LOG 2>/dev/null | wc -l) || AAREJECT=0
 		[[ -z "$AAREJECT" ]] && AAREJECT=0
 		if [[ -x /usr/sbin/apparmor_status ]]; then
 			/usr/sbin/apparmor_status --enabled &>/dev/null
@@ -430,7 +430,7 @@ module_info() {
 				done
 				log_write $OF
 			fi
-			MODOPT=$(grep -R "options ${MODULE} " /etc/modprobe\.?* | grep -v ":# option")
+			MODOPT=$(grep -R "options ${MODULE} " /etc/modprobe\.?* 2>/dev/null | grep -v ":# option")
 			[[ -n "$MODOPT" ]] && { log_write $OF "# Module Configuration"; log_write $OF "$MODOPT"; log_write $OF; }
 		done
 	else
@@ -438,7 +438,7 @@ module_info() {
 		for MODULE in $(sort /proc/modules | cut -d' ' -f1)
 		do
 			MODPARM="/sys/module/$MODULE/parameters/"
-			MODOPT=$(grep -R "options ${MODULE} " /etc/modprobe\.?* | grep -v ":# option")
+			MODOPT=$(grep -R "options ${MODULE} " /etc/modprobe\.?* 2>/dev/null | grep -v ":# option")
 			if [[ -d $MODPARM ]] || [[ -n "$MODOPT" ]]; then
 				log_entry $OF note "Module Information for $MODULE"
 			fi
@@ -871,7 +871,7 @@ update_info() {
 	conf_files $OF /etc/sysconfig/proxy
 	if [[ -s /root/.curlrc ]]; then
 		conf_files $OF /root/.curlrc
-		SC_PROXY_PASS=$(grep -i "^proxy-user" /root/.curlrc | sed -e 's/"//g' | awk '{print $3}' | cut -d\: -f2)
+		SC_PROXY_PASS=$(grep -i "^proxy-user" /root/.curlrc 2>/dev/null | sed -e 's/"//g' | awk '{print $3}' | cut -d\: -f2)
 		sed -i -e "s/:${SC_PROXY_PASS}$/:*REMOVED BY SUPPORTCONFIG*/g;s/:${SC_PROXY_PASS}\"$/:*REMOVED BY SUPPORTCONFIG*\"/g" $LOG/$OF
 	fi
 
@@ -955,7 +955,7 @@ pam_info() {
 		log_cmd $OF 'getent passwd'
 		conf_files $OF /etc/group
 		log_cmd $OF 'getent group'
-		EXTRA_DIRS=$(grep -E '^#includedir |^@includedir ' /etc/sudoers | awk '{print $NF}')
+		EXTRA_DIRS=$(grep -E '^#includedir |^@includedir ' /etc/sudoers 2>/dev/null | awk '{print $NF}')
 		conf_files $OF /etc/sudoers
 		for EXTRA in $EXTRA_DIRS
 		do
@@ -1337,7 +1337,7 @@ dbus_info() {
 	(( $OPTION_DBUS )) || { echolog Excluded; return 1; }
 	OF=dbus.txt
 	addHeaderFile $OF
-	RPM_PKGS=$(grep -E "^dbus" $RPM_QA_FILE_PATH)
+	RPM_PKGS=$(grep -E "^dbus" $RPM_QA_FILE_PATH 2>/dev/null)
 	if rpm_verify $OF "$RPM_PKGS"
 	then
 		log_cmd $OF 'systemctl status dbus.socket'
@@ -1515,7 +1515,7 @@ detectVirtualization() {
 		if [[ "$HYPER_TYPE" == "xen" ]]; then
 			NO_HYPER=0
 			XEN_UUID=$(cat /sys/hypervisor/uuid | tr -d '-')
-			IDENT=$(grep -iE "Virtualization type" <<< $LSCPU_OUT | awk '{print $NF}')
+			IDENT=$(grep -iE "Virtualization type" <<< $LSCPU_OUT 2>/dev/null | awk '{print $NF}')
 			log_write $OUT "Hypervisor:    Xen"
 			if [[ $XEN_UUID =~ [[:alpha:]] ]]; then
 					log_write $OUT "Identity:      Virtual Machine - DomU"
@@ -1889,7 +1889,7 @@ net_info_namespace() {
 	ping_addr $OF 'Default Route' $IPADDR "${NS}"
 
 	if [[ -z "${NS}" ]]; then
-		[[ -e /etc/resolv.conf ]] && IPADDRS=$(grep ^nameserver /etc/resolv.conf | awk '{print $2}') || IPADDRS=""
+		[[ -e /etc/resolv.conf ]] && IPADDRS=$(grep ^nameserver /etc/resolv.conf 2>/dev/null | awk '{print $2}') || IPADDRS=""
 		for IPADDR in $IPADDRS
 		do
 			ping_addr $OF 'DNS Server' $IPADDR "${NS}"
@@ -2271,7 +2271,7 @@ nfs_info() {
 		timed_log_cmd $OF 'rpcinfo -p'
 
 		log_cmd $OF "grep -E '[[:space:]]nfs[[:space:]]|[[:space:]]nfs4[[:space:]]' /etc/fstab"
-		IPADDRS=$(grep -E '[[:space:]]nfs[[:space:]]|[[:space:]]nfs4[[:space:]]' /etc/fstab | grep -vE '^#|^;' | cut -d\: -f1 | sort | uniq)
+		IPADDRS=$(grep -E '[[:space:]]nfs[[:space:]]|[[:space:]]nfs4[[:space:]]' /etc/fstab 2>/dev/null | grep -vE '^#|^;' | cut -d\: -f1 | sort | uniq)
 		for IPADDR in $IPADDRS
 		do
 			ping_addr $OF 'NFS Server' $IPADDR
@@ -2334,7 +2334,7 @@ ntp_info() {
 			    NTP_DAEMON=0
 		    fi
 		    log_cmd $OF "timedatectl"
-		    IPADDRS=$(grep -E "^pool |^peer |^server " $CONFFILE | awk '{print $2}' | sort | uniq)
+		    IPADDRS=$(grep -E "^pool |^peer |^server " $CONFFILE 2>/dev/null | awk '{print $2}' | sort | uniq)
 		    for IPADDR in $IPADDRS
 		    do
 			    ping_addr $OF 'NTP Server' $IPADDR
@@ -2345,11 +2345,11 @@ ntp_info() {
 			    log_write $OF
 			    for KEYNAME in driftfile
 			    do
-				    FILES=$(grep ^${KEYNAME} $CONFFILE | awk '{print $2}')
+				    FILES=$(grep ^${KEYNAME} $CONFFILE 2>/dev/null | awk '{print $2}')
 				    conf_files $OF $FILES
 			    done
 			    KEYNAME=logdir
-			    LOGDIR=$(grep ^${KEYNAME} $CONFFILE | awk '{print $2}')
+			    LOGDIR=$(grep ^${KEYNAME} $CONFFILE 2>/dev/null | awk '{print $2}')
 			    [[ -z "$LOGDIR" ]] && LOGDIR='/var/log/chrony/'
 			    FILES=$(find $LOGDIR -type f)
 			    (( $ADD_OPTION_LOGS )) && log_files $OF 0 $FILES || log_files $OF $VAR_OPTION_LINE_COUNT $FILES
@@ -2363,7 +2363,7 @@ ntp_info() {
 			log_cmd $OF "systemctl status ntpd.service"
 			log_cmd $OF 'ntpq -p'
 			conf_files $OF $CONFFILE
-			IPADDRS=$(grep -E "^peer |^server " $CONFFILE | awk '{print $2}' | sort | uniq)
+			IPADDRS=$(grep -E "^peer |^server " $CONFFILE 2>/dev/null | awk '{print $2}' | sort | uniq)
 			for IPADDR in $IPADDRS
 			do
 				ping_addr $OF 'NTP Server' $IPADDR
@@ -2374,11 +2374,11 @@ ntp_info() {
 				log_write $OF
 				for KEYNAME in driftfile
 				do
-					FILES=$(grep ^${KEYNAME} $CONFFILE | awk '{print $2}')
+					FILES=$(grep ^${KEYNAME} $CONFFILE 2>/dev/null | awk '{print $2}')
 					conf_files $OF $FILES
 				done
 				KEYNAME=logfile
-				FILES=$(grep ^${KEYNAME} $CONFFILE | awk '{print $2}')
+				FILES=$(grep ^${KEYNAME} $CONFFILE 2>/dev/null | awk '{print $2}')
 				[[ -z "$FILES" ]] && FILES=/var/log/ntp
 				test $ADD_OPTION_LOGS -gt 0 && log_files $OF 0 $FILES || log_files $OF $VAR_OPTION_LINE_COUNT $FILES
 			fi
@@ -2612,7 +2612,7 @@ crash_info() {
 		ls -l --time-style=long-iso ${i}/${COREFILE} ${i}/${COREFILE}\.* ${i}/core ${i}/core\.* >> $SEARCH_LIST 2>/dev/null
 	done
 	# Search ld.so.conf includes
-	LDINCLUDES=$(grep -i ^include /etc/ld.so.conf | awk '{print $2}')
+	LDINCLUDES=$(grep -i ^include /etc/ld.so.conf 2>/dev/null | awk '{print $2}')
 	if [[ -n "$LDINCLUDES" ]]; then
 		SEARCH=$(cat $LDINCLUDES 2>/dev/null)
 		for i in $SEARCH
@@ -2661,7 +2661,7 @@ printlog "AUTOFS..."
 		log_cmd $OF "ps aux | grep automount | grep -v grep"
 		conf_files $OF /etc/sysconfig/autofs
 		log_cmd $OF 'grep ^automount: /etc/nsswitch.conf'
-		for SCHEME in $(grep ^automount: /etc/nsswitch.conf | sed -e 's/^.*:[ \t]*//')
+		for SCHEME in $(grep ^automount: /etc/nsswitch.conf 2>/dev/null | sed -e 's/^.*:[ \t]*//')
 		do
 			log_write $OF "#--[ Automount Scheme: $SCHEME ]--#"
 			case "$SCHEME" in
@@ -2796,8 +2796,8 @@ selinux_info() {
 		log_cmd $OF "ps auxZww"
 		if [[ -d /etc/selinux/ ]]; then
 			ALL_FILES=$(find -L /etc/selinux/ -type f | sort)
-			CFILES=$(grep "\.conf$" <<< "$ALL_FILES")
-			NFILES=$(grep -v "\.conf$" <<< "$ALL_FILES")
+			CFILES=$(grep "\.conf$" <<< "$ALL_FILES" 2>/dev/null)
+			NFILES=$(grep -v "\.conf$" <<< "$ALL_FILES" 2>/dev/null)
 			conf_text_files $OF $CFILES $NFILES
 		fi
 		log_cmd $OF "ausearch -m AVC,USER_AVC,SELINUX_ERR,USER_SELINUX_ERR -i"
@@ -2820,7 +2820,7 @@ ha_info() {
 			log_cmd $OF "systemctl status pacemaker.service"
 			CONF_FILES="/etc/corosync/corosync.conf /etc/sysconfig/ctdb /etc/sysconfig/sbd"
 			if [[ -s /etc/xinetd.d/csync2 ]]; then
-				TMPORT=$(grep -i port /etc/xinetd.d/csync2 | awk '{print $3}')
+				TMPORT=$(grep -i port /etc/xinetd.d/csync2 2>/dev/null | awk '{print $3}')
 				log_cmd $OF "ss -nlp | grep $TMPORT"
 			fi
 			log_cmd $OF 'chronyc sources -v'
@@ -2889,7 +2889,7 @@ ha_info() {
 				fi
 			fi
 			conf_files $OF /etc/hawk/server.json /etc/sysconfig/hawk
-			CERT="$(grep -Po '^HAWK_CERT\s*=\s*"\s*\K(/[^"]+)(?=.*)' /etc/sysconfig/hawk)"
+			CERT="$(grep -Po '^HAWK_CERT\s*=\s*"\s*\K(/[^"]+)(?=.*)' /etc/sysconfig/hawk 2>/dev/null)"
 			if [[ -n $CERT ]]; then
 				log_cmd $OF "openssl x509 -in $CERT -subject -startdate -enddate -noout -ext subjectAltName"
 			fi
@@ -2918,7 +2918,7 @@ slp_info() {
 	then
 		conf_files $OF /etc/slp.conf
 		if [[ -s /etc/slp.conf ]]; then
-			IPADDRS=$(grep -i '^net.slp.DAAddresses' /etc/slp.conf | sed -e "s/[[:space:]]+//g;s/\'//g;s/\"//g" | cut -d= -f2 | sed -e "s/,/ /g")
+			IPADDRS=$(grep -i '^net.slp.DAAddresses' /etc/slp.conf | sed -e "s/[[:space:]]+//g;s/\'//g;s/\"//g" 2>/dev/null | cut -d= -f2 | sed -e "s/,/ /g")
 			for IPADDR in $IPADDRS
 			do
 				ping_addr $OF 'SLP DA' $IPADDR
@@ -3332,7 +3332,7 @@ ldap_info() {
 	if rpm_verify $OF pwdutils
 	then
 		conf_files $OF /etc/ldap.conf
-		IPADDRS=$(grep -i '^uri[[:space:]]' /etc/ldap.conf | sed -e 's!uri[[:space:]]*!!g;s!ldap://!!g;s!ldaps://!!g;s!ldapi://[[:alnum:][:punct:]]*!!g')
+		IPADDRS=$(grep -i '^uri[[:space:]]' /etc/ldap.conf 2>/dev/null | sed -e 's!uri[[:space:]]*!!g;s!ldap://!!g;s!ldaps://!!g;s!ldapi://[[:alnum:][:punct:]]*!!g')
 		for I in $IPADDRS
 		do
 			IPADDR=$(echo $I | sed -e "s/:[[:digit:]]*//g")
@@ -3350,7 +3350,7 @@ ldap_info() {
 		LDAP_CONF="/etc/openldap/ldap.conf"
 		conf_files $OF $LDAP_CONF
 		if [[ -s $LDAP_CONF ]]; then
-			IPADDRS=$(grep -Pio '^uri\s+ldaps?://\K(.*)' $LDAP_CONF)
+			IPADDRS=$(grep -Pio '^uri\s+ldaps?://\K(.*)' $LDAP_CONF 2>/dev/null)
 			for I in $IPADDRS
 			do
 				IPADDR=$(echo $I | sed -e "s/:[[:digit:]]*//g")
@@ -3376,13 +3376,13 @@ ldap_info() {
 	then
 		SLAPD_CONF_BACKEND=$(grep -Po \
 			'^OPENLDAP_CONFIG_BACKEND\s*=\s*"*\K([^"\s$]+)(?=.*)' \
-			/etc/sysconfig/openldap)
+			/etc/sysconfig/openldap 2>/dev/null)
 		SLAPD_CONF=/etc/openldap/slapd.conf
 		SLAPD_DIR=/var/lib/ldap
 		if [[ "$SLAPD_CONF_BACKEND" == "files" ]] && [[ -f $SLAPD_CONF ]]
 		then
-			SLAPD_DIR=$(grep -i ^directory $SLAPD_CONF | awk '{print $2}')
-			SLAPD_PIDF=$(grep -i ^pidfile $SLAPD_CONF | awk '{print $2}')
+			SLAPD_DIR=$(grep -i ^directory $SLAPD_CONF 2>/dev/null | awk '{print $2}')
+			SLAPD_PIDF=$(grep -i ^pidfile $SLAPD_CONF 2>/dev/null | awk '{print $2}')
 			[[ -z "$SLAPD_PIDF" ]] && SLAPD_PIDF="/var/run/slapd/slapd.pid"
 			if [[ -f $SLAPD_PIDF ]]; then
 				SLAPD_PID=$(cat $SLAPD_PIDF)
@@ -3391,7 +3391,7 @@ ldap_info() {
 			fi
 			# schema files collection makes sense only in 'file' conf backend
 			log_cmd $OF "ls -al /etc/openldap/schema"
-			SLAPD_SCHEMAS=$(grep ^include $SLAPD_CONF | awk '{print $2}')
+			SLAPD_SCHEMAS=$(grep ^include $SLAPD_CONF 2>/dev/null | awk '{print $2}')
 			if [[ -n "$SLAPD_SCHEMAS" ]]
 			then
 				log_write $OF "#___________________________________________________________#"
@@ -3404,8 +3404,8 @@ ldap_info() {
 		elif [[ "$SLAPD_CONF_BACKEND" == "ldap" ]]
 		then
 			SLAPD_CONF= # useless in 'ldap' config backend
-			SLAPD_DIR=$(grep -IRhPo '^olcDbDirectory: \K(.*)' /etc/openldap/slapd.d/)
-			SLAPD_PIDF=$(grep -Po '^olcPidFile: \K(.*)' /etc/openldap/slapd.d/cn=config.ldif)
+			SLAPD_DIR=$(grep -IRhPo '^olcDbDirectory: \K(.*)' /etc/openldap/slapd.d/ 2>/dev/null )
+			SLAPD_PIDF=$(grep -Po '^olcPidFile: \K(.*)' /etc/openldap/slapd.d/cn=config.ldif 2>/dev/null )
 			if [[ -f $SLAPD_PIDF ]]
 			then
 				SLAPD_PID=$(cat $SLAPD_PIDF)
@@ -3552,7 +3552,7 @@ proc_info() {
 	fi
 	# cpuset information relates to processes
 	log_cmd $OF "grep cpuset /etc/mtab"
-	CPUSET=$(grep -m 1 -E ' cpuset |cgroup .*cpuset' /etc/mtab | cut -d' ' -f2)
+	CPUSET=$(grep -m 1 -E ' cpuset |cgroup .*cpuset' /etc/mtab 2>/dev/null | cut -d' ' -f2)
 	if [[ -n "$CPUSET" ]]; then
 		log_cmd $OF "find -L ${CPUSET}/ -type f"
 		FILES=$(find -L ${CPUSET}/ -type f)
@@ -3835,9 +3835,9 @@ dns_info() {
 	if rpm_verify $OF bind; then
 		log_cmd $OF 'systemctl status named.service'
 		(( $SKIP )) && log_cmd $OF 'ss -nlp | grep named'
-		FILES=$(grep ^include /etc/named.conf | cut -d';' -f1 | sed -e 's/"//g'  | awk '{print $2}')
+		FILES=$(grep ^include /etc/named.conf 2>/dev/null | cut -d';' -f1 | sed -e 's/"//g'  | awk '{print $2}')
 		conf_files $OF /etc/named.conf $FILES /etc/sysconfig/named
-		ZDIR=$(grep ^[[:space:]]*directory /etc/named.conf | cut -d';' -f1 | sed -e 's/"//g'  | awk '{print $2}')
+		ZDIR=$(grep ^[[:space:]]*directory /etc/named.conf 2>/dev/null | cut -d';' -f1 | sed -e 's/"//g'  | awk '{print $2}')
 		if [[ -n "$ZDIR" ]]; then
 			FILES=$(find -L ${ZDIR}/ -mount -type f 2>/dev/null | grep zone | grep -v '/proc/') || unset FILES
 			conf_files $OF $FILES
@@ -3911,7 +3911,7 @@ cimom_info() {
 		for i in cert key
 		do
 			unset OWSSLCHECK
-			OWSSLCHECK=$(grep "^http_server.SSL_${i}" /etc/openwbem/openwbem.conf | awk '{print $3}')
+			OWSSLCHECK=$(grep "^http_server.SSL_${i}" /etc/openwbem/openwbem.conf 2>/dev/null | awk '{print $3}')
 			if [[ -n "$OWSSLCHECK" ]]; then
 				if [[ -L $OWSSLCHECK ]]; then
 					log_cmd $OF "readlink -ev $OWSSLCHECK"
@@ -4068,7 +4068,7 @@ sysfs_info() {
 				# skip it on systems with 16TB  or ram or more unless exhaustive
 				# option is used
 				if [[ $ITEM == "memory" ]]; then
-					mem=$(grep 'MemTotal' /proc/meminfo | awk '{print $2}')
+					mem=$(grep 'MemTotal' /proc/meminfo 2>/dev/null | awk '{print $2}')
 					(( $mem > 16000000000 )) && (( $VAR_OPTION_EXHAUSTIVE_MEM == 0 )) && continue
 					echonlog "Please Wait..."
 					echonlog "Memory"

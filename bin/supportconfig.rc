@@ -629,7 +629,7 @@ echo \$\$ > $SEMAPHORE_PID
 $CMDLINE >> $SEMAPHORE_LOG 2>&1
 echo \$? > $SEMAPHORE_ERR
 if [[ -e $LOGFILE ]]; then
- sed -i -e "\$(grep -n $SEMAPHORE_LOG $LOGFILE | cut -d: -f1)r $SEMAPHORE_LOG" $LOGFILE 2>/dev/null
+ sed -i -e "\$(grep -n $SEMAPHORE_LOG $LOGFILE 2>/dev/null | cut -d: -f1)r $SEMAPHORE_LOG" $LOGFILE 2>/dev/null
  sed -i -e "/\$(basename $SEMAPHORE_LOG)/d" $LOGFILE 2>/dev/null
  rm -f $SEMAPHORE_LOG
 fi
@@ -766,7 +766,7 @@ log_options() {
 	echo "####################################" >> $LOGFILE
 	for SRCH in OPTION_ ADD_OPTION_
 	do
-		for i in $(grep ^$SRCH $SC_RESOURCE_FILE | cut -d= -f1 | sort)
+		for i in $(grep ^$SRCH $SC_RESOURCE_FILE 2>/dev/null | cut -d= -f1 | sort)
 		do
 			printf "%-25s = %s\n" "$i" "$((i))" >> $LOGFILE
 		done
@@ -895,14 +895,14 @@ set_to_min() {
 	init_plugins off
 	for SRCH in OPTION_ ADD_OPTION_
 	do
-		for i in $(grep ^$SRCH $SC_RESOURCE_FILE | cut -d= -f1 | sort)
+		for i in $(grep ^$SRCH $SC_RESOURCE_FILE 2>/dev/null | cut -d= -f1 | sort)
 		do
 			(( $i=0 ))
 		done
 	done
 	for SRCH in MIN_OPTION_ ADD_OPTION_MIN_
 	do
-		for i in $(grep ^$SRCH $SC_RESOURCE_FILE | cut -d= -f1 | sort)
+		for i in $(grep ^$SRCH $SC_RESOURCE_FILE 2>/dev/null | cut -d= -f1 | sort)
 		do
 			(( $i=1 ))
 		done
@@ -914,14 +914,14 @@ set_to_all() {
 	EXT_SCALING_DISABLED=1
 	for SRCH in OPTION_ ADD_OPTION_ MIN_OPTION_
 	do
-		for i in $(grep ^$SRCH $SC_RESOURCE_FILE | cut -d= -f1 | sort)
+		for i in $(grep ^$SRCH $SC_RESOURCE_FILE 2>/dev/null | cut -d= -f1 | sort)
 		do
 			(( $i=1 ))
 		done
 	done
 	for SRCH in ADD_OPTION_MIN_
 	do
-		for i in $(grep ^$SRCH $SC_RESOURCE_FILE | cut -d= -f1 | sort)
+		for i in $(grep ^$SRCH $SC_RESOURCE_FILE 2>/dev/null | cut -d= -f1 | sort)
 		do
 			(( $i=0 ))
 		done
@@ -934,7 +934,7 @@ set_to_default() {
 	DEF_FILE=$(mktemp /tmp/supportconfig-defoption.XXXXXXXXXXXXXX)
 	for SRCH in OPTION_ ADD_OPTION_ MIN_OPTION_ VAR_OPTION_
 	do
-		for i in $(grep ^$SRCH $SC_RESOURCE_FILE | sort)
+		for i in $(grep ^$SRCH $SC_RESOURCE_FILE 2>/dev/null | sort)
 		do
 			echo "$i" >> $DEF_FILE
 		done
@@ -965,13 +965,13 @@ check_log_dir() {
 get_features() {
 	log2sys "Display Feature Set"
 	if grep 'security=selinux' /proc/cmdline &> /dev/null; then
-		FEATURES=$(grep ^OPTION_ $SC_RESOURCE_FILE | grep -v OPTION_APPARMOR | cut -d= -f1 | sed -e 's/OPTION_//g')
+		FEATURES=$(grep ^OPTION_ $SC_RESOURCE_FILE 2>/dev/null | grep -v OPTION_APPARMOR | cut -d= -f1 | sed -e 's/OPTION_//g')
 	elif grep 'security=apparmor' /proc/cmdline &> /dev/null; then
-		FEATURES=$(grep ^OPTION_ $SC_RESOURCE_FILE | grep -v OPTION_SELINUX | cut -d= -f1 | sed -e 's/OPTION_//g')
+		FEATURES=$(grep ^OPTION_ $SC_RESOURCE_FILE 2>/dev/null | grep -v OPTION_SELINUX | cut -d= -f1 | sed -e 's/OPTION_//g')
 	else
-		FEATURES=$(grep ^OPTION_ $SC_RESOURCE_FILE | cut -d= -f1 | sed -e 's/OPTION_//g')
+		FEATURES=$(grep ^OPTION_ $SC_RESOURCE_FILE 2>/dev/null | cut -d= -f1 | sed -e 's/OPTION_//g')
 	fi
-	ADDITIONAL_FEATURES=$(grep ^ADD_OPTION_ $SC_RESOURCE_FILE | cut -d= -f1 | sed -e 's/ADD_OPTION_/a/g')
+	ADDITIONAL_FEATURES=$(grep ^ADD_OPTION_ $SC_RESOURCE_FILE 2>/dev/null | cut -d= -f1 | sed -e 's/ADD_OPTION_/a/g')
 	echo $FEATURES $ADDITIONAL_FEATURES $PLUGIN_FEATURES
 }
 
@@ -1466,8 +1466,8 @@ write_xml_file() {
 
 get_sles_ver() {
 	if [[ -s /etc/os-release ]]; then
-		ID=$(grep '^ID=' /etc/os-release | cut -d\= -f2 | tr -d \")
-		VID=$(grep VERSION_ID /etc/os-release | cut -d\= -f2 | tr -d \")
+		ID=$(grep '^ID=' /etc/os-release 2>/dev/null | cut -d\= -f2 | tr -d \")
+		VID=$(grep VERSION_ID /etc/os-release 2>/dev/null | cut -d\= -f2 | tr -d \")
 		VID=${VID//\./}
 #		echo "ID=${ID}, VID=${VID}" > /dev/kmsg
 		if [[ "${ID}" == *"alp-"* ]]; then
