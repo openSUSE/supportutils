@@ -2420,21 +2420,23 @@ nvme_info() {
 		fi
 		conf_files $OF $FILES
 		if (( $NVME_LOADED )); then
-			NVME_DEVICES=$(nvme list | grep /dev | awk '{print $1}')
-			for NVME_DEVICE in $NVME_DEVICES
-			do
-				log_entry $OF note "Processing: $NVME_DEVICE"
-				log_cmd $OF "nvme id-ctrl -H $NVME_DEVICE"
-				log_cmd $OF "nvme fw-log $NVME_DEVICE"
-				log_cmd $OF "nvme smart-log $NVME_DEVICE"
-				log_entry $OF note "Done: $NVME_DEVICE"
-				log_cmd $OF "smartctl --all $NVME_DEVICE"
-				log_cmd $OF "nvme list-ns $NVME_DEVICE"
-				log_cmd $OF "nvme list-ctrl $NVME_DEVICE"
-				log_cmd $OF "nvme id-ns -H $NVME_DEVICE"
-				log_cmd $OF "nvme error-log $NVME_DEVICE"
-				log_cmd $OF "nvme show-regs $NVME_DEVICE"
-			done
+			if [[ -x $NVME_BIN ]]; then
+				NVME_DEVICES=$($NVME_BIN list | grep /dev | awk '{print $1}')
+				for NVME_DEVICE in $NVME_DEVICES
+				do
+					log_entry $OF note "Processing: $NVME_DEVICE"
+					log_cmd $OF "nvme id-ctrl -H $NVME_DEVICE"
+					log_cmd $OF "nvme fw-log $NVME_DEVICE"
+					log_cmd $OF "nvme smart-log $NVME_DEVICE"
+					log_entry $OF note "Done: $NVME_DEVICE"
+					log_cmd $OF "smartctl --all $NVME_DEVICE"
+					log_cmd $OF "nvme list-ns $NVME_DEVICE"
+					log_cmd $OF "nvme list-ctrl $NVME_DEVICE"
+					log_cmd $OF "nvme id-ns -H $NVME_DEVICE"
+					log_cmd $OF "nvme error-log $NVME_DEVICE"
+					log_cmd $OF "nvme show-regs $NVME_DEVICE"
+				done
+			fi
 		fi
 		log_cmd $OF "lspci -tv"
 	else
