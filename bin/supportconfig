@@ -2550,10 +2550,10 @@ crash_info() {
 		conf_files $OF $LIMITS_FILES
 	fi
 
-	if [[ -x /usr/bin/coredumpctl ]]; then
-		log_cmd $OF "/usr/bin/coredumpctl list"
-		if coredumpctl list 2>/dev/null | grep PID &>/dev/null; then
-			PIDLIST=$(coredumpctl list | grep -v PID | awk '{print $5}')
+	if [[ -x $COREDUMPCTL_BIN ]]; then
+		log_cmd $OF "coredumpctl list"
+		if $COREDUMPCTL_BIN list 2>/dev/null | grep PID &>/dev/null; then
+			PIDLIST=$($COREDUMPCTL_BIN list | grep -v PID | awk '{print $5}')
 			for COREPID in $PIDLIST
 			do
 				log_cmd $OF "coredumpctl info $COREPID"
