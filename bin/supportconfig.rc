@@ -233,6 +233,7 @@ SFDISK_BIN=$(command -v sfdisk)
 NVME_BIN=$(command -v nvme)
 DMIDECODE_BIN=$(command -v dmidecode)
 IP_BIN=$(command -v ip)
+BRCTL_BIN=$(command -v brctl)
 
 trap "{ echolog TERMINATED BY USER; echo; exit 5; }" SIGINT
 trap "{ echolog SKIPPED BY USER; return 4; }" SIGQUIT

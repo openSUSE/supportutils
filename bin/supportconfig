@@ -1932,9 +1932,9 @@ net_info_namespace() {
 		log_write $OF "# Excluding Bridge command: brctl"
 		log_write $OF
 	else
-		if [[ -x /sbin/brctl ]]; then
+		if [[ -x $BRCTL_BIN ]]; then
 			log_cmd $OF "${NS}brctl show"
-			for BRIDGE in `${NS}brctl show | sed 1d | awk '{print$1}'`
+			for BRIDGE in `${NS}${BRCTL_BIN} show 2>/dev/null | sed 1d | awk '{print$1}'`
 			do 
 				log_cmd $OF "${NS}brctl showmacs $BRIDGE"
 			done
