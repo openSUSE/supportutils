@@ -234,6 +234,7 @@ NVME_BIN=$(command -v nvme)
 DMIDECODE_BIN=$(command -v dmidecode)
 IP_BIN=$(command -v ip)
 BRCTL_BIN=$(command -v brctl)
+LOGGER_BIN=$(command -v logger)
 
 trap "{ echolog TERMINATED BY USER; echo; exit 5; }" SIGINT
 trap "{ echolog SKIPPED BY USER; return 4; }" SIGQUIT
@@ -244,7 +245,6 @@ trap "{ echolog SKIPPED BY USER; return 4; }" SIGQUIT
 
 log2sys() {
 	MSG="$@"
-	LOGGER_BIN="/usr/bin/logger"
 	if (( $VAR_OPTION_DMESG )); then
 		echo "supportconfig: [$(date +%y%m%d:%H:%M:%S)] $MSG" > /dev/kmsg
 	else
