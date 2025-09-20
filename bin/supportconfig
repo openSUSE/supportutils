@@ -1093,6 +1093,13 @@ systemd_info() {
 	log_cmd $OF 'systemd-analyze --no-pager blame'
 	log_cmd $OF 'systemd-cgtop --batch --iterations=1'
 	log_cmd $OF 'systemd-cgls --no-pager --all --full'
+	local cgtype
+	cgtype="$(stat -f -c %T /sys/fs/cgroup)"
+	if [[ "$cgtype" = "cgroup2fs" ]] ; then
+		conf_files $OF /sys/fs/cgroup/cgroup.stat
+	else
+		conf_files $OF /proc/cgroups
+	fi
 	log_cmd $OF 'systemd-delta --no-pager'
 	FILES=''
 	[[ -d /etc/systemd ]] && FILES=$(find -L /etc/systemd -maxdepth 1 -type f)
@@ -3740,6 +3747,8 @@ slert_info() {
 		do
 			log_cmd $OF "chrt -p $TASK"
 		done
+		log_write $OF "#==[ Process affinity ]==============================#"
+		log_cmd $OF 'ps -eL -o pid,comm,psr,pri,class | while read i x ; do echo -n "$i $x "; taskset -cp $i; done'
 		echolog Done
 	else
 		echolog Skipped
