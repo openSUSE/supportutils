@@ -2115,7 +2115,7 @@ disk_info() {
 			log_cmd $OF 'lsscsi -H'
 			if log_cmd $OF 'scsiinfo -l'
 			then
-				FILES=$(scsiinfo -l)
+				FILES=$(scsiinfo -l 2>/dev/null)
 				for DEVICE in $FILES
 				do
 					log_cmd $OF "scsiinfo -i $DEVICE"
