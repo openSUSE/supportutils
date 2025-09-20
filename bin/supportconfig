@@ -2691,7 +2691,7 @@ printlog "AUTOFS..."
 				;;
 			nis)
 				if log_cmd $OF "ypcat -k auto.master"; then
-					FILES=$(ypcat -k auto.master | grep -v ^# | awk '{print $2}' | cut -d\: -f2)
+					FILES=$(ypcat -k auto.master 2>/dev/null | grep -v ^# | awk '{print $2}' | cut -d\: -f2)
 					for MAP in $FILES
 					do
 						log_cmd $OF "ypcat -k $MAP"
