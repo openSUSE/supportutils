@@ -1,7 +1,7 @@
 #!/bin/bash
 
-SVER='3.2.11-1'
-SDATE='2025 Jun 30'
+SVER='3.2.11-2_test-containers'
+SDATE='2025 Sep 20'
 
 ##############################################################################
 #  supportconfig - Gathers system troubleshooting information for SUSE Support
@@ -169,7 +169,7 @@ basic_environment() {
 						if grep iptable_$TABLE /proc/modules &>/dev/null
 						then
 							wait_trace_on "$IPBIN -t $TABLE -nL | sed -e '/^$/d' -e '/^Chain/d' -e '/^target/d' | wc -l"
-							FIREWALL_RULES=$($IPBIN -t $TABLE -nL | sed -e '/^$/d' -e '/^Chain/d' -e '/^target/d' | wc -l)
+							FIREWALL_RULES=$($IPBIN -t $TABLE -nL 2>/dev/null | sed -e '/^$/d' -e '/^Chain/d' -e '/^target/d' | wc -l)
 							TOTAL_FIREWALL_RULES=$(( TOTAL_FIREWALL_RULES + FIREWALL_RULES ))
 							wait_trace_off
 						fi
@@ -309,28 +309,31 @@ basic_healthcheck() {
 	PSTMP=$(basename $PSPTMP)
 	AARTMP=$(basename $AARPTMP)
 
-	log_cmd $PSTMP 'ps axwwo user,pid,ppid,%cpu,%mem,vsz,rss,stat,time,cmd'
+	log_cmd $PSTMP "ps axwwo user,pid,ppid,%cpu,%mem,vsz,rss,stat,time,cmd"
 
 	log_write $OF "#==[ Checking Health of Processes ]=================#"
         log_write $OF "# awk '\$8 ~ /D|Z/' $PSPTMP"
         log_write $OF "$(awk '!/^#/ && $8 ~ /D|Z/' "$PSPTMP")"
 
-	TOPTMP=$(mktemp $LOG/top.XXXXXXXX)
-	log_write $OF
-	log_write $OF "#==[ Summary ]======================================#"
-	log_write $OF "# Top 10 CPU Processes"
-	ps axwwo %cpu,pid,user,cmd | sort -k 1 -r -n | head -11 | sed -e '/^%/d' > $TOPTMP
-	log_write $OF "%CPU   PID USER     CMD"
-	log_write $OF "$(< $TOPTMP)"
-	log_write $OF
+	if [[ -x $PS_BIN ]]; then
+		TOPTMP=$(mktemp $LOG/top.XXXXXXXX)
+		log_write $OF
+		log_write $OF "#==[ Summary ]======================================#"
+		log_write $OF "# Top 10 CPU Processes"
+		$PS_BIN axwwo %cpu,pid,user,cmd | sort -k 1 -r -n | head -11 | sed -e '/^%/d' > $TOPTMP
+		log_write $OF "%CPU   PID USER     CMD"
+		log_write $OF "$(< $TOPTMP)"
+		log_write $OF
 
-	log_write $OF "#==[ Summary ]======================================#"
-	log_write $OF "# Top 10 Memory Processes"
-	ps axwwo %mem,pid,user,cmd | sort -k 1 -r -n | head -11 | sed -e '/^%/d' > $TOPTMP
-	log_write $OF "%MEM   PID USER     CMD"
-	log_write $OF "$(< $TOPTMP)"
-	log_write $OF
-	rm -f $TOPTMP
+		log_write $OF "#==[ Summary ]======================================#"
+		log_write $OF "# Top 10 Memory Processes"
+		$PS_BIN axwwo %mem,pid,user,cmd | sort -k 1 -r -n | head -11 | sed -e '/^%/d' > $TOPTMP
+		log_write $OF "%MEM   PID USER     CMD"
+		log_write $OF "$(< $TOPTMP)"
+		log_write $OF
+		rm -f $TOPTMP
+	fi
+
 
 	if grep 'security=apparmor' /proc/cmdline &>/dev/null; then
 		log_write $AARTMP "#==[ Summary ]======================================#"
@@ -338,7 +341,7 @@ basic_healthcheck() {
 		log_cmd $AARTMP 'systemctl status apparmor.service'
 
 		APP_AUDIT_LOG="/var/log/audit/audit.log"
-		[[ -f $APP_AUDIT_LOG ]] && AAREJECT=$(grep -E 'REJECTING|DENIED' $APP_AUDIT_LOG | wc -l) || AAREJECT=0
+		[[ -f $APP_AUDIT_LOG ]] && AAREJECT=$(grep -E 'REJECTING|DENIED' $APP_AUDIT_LOG 2>/dev/null | wc -l) || AAREJECT=0
 		[[ -z "$AAREJECT" ]] && AAREJECT=0
 		if [[ -x /usr/sbin/apparmor_status ]]; then
 			/usr/sbin/apparmor_status --enabled &>/dev/null
@@ -378,24 +381,24 @@ rpm_info() {
 	if ((NSA_CHECK)); then
 		log_write $RPMFILE "#==[ NSA Check ]====================================#"
 		log_write $RPMFILE '# rpm -qa --queryformat "%-35{NAME} %-35{DISTRIBUTION} %{VERSION}-%{RELEASE}\n"'
-		rpm -qa --queryformat "%-35{NAME} %-35{DISTRIBUTION} %{VERSION}-%{RELEASE}\n" >> $LOGFILE 2>&1
+		$RPM_BIN -qa --queryformat "%-35{NAME} %-35{DISTRIBUTION} %{VERSION}-%{RELEASE}\n" >> $LOGFILE 2>&1
 	else
 		# rpm list of all files
 		LOGFILE=$LOG/$RPM_DIST_FILE
 		log_cmd $RPM_DIST_FILE 'rpm -qa --queryformat "%{DISTRIBUTION}\n" | sort | uniq'
-		rpm -qa 2>/dev/null | sort > $LOG/$RPM_QA_FILE
+		$RPM_BIN -qa 2>/dev/null | sort > $LOG/$RPM_QA_FILE
 		cat $LOG/$RPM_DIST_FILE >> $LOG/$RPMFILE
 		log_cmd $RPMFILE "ls -l --time-style=long-iso /usr/local/bin /usr/local/sbin"
 		log_write $RPMFILE "#==[ Command ]======================================#"
 		log_write $RPMFILE '# rpm -qa --queryformat "%-35{NAME} %-35{DISTRIBUTION} %{VERSION}-%{RELEASE}\n" | sort -k 1,2 -t " " -i'
 		printf "%-35s %-35s %s\n" NAME DISTRIBUTION VERSION >> $LOGFILE
-		rpm -qa --queryformat "%-35{NAME} %-35{DISTRIBUTION} %{VERSION}-%{RELEASE}\n" | sort -k 1,2 -t " " -i >> $LOGFILE 2>&1
+		$RPM_BIN -qa --queryformat "%-35{NAME} %-35{DISTRIBUTION} %{VERSION}-%{RELEASE}\n" | sort -k 1,2 -t " " -i >> $LOGFILE 2>&1
 		log_write $RPMFILE
 		log_cmd $RPMFILE "rpm -qa --last"
 		log_write $RPMFILE "#==[ Command ]======================================#"
 		log_write $RPMFILE '# rpm -qa --queryformat "%{SIGPGP:pgpsig}  %-35{VENDOR}  %{NAME}-%{VERSION}-%{RELEASE}\n" | sort -k 11 -t " " -i'
 		printf "%-63s %-35s %s\n" SIGNATURE VENDOR PACKAGE >> $LOGFILE
-		rpm -qa --queryformat "%{SIGPGP:pgpsig}  %-35{VENDOR}  %{NAME}-%{VERSION}-%{RELEASE}\n" | sort -k 11 -t " " -i >> $LOGFILE 2>&1
+		$RPM_BIN -qa --queryformat "%{SIGPGP:pgpsig}  %-35{VENDOR}  %{NAME}-%{VERSION}-%{RELEASE}\n" | sort -k 11 -t " " -i >> $LOGFILE 2>&1
 		log_write $RPMFILE
 		# Jul 12, 2018 ; Added by Ahmad AL Zayed to get a list of RPM DB Backups 
 		RETURN=$(grep RPMDB_BACKUP_DIR /etc/sysconfig/backup 2>/dev/null | grep -v "^#" | cut -d= -f2 | tr -d "\"")
@@ -411,24 +414,47 @@ module_info() {
 	OF=modules.txt
 	LOGFILE=$LOG/$OF
 	addHeaderFile $OF
-	log_cmd $OF 'lsmod | sort'
-	for MODULE in $(cat /proc/modules | awk '{print $1}')
-	do
-		log_cmd $OF "modinfo $MODULE"
-		MODPARM="/sys/module/$MODULE/parameters/"
-		if [[ -d $MODPARM ]]; then
-			log_write $OF "# Known Module Parameter Values"
-			for i in $(ls -1 $MODPARM)
-			do
-				MODVALUE=$(cat ${MODPARM}$i 2>/dev/null)
-				(( $? )) && MODVALUE="?"
-				log_write $OF "${MODPARM}$i=$MODVALUE"
-			done
-			log_write $OF
-		fi
-		MODOPT=$(grep -R "options ${MODULE} " /etc/modprobe\.?* | grep -v ":# option")
-		[[ -n "$MODOPT" ]] && { log_write $OF "# Module Configuration"; log_write $OF "$MODOPT"; log_write $OF; }
-	done
+	if [[ -n "$LSMOD_BIN" ]]; then
+		log_cmd $OF 'lsmod | sort'
+		for MODULE in $(sort /proc/modules | cut -d' ' -f1)
+		do
+			log_cmd $OF "modinfo $MODULE"
+			MODPARM="/sys/module/$MODULE/parameters/"
+			if [[ -d $MODPARM ]]; then
+				log_write $OF "# Known Module Parameter Values"
+				for i in $(ls -1 $MODPARM)
+				do
+					MODVALUE=$(cat ${MODPARM}$i 2>/dev/null)
+					(( $? )) && MODVALUE="?"
+					log_write $OF "${MODPARM}$i=$MODVALUE"
+				done
+				log_write $OF
+			fi
+			MODOPT=$(grep -R "options ${MODULE} " /etc/modprobe\.?* 2>/dev/null | grep -v ":# option")
+			[[ -n "$MODOPT" ]] && { log_write $OF "# Module Configuration"; log_write $OF "$MODOPT"; log_write $OF; }
+		done
+	else
+		log_cmd $OF 'sort /proc/modules'
+		for MODULE in $(sort /proc/modules | cut -d' ' -f1)
+		do
+			MODPARM="/sys/module/$MODULE/parameters/"
+			MODOPT=$(grep -R "options ${MODULE} " /etc/modprobe\.?* 2>/dev/null | grep -v ":# option")
+			if [[ -d $MODPARM ]] || [[ -n "$MODOPT" ]]; then
+				log_entry $OF note "Module Information for $MODULE"
+			fi
+			if [[ -d $MODPARM ]]; then
+				log_write $OF "# Known Module Parameter Values"
+				for i in $(ls -1 $MODPARM)
+				do
+					MODVALUE=$(cat ${MODPARM}$i 2>/dev/null)
+					(( $? )) && MODVALUE="?"
+					log_write $OF "${MODPARM}$i=$MODVALUE"
+				done
+				log_write $OF
+			fi
+			[[ -n "$MODOPT" ]] && { log_write $OF "# Module Configuration"; log_write $OF "$MODOPT"; log_write $OF; }
+		done
+	fi
 	conf_files $OF /lib/modules/$(uname -r)/modules.*dep
 	conf_files $OF /etc/modprobe.d/*
 	echolog Done
@@ -607,7 +633,7 @@ yast_files() {
 	addHeaderFile $OF
 	rpm_verify $OF yast2-packager
 	rpm_verify $OF yast2-packagemanager
-	if rpm -q perl-Bootloader &> /dev/null; then
+	if $RPM_BIN -q perl-Bootloader &> /dev/null; then
 		rpm_verify $OF perl-Bootloader
 	fi
 	[[ -d /var/log/YaST2 ]] && FILES=$(find /var/log/YaST2/ -type f | grep -vE "_dev_|\.tbz$|\.tgz$|\.gz$|\.bz2$|\.zcat$|\.zip$") || unset FILES
@@ -633,25 +659,25 @@ boot_info() {
 	do
 		rpm_verify $OF $KERNEL
 	done
-	if rpm -q grub &> /dev/null; then
+	if $RPM_BIN -q grub &> /dev/null; then
 		rpm_verify $OF grub
 		conf_files $OF /etc/grub.conf /boot/grub/menu.lst /boot/grub/device.map
 		timed_log_cmd $OF 'hwinfo --framebuffer'
 	fi
-	if rpm -q grub2 &> /dev/null; then
+	if $RPM_BIN -q grub2 &> /dev/null; then
 		rpm_verify $OF grub2
 		conf_files $OF /etc/default/grub /etc/default/grub_installdevice /boot/grub2/device.map
 		BKOP=$ADD_OPTION_LOGS
 		ADD_OPTION_LOGS=1 conf_files $OF /boot/grub2/grub.cfg
 		ADD_OPTION_LOGS=$BKOP
 	fi
-	if rpm -q lilo &> /dev/null; then
+	if $RPM_BIN -q lilo &> /dev/null; then
 		rpm_verify $OF lilo
 		conf_files $OF /etc/lilo.conf /etc/yaboot.conf
 	fi
-	if rpm -q elilo &> /dev/null; then
+	if $RPM_BIN -q elilo &> /dev/null; then
 		rpm_verify $OF elilo
-		ELILOFILE=$(rpm -ql elilo | grep elilo.efi)
+		ELILOFILE=$($RPM_BIN -ql elilo | grep elilo.efi)
 		ELILODIR=$(dirname $ELILOFILE)
 		log_cmd $OF "ls -l --time-style=long-iso $ELILODIR"
 		FILES="$(find /boot/ -type f 2>/dev/null | grep elilo.[conf,cfg]) $(find -L /etc/ -type f 2>/dev/null | grep elilo.[conf,cfg])"
@@ -662,14 +688,14 @@ boot_info() {
 		log_cmd $OF 'bootlist -m normal -o'
 		log_cmd $OF 'bootlist -m normal -r'
 	fi
-	if rpm -q efibootmgr &> /dev/null; then
+	if $RPM_BIN -q efibootmgr &> /dev/null; then
 		log_cmd $OF "efibootmgr -v"
 	fi
-	if rpm -q mokutil &> /dev/null; then
+	if $RPM_BIN -q mokutil &> /dev/null; then
 		log_cmd $OF "mokutil --sb-state"
 		log_cmd $OF "mokutil --list-sbat-revocations"
 	fi
-	if rpm -q s390-tools &> /dev/null; then
+	if $RPM_BIN -q s390-tools &> /dev/null; then
 		conf_files $OF /etc/zipl.conf /boot/zipl/active_devices.txt /boot/zipl/config
 	fi
 
@@ -684,31 +710,33 @@ boot_info() {
 	log_cmd $OF "lsinitrd -k $(uname -r)"
 	(( $ADD_OPTION_LOGS )) && log_files $OF 0 $FILES || log_files $OF $VAR_OPTION_LINE_COUNT $FILES
 	log_cmd $OF 'journalctl --no-pager --disk-usage'
-	if (( $ADD_OPTION_LOGS )); then
-		log_cmd $OF 'journalctl --no-pager --list-boot'
-		LIST_BOOTS=$(journalctl --no-pager --list-boot | wc -l)
-		((LIST_BOOTS--))
-		if (( LIST_BOOTS > 0 )); then
-			BOOT_COUNT=1
-			if (( VAR_OPTION_JOURNALCTL_MAX_BOOTS > 0 )); then
-				JOURNALCTL_MAX_BOOTS=$VAR_OPTION_JOURNALCTL_MAX_BOOTS
+	if [[ -x $JOURNALCTL_BIN ]]; then
+		if (( $ADD_OPTION_LOGS )); then
+			log_cmd $OF 'journalctl --no-pager --list-boot'
+			LIST_BOOTS=$(journalctl --no-pager --list-boot | wc -l)
+			((LIST_BOOTS--))
+			if (( LIST_BOOTS > 0 )); then
+				BOOT_COUNT=1
+				if (( VAR_OPTION_JOURNALCTL_MAX_BOOTS > 0 )); then
+					JOURNALCTL_MAX_BOOTS=$VAR_OPTION_JOURNALCTL_MAX_BOOTS
+				else
+					#VAR_OPTION_JOURNALCTL_MAX_BOOTS of 0 means get all boots
+					JOURNALCTL_MAX_BOOTS=$LIST_BOOTS
+				fi
+				for THIS_BOOT in $(seq 0 $LIST_BOOTS)
+				do
+					log_cmd $OF "journalctl --no-pager --boot $THIS_BOOT"
+					((BOOT_COUNT < JOURNALCTL_MAX_BOOTS)) && ((BOOT_COUNT++)) || break
+				done
 			else
-				#VAR_OPTION_JOURNALCTL_MAX_BOOTS of 0 means get all boots
-				JOURNALCTL_MAX_BOOTS=$LIST_BOOTS
+				log_cmd $OF "journalctl --no-pager --boot 0"
 			fi
-			for THIS_BOOT in $(seq 0 $LIST_BOOTS)
-			do
-				log_cmd $OF "journalctl --no-pager --boot $THIS_BOOT"
-				((BOOT_COUNT < JOURNALCTL_MAX_BOOTS)) && ((BOOT_COUNT++)) || break
-			done
 		else
-			log_cmd $OF "journalctl --no-pager --boot 0"
-		fi
-	else
-		if (( VAR_OPTION_JOURNALCTL_LINE_COUNT > 0 )); then
-			log_cmd $OF "journalctl --no-pager --boot 0 | tail -n ${VAR_OPTION_JOURNALCTL_LINE_COUNT}"
-		else
-			log_cmd $OF "journalctl --no-pager --boot 0"
+			if (( VAR_OPTION_JOURNALCTL_LINE_COUNT > 0 )); then
+				log_cmd $OF "journalctl --no-pager --boot 0 | tail -n ${VAR_OPTION_JOURNALCTL_LINE_COUNT}"
+			else
+				log_cmd $OF "journalctl --no-pager --boot 0"
+			fi
 		fi
 	fi
 	log_cmd $OF 'dmesg -T'
@@ -738,9 +766,9 @@ bpf_info() {
 				log_cmd $OF "bpftool prog dump xlated id $bpfid"
 			done
 			if (( $INCLUDE_NETWORK_NAMESPACES )); then
-				NAMESPACES=$(ip netns list)
+				NAMESPACES=$($IP_BIN netns list 2>/dev/null)
 				if [[ -n "${NAMESPACES}" ]]; then
-					ip netns list | while read NAMESPACE rest; do
+					$IP_BIN netns list | while read NAMESPACE rest; do
 						log_cmd $OF "ip netns exec ${NAMESPACE} bpftool net list"
 					done
 				fi
@@ -806,14 +834,14 @@ update_info() {
 		rpm_verify $OF lsb
 		conf_files $OF /etc/zypp/zypp.conf /etc/zypp/credentials.d/NCCcredentials
 	fi
-	if rpm -q suseconnect-ng &> /dev/null; then
+	if $RPM_BIN -q suseconnect-ng &> /dev/null; then
 		if rpm_verify $OF suseconnect-ng
 		then
 			log_cmd $OF "SUSEConnect --status"
 			FILES=$(find -L /etc/zypp/credentials.d/ -type f 2>/dev/null)
 			conf_files $OF /etc/SUSEConnect $FILES
 		fi
-	elif rpm -q SUSEConnect &> /dev/null; then
+	elif $RPM_BIN -q SUSEConnect &> /dev/null; then
 		if rpm_verify $OF SUSEConnect
 		then
 			rpm_verify $OF ruby2.1-rubygem-suse-connect
@@ -823,19 +851,19 @@ update_info() {
 		fi
 	fi
 	
-	if rpm -q zypper-lifecycle-plugin &> /dev/null; then
+	if $RPM_BIN -q zypper-lifecycle-plugin &> /dev/null; then
 		log_cmd $OF 'zypper lifecycle'
 	fi
 
-	if rpm -q libzypp &> /dev/null; then
-		QPBIN=$(rpm -ql libzypp | grep query-pool)
+	if $RPM_BIN -q libzypp &> /dev/null; then
+		QPBIN=$($RPM_BIN -ql libzypp | grep query-pool)
 		[[ -n "$QPBIN" ]] && timed_log_cmd $OF "$QPBIN products" || ((SKIP++))
-	elif rpm -q libzypp-zmd-backend &> /dev/null; then
-		QPBIN=$(rpm -ql libzypp-zmd-backend | grep query-pool)
+	elif $RPM_BIN -q libzypp-zmd-backend &> /dev/null; then
+		QPBIN=$($RPM_BIN -ql libzypp-zmd-backend | grep query-pool)
 		[[ -n "$QPBIN" ]] && timed_log_cmd $OF "$QPBIN products" || ((SKIP++))
 	fi
 
-	if rpm -q zypper &> /dev/null; then
+	if $RPM_BIN -q zypper &> /dev/null; then
 		log_cmd $OF 'installation_sources -s'
 	fi
 
@@ -843,11 +871,11 @@ update_info() {
 	conf_files $OF /etc/sysconfig/proxy
 	if [[ -s /root/.curlrc ]]; then
 		conf_files $OF /root/.curlrc
-		SC_PROXY_PASS=$(grep -i "^proxy-user" /root/.curlrc | sed -e 's/"//g' | awk '{print $3}' | cut -d\: -f2)
+		SC_PROXY_PASS=$(grep -i "^proxy-user" /root/.curlrc 2>/dev/null | sed -e 's/"//g' | awk '{print $3}' | cut -d\: -f2)
 		sed -i -e "s/:${SC_PROXY_PASS}$/:*REMOVED BY SUPPORTCONFIG*/g;s/:${SC_PROXY_PASS}\"$/:*REMOVED BY SUPPORTCONFIG*\"/g" $LOG/$OF
 	fi
 
-	if rpm -q curl &>/dev/null; then
+	if $RPM_BIN -q curl &>/dev/null; then
 		# Test update server
 		UPDATE_TEST_URL=''
 		if [[ -s /etc/sysconfig/rhn/up2date ]]; then # get SUMA update URL
@@ -927,7 +955,7 @@ pam_info() {
 		log_cmd $OF 'getent passwd'
 		conf_files $OF /etc/group
 		log_cmd $OF 'getent group'
-		EXTRA_DIRS=$(grep -E '^#includedir |^@includedir ' /etc/sudoers | awk '{print $NF}')
+		EXTRA_DIRS=$(grep -E '^#includedir |^@includedir ' /etc/sudoers 2>/dev/null | awk '{print $NF}')
 		conf_files $OF /etc/sudoers
 		for EXTRA in $EXTRA_DIRS
 		do
@@ -972,7 +1000,7 @@ sssd_info() {
 			FILES=$(find -L /etc/sssd/conf.d/ -type f | grep -E "\.conf$")
 			conf_files $OF "$FILES"
 		fi
-		SRVS_LDAP=$(grep "^[[:space:]]*ldap_uri" /etc/sssd/sssd.conf | cut -d= -f2 | sed -e 's/ *//g;s/,/ /g')
+		SRVS_LDAP=$(grep "^[[:space:]]*ldap_uri" /etc/sssd/sssd.conf 2>/dev/null | cut -d= -f2 | sed -e 's/ *//g;s/,/ /g')
 		if [[ -n "$SRVS_LDAP" ]]; then
 			for URI in $SRVS_LDAP
 			do
@@ -980,7 +1008,7 @@ sssd_info() {
 				ping_addr $OF 'SSSD LDAP Server' $ADDR
 			done
 		fi
-		SRVS_KRB5=$(grep -E "^[[:space:]]*krb5_server|^[[:space:]]*krb5_kdcip" /etc/sssd/sssd.conf | cut -d= -f2 | sed -e 's/ *//g;s/,/ /g')
+		SRVS_KRB5=$(grep -E "^[[:space:]]*krb5_server|^[[:space:]]*krb5_kdcip" /etc/sssd/sssd.conf 2>/dev/null | cut -d= -f2 | sed -e 's/ *//g;s/,/ /g')
 		if [[ -n "$SRVS_KRB5" ]]; then
 			for URI in $SRVS_KRB5
 			do
@@ -990,10 +1018,9 @@ sssd_info() {
 		fi
 		log_cmd $OF 'date +"%Y-%m-%d %H:%M"'
 		log_cmd $OF 'ls -lR --time-style=long-iso /var/lib/sss/'
-		SSSD_PID=$(systemctl show sssd.service -p ExecMainPID)
-		SSSD_PID=${SSSD_PID#ExecMainPID=}
+		[[ -x "$SYSTEMCTL_BIN" ]] && { SSSD_PID=$($SYSTEMCTL_BIN show sssd.service -p ExecMainPID 2>/dev/null); SSSD_PID=${SSSD_PID#ExecMainPID=}; } || SSSD_PID=""
 		if (( $SSSD_PID )); then
-			SSSD_PIDS=$(ps axwwo pid,ppid,cmd | grep ${SSSD_PID} | grep -v grep | awk '{print $1}' | sort -n)
+			[[ -x $PS_BIN ]] && SSSD_PIDS=$($PS_BIN axwwo pid,ppid,cmd | grep ${SSSD_PID} | grep -v grep | awk '{print $1}' | sort -n) || SSSD_PIDS=""
 			log_cmd $OF "ps axwwo user,pid,ppid,%cpu,%mem,vsz,rss,stat,time,cmd | grep -E \"${SSSD_PID}|PPID\" | grep -v grep"
 			for THISPID in $SSSD_PIDS
 			do
@@ -1083,19 +1110,21 @@ systemd_info() {
 	log_cmd $OF 'systemctl --no-pager list-unit-files'
 	log_cmd $OF 'systemctl --no-pager list-jobs'
 	log_cmd $OF 'systemctl --no-pager list-timers --all'
-	for i in $(systemctl --no-pager --all list-units | sed 's/^[^-_:\\a-zA-Z0-9]*//' | grep -vE '^UNIT |^LOAD |^ACTIVE |^SUB |^To |^[[:digit:]]* ' | awk '{print $1}')
-	do
-		if [[ -z "$i" ]]
-		then
-			break
-		else
-			log_cmd $OF "systemctl show '$i' | sort"
-		fi
-	done
-	for i in $(systemctl --no-pager list-units --type=service | grep -v "not-found" | sed 's/^[^-_:\\a-zA-Z0-9]*//' | grep -vE '^UNIT |^LOAD |^ACTIVE |^SUB |^To |^[[:digit:]]* ' | awk '{print $1}')
-	do
-		log_cmd $OF2 "systemctl status '$i'"
-	done
+	if [[ -x "$SYSTEMCTL_BIN" ]]; then
+		for i in $($SYSTEMCTL_BIN --no-pager --all list-units 2>/dev/null | sed 's/^[^-_:\\a-zA-Z0-9]*//' | grep -vE '^UNIT |^LOAD |^ACTIVE |^SUB |^To |^[[:digit:]]* ' | awk '{print $1}')
+		do
+			if [[ -z "$i" ]]
+			then
+				break
+			else
+				log_cmd $OF "systemctl show '$i' | sort"
+			fi
+		done
+		for i in $($SYSTEMCTL_BIN --no-pager list-units --type=service 2>/dev/null | grep -v "not-found" | sed 's/^[^-_:\\a-zA-Z0-9]*//' | grep -vE '^UNIT |^LOAD |^ACTIVE |^SUB |^To |^[[:digit:]]* ' | awk '{print $1}')
+		do
+			log_cmd $OF2 "systemctl status '$i'"
+		done
+	fi
 	log_cmd $OF 'ls -alR /etc/systemd/'
 	log_cmd $OF 'ls -alR /usr/lib/systemd/'
 	echolog Done
@@ -1107,7 +1136,7 @@ docker_info() {
 	OF=docker.txt
 	addHeaderFile $OF
 	DOCKERSCDIR=$LOG/docker
-	[[ -e /usr/bin/docker ]] && DOCKER_PKG=`rpm -q --whatprovides /usr/bin/docker 2>/dev/null`
+	[[ -x /usr/bin/docker ]] && DOCKER_PKG=`$RPM_BIN -q --whatprovides /usr/bin/docker 2>/dev/null`
 	[[ -z $DOCKER_PKG ]] && DOCKER_PKG='docker'
 	if rpm_verify $OF $DOCKER_PKG
 	then
@@ -1147,7 +1176,7 @@ plymouth_info() {
 	plymouth_themes="bgrt breeze-text breeze details fade-in script solar spinfinity spinner text tribar"
 	plymouth_logs="/var/log/plymouth-debug.log /var/log/plymouth-shutdown-debug.log /var/lib/plymouth/boot-duration /var/log/boot.log"
 
-	for plymouth_pkgs in `rpm -qa | grep 'plymouth\|libply' | xargs echo`
+	for plymouth_pkgs in `$RPM_BIN -qa 2>/dev/null | grep 'plymouth\|libply' | xargs echo`
 	do
 		rpm_verify $OF $plymouth_pkgs
 	done
@@ -1167,12 +1196,12 @@ podman_info() {
 	(( $OPTION_PODMAN )) || { echolog Excluded; return 1; }
 	ROOTOF="podman-root.txt"
 	PODMANSCDIR=$LOG/podman
-	[[ -e /usr/bin/podman ]] && PODMAN_PKG=$(rpm -q --whatprovides /usr/bin/podman 2>/dev/null) || PODMAN_PKG='podman'
+	[[ -x /usr/bin/podman ]] && PODMAN_PKG=$($RPM_BIN -q --whatprovides /usr/bin/podman 2>/dev/null) || PODMAN_PKG='podman'
 	if rpm_verify $ROOTOF $PODMAN_PKG
 	then
 		mkdir -p $PODMANSCDIR
 		# Identify all non-root users currently running at least one container
-		PODMAN_USERS_ACTIVE=$(ps axwwo user,cmd | grep conmon | grep -v grep | cut -d\  -f1 | sort | uniq | grep -v root)
+		[[ -x $PS_BIN ]] && PODMAN_USERS_ACTIVE=$($PS_BIN axwwo user,cmd | grep conmon | grep -v grep | cut -d\  -f1 | sort | uniq | grep -v root) || PODMAN_USERS_ACTIVE=""
 
 		# Include any LOCAL_PODMAN_USERS defined in supportconfig.conf
 		declare -A PODMAN_DICT
@@ -1315,7 +1344,7 @@ dbus_info() {
 	(( $OPTION_DBUS )) || { echolog Excluded; return 1; }
 	OF=dbus.txt
 	addHeaderFile $OF
-	RPM_PKGS=$(grep -E "^dbus" $RPM_QA_FILE_PATH)
+	RPM_PKGS=$(grep -E "^dbus" $RPM_QA_FILE_PATH 2>/dev/null)
 	if rpm_verify $OF "$RPM_PKGS"
 	then
 		log_cmd $OF 'systemctl status dbus.socket'
@@ -1410,7 +1439,7 @@ mpio_info() {
 	OF=mpio.txt
 	addHeaderFile $OF
 	SKIP=0
-	MPIO_RPM=$(rpm -qf `which multipath 2>/dev/null` 2>/dev/null)
+	MPIO_RPM=$($RPM_BIN -qf `command -v multipath` 2>/dev/null)
 	if [[ -z "$MPIO_RPM" ]]; then
 		MPIO_RPM=multipath-tools
 	fi
@@ -1455,7 +1484,7 @@ mpio_info() {
 
 detectProducts() {
 	OUT=$1
-	if rpm -q SLES_SAP-release &>/dev/null
+	if $RPM_BIN -q SLES_SAP-release &>/dev/null
 	then
 		log_write $OUT "#==[ System ]=======================================#"
 		log_write $OUT "# Product"
@@ -1469,9 +1498,9 @@ detectVirtualization() {
 	log_write $OUT "#==[ System ]=======================================#"
 	log_write $OUT "# Virtualization"
 	NO_HYPER=1
-	if [[ -x /usr/sbin/dmidecode ]]; then
-		MANUFACTURERNAME=$(/usr/sbin/dmidecode -s system-manufacturer 2>/dev/null)
-		SYSPRODNAME=$(/usr/sbin/dmidecode -s system-product-name 2>/dev/null)
+	if [[ -x $DMIDECODE_BIN ]]; then
+		MANUFACTURERNAME=$($DMIDECODE_BIN -s system-manufacturer 2>/dev/null)
+		SYSPRODNAME=$($DMIDECODE_BIN -s system-product-name 2>/dev/null)
 		if [[ -n "$MANUFACTURERNAME" ]]; then
 			log_write $OUT "Manufacturer:  $MANUFACTURERNAME"
 			log_write $OUT "Hardware:      $SYSPRODNAME"
@@ -1493,7 +1522,7 @@ detectVirtualization() {
 		if [[ "$HYPER_TYPE" == "xen" ]]; then
 			NO_HYPER=0
 			XEN_UUID=$(cat /sys/hypervisor/uuid | tr -d '-')
-			IDENT=$(grep -iE "Virtualization type" <<< $LSCPU_OUT | awk '{print $NF}')
+			IDENT=$(grep -iE "Virtualization type" <<< $LSCPU_OUT 2>/dev/null | awk '{print $NF}')
 			log_write $OUT "Hypervisor:    Xen"
 			if [[ $XEN_UUID =~ [[:alpha:]] ]]; then
 					log_write $OUT "Identity:      Virtual Machine - DomU"
@@ -1526,10 +1555,12 @@ detectVirtualization() {
 				log_write $OUT "Identity:      Unknown"
 				;;
 			esac
-		elif systemctl is-enabled libvirtd.service &>/dev/null; then
-			NO_HYPER=0
-			log_write $OUT "Hypervisor:    KVM"
-			log_write $OUT "Identity:      Virtual Machine Server - Dom0"
+		elif [[ -x $SYSTEMCTL_BIN ]]; then
+			if $SYSTEMCTL_BIN is-enabled libvirtd.service &>/dev/null; then
+				NO_HYPER=0
+				log_write $OUT "Hypervisor:    KVM"
+				log_write $OUT "Identity:      Virtual Machine Server - Dom0"
+			fi
 		fi
 	fi
 
@@ -1541,7 +1572,7 @@ detectVirtualization() {
 	elif echo $SYSPRODNAME | grep -i vmware &>/dev/null; then
 		NO_HYPER=0
 		log_write $OUT "Hypervisor:    VMware (hardware platform)"
-		if rpm -q "SLES-for-VMware-release" &>/dev/null; then
+		if $RPM_BIN -q "SLES-for-VMware-release" &>/dev/null; then
 			log_write $OUT "Identity:      Virtual Machine (SLES for VMware)"
 		else
 			log_write $OUT "Identity:      Virtual Machine (hardware platform)"
@@ -1624,7 +1655,7 @@ hardware_info() {
 			platform="pSeries"
 		fi
 
-		if rpm -q powerpc-utils &>/dev/null; then
+		if $RPM_BIN -q powerpc-utils &>/dev/null; then
 			rpm_verify $OF powerpc-utils
 			log_cmd $OF "ppc64_cpu --smt"
 			log_cmd $OF "ppc64_cpu --cores-present"
@@ -1642,7 +1673,7 @@ hardware_info() {
 				log_cmd $OF "lparnumascore -c mem -d 3"
 			fi
 		fi
-		if rpm -q lsvpd &>/dev/null; then
+		if $RPM_BIN -q lsvpd &>/dev/null; then
 			rpm_verify $OF lsvpd
 			log_cmd $OF "lscfg -vp"
 			log_cmd $OF "lsmcode -A"
@@ -1652,7 +1683,7 @@ hardware_info() {
 			fi
 		fi
 
-		if rpm -q ppc64-diag &>/dev/null; then
+		if $RPM_BIN -q ppc64-diag &>/dev/null; then
 			rpm_verify $OF ppc64-diag
 			log_cmd $OF "usysattn"
 			log_cmd $OF "usysident"
@@ -1662,7 +1693,7 @@ hardware_info() {
 			log_cmd $OF "opal-elog-parse -l"
 		fi
 
-		if rpm -q iprutils &>/dev/null; then
+		if $RPM_BIN -q iprutils &>/dev/null; then
 			rpm_verify $OF iprutils
 			log_cmd $OF "iprconfig -c show-config"
 			log_cmd $OF "iprconfig -c show-alt-config"
@@ -1676,7 +1707,7 @@ hardware_info() {
 			log_cmd $OF "iprconfig -c dump"
 		fi
 		if [[ $platform == "pSeries" ]]; then
-			if rpm -q servicelog &>/dev/null; then
+			if $RPM_BIN -q servicelog &>/dev/null; then
 				rpm_verify $OF servicelog
 				log_cmd $OF "servicelog --dump"
 				log_cmd $OF "servicelog_notify --list"
@@ -1701,7 +1732,7 @@ hardware_info() {
 			log_entry $OF command "cp /proc/ppc64/eeh /proc/ppc64/lparcfg /proc/ppc64/systemcfg /var/log/platform /dev/nvram $PPC_DIR"
 			cp /proc/ppc64/eeh /proc/ppc64/lparcfg /proc/ppc64/systemcfg /var/log/platform /dev/nvram $PPC_DIR 2>/dev/null
 
-			if rpm -q rsct.core.utils &>/dev/null; then
+			if $RPM_BIN -q rsct.core.utils &>/dev/null; then
 				CTSNAP_DIR="${PPC_DIR}/ctsnap"
 				mkdir -p $CTSNAP_DIR
 				log_cmd $OF "ctsnap -xrunrpttr -d $CTSNAP_DIR"
@@ -1730,7 +1761,7 @@ hardware_info() {
 				cp /var/log/rtas_errd.log $PPC_DIR 2>/dev/null
 			fi
 
-			if rpm -q IBMinvscout &>/dev/null; then
+			if $RPM_BIN -q IBMinvscout &>/dev/null; then
 				log_cmd $OF "invscout"
 				log_cmd $OF "invscout -v"
 				log_entry $OF command "cp -r /var/adm/invscout $PPC_DIR"
@@ -1766,7 +1797,9 @@ hardware_info() {
 			log_cmd $OF "ls -l /var/log/dump"
 		fi
 	fi
-	[[ "$(systemctl show nvidia-persistenced.service -p LoadState)" == "LoadState=not-found" ]] || log_cmd $OF "systemctl status nvidia-persistenced.service"
+	if [[ -x $SYSTEMCTL_BIN ]]; then
+		[[ "$($SYSTEMCTL_BIN show nvidia-persistenced.service -p LoadState 2>/dev/null)" == "LoadState=not-found" ]] || log_cmd $OF "systemctl status nvidia-persistenced.service"
+	fi
 	echolog Done
 }
 
@@ -1774,10 +1807,10 @@ net_info() {
 	printlog "Networking..."
 	(( $OPTION_NET )) || { echolog Excluded; return 1; }
 	if (( $INCLUDE_NETWORK_NAMESPACES )); then
-		NAMESPACES=$(ip netns list)
+		NAMESPACES=$($IP_BIN netns list 2>/dev/null)
 		if [[ -n "${NAMESPACES}" ]]; then
 			net_info_namespace "network.txt" 
-			ip netns list | while read NAMESPACE rest; do
+			$IP_BIN netns list 2>/dev/null | while read NAMESPACE rest; do
 				net_info_namespace "network-${NAMESPACE}.txt" "${NAMESPACE}"
 			done
 		else
@@ -1795,7 +1828,7 @@ net_info_namespace() {
 	if [[ -z "${2}" ]]; then
 		NS=""
 	else 
-		NS="ip netns exec $2 "
+		NS="$IP_BIN netns exec $2 "
 		log_write $OF "#==[ Network namespace ${2} ]======================#"
 	fi
 	if [[ -z "${NS}" ]]; then
@@ -1811,9 +1844,11 @@ net_info_namespace() {
 			log_cmd $OF 'nmcli general status'
 			log_cmd $OF 'nmcli device show'
 			log_cmd $OF 'nmcli connection show'
-			CONNECTIONS=$(nmcli -f NAME connection show | grep -v NAME)
-			while read LINE; do log_cmd $OF "nmcli connection show \"$LINE\""; done <<< "$CONNECTIONS"
-			EFILES=$(find /etc/NetworkManager /usr/lib/NetworkManager -type f | grep -v ' ')
+			if [[ -x $NMCLI_BIN ]]; then
+				CONNECTIONS=$(nmcli -f NAME connection show | grep -v NAME)
+				while read LINE; do log_cmd $OF "nmcli connection show \"$LINE\""; done <<< "$CONNECTIONS"
+			fi
+			EFILES=$(find /etc/NetworkManager /usr/lib/NetworkManager -type f 2>/dev/null | grep -v ' ')
 			conf_files $OF $EFILES
 		elif (( SLES_VER >= 150 )); then
 			rpm_verify $OF sysconfig
@@ -1851,31 +1886,31 @@ net_info_namespace() {
 			esac
 		fi
 	fi
-	IPADDRS=$(${NS}ip addr | grep 'inet ' | awk '{print $2}' | cut -d/ -f1)
+	IPADDRS=$(${NS}${IP_BIN} addr 2>/dev/null | grep 'inet ' | awk '{print $2}' | cut -d/ -f1)
 	for IPADDR in $IPADDRS
 	do
 		ping_addr $OF 'Local Interface' $IPADDR "${NS}"
 	done
 
-	IPADDR=$(${NS}ip route list | awk '$1 == "default" {print $3}')
+	IPADDR=$(${NS}${IP_BIN} route list 2>/dev/null | awk '$1 == "default" {print $3}')
 	ping_addr $OF 'Default Route' $IPADDR "${NS}"
 
 	if [[ -z "${NS}" ]]; then
-		[[ -e /etc/resolv.conf ]] && IPADDRS=$(grep ^nameserver /etc/resolv.conf | awk '{print $2}') || IPADDRS=""
+		[[ -e /etc/resolv.conf ]] && IPADDRS=$(grep ^nameserver /etc/resolv.conf 2>/dev/null | awk '{print $2}') || IPADDRS=""
 		for IPADDR in $IPADDRS
 		do
 			ping_addr $OF 'DNS Server' $IPADDR "${NS}"
 		done
 	fi
 
-	${NS}ip rule show | while read skip skip skip skip table rest
+	${NS}${IP_BIN} rule show 2>/dev/null | while read skip skip skip skip table rest
 	do
 		log_cmd $OF "${NS}ip route show table $table"
 	done
 	log_cmd $OF "${NS}ip route show table cache"
 	log_cmd $OF "${NS}ip -6 route show table cache"
 	log_cmd $OF "${NS}ip rule show"
-	NICS=$(IFS="@: ";${NS}ip -o l | while read number nic dummy ; do echo $nic ; done)
+	NICS=$(IFS="@: ";${NS}${IP_BIN} -o l 2>/dev/null | while read number nic dummy ; do echo $nic ; done)
 	for NIC in ${NICS}
 	do
 		log_cmd $OF "${NS}tc -s -d qdisc show dev ${NIC}"
@@ -1904,17 +1939,17 @@ net_info_namespace() {
 		log_write $OF "# Excluding Bridge command: brctl"
 		log_write $OF
 	else
-		if [[ -x /sbin/brctl ]]; then
+		if [[ -x $BRCTL_BIN ]]; then
 			log_cmd $OF "${NS}brctl show"
-			for BRIDGE in `${NS}brctl show | sed 1d | awk '{print$1}'`
+			for BRIDGE in `${NS}${BRCTL_BIN} show 2>/dev/null | sed 1d | awk '{print$1}'`
 			do 
 				log_cmd $OF "${NS}brctl showmacs $BRIDGE"
 			done
 		fi
 	fi
-	ETHTOOL_BIN=$(which ethtool 2>/dev/null)
+	ETHTOOL_BIN=$(command -v ethtool)
 	if [[ -x $ETHTOOL_BIN ]]; then
-		NICS=$(IFS="@: ";${NS}ip -o l | while read number nic dummy ; do echo $nic ; done)
+		NICS=$(IFS="@: ";${NS}${IP_BIN} -o l 2>/dev/null | while read number nic dummy ; do echo $nic ; done)
 		for NIC in ${NICS}
 		do
 			log_cmd $OF "${NS}${ETHTOOL_BIN} ${NIC}"
@@ -1978,7 +2013,7 @@ net_info_namespace() {
 		# IFS must be used to avoid breaking the namespace passed to log_cmd
 		SAVEIFS=$IFS
 		IFS=$(echo -ne "\n\b")
-		for NF_TABLE in $(${NS}nft list tables | cut -d\  -f2,3)
+		for NF_TABLE in $(${NS}nft list tables 2>/dev/null | cut -d\  -f2,3)
 		do
 			IFS=$SAVEIFS
 			log_cmd $OF "${NS}nft list table $NF_TABLE"
@@ -2014,7 +2049,7 @@ disk_info() {
 	(( $IO_DELAYS )) || log_cmd $OF "df -Th"
 	log_cmd $OF "lsblk -i -o 'NAME,KNAME,MAJ:MIN,FSTYPE,LABEL,RO,RM,MODEL,SIZE,OWNER,GROUP,MODE,ALIGNMENT,MIN-IO,OPT-IO,PHY-SEC,LOG-SEC,ROTA,SCHED,MOUNTPOINT,DISC-ALN,DISC-GRAN,DISC-MAX,DISC-ZERO'"
 	log_cmd $OF "blkid"
-	[[ -x /usr/bin/findmnt ]] && log_cmd $OF "findmnt"
+	log_cmd $OF "findmnt"
 	log_cmd $OF "mount"
 	conf_files $OF /proc/mounts /etc/mtab
 
@@ -2087,7 +2122,7 @@ disk_info() {
 			log_cmd $OF 'lsscsi -H'
 			if log_cmd $OF 'scsiinfo -l'
 			then
-				FILES=$(scsiinfo -l)
+				FILES=$(scsiinfo -l 2>/dev/null)
 				for DEVICE in $FILES
 				do
 					log_cmd $OF "scsiinfo -i $DEVICE"
@@ -2110,7 +2145,7 @@ disk_info() {
 			conf_files $OF $FILES
 		fi
 		if ! (( $IO_DELAYS )); then
-			DISKS=$(sfdisk -l 2>/dev/null | grep -i 'disk /' | awk '{print $2}' | sed -e 's/://g')
+			DISKS=$($SFDISK_BIN -l 2>/dev/null | grep -i 'disk /' | awk '{print $2}' | sed -e 's/://g')
 			if [[ -n $DISKS ]]; then
 				for DISK in $DISKS
 				do
@@ -2138,24 +2173,26 @@ btrfs_info() {
 		addHeaderFile $OF
 		log_cmd $OF "btrfs filesystem show"
 		conf_files $OF /etc/fstab
-		[[ -x /usr/bin/findmnt ]] && log_cmd $OF "findmnt" || log_cmd $OF "mount"
-		(( $IO_DELAYS )) || log_cmd $OF "df -Th"
 		log_cmd $OF "modinfo btrfs"
-		for DEVICE in $(btrfs filesystem show | awk 'NF{ print $NF }' | grep ^/)
-		#TODO For multi-device btrfs filesysems only use one device
-		do
-			for FILESYS in $(findmnt -S $DEVICE --types btrfs --list --output target --first-only --noheadings)
+		(( $IO_DELAYS )) || log_cmd $OF "df -Th"
+		if [[ -x $FINDMNT_BIN ]]; then
+			log_cmd $OF "findmnt"
+			for DEVICE in $(btrfs filesystem show | awk 'NF{ print $NF }' | grep ^/)
 			do
-				log_cmd $OF "btrfs filesystem usage $FILESYS"
-				log_cmd $OF "btrfs scrub status $FILESYS"
-				log_cmd $OF "btrfs balance status -v $FILESYS"
-				log_cmd $OF "btrfs subvolume get-default $FILESYS"
-				log_cmd $OF "btrfs subvolume list $FILESYS"
-				log_cmd $OF "btrfs qgroup show -prce $FILESYS"
-				log_cmd $OF "btrfs device stats $FILESYS"
+				for FILESYS in $($FINDMNT_BIN -S $DEVICE --types btrfs --list --output target --first-only --noheadings)
+				do
+					log_cmd $OF "btrfs filesystem usage $FILESYS"
+					log_cmd $OF "btrfs scrub status $FILESYS"
+					log_cmd $OF "btrfs balance status -v $FILESYS"
+					log_cmd $OF "btrfs subvolume get-default $FILESYS"
+					log_cmd $OF "btrfs subvolume list $FILESYS"
+					log_cmd $OF "btrfs qgroup show -prce $FILESYS"
+					log_cmd $OF "btrfs device stats $FILESYS"
+				done
 			done
-		done
-
+		else
+			log_cmd $OF "mount"
+		fi
 		if rpm_verify $OF snapper; then
 			log_cmd $OF "snapper list-configs"
 			CONFIGS=$(snapper --table-style 0 list-configs | sed -e 's/[[:space:]]*//g;1,2d')
@@ -2189,7 +2226,7 @@ iscsi_info() {
 	if rpm_verify $OF python3-targetcli-fb
 	then
 		log_cmd $OF 'systemctl status targetcli.service'
-		log_cmd $OF 'lsmod | grep target_'
+		log_cmd $OF 'grep target_ /proc/modules'
 		log_cmd $OF 'targetcli ls'
 		[[ -d /etc/target ]] && FILES=$(find -L /etc/target -type f)
 	fi
@@ -2241,7 +2278,7 @@ nfs_info() {
 		timed_log_cmd $OF 'rpcinfo -p'
 
 		log_cmd $OF "grep -E '[[:space:]]nfs[[:space:]]|[[:space:]]nfs4[[:space:]]' /etc/fstab"
-		IPADDRS=$(grep -E '[[:space:]]nfs[[:space:]]|[[:space:]]nfs4[[:space:]]' /etc/fstab | grep -vE '^#|^;' | cut -d\: -f1 | sort | uniq)
+		IPADDRS=$(grep -E '[[:space:]]nfs[[:space:]]|[[:space:]]nfs4[[:space:]]' /etc/fstab 2>/dev/null | grep -vE '^#|^;' | cut -d\: -f1 | sort | uniq)
 		for IPADDR in $IPADDRS
 		do
 			ping_addr $OF 'NFS Server' $IPADDR
@@ -2253,7 +2290,7 @@ nfs_info() {
 		NFS_FOUND=1
 	fi
 
-	if rpm -q nfs-kernel-server &> /dev/null
+	if $RPM_BIN -q nfs-kernel-server &> /dev/null
 	then
 		NFSSERVER='nfs-server.service'
 		if rpm_verify $OF nfs-kernel-server
@@ -2261,12 +2298,14 @@ nfs_info() {
 			log_cmd $OF "systemctl status $NFSSERVER"
 			log_cmd $OF 'exportfs -v'
 			conf_files $OF /etc/exports
-			if systemctl is-active --quiet $NFSSERVER
-			then
-				if timed_log_cmd $OF 'showmount'
+			if [[ -x $SYSTEMCTL_BIN ]]; then
+				if $SYSTEMCTL_BIN is-active --quiet $NFSSERVER
 				then
-					log_cmd $OF 'showmount -e'
-					log_cmd $OF 'showmount -a'
+					if timed_log_cmd $OF 'showmount'
+					then
+						log_cmd $OF 'showmount -e'
+						log_cmd $OF 'showmount -a'
+					fi
 				fi
 			fi
 			NFS_FOUND=1
@@ -2282,10 +2321,12 @@ ntp_info() {
 	OF=ntp.txt
 	CONFFILE=/etc/ntp.conf
 	addHeaderFile $OF
-	if rpm -q chrony &> /dev/null
+	NTP_FOUND=0
+	if $RPM_BIN -q chrony &> /dev/null
 	then
 	    if rpm_verify $OF chrony
 		then
+			NTP_FOUND=1
 		    NTP_DAEMON=1
 		    CONFFILE="/etc/chrony.conf"
 		    log_cmd $OF "systemctl status chronyd.service"
@@ -2300,7 +2341,7 @@ ntp_info() {
 			    NTP_DAEMON=0
 		    fi
 		    log_cmd $OF "timedatectl"
-		    IPADDRS=$(grep -E "^pool |^peer |^server " $CONFFILE | awk '{print $2}' | sort | uniq)
+		    IPADDRS=$(grep -E "^pool |^peer |^server " $CONFFILE 2>/dev/null | awk '{print $2}' | sort | uniq)
 		    for IPADDR in $IPADDRS
 		    do
 			    ping_addr $OF 'NTP Server' $IPADDR
@@ -2311,25 +2352,25 @@ ntp_info() {
 			    log_write $OF
 			    for KEYNAME in driftfile
 			    do
-				    FILES=$(grep ^${KEYNAME} $CONFFILE | awk '{print $2}')
+				    FILES=$(grep ^${KEYNAME} $CONFFILE 2>/dev/null | awk '{print $2}')
 				    conf_files $OF $FILES
 			    done
 			    KEYNAME=logdir
-			    LOGDIR=$(grep ^${KEYNAME} $CONFFILE | awk '{print $2}')
+			    LOGDIR=$(grep ^${KEYNAME} $CONFFILE 2>/dev/null | awk '{print $2}')
 			    [[ -z "$LOGDIR" ]] && LOGDIR='/var/log/chrony/'
 			    FILES=$(find $LOGDIR -type f)
 			    (( $ADD_OPTION_LOGS )) && log_files $OF 0 $FILES || log_files $OF $VAR_OPTION_LINE_COUNT $FILES
 			    FILES="/var/log/messages"
 			    (( $ADD_OPTION_LOGS )) && grep_log_files chrony $OF 0 $FILES || grep_log_files chrony $OF $VAR_OPTION_LINE_COUNT $FILES
 		    fi
-		    echolog Done
-	    elif rpm -q ntp &> /dev/null
+	    elif $RPM_BIN -q ntp &> /dev/null
 	    then
+			NTP_FOUND=1
 			CONFFILE=/etc/ntp.conf
 			log_cmd $OF "systemctl status ntpd.service"
 			log_cmd $OF 'ntpq -p'
 			conf_files $OF $CONFFILE
-			IPADDRS=$(grep -E "^peer |^server " $CONFFILE | awk '{print $2}' | sort | uniq)
+			IPADDRS=$(grep -E "^peer |^server " $CONFFILE 2>/dev/null | awk '{print $2}' | sort | uniq)
 			for IPADDR in $IPADDRS
 			do
 				ping_addr $OF 'NTP Server' $IPADDR
@@ -2340,19 +2381,17 @@ ntp_info() {
 				log_write $OF
 				for KEYNAME in driftfile
 				do
-					FILES=$(grep ^${KEYNAME} $CONFFILE | awk '{print $2}')
+					FILES=$(grep ^${KEYNAME} $CONFFILE 2>/dev/null | awk '{print $2}')
 					conf_files $OF $FILES
 				done
 				KEYNAME=logfile
-				FILES=$(grep ^${KEYNAME} $CONFFILE | awk '{print $2}')
+				FILES=$(grep ^${KEYNAME} $CONFFILE 2>/dev/null | awk '{print $2}')
 				[[ -z "$FILES" ]] && FILES=/var/log/ntp
 				test $ADD_OPTION_LOGS -gt 0 && log_files $OF 0 $FILES || log_files $OF $VAR_OPTION_LINE_COUNT $FILES
 			fi
-			echolog Done
-		else
-			echolog Skipped
 		fi
 	fi
+	(( $NTP_FOUND )) && echolog Done || echolog Skipped
 }
 
 nvme_info() {
@@ -2365,9 +2404,9 @@ nvme_info() {
 	NVME_LOADED=0
 	STAS_LOADED=0
 	SKIP=0
-	if rpm -q $NVME_PKG &>/dev/null; then
+	if $RPM_BIN -q $NVME_PKG &>/dev/null; then
 		rpm_verify $OF $NVME_PKG
-		if lsmod | grep nvme &> /dev/null; then
+		if grep nvme /proc/modules &> /dev/null; then
 			NVME_LOADED=1
 		fi
 		if (( $NVME_LOADED )); then
@@ -2388,27 +2427,29 @@ nvme_info() {
 		fi
 		conf_files $OF $FILES
 		if (( $NVME_LOADED )); then
-			NVME_DEVICES=$(nvme list | grep /dev | awk '{print $1}')
-			for NVME_DEVICE in $NVME_DEVICES
-			do
-				log_entry $OF note "Processing: $NVME_DEVICE"
-				log_cmd $OF "nvme id-ctrl -H $NVME_DEVICE"
-				log_cmd $OF "nvme fw-log $NVME_DEVICE"
-				log_cmd $OF "nvme smart-log $NVME_DEVICE"
-				log_entry $OF note "Done: $NVME_DEVICE"
-				log_cmd $OF "smartctl --all $NVME_DEVICE"
-				log_cmd $OF "nvme list-ns $NVME_DEVICE"
-				log_cmd $OF "nvme list-ctrl $NVME_DEVICE"
-				log_cmd $OF "nvme id-ns -H $NVME_DEVICE"
-				log_cmd $OF "nvme error-log $NVME_DEVICE"
-				log_cmd $OF "nvme show-regs $NVME_DEVICE"
-			done
+			if [[ -x $NVME_BIN ]]; then
+				NVME_DEVICES=$($NVME_BIN list | grep /dev | awk '{print $1}')
+				for NVME_DEVICE in $NVME_DEVICES
+				do
+					log_entry $OF note "Processing: $NVME_DEVICE"
+					log_cmd $OF "nvme id-ctrl -H $NVME_DEVICE"
+					log_cmd $OF "nvme fw-log $NVME_DEVICE"
+					log_cmd $OF "nvme smart-log $NVME_DEVICE"
+					log_entry $OF note "Done: $NVME_DEVICE"
+					log_cmd $OF "smartctl --all $NVME_DEVICE"
+					log_cmd $OF "nvme list-ns $NVME_DEVICE"
+					log_cmd $OF "nvme list-ctrl $NVME_DEVICE"
+					log_cmd $OF "nvme id-ns -H $NVME_DEVICE"
+					log_cmd $OF "nvme error-log $NVME_DEVICE"
+					log_cmd $OF "nvme show-regs $NVME_DEVICE"
+				done
+			fi
 		fi
 		log_cmd $OF "lspci -tv"
 	else
 		((SKIP++))
 	fi
-	if rpm -q $STAS_PKG &>/dev/null; then
+	if $RPM_BIN -q $STAS_PKG &>/dev/null; then
 		rpm_verify $OF $STAS_PKG
 		log_cmd $OF 'systemctl status stacd.service'
 		log_cmd $OF 'stacctl status'
@@ -2518,10 +2559,10 @@ crash_info() {
 		conf_files $OF $LIMITS_FILES
 	fi
 
-	if [[ -x /usr/bin/coredumpctl ]]; then
-		log_cmd $OF "/usr/bin/coredumpctl list"
-		if coredumpctl list 2>/dev/null | grep PID &>/dev/null; then
-			PIDLIST=$(coredumpctl list | grep -v PID | awk '{print $5}')
+	if [[ -x $COREDUMPCTL_BIN ]]; then
+		log_cmd $OF "coredumpctl list"
+		if $COREDUMPCTL_BIN list 2>/dev/null | grep PID &>/dev/null; then
+			PIDLIST=$($COREDUMPCTL_BIN list | grep -v PID | awk '{print $5}')
 			for COREPID in $PIDLIST
 			do
 				log_cmd $OF "coredumpctl info $COREPID"
@@ -2578,7 +2619,7 @@ crash_info() {
 		ls -l --time-style=long-iso ${i}/${COREFILE} ${i}/${COREFILE}\.* ${i}/core ${i}/core\.* >> $SEARCH_LIST 2>/dev/null
 	done
 	# Search ld.so.conf includes
-	LDINCLUDES=$(grep -i ^include /etc/ld.so.conf | awk '{print $2}')
+	LDINCLUDES=$(grep -i ^include /etc/ld.so.conf 2>/dev/null | awk '{print $2}')
 	if [[ -n "$LDINCLUDES" ]]; then
 		SEARCH=$(cat $LDINCLUDES 2>/dev/null)
 		for i in $SEARCH
@@ -2623,11 +2664,11 @@ printlog "AUTOFS..."
 	if rpm_verify $OF autofs || rpm_verify $OF autofs4 || rpm_verify $OF autofs5
 	then
 		log_cmd $OF "systemctl status autofs.service"
-		[[ -x /usr/bin/findmnt ]] && log_cmd $OF "findmnt" || log_cmd $OF "mount"
-		log_cmd $OF 'ps aux | grep automount | grep -v grep'
+		[[ -x $FINDMNT_BIN ]] && log_cmd $OF "findmnt" || log_cmd $OF "mount"
+		log_cmd $OF "ps aux | grep automount | grep -v grep"
 		conf_files $OF /etc/sysconfig/autofs
 		log_cmd $OF 'grep ^automount: /etc/nsswitch.conf'
-		for SCHEME in $(grep ^automount: /etc/nsswitch.conf | sed -e 's/^.*:[ \t]*//')
+		for SCHEME in $(grep ^automount: /etc/nsswitch.conf 2>/dev/null | sed -e 's/^.*:[ \t]*//')
 		do
 			log_write $OF "#--[ Automount Scheme: $SCHEME ]--#"
 			case "$SCHEME" in
@@ -2657,7 +2698,7 @@ printlog "AUTOFS..."
 				;;
 			nis)
 				if log_cmd $OF "ypcat -k auto.master"; then
-					FILES=$(ypcat -k auto.master | grep -v ^# | awk '{print $2}' | cut -d\: -f2)
+					FILES=$(ypcat -k auto.master 2>/dev/null | grep -v ^# | awk '{print $2}' | cut -d\: -f2)
 					for MAP in $FILES
 					do
 						log_cmd $OF "ypcat -k $MAP"
@@ -2739,7 +2780,7 @@ selinux_info() {
 	addHeaderFile $OF
 	if rpm_verify $OF selinux-policy
 	then
-		for i in policycoreutils $(rpm -qa | grep selinux | grep -v "selinux-policy-[0-9]")
+		for i in policycoreutils $(rpm -qa 2>/dev/null | grep selinux | grep -v "selinux-policy-[0-9]")
 		do
 			rpm_verify $OF "$i"
 		done
@@ -2751,8 +2792,8 @@ selinux_info() {
 		do
 			log_cmd $OF "systemctl status ${SERVICE}.service"
 		done
-		SEMANAGE_BIN=$(which semanage 2>/dev/null)
-		if [[ -n $SEMANAGE_BIN ]]; then
+		SEMANAGE_BIN=$(command -v semanage)
+		if [[ -x $SEMANAGE_BIN ]]; then
 			log_cmd $OF "sestatus -v"
 			log_cmd $OF "$SEMANAGE_BIN boolean --list"
 			log_cmd $OF "$SEMANAGE_BIN fcontext --list"
@@ -2762,8 +2803,8 @@ selinux_info() {
 		log_cmd $OF "ps auxZww"
 		if [[ -d /etc/selinux/ ]]; then
 			ALL_FILES=$(find -L /etc/selinux/ -type f | sort)
-			CFILES=$(grep "\.conf$" <<< "$ALL_FILES")
-			NFILES=$(grep -v "\.conf$" <<< "$ALL_FILES")
+			CFILES=$(grep "\.conf$" <<< "$ALL_FILES" 2>/dev/null)
+			NFILES=$(grep -v "\.conf$" <<< "$ALL_FILES" 2>/dev/null)
 			conf_text_files $OF $CFILES $NFILES
 		fi
 		log_cmd $OF "ausearch -m AVC,USER_AVC,SELINUX_ERR,USER_SELINUX_ERR -i"
@@ -2786,7 +2827,7 @@ ha_info() {
 			log_cmd $OF "systemctl status pacemaker.service"
 			CONF_FILES="/etc/corosync/corosync.conf /etc/sysconfig/ctdb /etc/sysconfig/sbd"
 			if [[ -s /etc/xinetd.d/csync2 ]]; then
-				TMPORT=$(grep -i port /etc/xinetd.d/csync2 | awk '{print $3}')
+				TMPORT=$(grep -i port /etc/xinetd.d/csync2 2>/dev/null | awk '{print $3}')
 				log_cmd $OF "ss -nlp | grep $TMPORT"
 			fi
 			log_cmd $OF 'chronyc sources -v'
@@ -2855,7 +2896,7 @@ ha_info() {
 				fi
 			fi
 			conf_files $OF /etc/hawk/server.json /etc/sysconfig/hawk
-			CERT="$(grep -Po '^HAWK_CERT\s*=\s*"\s*\K(/[^"]+)(?=.*)' /etc/sysconfig/hawk)"
+			CERT="$(grep -Po '^HAWK_CERT\s*=\s*"\s*\K(/[^"]+)(?=.*)' /etc/sysconfig/hawk 2>/dev/null)"
 			if [[ -n $CERT ]]; then
 				log_cmd $OF "openssl x509 -in $CERT -subject -startdate -enddate -noout -ext subjectAltName"
 			fi
@@ -2884,7 +2925,7 @@ slp_info() {
 	then
 		conf_files $OF /etc/slp.conf
 		if [[ -s /etc/slp.conf ]]; then
-			IPADDRS=$(grep -i '^net.slp.DAAddresses' /etc/slp.conf | sed -e "s/[[:space:]]+//g;s/\'//g;s/\"//g" | cut -d= -f2 | sed -e "s/,/ /g")
+			IPADDRS=$(grep -i '^net.slp.DAAddresses' /etc/slp.conf | sed -e "s/[[:space:]]+//g;s/\'//g;s/\"//g" 2>/dev/null | cut -d= -f2 | sed -e "s/,/ /g")
 			for IPADDR in $IPADDRS
 			do
 				ping_addr $OF 'SLP DA' $IPADDR
@@ -2933,15 +2974,15 @@ ocfs2_info() {
 	addHeaderFile $OF
 	if rpm_verify $OF ocfs2-tools
 	then
-		if lsmod | grep ocfs2_stack_user[[:space:]] &>/dev/null && lsmod | grep ocfs2[[:space:]] &>/dev/null
+		if grep -E "ocfs[[:space:]]|ocfs2_stack_user[[:space:]]" /proc/modules &>/dev/null
 		then
 			OCFS2_MODULES=1
 		fi
-		[[ -x /usr/bin/findmnt ]] && log_cmd $OF "findmnt" || log_cmd $OF "mount"
+		[[ -x $FINDMNT_BIN ]] && log_cmd $OF "findmnt" || log_cmd $OF "mount"
 		(( OCFS2_MODULES )) && timed_log_cmd $OF "mounted.ocfs2 -d"
 		(( OCFS2_MODULES )) && timed_log_cmd $OF "mounted.ocfs2 -f"
 		log_cmd $OF "ps aux | grep ocfs2 | grep -v grep"
-		log_cmd $OF "lsmod | grep ocfs2"
+		log_cmd $OF "grep ocfs2 /proc/modules"
 		CHECKDIR="/sys/o2cb"
 		if [[ -d $CHECKDIR ]]; then
 			FILES=$(find ${CHECKDIR}/ -type f)
@@ -3007,14 +3048,14 @@ gfs2_info() {
 	addHeaderFile $OF
 	if rpm_verify $OF gfs2-utils
 	then
-		if  lsmod | grep gfs2[[:space:]] &>/dev/null
+		if  grep gfs2[[:space:]] /proc/modules &>/dev/null
 		then
 			GFS2_MODULES=1
 		fi
 		log_cmd $OF "rpm -qa | grep -E 'gfs2-utils|gfs2-kmp-default'"
-		[[ -x /usr/bin/findmnt ]] && log_cmd $OF "findmnt --types gfs2" || log_cmd $OF "mount --types gfs2"
+		[[ -x $FINDMNT_BIN ]] && log_cmd $OF "findmnt --types gfs2" || log_cmd $OF "mount --types gfs2"
 		log_cmd $OF "ps aux | grep gfs2 | grep -v grep"
-		log_cmd $OF "lsmod | grep gfs2"
+		log_cmd $OF "grep gfs2 /proc/modules"
 		(( GFS2_MODULES )) && DEVICES=$(find /sys/fs/gfs2/ -name device -and -type l -exec sh -c 'readlink -ev {} | sed  "s/.*\//\/dev\//g" ' \;) || DEVICES=''
 		log_entry $OF x "GFS2 Devices"
 		log_write $OF "$DEVICES"
@@ -3045,7 +3086,7 @@ drbd_info() {
 		log_cmd $OF 'systemctl status drbd.service'
 		log_cmd $OF "grep -E \"drbd\" $RPMPATH"
 		log_write $OF
-		log_cmd $OF "lsmod | grep drbd"
+		log_cmd $OF "grep drbd /proc/modules"
 		log_cmd $OF "modinfo drbd"
 		log_cmd $OF "drbd-overview" 
 		# Added By Ahmad Al Zayed - Feb 21, 2019 to get few drbd output & configuration 
@@ -3053,7 +3094,7 @@ drbd_info() {
 		log_cmd $OF "drbdadm dump"
 		log_cmd $OF "cat /proc/drbd"
 		log_cmd $OF "ps aux | grep drbd | grep -v grep"
-		[[ -x /usr/bin/findmnt ]] && log_cmd $OF "findmnt" || log_cmd $OF "mount"
+		[[ -x $FINDMNT_BIN ]] && log_cmd $OF "findmnt" || log_cmd $OF "mount"
 		(( $IO_DELAYS )) || log_cmd $OF "df -Th"
 		if [[ -s /etc/drbd.conf ]]; then
 			DIRLIST=$(cat /etc/drbd.conf | grep ^include | cut -d\" -f2 | sed 's!\(.*\)/.*!\1/!' | sort | uniq)
@@ -3298,7 +3339,7 @@ ldap_info() {
 	if rpm_verify $OF pwdutils
 	then
 		conf_files $OF /etc/ldap.conf
-		IPADDRS=$(grep -i '^uri[[:space:]]' /etc/ldap.conf | sed -e 's!uri[[:space:]]*!!g;s!ldap://!!g;s!ldaps://!!g;s!ldapi://[[:alnum:][:punct:]]*!!g')
+		IPADDRS=$(grep -i '^uri[[:space:]]' /etc/ldap.conf 2>/dev/null | sed -e 's!uri[[:space:]]*!!g;s!ldap://!!g;s!ldaps://!!g;s!ldapi://[[:alnum:][:punct:]]*!!g')
 		for I in $IPADDRS
 		do
 			IPADDR=$(echo $I | sed -e "s/:[[:digit:]]*//g")
@@ -3316,7 +3357,7 @@ ldap_info() {
 		LDAP_CONF="/etc/openldap/ldap.conf"
 		conf_files $OF $LDAP_CONF
 		if [[ -s $LDAP_CONF ]]; then
-			IPADDRS=$(grep -Pio '^uri\s+ldaps?://\K(.*)' $LDAP_CONF)
+			IPADDRS=$(grep -Pio '^uri\s+ldaps?://\K(.*)' $LDAP_CONF 2>/dev/null)
 			for I in $IPADDRS
 			do
 				IPADDR=$(echo $I | sed -e "s/:[[:digit:]]*//g")
@@ -3342,13 +3383,13 @@ ldap_info() {
 	then
 		SLAPD_CONF_BACKEND=$(grep -Po \
 			'^OPENLDAP_CONFIG_BACKEND\s*=\s*"*\K([^"\s$]+)(?=.*)' \
-			/etc/sysconfig/openldap)
+			/etc/sysconfig/openldap 2>/dev/null)
 		SLAPD_CONF=/etc/openldap/slapd.conf
 		SLAPD_DIR=/var/lib/ldap
 		if [[ "$SLAPD_CONF_BACKEND" == "files" ]] && [[ -f $SLAPD_CONF ]]
 		then
-			SLAPD_DIR=$(grep -i ^directory $SLAPD_CONF | awk '{print $2}')
-			SLAPD_PIDF=$(grep -i ^pidfile $SLAPD_CONF | awk '{print $2}')
+			SLAPD_DIR=$(grep -i ^directory $SLAPD_CONF 2>/dev/null | awk '{print $2}')
+			SLAPD_PIDF=$(grep -i ^pidfile $SLAPD_CONF 2>/dev/null | awk '{print $2}')
 			[[ -z "$SLAPD_PIDF" ]] && SLAPD_PIDF="/var/run/slapd/slapd.pid"
 			if [[ -f $SLAPD_PIDF ]]; then
 				SLAPD_PID=$(cat $SLAPD_PIDF)
@@ -3357,7 +3398,7 @@ ldap_info() {
 			fi
 			# schema files collection makes sense only in 'file' conf backend
 			log_cmd $OF "ls -al /etc/openldap/schema"
-			SLAPD_SCHEMAS=$(grep ^include $SLAPD_CONF | awk '{print $2}')
+			SLAPD_SCHEMAS=$(grep ^include $SLAPD_CONF 2>/dev/null | awk '{print $2}')
 			if [[ -n "$SLAPD_SCHEMAS" ]]
 			then
 				log_write $OF "#___________________________________________________________#"
@@ -3370,8 +3411,8 @@ ldap_info() {
 		elif [[ "$SLAPD_CONF_BACKEND" == "ldap" ]]
 		then
 			SLAPD_CONF= # useless in 'ldap' config backend
-			SLAPD_DIR=$(grep -IRhPo '^olcDbDirectory: \K(.*)' /etc/openldap/slapd.d/)
-			SLAPD_PIDF=$(grep -Po '^olcPidFile: \K(.*)' /etc/openldap/slapd.d/cn=config.ldif)
+			SLAPD_DIR=$(grep -IRhPo '^olcDbDirectory: \K(.*)' /etc/openldap/slapd.d/ 2>/dev/null )
+			SLAPD_PIDF=$(grep -Po '^olcPidFile: \K(.*)' /etc/openldap/slapd.d/cn=config.ldif 2>/dev/null )
 			if [[ -f $SLAPD_PIDF ]]
 			then
 				SLAPD_PID=$(cat $SLAPD_PIDF)
@@ -3501,7 +3542,7 @@ proc_info() {
         			if [[ -d "/proc/${PID}" ]]; then
                 			BINARY=$(readlink -e "/proc/${PID}/exe" 2>/dev/null)
                 			if [[ -n $BINARY ]]; then
-                       		 		PACKAGE=$(rpm -qf $BINARY)
+                       		 		PACKAGE=$(rpm -qf $BINARY 2>/dev/null)
                         			log_write $OF "PID ${PID} -> $BINARY -> $PACKAGE"
                 			fi
         			fi
@@ -3518,7 +3559,7 @@ proc_info() {
 	fi
 	# cpuset information relates to processes
 	log_cmd $OF "grep cpuset /etc/mtab"
-	CPUSET=$(grep -m 1 -E ' cpuset |cgroup .*cpuset' /etc/mtab | cut -d' ' -f2)
+	CPUSET=$(grep -m 1 -E ' cpuset |cgroup .*cpuset' /etc/mtab 2>/dev/null | cut -d' ' -f2)
 	if [[ -n "$CPUSET" ]]; then
 		log_cmd $OF "find -L ${CPUSET}/ -type f"
 		FILES=$(find -L ${CPUSET}/ -type f)
@@ -3803,9 +3844,9 @@ dns_info() {
 	if rpm_verify $OF bind; then
 		log_cmd $OF 'systemctl status named.service'
 		(( $SKIP )) && log_cmd $OF 'ss -nlp | grep named'
-		FILES=$(grep ^include /etc/named.conf | cut -d';' -f1 | sed -e 's/"//g'  | awk '{print $2}')
+		FILES=$(grep ^include /etc/named.conf 2>/dev/null | cut -d';' -f1 | sed -e 's/"//g'  | awk '{print $2}')
 		conf_files $OF /etc/named.conf $FILES /etc/sysconfig/named
-		ZDIR=$(grep ^[[:space:]]*directory /etc/named.conf | cut -d';' -f1 | sed -e 's/"//g'  | awk '{print $2}')
+		ZDIR=$(grep ^[[:space:]]*directory /etc/named.conf 2>/dev/null | cut -d';' -f1 | sed -e 's/"//g'  | awk '{print $2}')
 		if [[ -n "$ZDIR" ]]; then
 			FILES=$(find -L ${ZDIR}/ -mount -type f 2>/dev/null | grep zone | grep -v '/proc/') || unset FILES
 			conf_files $OF $FILES
@@ -3879,7 +3920,7 @@ cimom_info() {
 		for i in cert key
 		do
 			unset OWSSLCHECK
-			OWSSLCHECK=$(grep "^http_server.SSL_${i}" /etc/openwbem/openwbem.conf | awk '{print $3}')
+			OWSSLCHECK=$(grep "^http_server.SSL_${i}" /etc/openwbem/openwbem.conf 2>/dev/null | awk '{print $3}')
 			if [[ -n "$OWSSLCHECK" ]]; then
 				if [[ -L $OWSSLCHECK ]]; then
 					log_cmd $OF "readlink -ev $OWSSLCHECK"
@@ -3953,7 +3994,7 @@ ib_info() {
 			fi
 			log_cmd $OF 'lspci -b'
 			log_cmd $OF 'lspci -nn'
-			log_cmd $OF 'lsmod'
+			log_cmd $OF 'sort /proc/modules'
 
 			FILES=''
 			(( CHK_DIAG )) && FILES="$FILES $(find /tmp/ -type f -name \*ibdiagnet\* 2>/dev/null)"
@@ -4036,7 +4077,7 @@ sysfs_info() {
 				# skip it on systems with 16TB  or ram or more unless exhaustive
 				# option is used
 				if [[ $ITEM == "memory" ]]; then
-					mem=$(grep 'MemTotal' /proc/meminfo | awk '{print $2}')
+					mem=$(grep 'MemTotal' /proc/meminfo 2>/dev/null | awk '{print $2}')
 					(( $mem > 16000000000 )) && (( $VAR_OPTION_EXHAUSTIVE_MEM == 0 )) && continue
 					echonlog "Please Wait..."
 					echonlog "Memory"
@@ -4159,7 +4200,7 @@ if [[ -s ${SC_CONF:="${CONFIG_DIR}/${CURRENT_SCRIPT}.conf"} ]]; then
 fi
 
 log2sys "BEGIN Version: $SVER"
-ext_scaling_check
+[[ -x $PS_BIN ]] && ext_scaling_check # Assumes the default EXT_SCALING_DISABLED=1
 init_plugins on
 get_sles_ver
 NSA_CHECK=0
@@ -4244,6 +4285,7 @@ done
 
 umask 0077
 log2sys "Initialize"
+MOD_SUPPORTCONFIG_COUNT_BEFORE=$(wc -l 2>/dev/null /proc/modules)
 
 if [[ -n "$TARGET_DIRECTORY" ]]; then
 	VAR_OPTION_LOG_DIRS=$TARGET_DIRECTORY
@@ -4316,6 +4358,12 @@ if (( $LOGERROR )); then
 	exit_code 3
 fi
 export LOG CSFILE
+
+if (( OPTION_MOD )); then
+	MODULE_LIST_BEFORE=$(mktemp ${LOG}/module_list_before.XXXXXXXXXX)
+	cat /proc/modules > $MODULE_LIST_BEFORE
+	MODULE_LIST_AFTER=$(mktemp ${LOG}/module_list_after.XXXXXXXXXX)
+fi
 
 if (( $USE_SAVED_LOGS_ONLY != 1 )); then
 

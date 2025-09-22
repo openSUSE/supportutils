@@ -175,7 +175,7 @@ else
 	COMPRESS="tar"; 
 	COMPRESS_OPT="cf"
 fi
-SC_SRV=$(hostname) # %s
+SC_SRV=$(hostname 2>/dev/null || echo $HOSTNAME) # %s
 [[ "$SC_SRV" == "" ]] && SC_SRV=suse
 SC_DATE=$(date +"%y%m%d") # %d
 SC_TIME=$(date +"%H%M") # %t
@@ -186,7 +186,7 @@ SAVE_LOGS_ONLY=0
 USE_SAVED_LOGS_ONLY=0
 ENCRYPTED_TARBALL=0
 # Set bootloader type from sysconfig
-eval $(cat /etc/sysconfig/bootloader | grep LOADER_TYPE)
+[[ -f /etc/sysconfig/bootloader ]] && eval $(cat /etc/sysconfig/bootloader | grep LOADER_TYPE)
 IO_DELAYS=0
 
 EXT_SCALING_DISABLED=1
@@ -203,6 +203,9 @@ PROC_DIRS_DEPTH_FULL_FILTER_OUT="fs/binfmt_misc/register|net/ipv4/route/flush|ne
 RUN_VAR_DIR="/var/run/supportconfig"
 RUN_PID_FILE="${RUN_VAR_DIR}/supportconfig.pid"
 
+MODULE_LIST_BEFORE=''
+MODULE_LIST_AFTER=''
+
 INCLUDE_NETWORK_NAMESPACES=1
 
 # These are minimum options and should never be unset.
@@ -214,10 +217,27 @@ MIN_OPTION_YAST=1
 MIN_OPTION_SYSLOGS=1
 MIN_OPTION_AUTOMOD=1
 
+unalias -a &>/dev/null
+
+PS_BIN=$(command -v ps)
+GPG_BIN=$(command -v gpg)
+SYSTEMCTL_BIN=$(command -v systemctl)
+LSMOD_BIN=$(command -v lsmod)
+DIFF_BIN=$(command -v diff)
+NMCLI_BIN=$(command -v nmcli)
+JOURNALCTL_BIN=$(command -v journalctl)
+FINDMNT_BIN=$(command -v findmnt)
+RPM_BIN=$(command -v rpm)
+COREDUMPCTL_BIN=$(command -v coredumpctl)
+SFDISK_BIN=$(command -v sfdisk)
+NVME_BIN=$(command -v nvme)
+DMIDECODE_BIN=$(command -v dmidecode)
+IP_BIN=$(command -v ip)
+BRCTL_BIN=$(command -v brctl)
+LOGGER_BIN=$(command -v logger)
+
 trap "{ echolog TERMINATED BY USER; echo; exit 5; }" SIGINT
 trap "{ echolog SKIPPED BY USER; return 4; }" SIGQUIT
-
-unalias -a &>/dev/null
 
 ##############################################################################
 # General Function Definitions
@@ -228,7 +248,7 @@ log2sys() {
 	if (( $VAR_OPTION_DMESG )); then
 		echo "supportconfig: [$(date +%y%m%d:%H:%M:%S)] $MSG" > /dev/kmsg
 	else
-		logger -t supportconfig "$MSG"
+		[[ -x $LOGGER_BIN ]] && $LOGGER_BIN -t supportconfig "$MSG"
 	fi
 }
 
@@ -512,7 +532,9 @@ printvrpmlog() {
 }
 
 ext_scaling_check() {
-    T_BEFORE=$(date "+%S%N"); EXT_SCALING_PID=$(ps axo pid | wc -l); T_AFTER=$(date "+%S%N")
+    T_BEFORE=$(date "+%S%N")
+	EXT_SCALING_PID=$($PS_BIN axo pid | wc -l)
+	T_AFTER=$(date "+%S%N")
     EXT_SCALING_EXEC=$(expr $T_AFTER - $T_BEFORE)
     EXT_SCALING_IRQ=$(ls -1 /proc/irq 2>/dev/null | wc -l)
     (( EXT_SCALING_EXEC > EXT_SCALING_EXEC_LIMIT )) && { EXT_SCALING_DISABLED=0; log2sys "Extended Scaling: EXEC limit exceeded: ${EXT_SCALING_EXEC} > ${EXT_SCALING_EXEC_LIMIT}"; }
@@ -593,7 +615,7 @@ timed_log_cmd() {
 	SEMAPHORE_ERR=${SEMAPHORE_FILE}.returncode
 	SEMAPHORE_PID=${SEMAPHORE_FILE}.pid
 	export SEMAPHORE_LOG
-	CMD=$(\which $CMDBIN 2>/dev/null | awk '{print $1}')
+	CMD=$(command -v $CMDBIN)
 	echo "#==[ Command ]======================================#" >> $LOGFILE
 	if [[ -x "$CMD" ]]; then
 		export CMDLINE=$(echo $CMDLINE_ORIG | sed -e "s!${CMDBIN}!${CMD}!")
@@ -607,7 +629,7 @@ echo \$\$ > $SEMAPHORE_PID
 $CMDLINE >> $SEMAPHORE_LOG 2>&1
 echo \$? > $SEMAPHORE_ERR
 if [[ -e $LOGFILE ]]; then
- sed -i -e "\$(grep -n $SEMAPHORE_LOG $LOGFILE | cut -d: -f1)r $SEMAPHORE_LOG" $LOGFILE 2>/dev/null
+ sed -i -e "\$(grep -n $SEMAPHORE_LOG $LOGFILE 2>/dev/null | cut -d: -f1)r $SEMAPHORE_LOG" $LOGFILE 2>/dev/null
  sed -i -e "/\$(basename $SEMAPHORE_LOG)/d" $LOGFILE 2>/dev/null
  rm -f $SEMAPHORE_LOG
 fi
@@ -645,7 +667,7 @@ TEOF
 			echonlog "$CMDLINE_ORIG - Timed Out,"
 			echo >> $LOGFILE
 			echo "# ERROR: Command did not complete within the timeout period." >> $LOGFILE
-			ps -eaf | grep $(cat $SEMAPHORE_PID) | grep -v grep >> $LOGFILE
+			[[ -n "$PS_BIN" ]] && $PS_BIN -eaf | grep $(cat $SEMAPHORE_PID) | grep -v grep >> $LOGFILE
 			echo >> $LOGFILE
 		fi
 		wait_trace_off
@@ -744,7 +766,7 @@ log_options() {
 	echo "####################################" >> $LOGFILE
 	for SRCH in OPTION_ ADD_OPTION_
 	do
-		for i in $(grep ^$SRCH $SC_RESOURCE_FILE | cut -d= -f1 | sort)
+		for i in $(grep ^$SRCH $SC_RESOURCE_FILE 2>/dev/null | cut -d= -f1 | sort)
 		do
 			printf "%-25s = %s\n" "$i" "$((i))" >> $LOGFILE
 		done
@@ -779,7 +801,10 @@ addHeaderFile() {
 }
 
 timed_cmd_cleanup() {
-	PIDS2KILL=$(\ps axwwo pid,cmd | grep SC__SEMAPHORE | grep -v grep | awk '{print $1}')
+	PIDS2KILL=""
+	if [[ -x $PS_BIN ]]; then
+		PIDS2KILL=$($PS_BIN axwwo pid,cmd | grep SC__SEMAPHORE | grep -v grep | awk '{print $1}')
+	fi
 	if [[ -n "$PIDS2KILL" ]]; then
 		test $VAR_OPTION_SILENT -eq 0 && { echo; }
 		if (( $VAR_OPTION_SBM )); then
@@ -792,7 +817,7 @@ timed_cmd_cleanup() {
 			wait_trace_on "kill $PIDS2KILL"
 			kill -9 $PIDS2KILL &>/dev/null
 			sleep 1
-			PIDS2KILL=$(\ps axwwo pid,cmd | grep SC__SEMAPHORE | grep -v grep | awk '{print $1}')
+			PIDS2KILL=$($PS_BIN axwwo pid,cmd | grep SC__SEMAPHORE | grep -v grep | awk '{print $1}')
 			wait_trace_off
 		done
 	fi
@@ -870,14 +895,14 @@ set_to_min() {
 	init_plugins off
 	for SRCH in OPTION_ ADD_OPTION_
 	do
-		for i in $(grep ^$SRCH $SC_RESOURCE_FILE | cut -d= -f1 | sort)
+		for i in $(grep ^$SRCH $SC_RESOURCE_FILE 2>/dev/null | cut -d= -f1 | sort)
 		do
 			(( $i=0 ))
 		done
 	done
 	for SRCH in MIN_OPTION_ ADD_OPTION_MIN_
 	do
-		for i in $(grep ^$SRCH $SC_RESOURCE_FILE | cut -d= -f1 | sort)
+		for i in $(grep ^$SRCH $SC_RESOURCE_FILE 2>/dev/null | cut -d= -f1 | sort)
 		do
 			(( $i=1 ))
 		done
@@ -889,14 +914,14 @@ set_to_all() {
 	EXT_SCALING_DISABLED=1
 	for SRCH in OPTION_ ADD_OPTION_ MIN_OPTION_
 	do
-		for i in $(grep ^$SRCH $SC_RESOURCE_FILE | cut -d= -f1 | sort)
+		for i in $(grep ^$SRCH $SC_RESOURCE_FILE 2>/dev/null | cut -d= -f1 | sort)
 		do
 			(( $i=1 ))
 		done
 	done
 	for SRCH in ADD_OPTION_MIN_
 	do
-		for i in $(grep ^$SRCH $SC_RESOURCE_FILE | cut -d= -f1 | sort)
+		for i in $(grep ^$SRCH $SC_RESOURCE_FILE 2>/dev/null | cut -d= -f1 | sort)
 		do
 			(( $i=0 ))
 		done
@@ -909,7 +934,7 @@ set_to_default() {
 	DEF_FILE=$(mktemp /tmp/supportconfig-defoption.XXXXXXXXXXXXXX)
 	for SRCH in OPTION_ ADD_OPTION_ MIN_OPTION_ VAR_OPTION_
 	do
-		for i in $(grep ^$SRCH $SC_RESOURCE_FILE | sort)
+		for i in $(grep ^$SRCH $SC_RESOURCE_FILE 2>/dev/null | sort)
 		do
 			echo "$i" >> $DEF_FILE
 		done
@@ -940,13 +965,13 @@ check_log_dir() {
 get_features() {
 	log2sys "Display Feature Set"
 	if grep 'security=selinux' /proc/cmdline &> /dev/null; then
-		FEATURES=$(grep ^OPTION_ $SC_RESOURCE_FILE | grep -v OPTION_APPARMOR | cut -d= -f1 | sed -e 's/OPTION_//g')
+		FEATURES=$(grep ^OPTION_ $SC_RESOURCE_FILE 2>/dev/null | grep -v OPTION_APPARMOR | cut -d= -f1 | sed -e 's/OPTION_//g')
 	elif grep 'security=apparmor' /proc/cmdline &> /dev/null; then
-		FEATURES=$(grep ^OPTION_ $SC_RESOURCE_FILE | grep -v OPTION_SELINUX | cut -d= -f1 | sed -e 's/OPTION_//g')
+		FEATURES=$(grep ^OPTION_ $SC_RESOURCE_FILE 2>/dev/null | grep -v OPTION_SELINUX | cut -d= -f1 | sed -e 's/OPTION_//g')
 	else
-		FEATURES=$(grep ^OPTION_ $SC_RESOURCE_FILE | cut -d= -f1 | sed -e 's/OPTION_//g')
+		FEATURES=$(grep ^OPTION_ $SC_RESOURCE_FILE 2>/dev/null | cut -d= -f1 | sed -e 's/OPTION_//g')
 	fi
-	ADDITIONAL_FEATURES=$(grep ^ADD_OPTION_ $SC_RESOURCE_FILE | cut -d= -f1 | sed -e 's/ADD_OPTION_/a/g')
+	ADDITIONAL_FEATURES=$(grep ^ADD_OPTION_ $SC_RESOURCE_FILE 2>/dev/null | cut -d= -f1 | sed -e 's/ADD_OPTION_/a/g')
 	echo $FEATURES $ADDITIONAL_FEATURES $PLUGIN_FEATURES
 }
 
@@ -1033,16 +1058,24 @@ ehr() {
 
 encrypt_tarball() {
 	log2sys "Encrypt Tar Ball"
-	FOUND_KEY=$(gpg --list-keys 2>/dev/null | grep "$VAR_OPTION_GPG_UID" 2>/dev/null)
-	if [[ -z "$FOUND_KEY" ]]; then
-		echo "ERROR: GPG key not found: $VAR_OPTION_GPG_UID"
-		echo "	   File encryption failed, aborting"
+	if [[ -x $GPG_BIN ]]; then
+		FOUND_KEY=$($GPG_BIN --list-keys 2>/dev/null | grep "$VAR_OPTION_GPG_UID" 2>/dev/null)
+		if [[ -z "$FOUND_KEY" ]]; then
+			echo "ERROR: GPG key not found: $VAR_OPTION_GPG_UID"
+			echo " File encryption failed, aborting"
+			echo " GPG Keys Found:"
+			$GPG_BIN --list-keys
+			echo
+			exit_code 13
+		fi
+	else
+		echo "ERROR: Command not found - gpg"
+		echo " File encryption failed, aborting"
 		echo
-		gpg --list-keys
 		exit_code 13
 	fi
 	if (( VAR_OPTION_SILENT )); then
-		gpg --batch --yes --trust-model always --encrypt --recipient "$VAR_OPTION_GPG_UID" $TARBALL &> /dev/null
+		$GPG_BIN --batch --yes --trust-model always --encrypt --recipient "$VAR_OPTION_GPG_UID" $TARBALL &> /dev/null
 		ERR=$?
 		if (( $ERR )); then
 			echo "ERROR: gpg failed, RC=$ERR, aborting"
@@ -1060,7 +1093,7 @@ encrypt_tarball() {
 		echo "Using GPG Key:  $VAR_OPTION_GPG_UID"
 		echo "Command:		gpg --batch --yes --trust-model always --encrypt --recipient \"$VAR_OPTION_GPG_UID\" $TARBALL"
 		wait_trace_on "gpg --batch --yes --trust-model always --encrypt --recipient "$VAR_OPTION_GPG_UID" $TARBALL"
-		gpg --batch --yes --trust-model always --encrypt --recipient "$VAR_OPTION_GPG_UID" $TARBALL
+		$GPG_BIN --batch --yes --trust-model always --encrypt --recipient "$VAR_OPTION_GPG_UID" $TARBALL
 		ERR=$?
 		wait_trace_off
 		if (( $ERR )); then
@@ -1283,32 +1316,23 @@ post_lsmod_list() {
 	OF=modules.txt
 	log_write $OF "#==[ Command ]======================================#"
 	log_write $OF "# lsmod - Post run module list"
-	MOD_FIRST=$(mktemp $LOG/mod-first-XXXXXXXXXXXXXXX)
-	MOD_LAST=$(mktemp $LOG/mod-last-XXXXXXXXXXXXXXX)
+	
+	MODULE_COUNT_BEFORE=$(cat $MODULE_LIST_BEFORE | wc -l)
+	cat /proc/modules > $MODULE_LIST_AFTER
+	MODULE_COUNT_AFTER=$(cat $MODULE_LIST_AFTER | wc -l)
 
-	# Get module list before running supportconfig commands
-	wait_trace_on "grep -n '#==\[ Command \]' $LOG/$OF"
-	LN_INIT=$(grep -n '#==\[ Command \]' $LOG/$OF | head -1 | cut -d: -f1)
-	LN_FIN=$(grep -n '#==\[ Command \]' $LOG/$OF | head -2 | tail -1 | cut -d: -f1)
-	LN_TOTAL=$((LN_FIN - LN_INIT))
-	head -$LN_TOTAL $LOG/$OF | sed -e '/^#/d;/Module.*Size.*Used/d;/^$/d' | cut -d' ' -f1 | sort > $MOD_FIRST
-	MOD_CNT_BEFORE=$(cat $MOD_FIRST | wc -l)
-	log_write $OF "Modules Loaded Before Suportconfig:	   $MOD_CNT_BEFORE"
-	wait_trace_off
-
-	# Get module list after running supportconfig commands
-	wait_trace_on "lsmod | sed -e '1d' | cut -d' ' -f1 | sort"
-	lsmod | sed -e '1d' | cut -d' ' -f1 | sort > $MOD_LAST
-	MOD_CNT_AFTER=$(cat $MOD_LAST | wc -l)
-	log_write $OF "Modules Loaded After Suportconfig:		$MOD_CNT_AFTER"
-	wait_trace_off
+	log_write $OF "MIN_OPTION_AUTOMOD:                        $MIN_OPTION_AUTOMOD"
+	log_write $OF "Modules Loaded Before Suportconfig:        $MODULE_COUNT_BEFORE"
+	log_write $OF "Modules Loaded After Suportconfig:         $MODULE_COUNT_AFTER"
 
 	# Show the module list difference
-	MOD_CNT_ADDED=$((MOD_CNT_AFTER - MOD_CNT_BEFORE))
-	log_write $OF "Modules Loaded Incident to Supportconfig: $MOD_CNT_ADDED"
+	MOD_CNT_ADDED=$((MODULE_COUNT_AFTER - MODULE_COUNT_BEFORE))
+	log_write $OF "Modules Loaded Incident to Supportconfig:  $MOD_CNT_ADDED"
 	if (( $MOD_CNT_ADDED )); then
-		log_write $OF
-		diff $MOD_FIRST $MOD_LAST | grep '>' >> $LOG/$OF
+		if [[ -x $DIFF_BIN ]]; then
+			log_write $OF
+			$DIFF_BIN $MODULE_LIST_BEFORE $MODULE_LIST_AFTER | grep '>' >> $LOG/$OF
+		fi
 		log_write $OF
 		log_write $OF "Use -k to prevent supportconfig from loading modules"
 		log_write $OF "needed for system analysis. Using -k is not recommended."
@@ -1318,7 +1342,7 @@ post_lsmod_list() {
 	log_write $OF
 
 	# clean up
-	rm -f $MOD_FIRST $MOD_LAST
+	rm -f $MODULE_LIST_BEFORE $MODULE_LIST_AFTER
 }
 
 remove_local_tarball() {
@@ -1442,8 +1466,8 @@ write_xml_file() {
 
 get_sles_ver() {
 	if [[ -s /etc/os-release ]]; then
-		ID=$(grep '^ID=' /etc/os-release | cut -d\= -f2 | tr -d \")
-		VID=$(grep VERSION_ID /etc/os-release | cut -d\= -f2 | tr -d \")
+		ID=$(grep '^ID=' /etc/os-release 2>/dev/null | cut -d\= -f2 | tr -d \")
+		VID=$(grep VERSION_ID /etc/os-release 2>/dev/null | cut -d\= -f2 | tr -d \")
 		VID=${VID//\./}
 #		echo "ID=${ID}, VID=${VID}" > /dev/kmsg
 		if [[ "${ID}" == *"alp-"* ]]; then
