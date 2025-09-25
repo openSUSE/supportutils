@@ -919,26 +919,6 @@ update_info() {
 	FILES="$FILES $(find /var/log/ -type f -name \*zypp\*)"
 	(( $ADD_OPTION_LOGS )) && log_files $OF 0 $FILES || log_files $OF $VAR_OPTION_LINE_COUNT $FILES
 
-	conf_files $OF '/proc/kgr_in_progress'
-	log_entry $OF note "Processes blocking kGraft patching"
-	FOUND=0
-	for i in $(find /proc -type f 2> /dev/null | grep -i kgr_in_progress)
-	do
-		VAL=$(cat $i 2>/dev/null)
-		if [[ -n "$VAL" ]]
-		then
-			PPATH=$(dirname $i)
-			if (( VAL > 0 ))
-			then
-				COMM=$(cat ${PPATH}/comm 2>/dev/null)
-				KPID=$(basename ${PPATH})
-				log_write $OF "$KPID: $COMM"
-				FOUND=1
-			fi
-		fi
-	done
-	(( FOUND )) && log_write $OF
-
 	_sanitize_file $OF
 	echolog Done
 }
@@ -4121,8 +4101,13 @@ livepatch_info() {
 	log_cmd $OF 'rpm -qa | grep livepatch'
 	if rpm_verify $OF kernel-livepatch-tools; then
 		log_cmd $OF 'klp status'
-		log_cmd $OF 'klp -v blocking'
-		log_cmd $OF 'klp -v patches'
+		if [[ -x $KLP_BIN ]]; then
+			klp_status=$($KLP_BIN status 2>/dev/null)
+			if [[ "$klp_status" == "in_progress" ]]; then
+				log_cmd $OF 'klp -v blocking'
+			fi
+			log_cmd $OF 'klp -v patches'
+		fi
 	else
 		((SKIP++))
 	fi
