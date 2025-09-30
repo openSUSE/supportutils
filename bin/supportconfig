@@ -1002,10 +1002,16 @@ sssd_info() {
 		if (( $SSSD_PID )); then
 			[[ -x $PS_BIN ]] && SSSD_PIDS=$($PS_BIN axwwo pid,ppid,cmd | grep ${SSSD_PID} | grep -v grep | awk '{print $1}' | sort -n) || SSSD_PIDS=""
 			log_cmd $OF "ps axwwo user,pid,ppid,%cpu,%mem,vsz,rss,stat,time,cmd | grep -E \"${SSSD_PID}|PPID\" | grep -v grep"
-			for THISPID in $SSSD_PIDS
-			do
-				log_cmd $OF "lsof -b -n -l +fg -P -p $THISPID 2>/dev/null"
-			done
+			if [[ -n $SSSD_PIDS ]]; then
+				if [[ -s ${LOG}/${LSOF_FILE} ]]; then
+					for THISPID in $SSSD_PIDS
+					do
+						log_cmd $OF "awk -v var1=$THISPID '{if (\$2 == var1) print}' ${LOG}/${LSOF_FILE}"
+					done
+				else
+					log_entry $OF note "File not found - $LSOF_FILE, ensure OPTION_OFILES=1"
+				fi
+			fi
 		fi
 		log_cmd $OF 'grep pam_sss /etc/pam.d/*'
 		FILES="/var/log/sssd/*"
@@ -2574,7 +2580,7 @@ crash_info() {
 
 	# Search CWD per lsof
 	if [[ -s ${LOG}/${LSOF_FILE} ]]; then
-		SEARCH="$(cat ${LOG}/${LSOF_FILE} | grep '[[:space:]]cwd[[:space:]]' | awk '{print $9}' | sort | uniq)"
+		SEARCH="$(grep '[[:space:]]cwd[[:space:]]' ${LOG}/${LSOF_FILE} 2>/dev/null | awk '{print $9}' | sort | uniq)"
 		for i in $SEARCH
 		do
 			ls -l --time-style=long-iso ${i}/${COREFILE} ${i}/${COREFILE}\.* ${i}/core ${i}/core\.* >> $SEARCH_LIST 2>/dev/null
@@ -3413,9 +3419,12 @@ ldap_info() {
 			log_cmd $OF "ls -al $dir"
 		done
 
-		if [[ -n "$SLAPD_PID" ]]
-		then
-			log_cmd $OF "lsof -b +M -n -l +fg -P -p ${SLAPD_PID}"
+		if [[ -n "$SLAPD_PID" ]]; then
+			if [[ -s ${LOG}/${LSOF_FILE} ]]; then
+				log_cmd $OF "awk -v var1=$SLAPD_PID '{if (\$2 == var1) print}' ${LOG}/${LSOF_FILE}"
+			else
+				log_entry $OF note "File not found - $LSOF_FILE, ensure OPTION_OFILES=1"
+			fi
 		fi
 		_sanitize_file $OF
 	else
