@@ -2846,7 +2846,7 @@ ha_info() {
 					for HBR_PATH in $HBRS
 					do
 						HBR=$(basename $HBR_PATH)
-						log_cmd $OF "tar jxf ${HBR_PATH}"
+						log_cmd $OF "tar xf ${HBR_PATH}"
 						conf_files $OF "$LOG/${HBR%%.tar.bz2}/analysis.txt"
 					done
 				fi
