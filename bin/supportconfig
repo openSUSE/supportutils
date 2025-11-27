@@ -1702,6 +1702,8 @@ hardware_info() {
 			log_cmd $OF 'lssrc -a'
 			log_cmd $OF 'lsdevinfo'
 			log_cmd $OF 'lsslot'
+			log_cmd $OF 'lsslot -c phb'
+			log_cmd $OF 'lsslot -c pci'
 			log_cmd $OF 'amsstat'
 			log_cmd $OF 'lsrsrc IBM.MCP'
 			log_cmd $OF 'rmcdomainstatus -s ctrmc'
