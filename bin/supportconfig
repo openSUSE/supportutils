@@ -1213,6 +1213,7 @@ podman_info() {
 				ACCESS_PODMAN_USER=1
 				if log_cmd $OF "${PODACC}podman version"; then
 					log_cmd $OF "${PODACC}podman info"
+					log_cmd $OF "${PODACC}podman system df -v"
 					log_cmd $OF "${PODACC}podman images"
 					for image in $(${PODACC}podman images --format="{{.Repository}}_{{.Tag}}_{{.ID}}" 2>/dev/null)
 					do
