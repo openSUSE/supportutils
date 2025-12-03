@@ -1302,7 +1302,7 @@ cron_info() {
 		conf_files $OF /etc/crontab
 		for CRONDIR in $CRONS
 		do
-			FILES=$(find -L /etc/${CRONDIR}/ -type f)
+			FILES=$(find -L /etc/${CRONDIR}/ -type f -exec grep -I -q . {} \; -print)
 			conf_files $OF $FILES
 		done
 		echolog Done
