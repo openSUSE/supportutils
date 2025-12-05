@@ -12,7 +12,7 @@ You can use the SC_CONF environment variable to specify an alternate configurati
 .B Example: export SC_CONF=/opt/supportconfig.conf
 .RE
 .SH DESCRIPTION
-Regular and additional options are used to turn a feature either on (1) or off (0), whereas variable options usually have differing values depending on the desired outcome. Running supportconfig -C will create a default /etc/supportconfig.conf. The format for setting an option is:
+Regular and additional options are used to turn a feature either on (1) or off (0), whereas variable options usually have differing values depending on the desired outcome. Running supportconfig -C will create a default /etc/supportutils/supportconfig.conf. The format for setting an option is:
 .TP
 TOKEN=value
 .SS Regular Options
@@ -391,7 +391,7 @@ The following variables are defined for use as upload targets for both \fBVAR_OP
 .RE
 .RS
 
-If you want to change the default \fB-u\fR upload target to SUSE's European FTP server, add the following to \fB/etc/supportconfig.conf\fR.
+If you want to change the default \fB-u\fR upload target to SUSE's European FTP server, add the following to \fB/etc/supportutils/supportconfig.conf\fR.
 
 VAR_OPTION_UPLOAD_TARGET=${SUSE_UPLOAD_EMEA_FTPES}
 
@@ -401,7 +401,7 @@ VAR_OPTION_UPLOAD_TARGET_ALT
 Specifies an alternate upload target where the supportconfig tar ball will be uploaded, when using the \fB\-a\fR startup option. You should use the \fB\-r\fR \fIsrnum\fR to specify the service request number for all tar balls uploaded to SUSE. \fB\-a\fR (SUSE_UPLOAD_NA_HTTPS)
 .RS
 
-If you want to change the default \fB-a\fR alternate upload target to SUSE's European FTP server, add the following to \fB/etc/supportconfig.conf\fR.
+If you want to change the default \fB-a\fR alternate upload target to SUSE's European FTP server, add the following to \fB/etc/supportutils/supportconfig.conf\fR.
 
 VAR_OPTION_UPLOAD_TARGET_ALT=${SUSE_UPLOAD_EMEA_HTTPS}
 

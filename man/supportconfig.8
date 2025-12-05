@@ -30,10 +30,10 @@ Activates all supportconfig functions with additional logging and full rpm verif
 Includes the string in the tar ball filename in the format scc_<string>. See \fBsupportconfig.conf\fR(5) under VAR_OPTION_CUSTOM_ARCH for string qualifiers.
 .TP
 \fB\-C\fR 
-Creates a new default /etc/supportconfig.conf
+Creates a new default /etc/supportutils/supportconfig.conf
 .TP
 \fB\-D\fR 
-Use defaults; ignore  /etc/supportconfig.conf
+Use defaults; ignore  /etc/supportutils/supportconfig.conf
 .TP
 \fB\-E\fR \fIstring\fR
 Contact email address. This is an optional email address that is included in the basic-environment.txt file.
@@ -215,7 +215,7 @@ You can use the SC_CONF environment variable to specify an alternate configurati
 .B Example: export SC_CONF=/opt/supportconfig.conf
 .RE
 .SH FILES
-.I /etc/supportconfig.conf
+.I /etc/supportutils/supportconfig.conf
 .RS
 The supportconfig configuration file. See
 .BR supportconfig.conf (5)
