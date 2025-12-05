@@ -196,7 +196,8 @@ basic_healthcheck() {
 	log_cmd $OF 'vmstat 1 4'
 	[[ -x /usr/bin/mpstat ]] && log_cmd $OF 'mpstat -P ALL 1 3'
 	log_cmd $OF 'free -k'
-	timed_log_cmd $OF 'df -h' || IO_DELAYS=1
+	log_cmd $OF 'free -h'
+	timed_log_cmd $OF 'df -hT' || IO_DELAYS=1
 	(( $IO_DELAYS )) || log_cmd $OF 'df -i'
 	TAINT_SRC='/proc/sys/kernel/tainted'
 	conf_files $OF $TAINT_SRC
