@@ -17,7 +17,7 @@
 
 %define support_libdir /usr/lib/supportconfig
 # ensure usr-merge does not effect existing SLE
-%if %suse_version < 1550
+%if %sle_version < 150500
 %define _sbindir /sbin
 %endif
 
@@ -69,7 +69,7 @@ install -m 544 bin/chkbin %{buildroot}%{_sbindir}
 install -m 544 bin/getappcore %{buildroot}%{_sbindir}
 install -m 544 bin/analyzevmcore %{buildroot}%{_sbindir}
 install -m 444 bin/supportconfig.rc %{buildroot}%{support_libdir}/resources
-%if %suse_version < 1560
+%if %sle_version < 150600
 install -m 444 bin/scplugin.rc %{buildroot}%{support_libdir}/resources
 %endif
 install -m 644 man/*.3.gz %{buildroot}%{_mandir}/man3
