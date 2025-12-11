@@ -2504,6 +2504,7 @@ crash_info() {
 	conf_files $OF /proc/sys/kernel/panic
 	conf_files $OF /proc/sys/kernel/panic_on_oops
 	conf_files $OF /sys/kernel/kexec_loaded
+	conf_files $OF /sys/kernel/kexec/*
 	conf_files $OF /sys/kernel/fadump/*
 	conf_files $OF /sys/kernel/kexec_crash_loaded
 	conf_files $OF /sys/kernel/kexec_crash_size
