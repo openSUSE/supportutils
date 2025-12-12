@@ -726,7 +726,7 @@ boot_info() {
 				fi
 				for THIS_BOOT in $(seq 0 $LIST_BOOTS)
 				do
-					log_cmd $OF "journalctl --no-pager --boot=${THIS_BOOT}"
+					log_cmd $OF "journalctl --no-pager --boot=${THIS_BOOT} --output=short-iso"
 					((BOOT_COUNT < JOURNALCTL_MAX_BOOTS)) && ((BOOT_COUNT++)) || break
 				done
 			else
@@ -734,9 +734,9 @@ boot_info() {
 			fi
 		else
 			if (( VAR_OPTION_JOURNALCTL_LINE_COUNT > 0 )); then
-				log_cmd $OF "journalctl --boot=0 --no-pager | tail -n ${VAR_OPTION_JOURNALCTL_LINE_COUNT}"
+				log_cmd $OF "journalctl --boot=0 --no-pager --output=short-iso | tail -n ${VAR_OPTION_JOURNALCTL_LINE_COUNT}"
 			else
-				log_cmd $OF "journalctl --boot=0 --no-pager"
+				log_cmd $OF "journalctl --boot=0 --no-pager --output=short-iso"
 			fi
 		fi
 	fi
@@ -1149,7 +1149,7 @@ docker_info() {
 			log_cmd $CONTAINEROF "docker logs --timestamps $container"
 		done
 		log_cmd $OF 'ls -al --time-style=long-iso /var/lib/docker/containers'
-		log_cmd $OF 'journalctl --boot=0 --no-pager -u docker'
+		log_cmd $OF 'journalctl --boot=0 --no-pager --output=short-iso -u docker'
 	fi
 	echolog Done
 }
@@ -2447,8 +2447,8 @@ nvme_info() {
 		log_cmd $OF 'stafctl status'
 		FILES='/etc/stas/sys.conf /etc/stas/stacd.conf /etc/stas/stafd.conf'
 		conf_files $OF $FILES
-		log_cmd $OF 'journalctl --boot=0 --no-pager -u stacd -o short-iso'
-		log_cmd $OF 'journalctl --boot=0 --no-pager -u stafd -o short-iso'
+		log_cmd $OF 'journalctl --boot=0 --no-pager --output=short-iso -u stacd'
+		log_cmd $OF 'journalctl --boot=0 --no-pager --output=short-iso -u stafd'
 	else
 		((SKIP++))
 	fi
