@@ -1,7 +1,7 @@
 #!/bin/bash
 
-SVER='3.2.11-2_test-containers'
-SDATE='2025 Sep 20'
+SVER='3.2.12'
+SDATE='2025 Dec 12'
 
 ##############################################################################
 #  supportconfig - Gathers system troubleshooting information for SUSE Support
@@ -34,6 +34,7 @@ SDATE='2025 Sep 20'
 #
 #  Authors/Contributors:
 #     Jason Record <jason.record@suse.com>
+#     Jesse Chandler <jesse.chandler@suse.com>
 #
 ##############################################################################
 
