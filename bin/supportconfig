@@ -710,7 +710,7 @@ boot_info() {
 	log_cmd $OF 'ls -lR --time-style=long-iso /boot/'
 	log_cmd $OF "lsinitrd -k $(uname -r)"
 	(( $ADD_OPTION_LOGS )) && log_files $OF 0 $FILES || log_files $OF $VAR_OPTION_LINE_COUNT $FILES
-	log_cmd $OF 'journalctl --no-pager --disk-usage'
+	log_cmd $OF 'journalctl --boot=0 --no-pager --disk-usage'
 	if [[ -x $JOURNALCTL_BIN ]]; then
 		if (( $ADD_OPTION_LOGS )); then
 			log_cmd $OF 'journalctl --no-pager --list-boot'
@@ -726,17 +726,17 @@ boot_info() {
 				fi
 				for THIS_BOOT in $(seq 0 $LIST_BOOTS)
 				do
-					log_cmd $OF "journalctl --no-pager --boot $THIS_BOOT"
+					log_cmd $OF "journalctl --no-pager --boot=${THIS_BOOT}"
 					((BOOT_COUNT < JOURNALCTL_MAX_BOOTS)) && ((BOOT_COUNT++)) || break
 				done
 			else
-				log_cmd $OF "journalctl --no-pager --boot 0"
+				log_cmd $OF "journalctl --no-pager --boot=0"
 			fi
 		else
 			if (( VAR_OPTION_JOURNALCTL_LINE_COUNT > 0 )); then
-				log_cmd $OF "journalctl --no-pager --boot 0 | tail -n ${VAR_OPTION_JOURNALCTL_LINE_COUNT}"
+				log_cmd $OF "journalctl --boot=0 --no-pager | tail -n ${VAR_OPTION_JOURNALCTL_LINE_COUNT}"
 			else
-				log_cmd $OF "journalctl --no-pager --boot 0"
+				log_cmd $OF "journalctl --boot=0 --no-pager"
 			fi
 		fi
 	fi
@@ -1149,7 +1149,7 @@ docker_info() {
 			log_cmd $CONTAINEROF "docker logs --timestamps $container"
 		done
 		log_cmd $OF 'ls -al --time-style=long-iso /var/lib/docker/containers'
-		log_cmd $OF 'journalctl -u docker'
+		log_cmd $OF 'journalctl --boot=0 --no-pager -u docker'
 	fi
 	echolog Done
 }
@@ -2447,8 +2447,8 @@ nvme_info() {
 		log_cmd $OF 'stafctl status'
 		FILES='/etc/stas/sys.conf /etc/stas/stacd.conf /etc/stas/stafd.conf'
 		conf_files $OF $FILES
-		log_cmd $OF 'journalctl -u stacd -o short-iso'
-		log_cmd $OF 'journalctl -u stafd -o short-iso'
+		log_cmd $OF 'journalctl --boot=0 --no-pager -u stacd -o short-iso'
+		log_cmd $OF 'journalctl --boot=0 --no-pager -u stafd -o short-iso'
 	else
 		((SKIP++))
 	fi
@@ -3692,9 +3692,9 @@ x_info() {
 		if (( $CONTENT_FOUND > 0 ))
 		then
 			if (( $ADD_OPTION_LOGS )); then
-				log_cmd $OF "journalctl --no-pager --output=short-iso | grep -E 'gnome|gdm|plasma|kde'"
+				log_cmd $OF "journalctl --boot=0 --no-pager --output=short-iso | grep -E 'gnome|gdm|plasma|kde'"
 			else
-				log_cmd $OF "journalctl --no-pager --output=short-iso | grep -E 'gnome|gdm|plasma|kde' | tail -${VAR_OPTION_LINE_COUNT}"
+				log_cmd $OF "journalctl --boot=0 --no-pager --output=short-iso | grep -E 'gnome|gdm|plasma|kde' | tail -${VAR_OPTION_LINE_COUNT}"
 			fi
 			echolog Done
 		else
