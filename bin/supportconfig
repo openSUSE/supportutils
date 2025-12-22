@@ -776,6 +776,7 @@ bpf_info() {
 				fi
 			fi
 		else
+			log_entry $OF note "Install bpftool to display more information."
 			log_cmd $OF 'grep -E bpf_prog_[a-f0-9]{16} /proc/kallsyms'
 		fi
 		echolog Done
