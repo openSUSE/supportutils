@@ -746,10 +746,8 @@ bpf_info() {
 				fi
 			fi
 		else
+			log_entry $OF note "Install bpftool to display more information."
 			log_cmd $OF 'grep -E bpf_prog_[a-f0-9]{16} /proc/kallsyms'
-			log_write $OF "#==[ Hint ]=========================================#"
-			log_write $OF "# Install bpftool to display more information."
-			log_write $OF
 		fi
 		echolog Done
 	else
