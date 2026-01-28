@@ -1,4 +1,12 @@
 -------------------------------------------------------------------
+Wed Jan 28 20:23:39 UTC 2026 - jason.record@suse.com
+
+- scplugin.rc is restored in package 3.2.12.1 for continued compatibility.
+  There is no furture development for scplugin.rc. Use supportconfig.rc.
+  Package version 3.2.12.2 does not have scplugin.rc. Supportconfig
+  itself is the same for both versions. (bsc#1256709)
+
+-------------------------------------------------------------------
 Fri Dec 12 20:05:09 UTC 2025 - jason.record@suse.com
 
 - Changes to version 3.2.12

@@ -1,7 +1,9 @@
 #########################################
 #####   DEPRECATED, NO DEVELOPMENT  #####
-##### Use: supportconfig.rc instead #####
+#####  Use supportconfig.rc instead #####
 #########################################
+
+
 # Description: Resource file for bash supportconfig plugins
 # Virtual Package: supportconfig-plugin-resource
 # Modified: 2011 Dec 23

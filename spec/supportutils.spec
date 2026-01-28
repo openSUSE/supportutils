@@ -39,11 +39,9 @@ Requires:       gawk
 Requires:       findutils
 Requires:       grep
 Requires:       file
-%if 0%{?sle_version} < 150600 && !0%{?is_opensuse}
 Provides:       supportconfig-plugin-icommand
 Provides:       supportconfig-plugin-resource
 Provides:       supportconfig-plugin-tag
-%endif
 Provides:       supportconfig-plugin-rc
 BuildArch:      noarch
 
@@ -73,9 +71,7 @@ install -m 544 bin/supportconfig %{buildroot}%{_sbindir}
 install -m 544 bin/chkbin %{buildroot}%{_sbindir}
 install -m 544 bin/getappcore %{buildroot}%{_sbindir}
 install -m 544 bin/analyzevmcore %{buildroot}%{_sbindir}
-%if 0%{?sle_version} < 150600 && !0%{?is_opensuse}
 install -m 444 bin/scplugin.rc %{buildroot}%{support_libdir}/resources
-%endif
 install -m 444 bin/supportconfig.rc %{buildroot}%{support_libdir}/resources
 install -m 644 man/*.3.gz %{buildroot}%{_mandir}/man3
 install -m 644 man/*.5.gz %{buildroot}%{_mandir}/man5
