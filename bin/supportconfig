@@ -661,7 +661,6 @@ boot_info() {
 		echo "**WARNING -- MISMATCH**: Running kernel DOES NOT match version of $(readlink -f /boot/initrd)" >> $LOG/$OF
 		echo -e "This could be due to a different kernel installed but not rebooted, booted to a different kernel, chrooted in rescue, or other cause.\n" >> $LOG/$OF
 	fi
-	# Feb 6, 2024 - Ahmad Alzayed - Added grep -E '[0-9]' to avoid getting duplicated output
 
 	KERNELS=$(cat $LOG/$RPMFILE | grep '^kernel-' | grep -v 'kernel-source' | awk '{print $1}' | grep -E '[0-9]')
 	for KERNEL in $KERNELS
