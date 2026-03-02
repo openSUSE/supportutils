@@ -655,6 +655,13 @@ boot_info() {
 	OF=boot.txt
 	addHeaderFile $OF
 	log_cmd $OF "uname -a"
+	if [[ "$(readlink -f /boot/initrd)" == *"$(uname -r)"* ]]; then
+		echo -e "Current running kernel matches /boot/initrd\n" >> $LOG/$OF
+	else
+		echo "**WARNING -- MISMATCH**: Running kernel DOES NOT match version of $(readlink -f /boot/initrd)" >> $LOG/$OF
+		echo -e "This could be due to a different kernel installed but not rebooted, booted to a different kernel, chrooted in rescue, or other cause.\n" >> $LOG/$OF
+	fi
+
 	KERNELS=$(cat $LOG/$RPMFILE | grep '^kernel-' | grep -v 'kernel-source' | awk '{print $1}' | grep -E '[0-9]')
 	for KERNEL in $KERNELS
 	do
@@ -709,7 +716,7 @@ boot_info() {
 	conf_files $OF /proc/cmdline /etc/sysconfig/kernel $FILES
 
 	log_cmd $OF 'ls -lR --time-style=long-iso /boot/'
-	log_cmd $OF "lsinitrd -k $(uname -r)"
+	log_cmd $OF 'lsinitrd $(readlink -f /boot/initrd)'
 	(( $ADD_OPTION_LOGS )) && log_files $OF 0 $FILES || log_files $OF $VAR_OPTION_LINE_COUNT $FILES
 	log_cmd $OF 'journalctl --boot=0 --no-pager --disk-usage'
 	if [[ -x $JOURNALCTL_BIN ]]; then
@@ -1117,6 +1124,10 @@ systemd_info() {
 		for i in $($SYSTEMCTL_BIN --no-pager list-units --type=service 2>/dev/null | grep -v "not-found" | sed 's/^[^-_:\\a-zA-Z0-9]*//' | grep -vE '^UNIT |^LOAD |^ACTIVE |^SUB |^To |^[[:digit:]]* ' | awk '{print $1}')
 		do
 			log_cmd $OF2 "systemctl status '$i'"
+		done
+		for i in $($SYSTEMCTL_BIN --no-pager list-unit-files --type=service 2>/dev/null | sed 's/^[^-_:\\a-zA-Z0-9]*//' | grep -vE '^UNIT |^LOAD |^ACTIVE |^SUB |^To |^[[:digit:]]* ' | awk '{print $1}')
+		do
+			log_cmd $OF "systemctl cat '$i'"
 		done
 	fi
 	log_cmd $OF 'ls -alR /etc/systemd/'
