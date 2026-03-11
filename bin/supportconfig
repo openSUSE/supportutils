@@ -2872,6 +2872,8 @@ ha_info() {
 					done
 				fi
 			done
+			log_cmd $OF "grep -E '^hacluster:[x*]:' /etc/passwd"
+			log_cmd $OF "grep -E '^haclient:[x*]:' /etc/group"
 			cd $CURRENT_PATH
 			CURRENT_CIB=''
 			FILES=''
