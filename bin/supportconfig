@@ -4299,6 +4299,8 @@ do
 	esac
 done
 
+(( $VAR_OPTION_SCRUB )) && validate_scrubbing
+
 (( $ADD_OPTION_LOGS )) && ADD_OPTION_MAXYAST=1
 
 umask 0077
@@ -4521,6 +4523,8 @@ if (( $USE_SAVED_LOGS_ONLY != 1 )); then
 else
 	(( $VAR_OPTION_SILENT )) || { clear; title; }
 fi
+
+(( VAR_OPTION_SCRUB )) && scrub_it
 
 # don't continue if SAVE_LOGS_ONLY is set
 (( $SAVE_LOGS_ONLY )) && exit_code 0;

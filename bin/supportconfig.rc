@@ -136,6 +136,7 @@ VAR_OPTION_PENGINE_FILES_LIMIT=250
 : ${VAR_OPTION_RM_LOCAL_FILE:=0}
 VAR_OPTION_SAR_FILES_LIMIT=30
 VAR_OPTION_SBM=0
+VAR_OPTION_SCRUB=0
 VAR_OPTION_SILENT=0
 VAR_OPTION_UNIQUE_FILE=0
 VAR_OPTION_UPLOAD_TARGET="${SUSE_UPLOAD_NA_HTTPS}"
@@ -152,6 +153,8 @@ export PATH LANG
 LIB_DIR='/usr/lib/supportconfig'
 CONFIG_DIR='/etc/supportutils'
 SC_RESOURCE_FILE="${LIB_DIR}/resources/supportconfig.rc"
+SCRUB_OUTFILE="scrubbed.log"
+SCRUB_PKG="supportutils-scrub"
 XPLUGIN_DIR="${LIB_DIR}/plugins"
 CURRENT_SCRIPT=$(basename $0)
 ARCHIVE_PREFIX='scc_'
@@ -237,6 +240,7 @@ PS_BIN=$(command -v ps)
 RPM_BIN=$(command -v rpm)
 SFDISK_BIN=$(command -v sfdisk)
 SYSTEMCTL_BIN=$(command -v systemctl)
+SCRUB_BIN=$(command -v supportutils-scrub)
 
 trap "{ echolog TERMINATED BY USER; echo; exit 5; }" SIGINT
 trap "{ echolog SKIPPED BY USER; return 4; }" SIGQUIT
@@ -526,6 +530,25 @@ printlog() {
 			printf "  %-45s" "$@" | tee -a $CSLOGFILE
 		fi
 	fi
+}
+
+validate_scrubbing() {
+	if ! $(rpm -q $SCRUB_PKG &>/dev/null); then
+		title
+		echo "ERROR: Unable to scrub data files"
+		echo "       Please install the $SCRUB_PKG package or turn off scrubbing with VAR_OPTION_SCRUB=0"
+		echo
+		exit 15
+	fi
+}
+
+scrub_it() {
+	echolog "Scrubbing Data Files"
+	supportutils-scrub $LOG --quiet &> /dev/null
+	LOG="${LOG}_scrubbed"
+	BASE="${BASE}_scrubbed"
+	export LOG BASE
+	echo	
 }
 
 printvrpmlog() {
