@@ -153,7 +153,6 @@ export PATH LANG
 LIB_DIR='/usr/lib/supportconfig'
 CONFIG_DIR='/etc/supportutils'
 SC_RESOURCE_FILE="${LIB_DIR}/resources/supportconfig.rc"
-SCRUB_OUTFILE="scrubbed.log"
 SCRUB_PKG="supportutils-scrub"
 XPLUGIN_DIR="${LIB_DIR}/plugins"
 CURRENT_SCRIPT=$(basename $0)
@@ -533,16 +532,24 @@ printlog() {
 }
 
 validate_scrubbing() {
-	if ! $(rpm -q $SCRUB_PKG &>/dev/null); then
+	if $(rpm -q $SCRUB_PKG &> /dev/null); then
+		if ! [[ -x $SCRUB_BIN ]]; then
+			title
+			echo "ERROR: Unable to scrub data files, invalid or missing supportutils-scrub utility."
+			echo "       Please reinstall the $SCRUB_PKG package or turn off scrubbing with VAR_OPTION_SCRUB=0"
+			echo
+			exit 15
+		fi
+	else
 		title
-		echo "ERROR: Unable to scrub data files"
+		echo "ERROR: Unable to scrub data files, missing $SCRUB_PKG package."
 		echo "       Please install the $SCRUB_PKG package or turn off scrubbing with VAR_OPTION_SCRUB=0"
 		echo
 		exit 15
 	fi
 }
 
-scrub_it() {
+scrub_dir() {
 	echolog "Scrubbing Data Files"
 	supportutils-scrub $LOG --quiet &> /dev/null
 	LOG="${LOG}_scrubbed"

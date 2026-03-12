@@ -4525,7 +4525,7 @@ else
 	(( $VAR_OPTION_SILENT )) || { clear; title; }
 fi
 
-(( VAR_OPTION_SCRUB )) && scrub_it
+(( VAR_OPTION_SCRUB )) && scrub_dir
 
 # don't continue if SAVE_LOGS_ONLY is set
 (( $SAVE_LOGS_ONLY )) && exit_code 0;
