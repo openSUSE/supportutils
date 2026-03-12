@@ -102,6 +102,7 @@ ADD_OPTION_LOGS=0
 ADD_OPTION_MAXYAST=0
 ADD_OPTION_MINDISK=0
 ADD_OPTION_RPMV=0
+ADD_OPTION_SCRUB=0
 ADD_OPTION_SLP=0
 
 SUSE_UPLOAD_NA_ASERVER='support-ftp.us.suse.com'
@@ -136,7 +137,6 @@ VAR_OPTION_PENGINE_FILES_LIMIT=250
 : ${VAR_OPTION_RM_LOCAL_FILE:=0}
 VAR_OPTION_SAR_FILES_LIMIT=30
 VAR_OPTION_SBM=0
-VAR_OPTION_SCRUB=0
 VAR_OPTION_SILENT=0
 VAR_OPTION_UNIQUE_FILE=0
 VAR_OPTION_UPLOAD_TARGET="${SUSE_UPLOAD_NA_HTTPS}"
@@ -536,14 +536,14 @@ validate_scrubbing() {
 		if ! [[ -x $SCRUB_BIN ]]; then
 			title
 			echo "ERROR: Unable to scrub data files, invalid or missing supportutils-scrub utility."
-			echo "       Please reinstall the $SCRUB_PKG package or turn off scrubbing with VAR_OPTION_SCRUB=0"
+			echo "       Please reinstall the $SCRUB_PKG package or turn off scrubbing with ADD_OPTION_SCRUB=0"
 			echo
 			exit 15
 		fi
 	else
 		title
 		echo "ERROR: Unable to scrub data files, missing $SCRUB_PKG package."
-		echo "       Please install the $SCRUB_PKG package or turn off scrubbing with VAR_OPTION_SCRUB=0"
+		echo "       Please install the $SCRUB_PKG package or turn off scrubbing with ADD_OPTION_SCRUB=0"
 		echo
 		exit 15
 	fi

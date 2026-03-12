@@ -4273,7 +4273,7 @@ do
 	g) COMPRESS="tgz"; COMPRESS_OPT="zcf" ;;
 	h) title; show_help; exit_code 0 ;;
 	i) SELECTED_FEATURE_LIST=$OPTARG; set_to_min; selected_features on ;;
-	j) VAR_OPTION_SCRUB=1 ;;
+	j) ADD_OPTION_SCRUB=1 ;;
 	k) MIN_OPTION_AUTOMOD=0 ;;
 	l) ADD_OPTION_LOGS=1 ;;
 	m) set_to_min ;;
@@ -4300,7 +4300,7 @@ do
 	esac
 done
 
-(( $VAR_OPTION_SCRUB )) && validate_scrubbing
+(( $ADD_OPTION_SCRUB )) && validate_scrubbing
 
 (( $ADD_OPTION_LOGS )) && ADD_OPTION_MAXYAST=1
 
@@ -4525,7 +4525,7 @@ else
 	(( $VAR_OPTION_SILENT )) || { clear; title; }
 fi
 
-(( VAR_OPTION_SCRUB )) && scrub_dir
+(( ADD_OPTION_SCRUB )) && scrub_dir
 
 # don't continue if SAVE_LOGS_ONLY is set
 (( $SAVE_LOGS_ONLY )) && exit_code 0;
