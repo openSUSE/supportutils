@@ -4224,7 +4224,7 @@ get_sles_ver
 NSA_CHECK=0
 ALL_ARGS="$@"
 declare -a KV_PAIRS
-while getopts :\#AB:CDE:FG:H:I:JLM:N:O:P:QR:S:T:U:W:X:V:abcdef:ghi:klmo:pqr:st:uvwx:yz TMPOPT
+while getopts :\#AB:CDE:FG:H:I:JLM:N:O:P:QR:S:T:U:W:X:V:abcdef:ghi:jklmo:pqr:st:uvwx:yz TMPOPT
 do
 	case $TMPOPT in
 	\:)	clear; title
@@ -4273,6 +4273,7 @@ do
 	g) COMPRESS="tgz"; COMPRESS_OPT="zcf" ;;
 	h) title; show_help; exit_code 0 ;;
 	i) SELECTED_FEATURE_LIST=$OPTARG; set_to_min; selected_features on ;;
+	j) VAR_OPTION_SCRUB=1 ;;
 	k) MIN_OPTION_AUTOMOD=0 ;;
 	l) ADD_OPTION_LOGS=1 ;;
 	m) set_to_min ;;
