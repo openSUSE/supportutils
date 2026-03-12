@@ -23,7 +23,7 @@
 
 Name:           supportutils
 Version:        3.2.12.2
-Release:        0
+Release:        test_260312_dev1
 Summary:        Support Troubleshooting Tools
 License:        GPL-2.0-only
 Group:          System/Monitoring

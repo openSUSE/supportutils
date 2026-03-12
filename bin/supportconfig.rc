@@ -551,7 +551,7 @@ validate_scrubbing() {
 
 scrub_dir() {
 	echolog "Scrubbing Data Files"
-	supportutils-scrub $LOG --quiet &> /dev/null
+	$SCRUB_BIN $LOG --quiet &> /dev/null
 	LOG="${LOG}_scrubbed"
 	BASE="${BASE}_scrubbed"
 	export LOG BASE
