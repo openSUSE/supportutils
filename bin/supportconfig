@@ -1076,6 +1076,8 @@ environment_info() {
 	conf_files $OF /etc/profile /etc/profile.local /etc/profile.d/*
 	conf_files $OF /etc/bash.bashrc /etc/csh\.* /etc/ksh*
 	sed -i -e 's/\r//g' $LOG/$OF
+	# Mar 26, 2026 - Added by Ahmad Alzayed to remove proxy information from env file.
+	_sanitize_file $OF
 	echolog Done
 }
 
