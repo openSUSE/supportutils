@@ -549,12 +549,14 @@ validate_scrubbing() {
 	fi
 }
 
-scrub_dir() {
-	echolog "Scrubbing Data Files"
-	$SCRUB_BIN $LOG --quiet &> /dev/null
+scrub_tarball() {
+	log2sys "Scrubbing Supportconfig Archive"
+	echolog "Scrubbing Supportconfig Archive"
+	$SCRUB_BIN ${TARBALL} &> /dev/null
+	rm -rf $LOG
 	LOG="${LOG}_scrubbed"
-	BASE="${BASE}_scrubbed"
-	export LOG BASE
+	TARBALL=${LOG}.${COMPRESS}
+	export LOG
 	echo	
 }
 

@@ -4525,8 +4525,6 @@ else
 	(( $VAR_OPTION_SILENT )) || { clear; title; }
 fi
 
-(( ADD_OPTION_SCRUB )) && scrub_dir
-
 # don't continue if SAVE_LOGS_ONLY is set
 (( $SAVE_LOGS_ONLY )) && exit_code 0;
 
@@ -4546,6 +4544,7 @@ cd $LOG
 cd ..
 wait_trace_on -t "tar ${COMPRESS_OPT} ${TARBALL} --mode='ug+rw' ${BASE}/*"
 tar ${COMPRESS_OPT} ${TARBALL} --mode='ug+rw' ${BASE}/*
+(( ADD_OPTION_SCRUB )) && scrub_tarball
 LOGSIZE=$(ls -lh ${TARBALL} | awk '{print $5}')
 wait_trace_off -t
 wait_trace_on -t "md5sum $TARBALL"
