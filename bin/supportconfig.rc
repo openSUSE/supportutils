@@ -101,6 +101,7 @@ ADD_OPTION_LOGS=0
 ADD_OPTION_MINDISK=0
 ADD_OPTION_MAXYAST=0
 ADD_OPTION_RPMV=0
+ADD_OPTION_SCRUB=0
 ADD_OPTION_SLP=0
 ADD_OPTION_LOCAL_ONLY=0
 
@@ -145,6 +146,7 @@ VAR_OPTION_WAIT_TRACE=0
 : ${FORCE_OPTION_PAM:=0}
 : ${LOCAL_PODMAN_USERS:=''}
 
+
 LANG=C
 PATH="/sbin:/usr/sbin:/bin:/usr/bin:$PATH"
 PATH_ORIG=$PATH
@@ -152,6 +154,7 @@ export PATH LANG
 LIB_DIR='/usr/lib/supportconfig'
 CONFIG_DIR='/etc/supportutils'
 SC_RESOURCE_FILE="${LIB_DIR}/resources/supportconfig.rc"
+SCRUB_PKG="supportutils-scrub"
 XPLUGIN_DIR="${LIB_DIR}/plugins"
 CURRENT_SCRIPT=$(basename $0)
 ARCHIVE_PREFIX='scc_'
@@ -237,6 +240,8 @@ IP_BIN=$(command -v ip)
 BRCTL_BIN=$(command -v brctl)
 LOGGER_BIN=$(command -v logger)
 KLP_BIN=$(command -v klp)
+SCRUB_BIN=$(command -v supportutils-scrub 2>/dev/null)
+
 
 trap "{ echolog TERMINATED BY USER; echo; exit 5; }" SIGINT
 trap "{ echolog SKIPPED BY USER; return 4; }" SIGQUIT
@@ -524,6 +529,81 @@ printlog() {
 			echo "$@" | tee -a $CSLOGFILE
 		else
 			printf "  %-45s" "$@" | tee -a $CSLOGFILE
+		fi
+	fi
+}
+
+validate_scrubbing() {
+	if rpm -q $SCRUB_PKG &> /dev/null; then
+		if ! [[ -x $SCRUB_BIN ]]; then
+			title
+			echo "ERROR: Unable to scrub data files, invalid or missing supportutils-scrub utility."
+			echo "       Please reinstall the $SCRUB_PKG package or turn off scrubbing with ADD_OPTION_SCRUB=0"
+			echo
+			exit 15
+		fi
+	else
+		title
+		echo "ERROR: Unable to scrub data files, missing $SCRUB_PKG package."
+		echo "       Please install the $SCRUB_PKG package or turn off scrubbing with ADD_OPTION_SCRUB=0"
+		echo
+		exit 15
+	fi
+	SCRUB_VER=$(rpm -q --queryformat '%{VERSION}' supportutils-scrub 2>/dev/null)
+	if [[ $(echo -e "1.2\n$SCRUB_VER" | sort -V | head -1) != "1.2" ]]; then
+		title
+		echo "ERROR: supportutils-scrub version $SCRUB_VER is too old. Version 1.4 or later required."
+		echo "       Please update the supportutils-scrub package."
+		echo
+		exit 15
+	fi
+	export SCRUB_VER
+}
+
+scrub_dir() {
+	echolog "Scrubbing supportconfig files..."
+
+        # supportutils-scrub v1.4 returns the supportconfig scrubbed path to stdout
+	if [[ $(echo -e "1.4\n$SCRUB_VER" | sort -V | head -1) == "1.4" ]]; then
+		local SCRUBBED_DIR RC NEW_BASE NEW_LOG
+		SCRUBBED_DIR=$("$SCRUB_BIN" --quiet "$LOG")
+		RC=$?
+
+		if (( RC == 0 )) || (( RC == 2 )); then
+			if [[ -d "$SCRUBBED_DIR" ]]; then
+				rm -rf "$LOG"
+				NEW_BASE=$(basename "$SCRUBBED_DIR" | sed 's/_scrubbed$//')
+				NEW_LOG="$(dirname "$LOG")/$NEW_BASE"
+				mv "$SCRUBBED_DIR" "$NEW_LOG"
+				LOG="$NEW_LOG"
+				BASE="$NEW_BASE"
+				export LOG BASE
+				echolog "Supportconfig scrubbing complete. "
+			else
+				echo "WARNING: supportutils-scrub did not produce output directory." >&2
+			fi
+		elif (( RC == 3 )); then
+			echo "ERROR: supportutils-scrub --verify found remaining sensitive data." >&2
+			echo " Removing the original and the scrubbed supportconfig to prevent any potential leak." >&2
+			rm -rf "$LOG"
+			[[ -n "$SCRUBBED_DIR" ]] && rm -rf "$SCRUBBED_DIR"
+			exit 15
+		else
+			echo "WARNING: supportutils-scrub exited with rc=$RC -- data not scrubbed." >&2
+		fi
+	else
+		# v1.2/v1.3 does not support hostname scrubbing from folder name
+		# the --quiet option is supported from v1.3
+		local QUIET_OPT=""
+		[[ $(echo -e "1.3\n$SCRUB_VER" | sort -V | head -1) == "1.3" ]] && QUIET_OPT="--quiet"
+		$SCRUB_BIN "$LOG" $QUIET_OPT ${SUPPORTUTILS_SCRUB_OPTS}
+		if [[ -d "${LOG}_scrubbed" ]]; then
+			LOG="${LOG}_scrubbed"
+			BASE="${BASE}_scrubbed"
+			export LOG BASE
+			echolog "Data scrubbing complete."
+		else
+			echo "WARNING: supportutils-scrub did not produce ${LOG}_scrubbed -- data not scrubbed." >&2
 		fi
 	fi
 }
@@ -1057,6 +1137,7 @@ toggle_features() {
 ehr() {
 	echo "-----------------------------------------------------------------------------"
 }
+
 
 encrypt_tarball() {
 	log2sys "Encrypt Tar Ball"

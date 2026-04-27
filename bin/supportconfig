@@ -98,6 +98,8 @@ show_help() {
 	echo "  -f From directory. Don't collect report files, just use the directory or files in that"
 	echo "     directory."
 	echo "  -g Use gzip instead of the default xz compression"
+	echo "  -j Scrub sensitive data with supportutils-scrub before packing."
+	echo "     Use SUPPORTUTILS_SCRUB_OPTS env var for extra options (--verify, --keywords ...)."
 	echo "  -i <keyword list>"
 	echo "     Include keywords. A comma separated list of feature keywords that specify"
 	echo "     which features to include. Use -F to see a list of valid keywords."
@@ -4226,7 +4228,7 @@ get_sles_ver
 NSA_CHECK=0
 ALL_ARGS="$@"
 declare -a KV_PAIRS
-while getopts :\#AB:CDE:FG:H:I:JLM:N:O:P:QR:S:T:U:W:X:V:abcdef:ghi:klmo:pqr:st:uvwx:yz TMPOPT
+while getopts :\#AB:CDE:FG:H:I:JLM:N:O:P:QR:S:T:U:W:X:V:abcdef:ghi:jklmo:pqr:st:uvwx:yz TMPOPT
 do
 	case $TMPOPT in
 	\:)	clear; title
@@ -4275,6 +4277,7 @@ do
 	g) COMPRESS="tgz"; COMPRESS_OPT="zcf" ;;
 	h) title; show_help; exit_code 0 ;;
 	i) SELECTED_FEATURE_LIST=$OPTARG; set_to_min; selected_features on ;;
+	j) ADD_OPTION_SCRUB=1 ;;
 	k) MIN_OPTION_AUTOMOD=0 ;;
 	l) ADD_OPTION_LOGS=1 ;;
 	m) set_to_min ;;
@@ -4300,6 +4303,8 @@ do
 	z) COMPRESS="tbz"; COMPRESS_OPT="jcf" ;;
 	esac
 done
+
+(( $ADD_OPTION_SCRUB )) && validate_scrubbing
 
 (( $ADD_OPTION_LOGS )) && ADD_OPTION_MAXYAST=1
 
@@ -4523,6 +4528,8 @@ if (( $USE_SAVED_LOGS_ONLY != 1 )); then
 else
 	(( $VAR_OPTION_SILENT )) || { clear; title; }
 fi
+
+(( ADD_OPTION_SCRUB )) && scrub_dir
 
 # don't continue if SAVE_LOGS_ONLY is set
 (( $SAVE_LOGS_ONLY )) && exit_code 0;
