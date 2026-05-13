@@ -1,7 +1,7 @@
 ##############################################################################
 #  supportconfig.rc - Resource file for supportconfig
-#  Copyright (C) 2025 SUSE LLC
-RCVER='3.2.8-6'
+#  Copyright (C) 2026 SUSE LLC
+RCVER='3.2.8-8'
 #
 #  Contains supporting functions and variables used by supportconfig and
 #  supportconfig plugins.
@@ -537,7 +537,7 @@ validate_scrubbing() {
 	if rpm -q $SCRUB_PKG &> /dev/null; then
 		if ! [[ -x $SCRUB_BIN ]]; then
 			title
-			echo "ERROR: Unable to scrub data files, invalid or missing supportutils-scrub utility."
+			echo "ERROR: Unable to scrub data files, invalid or missing $SCRUB_PKG utility."
 			echo "       Please reinstall the $SCRUB_PKG package or turn off scrubbing with ADD_OPTION_SCRUB=0"
 			echo
 			exit 15
@@ -545,15 +545,15 @@ validate_scrubbing() {
 	else
 		title
 		echo "ERROR: Unable to scrub data files, missing $SCRUB_PKG package."
-		echo "       Please install the $SCRUB_PKG package or turn off scrubbing with ADD_OPTION_SCRUB=0"
+		echo "       Try 'sudo zypper in $SCRUB_PKG' or turn off scrubbing with ADD_OPTION_SCRUB=0 or omit -j"
 		echo
 		exit 15
 	fi
-	SCRUB_VER=$(rpm -q --queryformat '%{VERSION}' supportutils-scrub 2>/dev/null)
+	SCRUB_VER=$(rpm -q --queryformat '%{VERSION}' $SCRUB_PKG 2>/dev/null)
 	if [[ $(echo -e "1.2\n$SCRUB_VER" | sort -V | head -1) != "1.2" ]]; then
 		title
-		echo "ERROR: supportutils-scrub version $SCRUB_VER is too old. Version 1.4 or later required."
-		echo "       Please update the supportutils-scrub package."
+		echo "ERROR: $SCRUB_PKG version $SCRUB_VER is too old. Version 1.4 or later required."
+		echo "       Please update the $SCRUB_PKG package."
 		echo
 		exit 15
 	fi
