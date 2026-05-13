@@ -141,8 +141,23 @@ Disables extended scaling. By default extended scaling is disabled. However, if 
 \fB\-f\fR \fIdirectory\fR
 From directory. Don't collect report files, just use files in that directory. This option is most often used in connection with -t <target_directory> and the YaST support module. If a regular directory is used, supportconfig looks for the most recent supportconfig archive directory and uses it. If a valid supportconfig directory is specified, it is used.
 .TP
-\fB\-g\fR 
+\fB\-g\fR
 Use gzip instead of the default bzip2 compression.
+.TP
+\fB\-j\fR
+Scrub sensitive data from the collected files before packing the archive.
+Requires the
+.B supportutils-scrub
+package (version 1.2 or later) to be installed.
+Obfuscates IP addresses, MAC addresses, hostnames, domain names, usernames, and serial numbers.
+With version 1.4 or later, the hostname is also scrubbed from the archive folder name.
+Additional options can be passed to supportutils-scrub via the
+.B SUPPORTUTILS_SCRUB_OPTS
+environment variable.
+Scrubbing can be enabled permanently without using this flag by setting
+.B ADD_OPTION_SCRUB=1
+in
+.IR /etc/supportutils/supportconfig.conf .
 .TP
 \fB\-i\fR \fIkeyword[,keyword]\fR
 Include keywords. A comma separated list of feature keywords that specify which features to include. 
@@ -213,6 +228,18 @@ You can use the SC_CONF environment variable to specify an alternate configurati
 .RE
 .RS
 .B Example: export SC_CONF=/opt/supportconfig.conf
+.RE
+.PP
+.I SUPPORTUTILS_SCRUB_OPTS
+.RS
+Extra options passed to
+.B supportutils-scrub
+when
+.B \-j
+is used.
+.RE
+.RS
+.B Example: SUPPORTUTILS_SCRUB_OPTS="--verify --keywords mycompany,myserver --hostname terminus,vmhost1" supportconfig -j
 .RE
 .SH FILES
 .I /etc/supportutils/supportconfig.conf
