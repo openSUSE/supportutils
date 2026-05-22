@@ -3734,7 +3734,9 @@ ssh_info() {
 	if rpm_verify $OF openssh
 	then
 		log_cmd $OF "systemctl status sshd.service"
-		conf_files $OF /etc/ssh/sshd_config /etc/ssh/ssh_config /etc/pam.d/sshd
+		FILES=({/usr,}/etc/ssh/ssh_config {/usr,}/etc/ssh/sshd_config  {/usr/lib,/etc}/pam.d/sshd)
+		INCLUDE_FILES=($(expand_globs_to_paths $(grep -Pho '^\s*Include\s+\K([^$#]+)' {/usr,}/etc/ssh/ssh_config {/usr,}/etc/ssh/sshd_config 2>/dev/null)))
+		conf_files $OF ${FILES[@]} ${INCLUDE_FILES[@]}
 		log_cmd $OF 'ss -nlp | grep sshd'
 		echolog Done
 	else
