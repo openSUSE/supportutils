@@ -1,11 +1,11 @@
 #!/bin/bash
 
-SVER='3.2.12'
-SDATE='2025 Dec 12'
+SVER='3.2.14'
+SDATE='2026 May 13'
 
 ##############################################################################
 #  supportconfig - Gathers system troubleshooting information for SUSE Support
-#  Copyright (C) 2001-2025 SUSE LLC
+#  Copyright (C) 2001-2026 SUSE LLC
 #
 #  Creates a tar ball to attach to the support case or send to support. 
 #  Collects comprehensive system information for troubleshooting and reducing
@@ -98,6 +98,8 @@ show_help() {
 	echo "  -f From directory. Don't collect report files, just use the directory or files in that"
 	echo "     directory."
 	echo "  -g Use gzip instead of the default xz compression"
+	echo "  -j Scrub sensitive data with supportutils-scrub before packing."
+	echo "     Use SUPPORTUTILS_SCRUB_OPTS env var for extra options (--verify, --keywords ...)."
 	echo "  -i <keyword list>"
 	echo "     Include keywords. A comma separated list of feature keywords that specify"
 	echo "     which features to include. Use -F to see a list of valid keywords."
@@ -336,7 +338,6 @@ basic_healthcheck() {
 		rm -f $TOPTMP
 	fi
 
-
 	if grep 'security=apparmor' /proc/cmdline &>/dev/null; then
 		log_write $AARTMP "#==[ Summary ]======================================#"
 		log_write $AARTMP "# AppArmor REJECT Messages"
@@ -372,6 +373,8 @@ basic_healthcheck() {
 	cat $PSPTMP >> $LOG/$OF
 	rm $PSPTMP
 
+	rpm_verify $OF procps
+
 	echolog Done
 }
 
@@ -402,7 +405,6 @@ rpm_info() {
 		printf "%-63s %-35s %s\n" SIGNATURE VENDOR PACKAGE >> $LOGFILE
 		$RPM_BIN -qa --queryformat "%{SIGPGP:pgpsig}  %-35{VENDOR}  %{NAME}-%{VERSION}-%{RELEASE}\n" | sort -k 11 -t " " -i >> $LOGFILE 2>&1
 		log_write $RPMFILE
-		# Jul 12, 2018 ; Added by Ahmad AL Zayed to get a list of RPM DB Backups 
 		RETURN=$(grep RPMDB_BACKUP_DIR /etc/sysconfig/backup 2>/dev/null | grep -v "^#" | cut -d= -f2 | tr -d "\"")
 		[[ -d $RETURN ]] && { log_cmd $RPMFILE "ls -ltr $RETURN" ;} 
 	fi
@@ -655,7 +657,13 @@ boot_info() {
 	OF=boot.txt
 	addHeaderFile $OF
 	log_cmd $OF "uname -a"
-	# Feb 6, 2024 - Ahmad Alzayed - Added grep -E '[0-9]' to avoid getting duplicated output
+	if [[ "$(readlink -f /boot/initrd)" == *"$(uname -r)"* ]]; then
+		echo -e "Current running kernel matches /boot/initrd\n" >> $LOG/$OF
+	else
+		echo "**WARNING -- MISMATCH**: Running kernel DOES NOT match version of $(readlink -f /boot/initrd)" >> $LOG/$OF
+		echo -e "This could be due to a different kernel installed but not rebooted, booted to a different kernel, chrooted in rescue, or other cause.\n" >> $LOG/$OF
+	fi
+
 	KERNELS=$(cat $LOG/$RPMFILE | grep '^kernel-' | grep -v 'kernel-source' | awk '{print $1}' | grep -E '[0-9]')
 	for KERNEL in $KERNELS
 	do
@@ -668,9 +676,10 @@ boot_info() {
 	fi
 	if $RPM_BIN -q grub2 &> /dev/null; then
 		rpm_verify $OF grub2
-		conf_files $OF /etc/default/grub /etc/default/grub_installdevice /boot/grub2/device.map
+		conf_files $OF /etc/default/grub /etc/default/grub_installdevice /boot/grub2/device.map /boot/grub2/grubenv
 		BKOP=$ADD_OPTION_LOGS
-		ADD_OPTION_LOGS=1 conf_files $OF /boot/grub2/grub.cfg
+		ADD_OPTION_LOGS=1
+		conf_files $OF /boot/grub2/grub.cfg
 		ADD_OPTION_LOGS=$BKOP
 	fi
 	if $RPM_BIN -q lilo &> /dev/null; then
@@ -709,7 +718,7 @@ boot_info() {
 	conf_files $OF /proc/cmdline /etc/sysconfig/kernel $FILES
 
 	log_cmd $OF 'ls -lR --time-style=long-iso /boot/'
-	log_cmd $OF "lsinitrd -k $(uname -r)"
+	log_cmd $OF 'lsinitrd $(readlink -f /boot/initrd)'
 	(( $ADD_OPTION_LOGS )) && log_files $OF 0 $FILES || log_files $OF $VAR_OPTION_LINE_COUNT $FILES
 	log_cmd $OF 'journalctl --boot=0 --no-pager --disk-usage'
 	if [[ -x $JOURNALCTL_BIN ]]; then
@@ -776,6 +785,7 @@ bpf_info() {
 				fi
 			fi
 		else
+			log_entry $OF note "Install bpftool to display more information."
 			log_cmd $OF 'grep -E bpf_prog_[a-f0-9]{16} /proc/kallsyms'
 		fi
 		echolog Done
@@ -948,11 +958,16 @@ pam_info() {
 		log_write $OF "#==[ Files in /etc/security ]=======================#"
 		[[ -d /etc/security ]] && FILES="$(find -L /etc/security/ -type f -name \*conf)" || FILES=""
 		conf_files $OF $FILES
-		# Nov 24, 2023 ,, Added by Ahmad Alzayed
 		log_cmd $OF "ls -lt --time-style=long-iso /etc/pam.d/"
 		log_write $OF "#==[ Files in /etc/pam.d ]==========================#"
 		[[ -d /etc/pam.d ]] && FILES="$(find -L /etc/pam.d/ -type f | sort)" || FILES=""
 		conf_files $OF $FILES
+		if [[ -d /usr/lib/pam.d ]]; then
+			log_write $OF "#==[ Files in /usr/lib/pam.d ]==========================#"
+			log_cmd $OF "ls -lt --time-style=long-iso /usr/lib/pam.d/"
+			FILES="$(find -L /usr/lib/pam.d/ -type f | sort)" || FILES=""
+			conf_files $OF $FILES
+		fi
 		echolog Done
 	else
 		log_entry $OF note "Restricted"
@@ -1063,6 +1078,8 @@ environment_info() {
 	conf_files $OF /etc/profile /etc/profile.local /etc/profile.d/*
 	conf_files $OF /etc/bash.bashrc /etc/csh\.* /etc/ksh*
 	sed -i -e 's/\r//g' $LOG/$OF
+	# Mar 26, 2026 - Added by Ahmad Alzayed to remove proxy information from env file.
+	_sanitize_file $OF
 	echolog Done
 }
 
@@ -1111,6 +1128,10 @@ systemd_info() {
 		for i in $($SYSTEMCTL_BIN --no-pager list-units --type=service 2>/dev/null | grep -v "not-found" | sed 's/^[^-_:\\a-zA-Z0-9]*//' | grep -vE '^UNIT |^LOAD |^ACTIVE |^SUB |^To |^[[:digit:]]* ' | awk '{print $1}')
 		do
 			log_cmd $OF2 "systemctl status '$i'"
+		done
+		for i in $($SYSTEMCTL_BIN --no-pager list-unit-files --type=service 2>/dev/null | sed 's/^[^-_:\\a-zA-Z0-9]*//' | grep -vE '^UNIT |^LOAD |^ACTIVE |^SUB |^To |^[[:digit:]]* ' | awk '{print $1}')
+		do
+			log_cmd $OF "systemctl cat '$i'"
 		done
 	fi
 	log_cmd $OF 'ls -alR /etc/systemd/'
@@ -2518,7 +2539,7 @@ crash_info() {
 	log_cmd $OF 'sysctl kernel 2>/dev/null | grep panic'
 	if rpm -q kdump &>/dev/null ; then
 		if [[ -x $READ_KDUMP_CONFIG ]]; then
-			. $READ_KDUMP_CONFIG
+			source $READ_KDUMP_CONFIG 2>&1 | grep -v "deprecated, ignoring"
 			DUMPDIR=${KDUMP_SAVEDIR#file://}
 		else
 			DUMPDIR=''
@@ -2825,10 +2846,8 @@ ha_info() {
 			log_cmd $OF 'chronyc sources -v'
 			log_cmd $OF 'crm_mon -r -1'
 			log_cmd $OF 'crm_mon -r -n -1'
-			# Display node attributes ; Nov 15, 2018 ; Added by Ahmad Al Zayed
 			log_cmd $OF 'crm_mon -A -1' 
 			log_cmd $OF 'corosync-cfgtool -s'
-			# More corosync information ; Dec 6, 2018 ; Added by Ahmad Al Zayed
 			log_cmd $OF 'crm corosync status' 
 			log_cmd $OF 'crm configure show'
 			conf_files $OF $CONF_FILES
@@ -2857,6 +2876,8 @@ ha_info() {
 					done
 				fi
 			done
+			log_cmd $OF "grep -E '^hacluster:[x*]:' /etc/passwd"
+			log_cmd $OF "grep -E '^haclient:[x*]:' /etc/group"
 			cd $CURRENT_PATH
 			CURRENT_CIB=''
 			FILES=''
@@ -3081,7 +3102,6 @@ drbd_info() {
 		log_cmd $OF "grep drbd /proc/modules"
 		log_cmd $OF "modinfo drbd"
 		log_cmd $OF "drbd-overview" 
-		# Added By Ahmad Al Zayed - Feb 21, 2019 to get few drbd output & configuration 
 		log_cmd $OF "drbdadm status" 
 		log_cmd $OF "drbdadm dump"
 		log_cmd $OF "cat /proc/drbd"
@@ -4208,7 +4228,7 @@ get_sles_ver
 NSA_CHECK=0
 ALL_ARGS="$@"
 declare -a KV_PAIRS
-while getopts :\#AB:CDE:FG:H:I:JLM:N:O:P:QR:S:T:U:W:X:V:abcdef:ghi:klmo:pqr:st:uvwx:yz TMPOPT
+while getopts :\#AB:CDE:FG:H:I:JLM:N:O:P:QR:S:T:U:W:X:V:abcdef:ghi:jklmo:pqr:st:uvwx:yz TMPOPT
 do
 	case $TMPOPT in
 	\:)	clear; title
@@ -4257,6 +4277,7 @@ do
 	g) COMPRESS="tgz"; COMPRESS_OPT="zcf" ;;
 	h) title; show_help; exit_code 0 ;;
 	i) SELECTED_FEATURE_LIST=$OPTARG; set_to_min; selected_features on ;;
+	j) ADD_OPTION_SCRUB=1 ;;
 	k) MIN_OPTION_AUTOMOD=0 ;;
 	l) ADD_OPTION_LOGS=1 ;;
 	m) set_to_min ;;
@@ -4282,6 +4303,8 @@ do
 	z) COMPRESS="tbz"; COMPRESS_OPT="jcf" ;;
 	esac
 done
+
+(( $ADD_OPTION_SCRUB )) && validate_scrubbing
 
 (( $ADD_OPTION_LOGS )) && ADD_OPTION_MAXYAST=1
 
@@ -4505,6 +4528,8 @@ if (( $USE_SAVED_LOGS_ONLY != 1 )); then
 else
 	(( $VAR_OPTION_SILENT )) || { clear; title; }
 fi
+
+(( ADD_OPTION_SCRUB )) && scrub_dir
 
 # don't continue if SAVE_LOGS_ONLY is set
 (( $SAVE_LOGS_ONLY )) && exit_code 0;

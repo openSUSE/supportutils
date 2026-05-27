@@ -225,6 +225,15 @@ Normally VAR_OPTION_LINE_COUNT lines are gathered from all /var/log/YaST2/* file
 ADD_OPTION_RPMV
 Runs an rpm -V on every installed RPM package. This takes some time to complete. \fB\-v\fR, \fBrpm-verify.txt\fR (0)
 .TP
+ADD_OPTION_SCRUB
+Scrub sensitive data from all collected files before packing the archive. Requires the
+.B supportutils-scrub
+package (version 1.2 or later). Obfuscates IP addresses, MAC addresses, hostnames, domain names, usernames, and serial numbers. Equivalent to passing
+.B \-j
+on the command line. Use
+.B SUPPORTUTILS_SCRUB_OPTS
+to pass additional options to supportutils-scrub. \fB\-j\fR (0)
+.TP
 ADD_OPTION_SLP
 Normally only the base SLP service types are listed. This option allows you to query each of the discovered service types individually. \fB\-s\fR, \fBslp.txt\fR (0)
 .PD
