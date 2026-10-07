@@ -2542,7 +2542,7 @@ crash_info() {
 			source $READ_KDUMP_CONFIG 2>&1 | grep -v "deprecated, ignoring"
 			DUMPDIR=${KDUMP_SAVEDIR#file://}
 		else
-			DUMPDIR=''
+			DUMPDIR=$(kdumptool dump_config|grep KDUMP_SAVEDIR | awk -F= '{ print $2 }')
 		fi
 		if [[ -d $DUMPDIR ]]; then
 			log_cmd $OF "find ${DUMPDIR}/"
